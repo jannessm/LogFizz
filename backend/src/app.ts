@@ -6,12 +6,12 @@ import session from '@fastify/session';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { AppDataSource } from './config/database';
-import { authRoutes } from './routes/auth.routes';
-import { buttonRoutes } from './routes/button.routes';
-import { timeLogRoutes } from './routes/timelog.routes';
-import { holidayRoutes } from './routes/holiday.routes';
-import './types/session';
+import { AppDataSource } from './config/database.js';
+import { authRoutes } from './routes/auth.routes.js';
+import { buttonRoutes } from './routes/button.routes.js';
+import { timeLogRoutes } from './routes/timelog.routes.js';
+import { holidayRoutes } from './routes/holiday.routes.js';
+import './types/session.js';
 
 export async function buildApp() {
   const fastify = Fastify({
@@ -29,7 +29,7 @@ export async function buildApp() {
 
   // Register session support
   await fastify.register(session, {
-    secret: process.env.SESSION_SECRET || 'a-very-secret-key-change-in-production',
+    secret: process.env.SESSION_SECRET || 'a-very-secret-key-minimum-32-chars-change-in-production',
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
@@ -87,6 +87,13 @@ export async function startServer() {
     // Initialize database connection
     await AppDataSource.initialize();
     console.log('Database connected successfully');
+
+    // Run migrations in production
+    if (process.env.NODE_ENV === 'production') {
+      console.log('Running database migrations...');
+      await AppDataSource.runMigrations();
+      console.log('✓ Migrations completed');
+    }
 
     const app = await buildApp();
 

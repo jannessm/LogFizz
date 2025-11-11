@@ -1,5 +1,5 @@
-import { AppDataSource } from '../config/database';
-import { Button } from '../entities/Button';
+import { AppDataSource } from '../config/database.js';
+import { Button } from '../entities/Button.js';
 
 export class ButtonService {
   private buttonRepository = AppDataSource.getRepository(Button);

@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
-import { HolidayService } from '../services/holiday.service';
+import { HolidayService } from '../services/holiday.service.js';
 
 const holidayService = new HolidayService();
 

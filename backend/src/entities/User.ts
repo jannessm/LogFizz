@@ -1,6 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { Button } from './Button';
-import { TimeLog } from './TimeLog';
 
 @Entity('users')
 export class User {
@@ -25,9 +23,9 @@ export class User {
   @UpdateDateColumn()
   updated_at!: Date;
 
-  @OneToMany(() => Button, button => button.user)
-  buttons?: Button[];
+  @OneToMany('Button', 'user')
+  buttons?: any[];
 
-  @OneToMany(() => TimeLog, timeLog => timeLog.user)
-  time_logs?: TimeLog[];
+  @OneToMany('TimeLog', 'user')
+  time_logs?: any[];
 }

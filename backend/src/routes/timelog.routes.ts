@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
-import { TimeLogService } from '../services/timelog.service';
+import { TimeLogService } from '../services/timelog.service.js';
 
 const timeLogService = new TimeLogService();
 
@@ -24,6 +24,9 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
           id: Type.String(),
           button_id: Type.String(),
           start_time: Type.String(),
+        }),
+        400: Type.Object({
+          error: Type.String(),
         }),
       },
     },
@@ -57,6 +60,9 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
           end_time: Type.String(),
           duration: Type.Number(),
           break_time_subtracted: Type.Number(),
+        }),
+        400: Type.Object({
+          error: Type.String(),
         }),
       },
     },
@@ -204,6 +210,9 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
           end_time: Type.String(),
           duration: Type.Number(),
           is_manual: Type.Boolean(),
+        }),
+        400: Type.Object({
+          error: Type.String(),
         }),
       },
     },

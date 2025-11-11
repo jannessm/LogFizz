@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../services/auth.service.js';
 
 const authService = new AuthService();
 

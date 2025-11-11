@@ -1,6 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from './User';
-import { Button } from './Button';
 
 @Entity('time_logs')
 export class TimeLog {
@@ -31,11 +29,11 @@ export class TimeLog {
   @Column('boolean', { default: false })
   is_manual!: boolean;
 
-  @ManyToOne(() => User, user => user.time_logs, { onDelete: 'CASCADE' })
+  @ManyToOne('User', 'time_logs', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
-  user!: User;
+  user!: any;
 
-  @ManyToOne(() => Button, button => button.time_logs, { onDelete: 'CASCADE' })
+  @ManyToOne('Button', 'time_logs', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'button_id' })
-  button!: Button;
+  button!: any;
 }

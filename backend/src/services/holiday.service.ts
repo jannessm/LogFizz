@@ -1,5 +1,5 @@
-import { AppDataSource } from '../config/database';
-import { Holiday } from '../entities/Holiday';
+import { AppDataSource } from '../config/database.js';
+import { Holiday } from '../entities/Holiday.js';
 import { Between } from 'typeorm';
 
 export class HolidayService {

@@ -31,7 +31,7 @@ services:
       DB_DATABASE: clock_db
       PORT: 3000
       HOST: 0.0.0.0
-      SESSION_SECRET: change-this-in-production
+      SESSION_SECRET: change-this-secret-in-production-min-32-chars-required-for-security
       NODE_ENV: production
     ports:
       - "3000:3000"

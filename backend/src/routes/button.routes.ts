@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
-import { ButtonService } from '../services/button.service';
+import { ButtonService } from '../services/button.service.js';
 
 const buttonService = new ButtonService();
 

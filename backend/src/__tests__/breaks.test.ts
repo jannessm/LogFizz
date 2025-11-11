@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateBreakTime } from '../utils/breaks';
+import { calculateBreakTime } from '../utils/breaks.js';
 
 describe('Break Time Calculation', () => {
   it('should return 0 minutes for less than 6 hours', () => {

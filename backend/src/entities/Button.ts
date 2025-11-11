@@ -1,6 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
-import { User } from './User';
-import { TimeLog } from './TimeLog';
 
 @Entity('buttons')
 export class Button {
@@ -37,10 +35,10 @@ export class Button {
   @CreateDateColumn()
   created_at!: Date;
 
-  @ManyToOne(() => User, user => user.buttons, { onDelete: 'CASCADE' })
+  @ManyToOne('User', 'buttons', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
-  user!: User;
+  user!: any;
 
-  @OneToMany(() => TimeLog, timeLog => timeLog.button)
-  time_logs?: TimeLog[];
+  @OneToMany('TimeLog', 'button')
+  time_logs?: any[];
 }

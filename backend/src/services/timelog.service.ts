@@ -1,7 +1,7 @@
-import { AppDataSource } from '../config/database';
-import { TimeLog } from '../entities/TimeLog';
-import { Button } from '../entities/Button';
-import { calculateBreakTime } from '../utils/breaks';
+import { AppDataSource } from '../config/database.js';
+import { TimeLog } from '../entities/TimeLog.js';
+import { Button } from '../entities/Button.js';
+import { calculateBreakTime } from '../utils/breaks.js';
 import { Between, IsNull } from 'typeorm';
 
 export class TimeLogService {

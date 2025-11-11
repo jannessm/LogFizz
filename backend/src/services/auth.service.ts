@@ -1,6 +1,6 @@
-import { AppDataSource } from '../config/database';
-import { User } from '../entities/User';
-import { hashPassword, verifyPassword } from '../utils/password';
+import { AppDataSource } from '../config/database.js';
+import { User } from '../entities/User.js';
+import { hashPassword, verifyPassword } from '../utils/password.js';
 
 export class AuthService {
   private userRepository = AppDataSource.getRepository(User);
