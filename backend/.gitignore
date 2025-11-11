@@ -32,6 +32,5 @@ Thumbs.db
 logs/
 *.log
 
-# Test
-*.test.js
-*.test.ts
+# Test results (but keep test files)
+# Test files are kept in the repo
