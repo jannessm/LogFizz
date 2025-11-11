@@ -112,9 +112,13 @@ Once the server is running, visit:
 - `DELETE /api/timelogs/:id` - Delete time log
 
 ### Holidays
-- `GET /api/holidays/:country/:year` - Get holidays
+- `GET /api/holidays/:country/:year` - Get holidays (auto-fetches if missing/outdated)
 - `GET /api/holidays/workingdays/summary` - Get working days summary
+- `GET /api/holidays/countries` - Get list of available countries
+- `GET /api/holidays/metadata` - Get crawler metadata
 - `POST /api/holidays` - Add a holiday
+- `POST /api/holidays/crawl` - Manually crawl holidays for country/year
+- `POST /api/holidays/refresh` - Refresh outdated holiday data
 - `DELETE /api/holidays/:id` - Delete a holiday
 
 ## Testing
@@ -175,6 +179,16 @@ npm run test:coverage
 - `date` (Date)
 - `name` (String)
 - `year` (Number)
+
+### HolidayMetadata
+- `id` (UUID, PK)
+- `country` (String)
+- `year` (Number)
+- `last_fetched_at` (Timestamp)
+- `holiday_count` (Number)
+- `source_url` (String, optional)
+- `created_at` (Timestamp)
+- `updated_at` (Timestamp)
 
 ## Break Time Calculation
 

@@ -18,6 +18,8 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "created_at" TIMESTAMP NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
                 "deleted_at" TIMESTAMP,
+                "reset_token" character varying,
+                "reset_token_expires_at" TIMESTAMP,
                 CONSTRAINT "UQ_users_email" UNIQUE ("email"),
                 CONSTRAINT "PK_users_id" PRIMARY KEY ("id")
             )

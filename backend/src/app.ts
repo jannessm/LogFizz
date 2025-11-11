@@ -11,11 +11,15 @@ import { authRoutes } from './routes/auth.routes.js';
 import { buttonRoutes } from './routes/button.routes.js';
 import { timeLogRoutes } from './routes/timelog.routes.js';
 import { holidayRoutes } from './routes/holiday.routes.js';
+import { registerRateLimit } from './config/rateLimit.js';
 import './types/session.js';
 
 export async function buildApp() {
+  // Disable logging in test environment to reduce noise
+  const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+  
   const fastify = Fastify({
-    logger: true,
+    logger: !isTest,
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   // Register CORS
@@ -36,6 +40,9 @@ export async function buildApp() {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
   });
+
+  // Register rate limiting
+  await registerRateLimit(fastify);
 
   // Register Swagger
   await fastify.register(swagger, {

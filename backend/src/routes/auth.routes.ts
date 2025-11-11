@@ -1,12 +1,14 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { AuthService } from '../services/auth.service.js';
+import { authRateLimit, passwordResetRateLimit, generalAuthRateLimit } from '../config/rateLimit.js';
 
 const authService = new AuthService();
 
 export async function authRoutes(fastify: FastifyInstance) {
   // Register endpoint
   fastify.post('/register', {
+    ...authRateLimit,
     schema: {
       tags: ['Authentication'],
       body: Type.Object({
@@ -45,6 +47,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // Login endpoint
   fastify.post('/login', {
+    ...authRateLimit,
     schema: {
       tags: ['Authentication'],
       body: Type.Object({
@@ -129,6 +132,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // Change password endpoint
   fastify.put('/change-password', {
+    ...generalAuthRateLimit,
     schema: {
       tags: ['Authentication'],
       body: Type.Object({
@@ -201,6 +205,63 @@ export async function authRoutes(fastify: FastifyInstance) {
       email: user.email,
       name: user.name,
       state: user.state,
+    });
+  });
+
+  // Request password reset endpoint
+  fastify.post('/forgot-password', {
+    ...passwordResetRateLimit,
+    schema: {
+      tags: ['Authentication'],
+      body: Type.Object({
+        email: Type.String({ format: 'email' }),
+      }),
+      response: {
+        200: Type.Object({
+          message: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const { email } = request.body as any;
+    await authService.requestPasswordReset(email);
+
+    // Always return success to prevent email enumeration
+    return reply.send({ 
+      message: 'If an account with that email exists, a password reset link has been sent.' 
+    });
+  });
+
+  // Reset password endpoint
+  fastify.post('/reset-password', {
+    ...passwordResetRateLimit,
+    schema: {
+      tags: ['Authentication'],
+      body: Type.Object({
+        token: Type.String(),
+        newPassword: Type.String({ minLength: 8 }),
+      }),
+      response: {
+        200: Type.Object({
+          message: Type.String(),
+        }),
+        400: Type.Object({
+          error: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const { token, newPassword } = request.body as any;
+    const success = await authService.resetPassword(token, newPassword);
+
+    if (!success) {
+      return reply.code(400).send({ 
+        error: 'Invalid or expired reset token' 
+      });
+    }
+
+    return reply.send({ 
+      message: 'Password has been reset successfully' 
     });
   });
 }

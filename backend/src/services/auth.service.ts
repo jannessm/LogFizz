@@ -1,10 +1,13 @@
 import { AppDataSource } from '../config/database.js';
 import { User } from '../entities/User.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
-import { IsNull } from 'typeorm';
+import { IsNull, MoreThan } from 'typeorm';
+import { EmailService } from './email.service.js';
+import crypto from 'crypto';
 
 export class AuthService {
   private userRepository = AppDataSource.getRepository(User);
+  private emailService = new EmailService();
 
   async register(email: string, password: string, name: string, state?: string): Promise<User> {
     const existingUser = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
@@ -64,6 +67,58 @@ export class AuthService {
 
     user.password_hash = await hashPassword(newPassword);
     await this.userRepository.save(user);
+    return true;
+  }
+
+  async requestPasswordReset(email: string): Promise<boolean> {
+    const user = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
+    
+    // Don't reveal if user exists or not for security reasons
+    if (!user) {
+      return true;
+    }
+
+    // Generate a secure random token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    
+    // Token expires in 1 hour
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    user.reset_token = resetToken;
+    user.reset_token_expires_at = expiresAt;
+    await this.userRepository.save(user);
+
+    // Send password reset email
+    try {
+      await this.emailService.sendPasswordResetEmail(user.email, resetToken, user.name);
+    } catch (error) {
+      console.error('Failed to send password reset email:', error);
+      // Don't throw error to not reveal if user exists
+    }
+
+    return true;
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<boolean> {
+    const user = await this.userRepository.findOne({
+      where: {
+        reset_token: token,
+        reset_token_expires_at: MoreThan(new Date()),
+        deleted_at: IsNull(),
+      },
+    });
+
+    if (!user) {
+      return false;
+    }
+
+    // Update password and clear reset token
+    user.password_hash = await hashPassword(newPassword);
+    user.reset_token = null as any;
+    user.reset_token_expires_at = null as any;
+    await this.userRepository.save(user);
+
     return true;
   }
 }

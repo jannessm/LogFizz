@@ -1,0 +1,82 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [ main, develop, copilot/** ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-tests.yml'
+
+jobs:
+  test:
+    name: Run Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: clock_user
+          POSTGRES_PASSWORD: clock_password
+          POSTGRES_DB: clock_test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run tests
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: clock_user
+          DB_PASSWORD: clock_password
+          DB_DATABASE: clock_test_db
+          SESSION_SECRET: test-secret-key-for-ci-pipeline
+        run: npm test
+
+      - name: Generate test coverage
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USERNAME: clock_user
+          DB_PASSWORD: clock_password
+          DB_DATABASE: clock_test_db
+          SESSION_SECRET: test-secret-key-for-ci-pipeline
+        run: npm run test:coverage
+        continue-on-error: true
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          directory: backend/coverage
+          flags: backend
+          fail_ci_if_error: false
+        continue-on-error: true

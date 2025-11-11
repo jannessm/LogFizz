@@ -118,70 +118,6 @@ export async function buttonRoutes(fastify: FastifyInstance) {
     return reply.send(button);
   });
 
-  // Delete a button
-  fastify.delete('/:id', {
-    schema: {
-      tags: ['Buttons'],
-      params: Type.Object({
-        id: Type.String(),
-      }),
-      response: {
-        200: Type.Object({
-          message: Type.String(),
-        }),
-        404: Type.Object({
-          error: Type.String(),
-        }),
-      },
-    },
-  }, async (request, reply) => {
-    const userId = request.session.userId!;
-    const { id } = request.params as any;
-
-    const success = await buttonService.deleteButton(id, userId);
-    if (!success) {
-      return reply.code(404).send({ error: 'Button not found' });
-    }
-
-    return reply.send({ message: 'Button deleted successfully' });
-  });
-
-  // Get a specific button
-  fastify.get('/:id', {
-    schema: {
-      tags: ['Buttons'],
-      params: Type.Object({
-        id: Type.String(),
-      }),
-      response: {
-        200: Type.Object({
-          id: Type.String(),
-          name: Type.String(),
-          emoji: Type.Optional(Type.String()),
-          color: Type.Optional(Type.String()),
-          position: Type.Number(),
-          icon: Type.Optional(Type.String()),
-          goal_time_minutes: Type.Optional(Type.Number()),
-          goal_days: Type.Optional(Type.Array(Type.Number())),
-          auto_subtract_breaks: Type.Boolean(),
-        }),
-        404: Type.Object({
-          error: Type.String(),
-        }),
-      },
-    },
-  }, async (request, reply) => {
-    const userId = request.session.userId!;
-    const { id } = request.params as any;
-
-    const button = await buttonService.getButtonById(id, userId);
-    if (!button) {
-      return reply.code(404).send({ error: 'Button not found' });
-    }
-
-    return reply.send(button);
-  });
-
   // Sync endpoint - Get buttons changed since timestamp
   fastify.get('/sync', {
     schema: {
@@ -352,4 +288,69 @@ export async function buttonRoutes(fastify: FastifyInstance) {
 
     return reply.send(response);
   });
+
+  // Delete a button
+  fastify.delete('/:id', {
+    schema: {
+      tags: ['Buttons'],
+      params: Type.Object({
+        id: Type.String(),
+      }),
+      response: {
+        200: Type.Object({
+          message: Type.String(),
+        }),
+        404: Type.Object({
+          error: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.session.userId!;
+    const { id } = request.params as any;
+
+    const success = await buttonService.deleteButton(id, userId);
+    if (!success) {
+      return reply.code(404).send({ error: 'Button not found' });
+    }
+
+    return reply.send({ message: 'Button deleted successfully' });
+  });
+
+  // Get a specific button
+  fastify.get('/:id', {
+    schema: {
+      tags: ['Buttons'],
+      params: Type.Object({
+        id: Type.String(),
+      }),
+      response: {
+        200: Type.Object({
+          id: Type.String(),
+          name: Type.String(),
+          emoji: Type.Optional(Type.String()),
+          color: Type.Optional(Type.String()),
+          position: Type.Number(),
+          icon: Type.Optional(Type.String()),
+          goal_time_minutes: Type.Optional(Type.Number()),
+          goal_days: Type.Optional(Type.Array(Type.Number())),
+          auto_subtract_breaks: Type.Boolean(),
+        }),
+        404: Type.Object({
+          error: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.session.userId!;
+    const { id } = request.params as any;
+
+    const button = await buttonService.getButtonById(id, userId);
+    if (!button) {
+      return reply.code(404).send({ error: 'Button not found' });
+    }
+
+    return reply.send(button);
+  });
 }
+

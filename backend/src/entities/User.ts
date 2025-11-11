@@ -26,6 +26,12 @@ export class User {
   @Column('timestamptz', { nullable: true })
   deleted_at?: Date;
 
+  @Column('varchar', { nullable: true })
+  reset_token?: string;
+
+  @Column('timestamptz', { nullable: true })
+  reset_token_expires_at?: Date;
+
   @OneToMany('Button', 'user')
   buttons?: any[];
 
