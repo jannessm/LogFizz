@@ -4,6 +4,31 @@ This document outlines all the framework and technology decisions that need to b
 
 ---
 
+## ✅ Selected Technologies
+
+The following technologies have been chosen for this project:
+
+| Category | Technology | Details |
+|----------|-----------|---------|
+| **Backend** | Node.js with Fastify | Fast, modern framework with built-in validation |
+| **Database** | PostgreSQL | Robust RDBMS with ACID compliance |
+| **ORM** | TypeORM | Mature TypeScript ORM with decorator-based syntax |
+| **Frontend** | Svelte | Compiled, performant framework with minimal boilerplate |
+| **CSS** | Tailwind CSS | Utility-first CSS framework |
+| **Authentication** | Session-based | Traditional session management with server-side storage |
+| **API Documentation** | Swagger/OpenAPI | Industry standard API documentation |
+| **Testing** | Vitest | Fast, Vite-powered testing framework |
+| **Containerization** | Docker + Docker Compose | Container orchestration for development and deployment |
+| **Reverse Proxy** | Traefik | Modern, Docker-native reverse proxy with automatic HTTPS |
+| **Logging** | Simple Logging | Lightweight logging solution |
+| **iOS** | SwiftUI | Modern, declarative iOS framework |
+| **Caching** | Redis with persistence | In-memory cache with data persistence configured |
+| **HTTP Client** | Ky | Lightweight, modern HTTP client |
+| **Date/Time Library** | Day.js | Lightweight date manipulation library |
+| **Charting** | D3.js | Powerful data visualization library |
+
+---
+
 ## 1. Backend Framework
 
 ### Decision: Choose backend framework/runtime
