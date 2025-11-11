@@ -62,8 +62,8 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 
 #### 2.2 Database Schema Design
 - [ ] Design Users table (id, email, password_hash, name, country, created_at, updated_at)
-- [ ] Design Buttons table (id, user_id, name, color, position, icon, created_at)
-- [ ] Design TimeLogs table (id, user_id, button_id, start_time, end_time, duration, notes, is_manual)
+- [ ] Design Buttons table (id, user_id, name, emoji, color, position, icon, goal_time_minutes, goal_days, auto_subtract_breaks, created_at)
+- [ ] Design TimeLogs table (id, user_id, button_id, start_time, end_time, duration, break_time_subtracted, notes, is_manual)
 - [ ] Design Holidays table (id, country, date, name, year)
 - [ ] Create database migrations
 - [ ] Set up database seeding for development
@@ -83,8 +83,10 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - [ ] Create endpoint: POST /api/buttons (create new button)
 - [ ] Create endpoint: PUT /api/buttons/:id (update button)
 - [ ] Create endpoint: DELETE /api/buttons/:id (delete button)
-- [ ] Implement button validation logic
+- [ ] Implement button validation logic (name/emoji, color, goal settings)
 - [ ] Add authorization checks (users can only manage their buttons)
+- [ ] Validate goal_days array (e.g., [1,2,3,4,5] for weekdays)
+- [ ] Validate goal_time_minutes (positive integer)
 
 #### 2.5 Timer & Logging API
 - [ ] Create endpoint: POST /api/timelogs/start (start timer)
@@ -93,10 +95,12 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - [ ] Create endpoint: GET /api/timelogs/today/:button_id (get total time for button today)
 - [ ] Create endpoint: GET /api/timelogs/stats (statistics and reports)
 - [ ] Create endpoint: GET /api/timelogs/stats/yearly (yearly statistics per button)
+- [ ] Create endpoint: GET /api/timelogs/goal-progress/:button_id (check goal achievement)
 - [ ] Create endpoint: PUT /api/timelogs/:id (edit time log)
 - [ ] Create endpoint: DELETE /api/timelogs/:id (delete time log)
 - [ ] Create endpoint: POST /api/timelogs/manual (manually add past time logs)
 - [ ] Implement automatic timer stop on new timer start
+- [ ] Implement automatic break time calculation (German rules: >=6h: 30min, >=9h: 45min)
 - [ ] Add validation for overlapping time logs
 
 #### 2.6 Public Holidays API Integration
@@ -146,10 +150,16 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - [ ] Add "Add item" button on top of button grid
 - [ ] Add "Edit items" button on top of button grid to enter edit mode
 - [ ] Implement button configuration modal/form
-- [ ] Add drag-and-drop for button reordering
-- [ ] Implement button create/edit/delete functionality
+- [ ] Add option to name button with text or Unicode emoji
+- [ ] Add emoji picker for button naming
 - [ ] Add color picker for button customization
 - [ ] Add icon selector for buttons
+- [ ] Add goal time input (minutes per day)
+- [ ] Add day selector for goal tracking (e.g., Mon-Fri checkboxes)
+- [ ] Add toggle for automatic break subtraction
+- [ ] Display break subtraction rules (>=6h: 30min, >=9h: 45min)
+- [ ] Add drag-and-drop for button reordering
+- [ ] Implement button create/edit/delete functionality
 - [ ] Implement grid responsive behavior (mobile, tablet, desktop)
 
 #### 3.4 Timer Functionality
@@ -159,8 +169,11 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - [ ] Add visual indicator for active timer
 - [ ] Implement timer pause functionality (second click on enlarged button)
 - [ ] Log stop time to backend when timer is paused
+- [ ] Apply automatic break subtraction if enabled for button
 - [ ] Shrink button back to normal size after pause
 - [ ] Display total time spent on that button for the current day
+- [ ] Display goal progress indicator on button (e.g., progress bar or percentage)
+- [ ] Show time difference from goal (over/under) on applicable days
 - [ ] Display timer state persistence across page reloads
 - [ ] Handle multiple timer scenarios (stop previous when starting new)
 
@@ -256,9 +269,15 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 
 #### 5.3 iOS Main Features
 - [ ] Create button grid view in SwiftUI
-- [ ] Implement button configuration
+- [ ] Implement button configuration with emoji/text naming
+- [ ] Add emoji picker for iOS
+- [ ] Implement color picker for button customization
+- [ ] Add goal time and day selection settings
+- [ ] Add automatic break subtraction toggle
+- [ ] Display goal progress on buttons
 - [ ] Add timer functionality with animations
 - [ ] Implement background timer support
+- [ ] Apply break time calculation when stopping timer
 - [ ] Add push notifications for timer reminders
 - [ ] Create time logs view
 - [ ] Implement statistics view
