@@ -1,0 +1,83 @@
+// User types
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  country?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Button types
+export interface Button {
+  id: string;
+  user_id: string;
+  name: string;
+  emoji?: string;
+  color?: string;
+  position: number;
+  icon?: string;
+  goal_time_minutes?: number;
+  goal_days?: number[]; // Array of weekday numbers (0=Sunday, 1=Monday, etc.)
+  auto_subtract_breaks: boolean;
+  created_at: string;
+}
+
+// TimeLog types
+export interface TimeLog {
+  id: string;
+  user_id: string;
+  button_id: string;
+  start_time: string;
+  end_time?: string;
+  duration?: number; // in minutes
+  break_time_subtracted?: number; // in minutes
+  notes?: string;
+  is_manual: boolean;
+}
+
+// Holiday types
+export interface Holiday {
+  id: string;
+  country: string;
+  date: string;
+  name: string;
+  year: number;
+}
+
+// API response types
+export interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+// Sync types for offline-first
+export interface SyncQueueItem {
+  id: string;
+  type: 'button' | 'timelog';
+  operation: 'create' | 'update' | 'delete';
+  data: any;
+  timestamp: number;
+  synced: boolean;
+  error?: string;
+}
+
+// Goal progress type
+export interface GoalProgress {
+  button_id: string;
+  date: string;
+  goal_minutes: number;
+  actual_minutes: number;
+  achieved: boolean;
+  percentage: number;
+}
+
+// Statistics types
+export interface YearlyStats {
+  button_id: string;
+  button_name: string;
+  total_minutes: number;
+  total_hours: number;
+  entry_count: number;
+}

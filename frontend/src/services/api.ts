@@ -1,0 +1,180 @@
+import ky from 'ky';
+import type { User, Button, TimeLog, Holiday } from '../types';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+// Create a ky instance with default options
+const api = ky.create({
+  prefixUrl: API_BASE_URL,
+  credentials: 'include', // Important for session cookies
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Auth API
+export const authApi = {
+  async register(email: string, password: string, name: string): Promise<User> {
+    return api.post('api/auth/register', { json: { email, password, name } }).json();
+  },
+
+  async login(email: string, password: string): Promise<User> {
+    return api.post('api/auth/login', { json: { email, password } }).json();
+  },
+
+  async logout(): Promise<void> {
+    await api.post('api/auth/logout');
+  },
+
+  async getCurrentUser(): Promise<User> {
+    return api.get('api/auth/me').json();
+  },
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await api.put('api/auth/change-password', { 
+      json: { currentPassword, newPassword } 
+    });
+  },
+
+  async updateProfile(name: string, country?: string): Promise<User> {
+    return api.put('api/auth/profile', { json: { name, country } }).json();
+  },
+};
+
+// Button API
+export const buttonApi = {
+  async getAll(): Promise<Button[]> {
+    return api.get('api/buttons').json();
+  },
+
+  async get(id: string): Promise<Button> {
+    return api.get(`api/buttons/${id}`).json();
+  },
+
+  async create(button: Partial<Button>): Promise<Button> {
+    return api.post('api/buttons', { json: button }).json();
+  },
+
+  async update(id: string, button: Partial<Button>): Promise<Button> {
+    return api.put(`api/buttons/${id}`, { json: button }).json();
+  },
+
+  async delete(id: string): Promise<void> {
+    await api.delete(`api/buttons/${id}`);
+  },
+};
+
+// TimeLog API
+export const timeLogApi = {
+  async start(buttonId: string): Promise<TimeLog> {
+    return api.post('api/timelogs/start', { json: { button_id: buttonId } }).json();
+  },
+
+  async stop(id: string): Promise<TimeLog> {
+    return api.post(`api/timelogs/stop/${id}`).json();
+  },
+
+  async getActive(): Promise<TimeLog | null> {
+    try {
+      return await api.get('api/timelogs/active').json();
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  },
+
+  async getAll(params?: {
+    start_date?: string;
+    end_date?: string;
+    button_id?: string;
+  }): Promise<TimeLog[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.start_date) searchParams.set('start_date', params.start_date);
+    if (params?.end_date) searchParams.set('end_date', params.end_date);
+    if (params?.button_id) searchParams.set('button_id', params.button_id);
+    
+    return api.get('api/timelogs', { searchParams }).json();
+  },
+
+  async getTodayTime(buttonId: string): Promise<{ total_minutes: number }> {
+    return api.get(`api/timelogs/today/${buttonId}`).json();
+  },
+
+  async getYearlyStats(year?: number): Promise<any[]> {
+    const searchParams = year ? new URLSearchParams({ year: year.toString() }) : undefined;
+    return api.get('api/timelogs/stats/yearly', { searchParams }).json();
+  },
+
+  async getGoalProgress(buttonId: string, date?: string): Promise<any> {
+    const searchParams = date ? new URLSearchParams({ date }) : undefined;
+    return api.get(`api/timelogs/goal-progress/${buttonId}`, { searchParams }).json();
+  },
+
+  async createManual(timeLog: Partial<TimeLog>): Promise<TimeLog> {
+    return api.post('api/timelogs/manual', { json: timeLog }).json();
+  },
+
+  async update(id: string, timeLog: Partial<TimeLog>): Promise<TimeLog> {
+    return api.put(`api/timelogs/${id}`, { json: timeLog }).json();
+  },
+
+  async delete(id: string): Promise<void> {
+    await api.delete(`api/timelogs/${id}`);
+  },
+};
+
+// Holiday API
+export const holidayApi = {
+  async getHolidays(country: string, year: number): Promise<Holiday[]> {
+    return api.get(`api/holidays/${country}/${year}`).json();
+  },
+
+  async getWorkingDays(params: {
+    country: string;
+    year: number;
+    month?: number;
+  }): Promise<any> {
+    const searchParams = new URLSearchParams({
+      country: params.country,
+      year: params.year.toString(),
+    });
+    if (params.month) {
+      searchParams.set('month', params.month.toString());
+    }
+    return api.get('api/holidays/workingdays/summary', { searchParams }).json();
+  },
+
+  async getCountries(): Promise<string[]> {
+    return api.get('api/holidays/countries').json();
+  },
+};
+
+// Check if online
+export function isOnline(): boolean {
+  return navigator.onLine;
+}
+
+// Retry with exponential backoff
+export async function retryRequest<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  delay = 1000
+): Promise<T> {
+  let lastError: Error | undefined;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      if (i < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+      }
+    }
+  }
+  
+  throw lastError;
+}
