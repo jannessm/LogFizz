@@ -33,11 +33,20 @@ services:
       HOST: 0.0.0.0
       SESSION_SECRET: change-this-secret-in-production-min-32-chars-required-for-security
       NODE_ENV: production
-    ports:
-      - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clock-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
     restart: unless-stopped
 
 volumes:

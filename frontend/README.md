@@ -1,47 +1,216 @@
-# Svelte + TS + Vite
+# Clock Frontend - Offline-First Time Tracking Web App
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+A progressive web application built with Svelte and TypeScript that provides an offline-first time tracking experience.
 
-## Recommended IDE Setup
+## Features
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+### 🔒 Authentication
+- User registration and login
+- Session-based authentication
+- Secure password management
+- Profile customization
 
-## Need an official Svelte framework?
+### ⏱️ Timer Management
+- Create customizable tracking buttons
+- Start/stop timers with one click
+- Visual timer feedback with enlarged buttons
+- Real-time elapsed time display
+- Track multiple activities
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+### 🎯 Goal Tracking
+- Set daily time goals per button
+- Configure goal days (weekdays, weekends, etc.)
+- Visual progress indicators
+- Automatic break time calculation
+- German labor law compliance (6h: 30min, 9h: 45min breaks)
 
-## Technical considerations
+### 📊 Statistics & History
+- Yearly statistics per activity
+- Recent entries view
+- Time breakdowns
+- Total hours and minutes tracking
 
-**Why use this over SvelteKit?**
+### 🔄 Offline-First Architecture
+- **IndexedDB** for local data persistence
+- **Sync Queue** for offline changes
+- **Automatic sync** when connection is restored
+- **Local-first** approach - works completely offline
+- **Background sync** every 5 minutes when online
+- Visual offline/online indicators
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+### ⚙️ Settings
+- Profile management
+- Password change
+- Manual sync trigger
+- Sync status monitoring
 
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+## Technology Stack
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
+- **Framework**: Svelte 5
+- **Build Tool**: Vite
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Routing**: svelte-routing
+- **HTTP Client**: Ky
+- **Date Handling**: Day.js
+- **Offline Storage**: IndexedDB (via idb)
+- **State Management**: Svelte stores
 
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
+## Getting Started
 
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
+### Prerequisites
 
-**Why include `.vscode/extensions.json`?**
+- Node.js 18+
+- npm or yarn
 
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
+### Installation
 
-**Why enable `allowJs` in the TS template?**
+```bash
+# Install dependencies
+npm install
 
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
+# Copy environment variables
+cp .env.example .env
 
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+# Edit .env to configure API endpoint
+# VITE_API_URL=http://localhost:3000
 ```
+
+### Development
+
+```bash
+# Start development server
+npm run dev
+
+# Server will start on http://localhost:5173
+```
+
+### Build
+
+```bash
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+### Docker Deployment
+
+```bash
+# Build Docker image
+docker build -t clock-frontend .
+
+# Run container
+docker run -p 8080:80 clock-frontend
+```
+
+Or use docker-compose from project root:
+
+```bash
+# Start all services (frontend, backend, database)
+docker-compose up -d
+```
+
+Frontend will be available at: http://localhost:8080
+
+## Project Structure
+
+```
+frontend/
+├── src/
+│   ├── components/        # Reusable UI components
+│   │   ├── BottomNav.svelte
+│   │   ├── ButtonForm.svelte
+│   │   ├── ButtonGrid.svelte
+│   │   └── TimerButton.svelte
+│   ├── routes/           # Page components
+│   │   ├── Dashboard.svelte
+│   │   ├── History.svelte
+│   │   ├── Login.svelte
+│   │   └── Settings.svelte
+│   ├── stores/           # Svelte stores for state
+│   │   ├── auth.ts
+│   │   ├── buttons.ts
+│   │   └── timelogs.ts
+│   ├── services/         # Business logic
+│   │   ├── api.ts        # HTTP API client
+│   │   └── sync.ts       # Offline sync service
+│   ├── lib/
+│   │   └── db/           # IndexedDB wrapper
+│   │       └── index.ts
+│   ├── types/            # TypeScript types
+│   │   └── index.ts
+│   ├── App.svelte        # Root component
+│   ├── main.ts           # Entry point
+│   └── app.css           # Global styles
+├── Dockerfile            # Production Docker image
+├── nginx.conf            # Nginx configuration
+└── package.json
+```
+
+## Offline-First Architecture
+
+### How it Works
+
+1. **Local Storage**: All data is stored in IndexedDB immediately when created/modified
+2. **Sync Queue**: Changes are added to a sync queue when offline
+3. **Auto Sync**: When connection is restored, queued changes are synced to the server
+4. **Conflict Resolution**: Server data takes precedence, with local changes merged
+
+### Data Flow
+
+```
+User Action → Store → IndexedDB (immediate) → Sync Queue → Backend API
+                                                    ↓
+                                              (when online)
+```
+
+### IndexedDB Schema
+
+- **buttons**: User's tracking buttons
+- **timelogs**: Time log entries
+- **syncQueue**: Pending sync operations
+- **user**: Current user data
+- **settings**: App settings
+
+## API Integration
+
+The frontend communicates with the backend API at `http://localhost:3000` (configurable via `VITE_API_URL`).
+
+### API Endpoints Used
+
+- Authentication: `/api/auth/*`
+- Buttons: `/api/buttons/*`
+- Time Logs: `/api/timelogs/*`
+- Holidays: `/api/holidays/*`
+
+All API calls automatically include credentials (cookies) for session authentication.
+
+## Environment Variables
+
+Create a `.env` file:
+
+```bash
+VITE_API_URL=http://localhost:3000
+```
+
+## Development Tips
+
+- Use browser DevTools → Application → IndexedDB to inspect local data
+- Check Network tab to see API calls and offline behavior
+- Toggle offline mode in DevTools to test offline functionality
+- Check Console for sync events and errors
+
+## Browser Compatibility
+
+- Chrome/Edge: Full support
+- Firefox: Full support
+- Safari: Full support (iOS 12.2+)
+- Opera: Full support
+
+IndexedDB is supported in all modern browsers.
+
+## License
+
+[To be determined]
