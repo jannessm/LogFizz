@@ -61,6 +61,18 @@ CREATE USER clock_user WITH ENCRYPTED PASSWORD 'clock_password';
 GRANT ALL PRIVILEGES ON DATABASE clock_db TO clock_user;
 ```
 
+5. (Optional) Seed the database with sample data:
+```bash
+npm run seed
+```
+
+This will create:
+- 2 sample users (`demo@example.com` / `demo123` and `test@example.com` / `test123`)
+- 5 pre-configured buttons with different goals
+- Sample time logs for the past 7 days
+- 1 active timer for testing
+- German and US holidays
+
 ## Running the Application
 
 ### Development Mode
@@ -123,6 +135,13 @@ Once the server is running, visit:
 
 ## Testing
 
+### Local Testing
+
+The test suite requires PostgreSQL to be running. Tests will automatically:
+- Create a test database (`clock_test_db`) if it doesn't exist
+- Clean and reinitialize the schema before each test suite
+- Use environment variables for database configuration
+
 Run tests:
 ```bash
 npm test
@@ -137,6 +156,18 @@ Run tests with coverage:
 ```bash
 npm run test:coverage
 ```
+
+### CI/CD Testing
+
+The CI workflow automatically:
+- Sets up a PostgreSQL 14 service container
+- Configures database credentials via environment variables
+- Waits for PostgreSQL to be ready before running tests
+- Runs the full test suite with coverage reporting
+
+The workflow is triggered on:
+- Push to `main`, `develop`, or `copilot/**` branches (when backend files change)
+- Pull requests to `main` or `develop` branches (when backend files change)
 
 ## Database Schema
 

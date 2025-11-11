@@ -31,6 +31,15 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+    
+    env:
+      NODE_ENV: test
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USERNAME: clock_user
+      DB_PASSWORD: clock_password
+      DB_DATABASE: clock_test_db
+      SESSION_SECRET: test-secret-key-for-ci-pipeline
 
     steps:
       - name: Checkout code
@@ -47,28 +56,22 @@ jobs:
         working-directory: backend
         run: npm ci
 
+      - name: Wait for PostgreSQL
+        run: |
+          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U clock_user; do sleep 1; done'
+          echo "PostgreSQL is ready!"
+
+      - name: Verify database connection
+        run: |
+          PGPASSWORD=clock_password psql -h localhost -U clock_user -d clock_test_db -c '\l'
+          echo "Database connection verified!"
+
       - name: Run tests
         working-directory: backend
-        env:
-          NODE_ENV: test
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USERNAME: clock_user
-          DB_PASSWORD: clock_password
-          DB_DATABASE: clock_test_db
-          SESSION_SECRET: test-secret-key-for-ci-pipeline
         run: npm test
 
       - name: Generate test coverage
         working-directory: backend
-        env:
-          NODE_ENV: test
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USERNAME: clock_user
-          DB_PASSWORD: clock_password
-          DB_DATABASE: clock_test_db
-          SESSION_SECRET: test-secret-key-for-ci-pipeline
         run: npm run test:coverage
         continue-on-error: true
 
