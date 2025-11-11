@@ -4,15 +4,20 @@ A comprehensive time tracking application for managing working hours, home offic
 
 ## Overview
 
-The Clock app is a web-based time tracking system with a planned iOS extension. Users can create custom tracking buttons, start timers with a single click, and automatically log their activities to a centralized backend.
+The Clock app is a web-based time tracking system with a planned iOS extension. Users can create custom tracking buttons, start timers with a single click, pause them with a second click, and automatically log their activities to a centralized backend.
 
 **Key Features:**
 - User authentication and management
-- Customizable activity tracking buttons
-- Visual timer interface with button enlargement
+- Customizable activity tracking buttons with add/edit controls
+- Visual timer interface with button enlargement and pause functionality
+- Daily time tracking display on each button
+- Bottom navigation with Timer, History, and Settings tabs
+- History view with yearly statistics, calendar view, and manual entry
+- Settings for country-specific working days and public holidays
+- Account management (password, name, email changes)
 - Automatic logging to backend
 - Docker-based deployment for both frontend and backend
-- Future iOS/Swift app support
+- iOS app with widgets and Live Activities for lock screen timer control
 
 ---
 
@@ -56,9 +61,10 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - [ ] Set up API documentation (Swagger/OpenAPI)
 
 #### 2.2 Database Schema Design
-- [ ] Design Users table (id, email, password_hash, name, created_at, updated_at)
+- [ ] Design Users table (id, email, password_hash, name, country, created_at, updated_at)
 - [ ] Design Buttons table (id, user_id, name, color, position, icon, created_at)
-- [ ] Design TimeLogs table (id, user_id, button_id, start_time, end_time, duration, notes)
+- [ ] Design TimeLogs table (id, user_id, button_id, start_time, end_time, duration, notes, is_manual)
+- [ ] Design Holidays table (id, country, date, name, year)
 - [ ] Create database migrations
 - [ ] Set up database seeding for development
 
@@ -84,13 +90,24 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - [ ] Create endpoint: POST /api/timelogs/start (start timer)
 - [ ] Create endpoint: POST /api/timelogs/stop (stop timer)
 - [ ] Create endpoint: GET /api/timelogs (list time logs with filters)
+- [ ] Create endpoint: GET /api/timelogs/today/:button_id (get total time for button today)
 - [ ] Create endpoint: GET /api/timelogs/stats (statistics and reports)
+- [ ] Create endpoint: GET /api/timelogs/stats/yearly (yearly statistics per button)
 - [ ] Create endpoint: PUT /api/timelogs/:id (edit time log)
 - [ ] Create endpoint: DELETE /api/timelogs/:id (delete time log)
+- [ ] Create endpoint: POST /api/timelogs/manual (manually add past time logs)
 - [ ] Implement automatic timer stop on new timer start
 - [ ] Add validation for overlapping time logs
 
-#### 2.6 Backend Testing & Quality
+#### 2.6 Public Holidays API Integration
+- [ ] Create endpoint: GET /api/holidays/:country/:year (fetch holidays)
+- [ ] Implement caching for holiday data
+- [ ] Create service to crawl https://www.arbeitstage.org/feiertage/
+- [ ] Store holiday data in database
+- [ ] Create endpoint: GET /api/workingdays/summary (calculate working days)
+- [ ] Implement logic to exclude public holidays from working days calculation
+
+#### 2.7 Backend Testing & Quality
 - [ ] Set up testing framework (Jest, pytest, etc.)
 - [ ] Write unit tests for authentication
 - [ ] Write unit tests for button management
@@ -125,6 +142,8 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 #### 3.3 Main Dashboard & Button Grid
 - [ ] Design responsive grid layout
 - [ ] Create Button component with customizable styling
+- [ ] Add "Add item" button on top of button grid
+- [ ] Add "Edit items" button on top of button grid to enter edit mode
 - [ ] Implement button configuration modal/form
 - [ ] Add drag-and-drop for button reordering
 - [ ] Implement button create/edit/delete functionality
@@ -137,36 +156,58 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - [ ] Create timer animation (button enlargement effect)
 - [ ] Display running timer with elapsed time
 - [ ] Add visual indicator for active timer
-- [ ] Implement timer stop functionality
-- [ ] Show confirmation before stopping timer
+- [ ] Implement timer pause functionality (second click on enlarged button)
+- [ ] Log stop time to backend when timer is paused
+- [ ] Shrink button back to normal size after pause
+- [ ] Display total time spent on that button for the current day
 - [ ] Display timer state persistence across page reloads
 - [ ] Handle multiple timer scenarios (stop previous when starting new)
 
-#### 3.5 Time Log Management
-- [ ] Create time logs history page
-- [ ] Implement filtering by date range
+#### 3.5 Bottom Navigation Bar
+- [ ] Create bottom navigation bar component
+- [ ] Add "Timer" tab (button grid view)
+- [ ] Add "History" tab
+- [ ] Add "Settings" tab
+- [ ] Implement active tab highlighting
+- [ ] Add navigation between tabs
+
+#### 3.6 History View
+- [ ] Create history page accessible from bottom navigation
+- [ ] Display overall statistics per button (summary of time spent on each task)
+- [ ] Add year selector for filtering statistics
+- [ ] Implement calendar view showing all activities
+- [ ] Add visual indicators for activities on calendar days
+- [ ] Create "Add manual entry" button for past items
+- [ ] Implement manual time log entry form with date/time picker
+- [ ] Display detailed daily breakdown when clicking calendar days
+
+#### 3.7 Settings View
+- [ ] Create settings page accessible from bottom navigation
+- [ ] Add country selector dropdown
+- [ ] Integrate with https://www.arbeitstage.org/feiertage/ API
+- [ ] Fetch and display public holidays for selected country
+- [ ] Calculate and display working days summary (exclude holidays)
+- [ ] Add account management section
+- [ ] Implement change password form
+- [ ] Implement change name form
+- [ ] Implement change email form
+- [ ] Add account deletion option with confirmation
+
+#### 3.8 Time Log Management (Admin)
+- [ ] Implement filtering by date range in history view
 - [ ] Implement filtering by button/activity type
-- [ ] Add manual time log entry form
 - [ ] Implement time log editing
 - [ ] Add time log deletion with confirmation
 - [ ] Create export functionality (CSV/PDF)
 
-#### 3.6 Statistics & Reports
-- [ ] Create dashboard with time statistics
+#### 3.9 Statistics & Reports
 - [ ] Implement daily/weekly/monthly views
 - [ ] Add charts and visualizations (chart.js, recharts, etc.)
 - [ ] Show total hours per activity type
-- [ ] Create calendar view with time logs
 - [ ] Add comparison views (week over week, etc.)
+- [ ] Display year-over-year statistics
 
-#### 3.7 User Settings
-- [ ] Create user profile page
-- [ ] Add password change functionality
-- [ ] Implement email change functionality
-- [ ] Add account deletion option
-- [ ] Create user preferences (theme, notifications, etc.)
-
-#### 3.8 Frontend Testing & Quality
+#### 3.10 Frontend Testing & Quality
 - [ ] Set up testing library (Vitest, Jest, Cypress)
 - [ ] Write unit tests for components
 - [ ] Write integration tests for user flows
@@ -221,13 +262,31 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - [ ] Create time logs view
 - [ ] Implement statistics view
 
-#### 5.4 iOS-Specific Features
-- [ ] Add widgets for quick timer start
+#### 5.4 iOS Widgets
+- [ ] Create widget extension target in Xcode
+- [ ] Design widget layout to display timer buttons
+- [ ] Implement widget configuration (select which buttons to show)
+- [ ] Add tap handlers to start timers from widget
+- [ ] Implement widget refresh mechanism
+- [ ] Support multiple widget sizes (small, medium, large)
+- [ ] Update widget when timer state changes
+
+#### 5.5 iOS Live Activities
+- [ ] Create Live Activity target in Xcode
+- [ ] Design Live Activity UI for lock screen
+- [ ] Display running timer information (button name, elapsed time)
+- [ ] Add pause button to Live Activity
+- [ ] Implement pause functionality from lock screen
+- [ ] Update Live Activity in real-time with timer progress
+- [ ] Handle Live Activity lifecycle (start, update, end)
+- [ ] Add Dynamic Island support for iPhone 14 Pro and later
+
+#### 5.6 iOS-Specific Features
 - [ ] Implement Apple Watch companion app
 - [ ] Add Siri shortcuts integration
 - [ ] Implement app icon customization
 
-#### 5.5 iOS Testing & Deployment
+#### 5.7 iOS Testing & Deployment
 - [ ] Write unit tests
 - [ ] Write UI tests
 - [ ] Test on multiple device sizes
