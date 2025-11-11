@@ -21,7 +21,7 @@ describe('Authentication Routes', () => {
         email: `test${Date.now()}@example.com`,
         password: 'testpassword123',
         name: 'Test User',
-        country: 'DE',
+        state: 'CA',
       },
     });
 
@@ -29,7 +29,7 @@ describe('Authentication Routes', () => {
     const body = JSON.parse(response.body);
     expect(body.email).toBeDefined();
     expect(body.name).toBe('Test User');
-    expect(body.country).toBe('DE');
+    expect(body.state).toBe('CA');
     expect(body.password_hash).toBeUndefined();
   });
 

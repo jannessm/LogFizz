@@ -13,14 +13,14 @@ export async function authRoutes(fastify: FastifyInstance) {
         email: Type.String({ format: 'email' }),
         password: Type.String({ minLength: 8 }),
         name: Type.String(),
-        country: Type.Optional(Type.String()),
+        state: Type.Optional(Type.String()),
       }),
       response: {
         201: Type.Object({
           id: Type.String(),
           email: Type.String(),
           name: Type.String(),
-          country: Type.Optional(Type.String()),
+          state: Type.Optional(Type.String()),
         }),
         400: Type.Object({
           error: Type.String(),
@@ -29,14 +29,14 @@ export async function authRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const { email, password, name, country } = request.body as any;
-      const user = await authService.register(email, password, name, country);
+      const { email, password, name, state } = request.body as any;
+      const user = await authService.register(email, password, name, state);
       
       return reply.code(201).send({
         id: user.id,
         email: user.email,
         name: user.name,
-        country: user.country,
+        state: user.state,
       });
     } catch (error: any) {
       return reply.code(400).send({ error: error.message });
@@ -56,7 +56,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           id: Type.String(),
           email: Type.String(),
           name: Type.String(),
-          country: Type.Optional(Type.String()),
+          state: Type.Optional(Type.String()),
         }),
         401: Type.Object({
           error: Type.String(),
@@ -77,7 +77,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       id: user.id,
       email: user.email,
       name: user.name,
-      country: user.country,
+      state: user.state,
     });
   });
 
@@ -100,7 +100,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           id: Type.String(),
           email: Type.String(),
           name: Type.String(),
-          country: Type.Optional(Type.String()),
+          state: Type.Optional(Type.String()),
         }),
         401: Type.Object({
           error: Type.String(),
@@ -123,7 +123,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       id: user.id,
       email: user.email,
       name: user.name,
-      country: user.country,
+      state: user.state,
     });
   });
 
@@ -168,14 +168,14 @@ export async function authRoutes(fastify: FastifyInstance) {
       body: Type.Object({
         name: Type.Optional(Type.String()),
         email: Type.Optional(Type.String({ format: 'email' })),
-        country: Type.Optional(Type.String()),
+        state: Type.Optional(Type.String()),
       }),
       response: {
         200: Type.Object({
           id: Type.String(),
           email: Type.String(),
           name: Type.String(),
-          country: Type.Optional(Type.String()),
+          state: Type.Optional(Type.String()),
         }),
         401: Type.Object({
           error: Type.String(),
@@ -200,7 +200,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       id: user.id,
       email: user.email,
       name: user.name,
-      country: user.country,
+      state: user.state,
     });
   });
 }

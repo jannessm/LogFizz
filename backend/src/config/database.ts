@@ -21,4 +21,8 @@ export const AppDataSource = new DataSource({
   subscribers: [],
   migrations: [InitialSchema1699700000000],
   migrationsRun: isProduction, // Auto-run migrations in production
+  // Ensure PostgreSQL uses UTC for all timestamps
+  extra: {
+    timezone: 'UTC',
+  },
 });

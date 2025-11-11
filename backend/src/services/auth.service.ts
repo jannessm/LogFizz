@@ -1,12 +1,13 @@
 import { AppDataSource } from '../config/database.js';
 import { User } from '../entities/User.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
+import { IsNull } from 'typeorm';
 
 export class AuthService {
   private userRepository = AppDataSource.getRepository(User);
 
-  async register(email: string, password: string, name: string, country?: string): Promise<User> {
-    const existingUser = await this.userRepository.findOne({ where: { email } });
+  async register(email: string, password: string, name: string, state?: string): Promise<User> {
+    const existingUser = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
     if (existingUser) {
       throw new Error('User already exists');
     }
@@ -16,14 +17,14 @@ export class AuthService {
       email,
       password_hash,
       name,
-      country,
+      state,
     });
 
     return this.userRepository.save(user);
   }
 
   async login(email: string, password: string): Promise<User | null> {
-    const user = await this.userRepository.findOne({ where: { email } });
+    const user = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
     if (!user) {
       return null;
     }
@@ -37,7 +38,7 @@ export class AuthService {
   }
 
   async getUserById(id: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { id } });
+    return this.userRepository.findOne({ where: { id, deleted_at: IsNull() } });
   }
 
   async updateUser(id: string, updates: Partial<User>): Promise<User | null> {

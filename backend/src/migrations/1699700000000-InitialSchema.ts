@@ -14,9 +14,10 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "email" character varying NOT NULL,
                 "password_hash" character varying NOT NULL,
                 "name" character varying NOT NULL,
-                "country" character varying,
+                "state" character varying,
                 "created_at" TIMESTAMP NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
+                "deleted_at" TIMESTAMP,
                 CONSTRAINT "UQ_users_email" UNIQUE ("email"),
                 CONSTRAINT "PK_users_id" PRIMARY KEY ("id")
             )
@@ -36,6 +37,8 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "goal_days" text,
                 "auto_subtract_breaks" boolean NOT NULL DEFAULT false,
                 "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+                "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
+                "deleted_at" TIMESTAMP,
                 CONSTRAINT "PK_buttons_id" PRIMARY KEY ("id"),
                 CONSTRAINT "FK_buttons_user_id" FOREIGN KEY ("user_id") 
                     REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION
@@ -48,12 +51,14 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "user_id" uuid NOT NULL,
                 "button_id" uuid NOT NULL,
-                "start_time" TIMESTAMP NOT NULL,
-                "end_time" TIMESTAMP,
-                "duration" integer,
-                "break_time_subtracted" integer NOT NULL DEFAULT 0,
+                "type" character varying NOT NULL,
+                "timestamp" TIMESTAMP NOT NULL,
+                "apply_break_calculation" boolean NOT NULL DEFAULT false,
                 "notes" text,
                 "is_manual" boolean NOT NULL DEFAULT false,
+                "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+                "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
+                "deleted_at" TIMESTAMP,
                 CONSTRAINT "PK_time_logs_id" PRIMARY KEY ("id"),
                 CONSTRAINT "FK_time_logs_user_id" FOREIGN KEY ("user_id") 
                     REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
@@ -78,8 +83,13 @@ export class InitialSchema1699700000000 implements MigrationInterface {
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_buttons_user_id" ON "buttons" ("user_id")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_user_id" ON "time_logs" ("user_id")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_button_id" ON "time_logs" ("button_id")`);
-        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_start_time" ON "time_logs" ("start_time")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_timestamp" ON "time_logs" ("timestamp")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_holidays_country_year" ON "holidays" ("country", "year")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_users_deleted_at" ON "users" ("deleted_at")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_buttons_deleted_at" ON "buttons" ("deleted_at")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_deleted_at" ON "time_logs" ("deleted_at")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_buttons_updated_at" ON "buttons" ("updated_at")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_updated_at" ON "time_logs" ("updated_at")`);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {

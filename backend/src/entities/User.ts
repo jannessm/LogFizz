@@ -15,13 +15,16 @@ export class User {
   name!: string;
 
   @Column('varchar', { nullable: true })
-  country?: string;
+  state?: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamptz' })
   updated_at!: Date;
+
+  @Column('timestamptz', { nullable: true })
+  deleted_at?: Date;
 
   @OneToMany('Button', 'user')
   buttons?: any[];

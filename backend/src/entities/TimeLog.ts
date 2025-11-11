@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity('time_logs')
 export class TimeLog {
@@ -14,8 +14,11 @@ export class TimeLog {
   @Column('varchar')
   type!: 'start' | 'stop';
 
-  @Column('timestamp')
+  @Column('timestamptz')
   timestamp!: Date;
+
+  @Column('varchar', { nullable: true })
+  timezone?: string;
 
   @Column('boolean', { default: false })
   apply_break_calculation!: boolean;
@@ -25,6 +28,15 @@ export class TimeLog {
 
   @Column('boolean', { default: false })
   is_manual!: boolean;
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  created_at!: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz' })
+  updated_at!: Date;
+
+  @Column('timestamptz', { nullable: true })
+  deleted_at?: Date;
 
   @ManyToOne('User', 'time_logs', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })

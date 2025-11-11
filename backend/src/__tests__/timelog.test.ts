@@ -129,6 +129,7 @@ describe('TimeLog Routes', () => {
       headers: {
         cookie: authCookie,
       },
+      payload: {},
     });
 
     expect(stopResponse.statusCode).toBe(200);

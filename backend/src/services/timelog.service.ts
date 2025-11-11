@@ -2,19 +2,19 @@ import { AppDataSource } from '../config/database.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Button } from '../entities/Button.js';
 import { calculateBreakTime } from '../utils/breaks.js';
-import { Between } from 'typeorm';
+import { Between, IsNull, MoreThan } from 'typeorm';
 
 export class TimeLogService {
   private timeLogRepository = AppDataSource.getRepository(TimeLog);
   private buttonRepository = AppDataSource.getRepository(Button);
 
-  async startTimer(userId: string, buttonId: string): Promise<TimeLog> {
+  async startTimer(userId: string, buttonId: string, timezone?: string): Promise<TimeLog> {
     // Stop any active timers for this user
     await this.stopActiveTimers(userId);
 
     // Verify button belongs to user
     const button = await this.buttonRepository.findOne({
-      where: { id: buttonId, user_id: userId },
+      where: { id: buttonId, user_id: userId, deleted_at: IsNull() },
     });
 
     if (!button) {
@@ -26,15 +26,16 @@ export class TimeLogService {
       button_id: buttonId,
       type: 'start',
       timestamp: new Date(),
+      timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       apply_break_calculation: button.auto_subtract_breaks,
     });
 
     return this.timeLogRepository.save(timeLog);
   }
 
-  async stopTimer(userId: string, startLogId: string): Promise<TimeLog> {
+  async stopTimer(userId: string, startLogId: string, timezone?: string): Promise<TimeLog> {
     const startLog = await this.timeLogRepository.findOne({
-      where: { id: startLogId, user_id: userId, type: 'start' },
+      where: { id: startLogId, user_id: userId, type: 'start', deleted_at: IsNull() },
       relations: ['button'],
     });
 
@@ -48,6 +49,7 @@ export class TimeLogService {
         user_id: userId,
         button_id: startLog.button_id,
         type: 'stop',
+        deleted_at: IsNull(),
       },
       order: { timestamp: 'DESC' },
     });
@@ -61,6 +63,7 @@ export class TimeLogService {
       button_id: startLog.button_id,
       type: 'stop',
       timestamp: new Date(),
+      timezone: timezone || startLog.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       apply_break_calculation: startLog.apply_break_calculation,
     });
 
@@ -85,7 +88,7 @@ export class TimeLogService {
 
   private async getActiveTimers(userId: string): Promise<TimeLog[]> {
     const startLogs = await this.timeLogRepository.find({
-      where: { user_id: userId, type: 'start' },
+      where: { user_id: userId, type: 'start', deleted_at: IsNull() },
       order: { timestamp: 'DESC' },
     });
 
@@ -98,6 +101,7 @@ export class TimeLogService {
           user_id: userId,
           button_id: startLog.button_id,
           type: 'stop',
+          deleted_at: IsNull(),
         },
         order: { timestamp: 'DESC' },
       });
@@ -121,7 +125,7 @@ export class TimeLogService {
     endDate?: Date,
     buttonId?: string
   ): Promise<TimeLog[]> {
-    const where: any = { user_id: userId };
+    const where: any = { user_id: userId, deleted_at: IsNull() };
 
     if (startDate && endDate) {
       where.timestamp = Between(startDate, endDate);
@@ -149,6 +153,7 @@ export class TimeLogService {
         user_id: userId,
         button_id: buttonId,
         timestamp: Between(today, tomorrow),
+        deleted_at: IsNull(),
       },
       order: { timestamp: 'ASC' },
     });
@@ -182,6 +187,7 @@ export class TimeLogService {
       where: {
         user_id: userId,
         timestamp: Between(startDate, endDate),
+        deleted_at: IsNull(),
       },
       relations: ['button'],
       order: { timestamp: 'ASC' },
@@ -226,22 +232,26 @@ export class TimeLogService {
     buttonId: string,
     startTime: Date,
     endTime: Date,
-    notes?: string
+    notes?: string,
+    timezone?: string
   ): Promise<{ start: TimeLog; stop: TimeLog }> {
     // Verify button belongs to user
     const button = await this.buttonRepository.findOne({
-      where: { id: buttonId, user_id: userId },
+      where: { id: buttonId, user_id: userId, deleted_at: IsNull() },
     });
 
     if (!button) {
       throw new Error('Button not found');
     }
 
+    const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     const startLog = this.timeLogRepository.create({
       user_id: userId,
       button_id: buttonId,
       type: 'start',
       timestamp: startTime,
+      timezone: tz,
       notes,
       is_manual: true,
       apply_break_calculation: button.auto_subtract_breaks,
@@ -252,6 +262,7 @@ export class TimeLogService {
       button_id: buttonId,
       type: 'stop',
       timestamp: endTime,
+      timezone: tz,
       notes,
       is_manual: true,
       apply_break_calculation: button.auto_subtract_breaks,
@@ -269,7 +280,7 @@ export class TimeLogService {
     updates: Partial<TimeLog>
   ): Promise<TimeLog | null> {
     const timeLog = await this.timeLogRepository.findOne({
-      where: { id: timeLogId, user_id: userId },
+      where: { id: timeLogId, user_id: userId, deleted_at: IsNull() },
     });
 
     if (!timeLog) {
@@ -281,16 +292,22 @@ export class TimeLogService {
   }
 
   async deleteTimeLog(userId: string, timeLogId: string): Promise<boolean> {
-    const result = await this.timeLogRepository.delete({
-      id: timeLogId,
-      user_id: userId,
+    const timeLog = await this.timeLogRepository.findOne({
+      where: { id: timeLogId, user_id: userId, deleted_at: IsNull() },
     });
-    return (result.affected || 0) > 0;
+
+    if (!timeLog) {
+      return false;
+    }
+
+    timeLog.deleted_at = new Date();
+    await this.timeLogRepository.save(timeLog);
+    return true;
   }
 
   async getGoalProgress(userId: string, buttonId: string): Promise<any> {
     const button = await this.buttonRepository.findOne({
-      where: { id: buttonId, user_id: userId },
+      where: { id: buttonId, user_id: userId, deleted_at: IsNull() },
     });
 
     if (!button) {
@@ -321,5 +338,99 @@ export class TimeLogService {
       progress: (actualMinutes / button.goal_time_minutes) * 100,
       difference: actualMinutes - button.goal_time_minutes,
     };
+  }
+
+  /**
+   * Get all time logs (including soft-deleted) changed since a given timestamp
+   * Used for sync functionality
+   */
+  async getChangedTimeLogsSince(userId: string, since: Date): Promise<TimeLog[]> {
+    return this.timeLogRepository.find({
+      where: {
+        user_id: userId,
+        updated_at: MoreThan(since),
+      },
+      order: { updated_at: 'ASC' },
+    });
+  }
+
+  /**
+   * Push bulk changes to time logs (create or update) with conflict detection
+   * Returns conflicts if any exist, otherwise returns saved time logs
+   */
+  async pushTimeLogChanges(
+    userId: string, 
+    changes: Array<Partial<TimeLog> & { updated_at?: Date }>
+  ): Promise<{
+    saved: TimeLog[];
+    conflicts: Array<{
+      id: string;
+      field: 'timeLog';
+      clientVersion: Partial<TimeLog>;
+      serverVersion: TimeLog;
+    }>;
+  }> {
+    const savedTimeLogs: TimeLog[] = [];
+    const conflicts: Array<{
+      id: string;
+      field: 'timeLog';
+      clientVersion: Partial<TimeLog>;
+      serverVersion: TimeLog;
+    }> = [];
+
+    for (const change of changes) {
+      if (change.id) {
+        // Check if time log exists on server
+        const existing = await this.timeLogRepository.findOne({
+          where: { id: change.id, user_id: userId },
+        });
+
+        if (existing) {
+          // Conflict detection: Check if server version is newer than client version
+          if (change.updated_at) {
+            const clientTimestamp = new Date(change.updated_at);
+            if (existing.updated_at > clientTimestamp) {
+              // Server has newer data - conflict detected
+              conflicts.push({
+                id: existing.id,
+                field: 'timeLog',
+                clientVersion: change,
+                serverVersion: existing,
+              });
+              continue; // Skip saving this record
+            }
+          }
+
+          // No conflict or client is newer - update
+          Object.assign(existing, change);
+          // Remove updated_at from client to let TypeORM auto-update it
+          delete (existing as any).updated_at;
+          const timeLog = await this.timeLogRepository.save(existing);
+          savedTimeLogs.push(timeLog);
+        } else {
+          // Time log doesn't exist, create new one with client-provided UUID
+          const timeLog = this.timeLogRepository.create({
+            ...change,
+            user_id: userId,
+            id: change.id, // Use client-generated UUID
+          });
+          // Remove updated_at to let TypeORM set it
+          delete (timeLog as any).updated_at;
+          const saved = await this.timeLogRepository.save(timeLog);
+          savedTimeLogs.push(saved);
+        }
+      } else {
+        // Create new time log (no ID provided - shouldn't happen in offline-first)
+        const timeLog = this.timeLogRepository.create({
+          ...change,
+          user_id: userId,
+        });
+        delete (timeLog as any).updated_at;
+        const saved = await this.timeLogRepository.save(timeLog);
+        savedTimeLogs.push(saved);
+      }
+    }
+
+    return { saved: savedTimeLogs, conflicts };
   }
 }
