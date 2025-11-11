@@ -53,74 +53,72 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 ### 2. Backend Development
 
 #### 2.1 Backend Framework & Architecture
-- [ ] Choose backend framework (Node.js/Express, Python/FastAPI, Go, etc.)
-- [ ] Set up project structure and dependencies
-- [ ] Configure database (PostgreSQL/MySQL/MongoDB)
-- [ ] Set up ORM/ODM (Prisma, TypeORM, SQLAlchemy, etc.)
-- [ ] Implement RESTful API structure
-- [ ] Set up API documentation (Swagger/OpenAPI)
+- [x] Choose backend framework (Node.js/Express, Python/FastAPI, Go, etc.)
+- [x] Set up project structure and dependencies
+- [x] Configure database (PostgreSQL/MySQL/MongoDB)
+- [x] Set up ORM/ODM (Prisma, TypeORM, SQLAlchemy, etc.)
+- [x] Implement RESTful API structure
+- [x] Set up API documentation (Swagger/OpenAPI)
 
 #### 2.2 Database Schema Design
-- [ ] Design Users table (id, email, password_hash, name, country, created_at, updated_at)
-- [ ] Design Buttons table (id, user_id, name, emoji, color, position, icon, goal_time_minutes, goal_days, auto_subtract_breaks, created_at)
-- [ ] Design TimeLogs table (id, user_id, button_id, start_time, end_time, duration, break_time_subtracted, notes, is_manual)
-- [ ] Design Holidays table (id, country, date, name, year)
+- [x] Design database schema
+- [x] Create database entities
 - [ ] Create database migrations
 - [ ] Set up database seeding for development
 
 #### 2.3 User Management & Authentication
-- [ ] Implement user registration endpoint
-- [ ] Implement user login endpoint (JWT/session-based)
-- [ ] Implement password hashing (bcrypt/argon2)
+- [x] Implement user registration endpoint
+- [x] Implement user login endpoint (JWT/session-based)
+- [x] Implement password hashing (bcrypt/argon2)
 - [ ] Implement token refresh mechanism
-- [ ] Implement logout functionality
+- [x] Implement logout functionality
 - [ ] Add password reset functionality
 - [ ] Implement email verification (optional)
 - [ ] Add rate limiting for authentication endpoints
 
 #### 2.4 Button Management API
-- [ ] Create endpoint: GET /api/buttons (list user's buttons)
-- [ ] Create endpoint: POST /api/buttons (create new button)
-- [ ] Create endpoint: PUT /api/buttons/:id (update button)
-- [ ] Create endpoint: DELETE /api/buttons/:id (delete button)
-- [ ] Implement button validation logic (name/emoji, color, goal settings)
-- [ ] Add authorization checks (users can only manage their buttons)
-- [ ] Validate goal_days array (e.g., [1,2,3,4,5] for weekdays)
-- [ ] Validate goal_time_minutes (positive integer)
+- [x] Create endpoint: GET /api/buttons (list user's buttons)
+- [x] Create endpoint: POST /api/buttons (create new button)
+- [x] Create endpoint: PUT /api/buttons/:id (update button)
+- [x] Create endpoint: DELETE /api/buttons/:id (delete button)
+- [x] Implement button validation logic (name/emoji, color, goal settings)
+- [x] Add authorization checks (users can only manage their buttons)
+- [x] Validate goal_days array (e.g., [1,2,3,4,5] for weekdays)
+- [x] Validate goal_time_minutes (positive integer)
 
 #### 2.5 Timer & Logging API
-- [ ] Create endpoint: POST /api/timelogs/start (start timer)
-- [ ] Create endpoint: POST /api/timelogs/stop (stop timer)
-- [ ] Create endpoint: GET /api/timelogs (list time logs with filters)
-- [ ] Create endpoint: GET /api/timelogs/today/:button_id (get total time for button today)
-- [ ] Create endpoint: GET /api/timelogs/stats (statistics and reports)
-- [ ] Create endpoint: GET /api/timelogs/stats/yearly (yearly statistics per button)
-- [ ] Create endpoint: GET /api/timelogs/goal-progress/:button_id (check goal achievement)
-- [ ] Create endpoint: PUT /api/timelogs/:id (edit time log)
-- [ ] Create endpoint: DELETE /api/timelogs/:id (delete time log)
-- [ ] Create endpoint: POST /api/timelogs/manual (manually add past time logs)
-- [ ] Implement automatic timer stop on new timer start
-- [ ] Implement automatic break time calculation (German rules: >=6h: 30min, >=9h: 45min)
+- [x] Create endpoint: POST /api/timelogs/start (start timer)
+- [x] Create endpoint: POST /api/timelogs/stop (stop timer)
+- [x] Create endpoint: GET /api/timelogs (list time logs with filters)
+- [x] Create endpoint: GET /api/timelogs/today/:button_id (get total time for button today)
+- [x] Create endpoint: GET /api/timelogs/stats (statistics and reports)
+- [x] Create endpoint: GET /api/timelogs/stats/yearly (yearly statistics per button)
+- [x] Create endpoint: GET /api/timelogs/goal-progress/:button_id (check goal achievement)
+- [x] Create endpoint: PUT /api/timelogs/:id (edit time log)
+- [x] Create endpoint: DELETE /api/timelogs/:id (delete time log)
+- [x] Create endpoint: POST /api/timelogs/manual (manually add past time logs)
+- [x] Implement automatic timer stop on new timer start
+- [x] Implement automatic break time calculation (German rules: >=6h: 30min, >=9h: 45min)
 - [ ] Add validation for overlapping time logs
 
 #### 2.6 Public Holidays API Integration
-- [ ] Create endpoint: GET /api/holidays/:country/:year (fetch holidays)
+- [x] Create endpoint: GET /api/holidays/:country/:year (fetch holidays)
 - [ ] Implement caching for holiday data
 - [ ] Create service to crawl https://www.arbeitstage.org/feiertage/
-- [ ] Store holiday data in database
+- [x] Store holiday data in database
 - [ ] Set up quarterly scheduled job to crawl and update all holidays
-- [ ] Create endpoint: GET /api/workingdays/summary (calculate working days)
-- [ ] Implement logic to exclude public holidays from working days calculation
+- [x] Create endpoint: GET /api/workingdays/summary (calculate working days)
+- [x] Implement logic to exclude public holidays from working days calculation
 
 #### 2.7 Backend Testing & Quality
-- [ ] Set up testing framework (Jest, pytest, etc.)
-- [ ] Write unit tests for authentication
-- [ ] Write unit tests for button management
-- [ ] Write unit tests for timer logging
-- [ ] Write integration tests for API endpoints
+- [x] Set up testing framework (Jest, pytest, etc.)
+- [x] Write unit tests for authentication
+- [x] Write unit tests for button management
+- [x] Write unit tests for timer logging
+- [x] Write integration tests for API endpoints
 - [ ] Set up code linting and formatting
-- [ ] Implement error handling and logging
-- [ ] Add API response validation
+- [x] Implement error handling and logging
+- [x] Add API response validation
 
 ---
 

@@ -2,7 +2,7 @@ import { AppDataSource } from '../config/database.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Button } from '../entities/Button.js';
 import { calculateBreakTime } from '../utils/breaks.js';
-import { Between, IsNull } from 'typeorm';
+import { Between } from 'typeorm';
 
 export class TimeLogService {
   private timeLogRepository = AppDataSource.getRepository(TimeLog);
@@ -24,67 +24,95 @@ export class TimeLogService {
     const timeLog = this.timeLogRepository.create({
       user_id: userId,
       button_id: buttonId,
-      start_time: new Date(),
+      type: 'start',
+      timestamp: new Date(),
+      apply_break_calculation: button.auto_subtract_breaks,
     });
 
     return this.timeLogRepository.save(timeLog);
   }
 
-  async stopTimer(userId: string, timeLogId: string): Promise<TimeLog> {
-    const timeLog = await this.timeLogRepository.findOne({
-      where: { id: timeLogId, user_id: userId },
+  async stopTimer(userId: string, startLogId: string): Promise<TimeLog> {
+    const startLog = await this.timeLogRepository.findOne({
+      where: { id: startLogId, user_id: userId, type: 'start' },
       relations: ['button'],
     });
 
-    if (!timeLog) {
-      throw new Error('Time log not found');
+    if (!startLog) {
+      throw new Error('Start log not found');
     }
 
-    if (timeLog.end_time) {
+    // Check if already stopped (there's a stop entry with same button_id after this start)
+    const existingStop = await this.timeLogRepository.findOne({
+      where: {
+        user_id: userId,
+        button_id: startLog.button_id,
+        type: 'stop',
+      },
+      order: { timestamp: 'DESC' },
+    });
+
+    if (existingStop && existingStop.timestamp > startLog.timestamp) {
       throw new Error('Timer already stopped');
     }
 
-    const endTime = new Date();
-    const duration = Math.floor((endTime.getTime() - timeLog.start_time.getTime()) / 1000 / 60); // in minutes
+    const stopLog = this.timeLogRepository.create({
+      user_id: userId,
+      button_id: startLog.button_id,
+      type: 'stop',
+      timestamp: new Date(),
+      apply_break_calculation: startLog.apply_break_calculation,
+    });
 
-    timeLog.end_time = endTime;
-    timeLog.duration = duration;
-
-    // Apply automatic break calculation if enabled
-    if (timeLog.button?.auto_subtract_breaks) {
-      const breakTime = calculateBreakTime(duration);
-      timeLog.break_time_subtracted = breakTime;
-    }
-
-    return this.timeLogRepository.save(timeLog);
+    return this.timeLogRepository.save(stopLog);
   }
 
   async stopActiveTimers(userId: string): Promise<void> {
-    const activeTimeLogs = await this.timeLogRepository.find({
-      where: { user_id: userId, end_time: IsNull() },
-      relations: ['button'],
-    });
+    const activeStartLogs = await this.getActiveTimers(userId);
 
-    for (const timeLog of activeTimeLogs) {
-      const endTime = new Date();
-      const duration = Math.floor((endTime.getTime() - timeLog.start_time.getTime()) / 1000 / 60);
+    for (const startLog of activeStartLogs) {
+      const stopLog = this.timeLogRepository.create({
+        user_id: userId,
+        button_id: startLog.button_id,
+        type: 'stop',
+        timestamp: new Date(),
+        apply_break_calculation: startLog.apply_break_calculation,
+      });
 
-      timeLog.end_time = endTime;
-      timeLog.duration = duration;
-
-      if (timeLog.button?.auto_subtract_breaks) {
-        timeLog.break_time_subtracted = calculateBreakTime(duration);
-      }
-
-      await this.timeLogRepository.save(timeLog);
+      await this.timeLogRepository.save(stopLog);
     }
   }
 
-  async getActiveTimer(userId: string): Promise<TimeLog | null> {
-    return this.timeLogRepository.findOne({
-      where: { user_id: userId, end_time: IsNull() },
-      relations: ['button'],
+  private async getActiveTimers(userId: string): Promise<TimeLog[]> {
+    const startLogs = await this.timeLogRepository.find({
+      where: { user_id: userId, type: 'start' },
+      order: { timestamp: 'DESC' },
     });
+
+    const activeStarts: TimeLog[] = [];
+
+    for (const startLog of startLogs) {
+      // Find if there's a stop after this start
+      const stopLog = await this.timeLogRepository.findOne({
+        where: {
+          user_id: userId,
+          button_id: startLog.button_id,
+          type: 'stop',
+        },
+        order: { timestamp: 'DESC' },
+      });
+
+      if (!stopLog || stopLog.timestamp < startLog.timestamp) {
+        activeStarts.push(startLog);
+      }
+    }
+
+    return activeStarts;
+  }
+
+  async getActiveTimer(userId: string): Promise<TimeLog | null> {
+    const activeTimers = await this.getActiveTimers(userId);
+    return activeTimers.length > 0 ? activeTimers[0] : null;
   }
 
   async getTimeLogs(
@@ -96,7 +124,7 @@ export class TimeLogService {
     const where: any = { user_id: userId };
 
     if (startDate && endDate) {
-      where.start_time = Between(startDate, endDate);
+      where.timestamp = Between(startDate, endDate);
     }
 
     if (buttonId) {
@@ -106,7 +134,7 @@ export class TimeLogService {
     return this.timeLogRepository.find({
       where,
       relations: ['button'],
-      order: { start_time: 'DESC' },
+      order: { timestamp: 'DESC' },
     });
   }
 
@@ -120,16 +148,30 @@ export class TimeLogService {
       where: {
         user_id: userId,
         button_id: buttonId,
-        start_time: Between(today, tomorrow),
+        timestamp: Between(today, tomorrow),
       },
+      order: { timestamp: 'ASC' },
     });
 
-    return timeLogs.reduce((total, log) => {
-      if (log.duration) {
-        return total + log.duration - log.break_time_subtracted;
+    // Calculate duration from start/stop pairs
+    let totalMinutes = 0;
+    let currentStart: TimeLog | null = null;
+
+    for (const log of timeLogs) {
+      if (log.type === 'start') {
+        currentStart = log;
+      } else if (log.type === 'stop' && currentStart) {
+        const duration = Math.floor((log.timestamp.getTime() - currentStart.timestamp.getTime()) / 1000 / 60);
+        
+        // Apply break calculation if flag is set
+        const breakTime = log.apply_break_calculation ? calculateBreakTime(duration) : 0;
+        totalMinutes += duration - breakTime;
+        
+        currentStart = null;
       }
-      return total;
-    }, 0);
+    }
+
+    return totalMinutes;
   }
 
   async getYearlyStats(userId: string, year: number): Promise<any> {
@@ -139,15 +181,18 @@ export class TimeLogService {
     const timeLogs = await this.timeLogRepository.find({
       where: {
         user_id: userId,
-        start_time: Between(startDate, endDate),
+        timestamp: Between(startDate, endDate),
       },
       relations: ['button'],
+      order: { timestamp: 'ASC' },
     });
 
     const stats: any = {};
+    const buttonStarts: Map<string, TimeLog> = new Map();
 
     timeLogs.forEach((log) => {
       const buttonName = log.button?.name || 'Unknown';
+      
       if (!stats[buttonName]) {
         stats[buttonName] = {
           totalMinutes: 0,
@@ -156,10 +201,20 @@ export class TimeLogService {
         };
       }
 
-      if (log.duration) {
-        stats[buttonName].totalMinutes += log.duration;
-        stats[buttonName].totalBreakMinutes += log.break_time_subtracted;
-        stats[buttonName].count += 1;
+      if (log.type === 'start') {
+        buttonStarts.set(log.button_id, log);
+      } else if (log.type === 'stop') {
+        const startLog = buttonStarts.get(log.button_id);
+        if (startLog) {
+          const duration = Math.floor((log.timestamp.getTime() - startLog.timestamp.getTime()) / 1000 / 60);
+          const breakTime = log.apply_break_calculation ? calculateBreakTime(duration) : 0;
+          
+          stats[buttonName].totalMinutes += duration;
+          stats[buttonName].totalBreakMinutes += breakTime;
+          stats[buttonName].count += 1;
+          
+          buttonStarts.delete(log.button_id);
+        }
       }
     });
 
@@ -172,7 +227,7 @@ export class TimeLogService {
     startTime: Date,
     endTime: Date,
     notes?: string
-  ): Promise<TimeLog> {
+  ): Promise<{ start: TimeLog; stop: TimeLog }> {
     // Verify button belongs to user
     const button = await this.buttonRepository.findOne({
       where: { id: buttonId, user_id: userId },
@@ -182,20 +237,30 @@ export class TimeLogService {
       throw new Error('Button not found');
     }
 
-    const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000 / 60);
-
-    const timeLog = this.timeLogRepository.create({
+    const startLog = this.timeLogRepository.create({
       user_id: userId,
       button_id: buttonId,
-      start_time: startTime,
-      end_time: endTime,
-      duration,
+      type: 'start',
+      timestamp: startTime,
       notes,
       is_manual: true,
-      break_time_subtracted: button.auto_subtract_breaks ? calculateBreakTime(duration) : 0,
+      apply_break_calculation: button.auto_subtract_breaks,
     });
 
-    return this.timeLogRepository.save(timeLog);
+    const stopLog = this.timeLogRepository.create({
+      user_id: userId,
+      button_id: buttonId,
+      type: 'stop',
+      timestamp: endTime,
+      notes,
+      is_manual: true,
+      apply_break_calculation: button.auto_subtract_breaks,
+    });
+
+    const savedStart = await this.timeLogRepository.save(startLog);
+    const savedStop = await this.timeLogRepository.save(stopLog);
+
+    return { start: savedStart, stop: savedStop };
   }
 
   async updateTimeLog(
@@ -209,16 +274,6 @@ export class TimeLogService {
 
     if (!timeLog) {
       return null;
-    }
-
-    // Recalculate duration if times changed
-    if (updates.start_time || updates.end_time) {
-      const startTime = updates.start_time || timeLog.start_time;
-      const endTime = updates.end_time || timeLog.end_time;
-      
-      if (endTime) {
-        updates.duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000 / 60);
-      }
     }
 
     Object.assign(timeLog, updates);

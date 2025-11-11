@@ -70,7 +70,8 @@ describe('TimeLog Routes', () => {
     const body = JSON.parse(response.body);
     expect(body.id).toBeDefined();
     expect(body.button_id).toBe(buttonId);
-    expect(body.start_time).toBeDefined();
+    expect(body.type).toBe('start');
+    expect(body.timestamp).toBeDefined();
   });
 
   it('should get active timer', async () => {
@@ -132,8 +133,8 @@ describe('TimeLog Routes', () => {
 
     expect(stopResponse.statusCode).toBe(200);
     const body = JSON.parse(stopResponse.body);
-    expect(body.end_time).toBeDefined();
-    expect(body.duration).toBeGreaterThanOrEqual(0);
+    expect(body.type).toBe('stop');
+    expect(body.timestamp).toBeDefined();
   });
 
   it('should create a manual time log', async () => {
@@ -158,8 +159,10 @@ describe('TimeLog Routes', () => {
 
     expect(response.statusCode).toBe(201);
     const body = JSON.parse(response.body);
-    expect(body.is_manual).toBe(true);
-    expect(body.duration).toBe(480); // 8 hours
+    expect(body.start).toBeDefined();
+    expect(body.stop).toBeDefined();
+    expect(body.start.type).toBe('start');
+    expect(body.stop.type).toBe('stop');
   });
 
   it('should get today\'s time for a button', async () => {
@@ -226,7 +229,7 @@ describe('TimeLog Routes', () => {
       },
     });
 
-    const timeLogId = JSON.parse(createResponse.body).id;
+    const timeLogId = JSON.parse(createResponse.body).start.id;
 
     // Update it
     const updateResponse = await app.inject({
@@ -264,7 +267,7 @@ describe('TimeLog Routes', () => {
       },
     });
 
-    const timeLogId = JSON.parse(createResponse.body).id;
+    const timeLogId = JSON.parse(createResponse.body).start.id;
 
     // Delete it
     const deleteResponse = await app.inject({

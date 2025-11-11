@@ -23,7 +23,8 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
         201: Type.Object({
           id: Type.String(),
           button_id: Type.String(),
-          start_time: Type.String(),
+          type: Type.String(),
+          timestamp: Type.String(),
         }),
         400: Type.Object({
           error: Type.String(),
@@ -38,7 +39,8 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
       return reply.code(201).send({
         id: timeLog.id,
         button_id: timeLog.button_id,
-        start_time: timeLog.start_time.toISOString(),
+        type: timeLog.type,
+        timestamp: timeLog.timestamp.toISOString(),
       });
     } catch (error: any) {
       return reply.code(400).send({ error: error.message });
@@ -56,10 +58,8 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
         200: Type.Object({
           id: Type.String(),
           button_id: Type.String(),
-          start_time: Type.String(),
-          end_time: Type.String(),
-          duration: Type.Number(),
-          break_time_subtracted: Type.Number(),
+          type: Type.String(),
+          timestamp: Type.String(),
         }),
         400: Type.Object({
           error: Type.String(),
@@ -70,14 +70,12 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
     try {
       const userId = request.session.userId!;
       const { id } = request.params as any;
-      const timeLog = await timeLogService.stopTimer(userId, id);
+      const stopLog = await timeLogService.stopTimer(userId, id);
       return reply.send({
-        id: timeLog.id,
-        button_id: timeLog.button_id,
-        start_time: timeLog.start_time.toISOString(),
-        end_time: timeLog.end_time!.toISOString(),
-        duration: timeLog.duration!,
-        break_time_subtracted: timeLog.break_time_subtracted,
+        id: stopLog.id,
+        button_id: stopLog.button_id,
+        type: stopLog.type,
+        timestamp: stopLog.timestamp.toISOString(),
       });
     } catch (error: any) {
       return reply.code(400).send({ error: error.message });
@@ -93,7 +91,8 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
           Type.Object({
             id: Type.String(),
             button_id: Type.String(),
-            start_time: Type.String(),
+            type: Type.String(),
+            timestamp: Type.String(),
           }),
           Type.Null(),
         ]),
@@ -110,7 +109,8 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
     return reply.send({
       id: timeLog.id,
       button_id: timeLog.button_id,
-      start_time: timeLog.start_time.toISOString(),
+      type: timeLog.type,
+      timestamp: timeLog.timestamp.toISOString(),
     });
   });
 
@@ -204,12 +204,16 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
       }),
       response: {
         201: Type.Object({
-          id: Type.String(),
-          button_id: Type.String(),
-          start_time: Type.String(),
-          end_time: Type.String(),
-          duration: Type.Number(),
-          is_manual: Type.Boolean(),
+          start: Type.Object({
+            id: Type.String(),
+            type: Type.String(),
+            timestamp: Type.String(),
+          }),
+          stop: Type.Object({
+            id: Type.String(),
+            type: Type.String(),
+            timestamp: Type.String(),
+          }),
         }),
         400: Type.Object({
           error: Type.String(),
@@ -220,7 +224,7 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
     try {
       const userId = request.session.userId!;
       const { button_id, start_time, end_time, notes } = request.body as any;
-      const timeLog = await timeLogService.createManualLog(
+      const logs = await timeLogService.createManualLog(
         userId,
         button_id,
         new Date(start_time),
@@ -228,12 +232,16 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
         notes
       );
       return reply.code(201).send({
-        id: timeLog.id,
-        button_id: timeLog.button_id,
-        start_time: timeLog.start_time.toISOString(),
-        end_time: timeLog.end_time!.toISOString(),
-        duration: timeLog.duration!,
-        is_manual: timeLog.is_manual,
+        start: {
+          id: logs.start.id,
+          type: logs.start.type,
+          timestamp: logs.start.timestamp.toISOString(),
+        },
+        stop: {
+          id: logs.stop.id,
+          type: logs.stop.type,
+          timestamp: logs.stop.timestamp.toISOString(),
+        },
       });
     } catch (error: any) {
       return reply.code(400).send({ error: error.message });
@@ -248,17 +256,16 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
         id: Type.String(),
       }),
       body: Type.Object({
-        start_time: Type.Optional(Type.String()),
-        end_time: Type.Optional(Type.String()),
+        timestamp: Type.Optional(Type.String()),
         notes: Type.Optional(Type.String()),
+        apply_break_calculation: Type.Optional(Type.Boolean()),
       }),
       response: {
         200: Type.Object({
           id: Type.String(),
           button_id: Type.String(),
-          start_time: Type.String(),
-          end_time: Type.Optional(Type.String()),
-          duration: Type.Optional(Type.Number()),
+          type: Type.String(),
+          timestamp: Type.String(),
           notes: Type.Optional(Type.String()),
         }),
         404: Type.Object({
@@ -271,11 +278,8 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
     const { id } = request.params as any;
     const updates = request.body as any;
 
-    if (updates.start_time) {
-      updates.start_time = new Date(updates.start_time);
-    }
-    if (updates.end_time) {
-      updates.end_time = new Date(updates.end_time);
+    if (updates.timestamp) {
+      updates.timestamp = new Date(updates.timestamp);
     }
 
     const timeLog = await timeLogService.updateTimeLog(userId, id, updates);
@@ -286,9 +290,8 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
     return reply.send({
       id: timeLog.id,
       button_id: timeLog.button_id,
-      start_time: timeLog.start_time.toISOString(),
-      end_time: timeLog.end_time?.toISOString(),
-      duration: timeLog.duration,
+      type: timeLog.type,
+      timestamp: timeLog.timestamp.toISOString(),
       notes: timeLog.notes,
     });
   });

@@ -11,17 +11,14 @@ export class TimeLog {
   @Column('uuid')
   button_id!: string;
 
+  @Column('varchar')
+  type!: 'start' | 'stop';
+
   @Column('timestamp')
-  start_time!: Date;
+  timestamp!: Date;
 
-  @Column('timestamp', { nullable: true })
-  end_time?: Date;
-
-  @Column('int', { nullable: true })
-  duration?: number;
-
-  @Column('int', { default: 0 })
-  break_time_subtracted!: number;
+  @Column('boolean', { default: false })
+  apply_break_calculation!: boolean;
 
   @Column('text', { nullable: true })
   notes?: string;
