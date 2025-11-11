@@ -12,11 +12,14 @@ import rateLimit from '@fastify/rate-limit';
  * Use TEST_RATE_LIMIT=strict environment variable to enable actual rate limiting in tests
  */
 
-const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
-const isStrictRateLimitTest = process.env.TEST_RATE_LIMIT === 'strict';
-
-// In test mode, use lenient limits unless explicitly testing rate limiting
-const useProductionLimits = !isTest || isStrictRateLimitTest;
+// Helper function to check if we should use production limits
+// This is a function so it can be evaluated at runtime, not at module load time
+function useProductionLimits(): boolean {
+  const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+  const isStrictRateLimitTest = process.env.TEST_RATE_LIMIT === 'strict';
+  // In test mode, use lenient limits unless explicitly testing rate limiting
+  return !isTest || isStrictRateLimitTest;
+}
 
 export async function registerRateLimit(fastify: FastifyInstance) {
   // Register the rate limit plugin globally
@@ -30,13 +33,18 @@ export async function registerRateLimit(fastify: FastifyInstance) {
 /**
  * Rate limit configuration for login and register endpoints
  * Stricter limits to prevent brute force attacks
+ * 
+ * Note: This getter is used instead of a constant to allow TEST_RATE_LIMIT
+ * to be set at runtime before routes are registered
  */
 export const authRateLimit = {
-  config: {
-    rateLimit: {
-      max: useProductionLimits ? 5 : 1000,
-      timeWindow: '1 minute',
-    },
+  get config() {
+    return {
+      rateLimit: {
+        max: useProductionLimits() ? 5 : 1000,
+        timeWindow: '1 minute',
+      },
+    };
   },
 };
 
@@ -45,11 +53,13 @@ export const authRateLimit = {
  * Even stricter to prevent abuse
  */
 export const passwordResetRateLimit = {
-  config: {
-    rateLimit: {
-      max: useProductionLimits ? 3 : 1000,
-      timeWindow: useProductionLimits ? '15 minutes' : '1 minute',
-    },
+  get config() {
+    return {
+      rateLimit: {
+        max: useProductionLimits() ? 3 : 1000,
+        timeWindow: useProductionLimits() ? '15 minutes' : '1 minute',
+      },
+    };
   },
 };
 
@@ -58,10 +68,12 @@ export const passwordResetRateLimit = {
  * More lenient for authenticated users
  */
 export const generalAuthRateLimit = {
-  config: {
-    rateLimit: {
-      max: useProductionLimits ? 10 : 1000,
-      timeWindow: '1 minute',
-    },
+  get config() {
+    return {
+      rateLimit: {
+        max: useProductionLimits() ? 10 : 1000,
+        timeWindow: '1 minute',
+      },
+    };
   },
 };
