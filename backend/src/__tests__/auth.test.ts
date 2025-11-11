@@ -1,23 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { buildApp } from '../app.js';
-import { AppDataSource } from '../config/database.js';
-import { initializeTestDatabase } from './testDatabase.js';
 import { FastifyInstance } from 'fastify';
 
 describe('Authentication Routes', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
-    // Initialize test database with clean state
-    await initializeTestDatabase();
     app = await buildApp();
   });
 
   afterAll(async () => {
     await app.close();
-    if (AppDataSource.isInitialized) {
-      await AppDataSource.destroy();
-    }
   });
 
   it('should register a new user', async () => {

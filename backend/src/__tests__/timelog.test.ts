@@ -1,7 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { buildApp } from '../app.js';
-import { AppDataSource } from '../config/database.js';
-import { initializeTestDatabase } from './testDatabase.js';
 import { FastifyInstance } from 'fastify';
 
 describe('TimeLog Routes', () => {
@@ -10,8 +8,6 @@ describe('TimeLog Routes', () => {
   let buttonId: string;
 
   beforeAll(async () => {
-    // Initialize test database with clean state
-    await initializeTestDatabase();
     app = await buildApp();
 
     // Register and login a test user
@@ -56,9 +52,6 @@ describe('TimeLog Routes', () => {
 
   afterAll(async () => {
     await app.close();
-    if (AppDataSource.isInitialized) {
-      await AppDataSource.destroy();
-    }
   });
 
   it('should start a timer', async () => {

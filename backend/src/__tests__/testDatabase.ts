@@ -21,6 +21,9 @@ export async function cleanTestDatabase() {
       GRANT ALL ON SCHEMA public TO public;
     `);
     
+    // Reinstall required extensions
+    await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
+    
     console.log('✓ Test database cleaned');
   } catch (error) {
     console.error('Error cleaning test database:', error);
