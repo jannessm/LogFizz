@@ -104,6 +104,7 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - [ ] Implement caching for holiday data
 - [ ] Create service to crawl https://www.arbeitstage.org/feiertage/
 - [ ] Store holiday data in database
+- [ ] Set up quarterly scheduled job to crawl and update all holidays
 - [ ] Create endpoint: GET /api/workingdays/summary (calculate working days)
 - [ ] Implement logic to exclude public holidays from working days calculation
 
