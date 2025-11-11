@@ -1,0 +1,96 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [ main, develop, copilot/** ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-tests.yml'
+
+jobs:
+  test:
+    name: Run Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: clock_user
+          POSTGRES_PASSWORD: clock_password
+          POSTGRES_DB: clock_test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
+    env:
+      NODE_ENV: test
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USERNAME: clock_user
+      DB_PASSWORD: clock_password
+      DB_DATABASE: clock_test_db
+      SESSION_SECRET: test-secret-key-for-ci-pipeline
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Create .env file
+        working-directory: backend
+        run: |
+          cat > .env << EOF
+          NODE_ENV=test
+          DB_HOST=localhost
+          DB_PORT=5432
+          DB_USERNAME=clock_user
+          DB_PASSWORD=clock_password
+          DB_DATABASE=clock_test_db
+          SESSION_SECRET=test-secret-key-for-ci-pipeline
+          PORT=3000
+          HOST=0.0.0.0
+          EOF
+          echo ".env file created"
+
+      - name: Wait for PostgreSQL
+        run: |
+          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U clock_user; do sleep 1; done'
+          echo "PostgreSQL is ready!"
+
+      - name: Verify database connection
+        run: |
+          PGPASSWORD=clock_password psql -h localhost -U clock_user -d clock_test_db -c '\l'
+          echo "Database connection verified!"
+
+      - name: Run tests
+        working-directory: backend
+        run: npm test
+
+      - name: Generate test coverage
+        working-directory: backend
+        run: npm run test:coverage
+        continue-on-error: true
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          directory: backend/coverage
+          flags: backend
+          fail_ci_if_error: false
+        continue-on-error: true

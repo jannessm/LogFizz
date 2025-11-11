@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: clock-postgres
+    environment:
+      POSTGRES_USER: clock_user
+      POSTGRES_PASSWORD: clock_password
+      POSTGRES_DB: clock_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clock_user -d clock_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clock-backend
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: clock_user
+      DB_PASSWORD: clock_password
+      DB_DATABASE: clock_db
+      PORT: 3000
+      HOST: 0.0.0.0
+      SESSION_SECRET: change-this-secret-in-production-min-32-chars-required-for-security
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

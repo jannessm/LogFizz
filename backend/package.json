@@ -1,0 +1,52 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "seed": "tsx src/scripts/seed.ts",
+    "migration:generate": "tsx src/migrations/runner.ts generate",
+    "migration:run": "tsx src/migrations/runner.ts run",
+    "migration:revert": "tsx src/migrations/runner.ts revert",
+    "holiday:crawl": "tsx src/scripts/holiday-crawler.ts",
+    "holiday:refresh": "tsx src/scripts/holiday-crawler.ts -- --refresh",
+    "holiday:init": "tsx src/scripts/holiday-crawler.ts -- --init",
+    "maintenance": "tsx -e \"import { AppDataSource } from './src/config/database.js'; import { CleanupService } from './src/services/cleanup.service.js'; await AppDataSource.initialize(); const service = new CleanupService(); await service.runAllMaintenanceTasks(); await AppDataSource.destroy();\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^11.1.0",
+    "@fastify/rate-limit": "^10.3.0",
+    "@fastify/session": "^11.1.1",
+    "@fastify/swagger": "^9.6.0",
+    "@fastify/swagger-ui": "^5.2.3",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.3",
+    "fastify": "^5.6.2",
+    "nodemailer": "^7.0.10",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.27"
+  },
+  "devDependencies": {
+    "@fastify/type-provider-typebox": "^6.1.0",
+    "@sinclair/typebox": "^0.34.41",
+    "@types/bcrypt": "^6.0.0",
+    "@types/node": "^24.10.0",
+    "@types/nodemailer": "^7.0.3",
+    "@vitest/ui": "^4.0.8",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.8"
+  }
+}
