@@ -6,11 +6,6 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/backend-tests.yml'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'backend/**'
-      - '.github/workflows/backend-tests.yml'
 
 jobs:
   test:
@@ -55,6 +50,22 @@ jobs:
       - name: Install dependencies
         working-directory: backend
         run: npm ci
+
+      - name: Create .env file
+        working-directory: backend
+        run: |
+          cat > .env << EOF
+          NODE_ENV=test
+          DB_HOST=localhost
+          DB_PORT=5432
+          DB_USERNAME=clock_user
+          DB_PASSWORD=clock_password
+          DB_DATABASE=clock_test_db
+          SESSION_SECRET=test-secret-key-for-ci-pipeline
+          PORT=3000
+          HOST=0.0.0.0
+          EOF
+          echo ".env file created"
 
       - name: Wait for PostgreSQL
         run: |
