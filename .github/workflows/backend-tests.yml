@@ -34,7 +34,7 @@ jobs:
       DB_USERNAME: clock_user
       DB_PASSWORD: clock_password
       DB_DATABASE: clock_test_db
-      SESSION_SECRET: test-secret-key-for-ci-pipeline
+      SESSION_SECRET: test-secret-key-for-ci-pipeline-32-chars-min
 
     steps:
       - name: Checkout code
@@ -61,7 +61,7 @@ jobs:
           DB_USERNAME=clock_user
           DB_PASSWORD=clock_password
           DB_DATABASE=clock_test_db
-          SESSION_SECRET=test-secret-key-for-ci-pipeline
+          SESSION_SECRET=test-secret-key-for-ci-pipeline-32-chars-min
           PORT=3000
           HOST=0.0.0.0
           EOF
