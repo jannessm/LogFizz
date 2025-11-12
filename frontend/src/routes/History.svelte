@@ -27,25 +27,37 @@
   $: buttons = $buttonsStore.buttons;
 
   onMount(async () => {
-    await timeLogsStore.load();
-    await buttonsStore.load();
+    // Load data in parallel for faster initial render
+    Promise.all([
+      timeLogsStore.load(),
+      buttonsStore.load()
+    ]).then(() => {
+      // Update charts after data is loaded
+      setTimeout(() => updateCharts(), 100);
+    });
   });
 
-  afterUpdate(() => {
-    updateCharts();
-  });
+  // Update charts when data changes
+  $: if (timeLogs.length > 0 && buttons.length > 0) {
+    setTimeout(() => updateCharts(), 100);
+  }
 
-  // Get calendar days for current month
+  // Get calendar days for current month - ensure we have exactly 6 weeks (42 days)
   function getCalendarDays() {
     const firstDay = currentMonth.startOf('month');
     const lastDay = currentMonth.endOf('month');
-    const startDate = firstDay.startOf('week');
-    const endDate = lastDay.endOf('week');
     
+    // Get the day of week for the first day (0 = Sunday, 6 = Saturday)
+    const firstDayOfWeek = firstDay.day();
+    
+    // Calculate how many days to show before the first of the month
+    const startDate = firstDay.subtract(firstDayOfWeek, 'day');
+    
+    // Always show 6 weeks (42 days) for consistent layout
     const days = [];
     let current = startDate;
     
-    while (current.isBefore(endDate) || current.isSame(endDate, 'day')) {
+    for (let i = 0; i < 42; i++) {
       days.push(current);
       current = current.add(1, 'day');
     }
@@ -198,6 +210,7 @@
 
   function updateCharts() {
     if (!pieChartCanvas || !barChartCanvas) return;
+    if (buttons.length === 0) return; // Wait for buttons to load
     
     const monthlyStats = getMonthlyButtonStats();
     const dailyStats = getDailyStats();
@@ -216,13 +229,14 @@
       }
     });
     
-    // Update or create pie chart
+    // Destroy and recreate pie chart if it exists
     if (pieChart) {
-      pieChart.data.labels = pieLabels;
-      pieChart.data.datasets[0].data = pieData;
-      pieChart.data.datasets[0].backgroundColor = pieColors;
-      pieChart.update();
-    } else if (pieLabels.length > 0) {
+      pieChart.destroy();
+      pieChart = null;
+    }
+    
+    // Create pie chart if we have data
+    if (pieLabels.length > 0) {
       pieChart = new Chart(pieChartCanvas, {
         type: 'pie',
         data: {
@@ -261,59 +275,59 @@
     // Bar Chart Data
     const barLabels = Array.from({ length: dailyStats.length }, (_, i) => String(i + 1));
     
-    // Update or create bar chart
+    // Destroy and recreate bar chart if it exists
     if (barChart) {
-      barChart.data.labels = barLabels;
-      barChart.data.datasets[0].data = dailyStats;
-      barChart.update();
-    } else {
-      barChart = new Chart(barChartCanvas, {
-        type: 'bar',
-        data: {
-          labels: barLabels,
-          datasets: [{
-            label: 'Hours',
-            data: dailyStats,
-            backgroundColor: 'rgba(59, 130, 246, 0.6)',
-            borderColor: 'rgba(59, 130, 246, 1)',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: (value) => value + 'h'
-              }
-            },
-            x: {
-              ticks: {
-                maxRotation: 0,
-                autoSkip: true,
-                maxTicksLimit: 15
-              }
+      barChart.destroy();
+      barChart = null;
+    }
+    
+    // Always create bar chart (even with no data, to show empty state)
+    barChart = new Chart(barChartCanvas, {
+      type: 'bar',
+      data: {
+        labels: barLabels,
+        datasets: [{
+          label: 'Hours',
+          data: dailyStats,
+          backgroundColor: 'rgba(59, 130, 246, 0.6)',
+          borderColor: 'rgba(59, 130, 246, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: (value) => value + 'h'
             }
           },
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              callbacks: {
-                label: (context) => {
-                  const hours = Math.floor(context.parsed.y);
-                  const mins = Math.round((context.parsed.y - hours) * 60);
-                  return `${hours}h ${mins}m`;
-                }
+          x: {
+            ticks: {
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 15
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const hours = Math.floor(context.parsed.y);
+                const mins = Math.round((context.parsed.y - hours) * 60);
+                return `${hours}h ${mins}m`;
               }
             }
           }
         }
-      });
-    }
+      }
+    });
   }
 
   async function previousMonth() {
@@ -364,11 +378,11 @@
   function getDateGradient(date: dayjs.Dayjs): string {
     const dateButtons = getButtonsForDate(date);
     if (dateButtons.length === 0) return '';
-    if (dateButtons.length === 1) return `border-color: ${dateButtons[0].color || '#3B82F6'}`;
+    if (dateButtons.length === 1) return dateButtons[0].color || '#3B82F6';
     
     const colors = dateButtons.slice(0, 4).map(b => b.color || '#3B82F6');
     const stops = colors.map((c, i) => `${c} ${(i / colors.length) * 100}%, ${c} ${((i + 1) / colors.length) * 100}%`).join(', ');
-    return `border-image: linear-gradient(to right, ${stops}) 1`;
+    return `conic-gradient(${stops})`;
   }
 
   function handleAddTimelog() {
@@ -462,14 +476,14 @@
     <div class="bg-white rounded-lg shadow-md p-4 mb-6">
       <h3 class="text-sm font-semibold text-gray-700 mb-3">Monthly Summary</h3>
       <div class="grid grid-cols-2 gap-4 mb-4">
-        <div class="h-32">
+        <div class="h-40 flex items-center justify-center">
           <canvas bind:this={pieChartCanvas}></canvas>
         </div>
         <div class="text-xs text-gray-600 flex items-center">
           <p>Time distribution across buttons for {currentMonth.format('MMMM')}</p>
         </div>
       </div>
-      <div class="h-40">
+      <div class="h-48 mt-4">
         <canvas bind:this={barChartCanvas}></canvas>
       </div>
     </div>
@@ -493,17 +507,39 @@
           {#each calendarDays as day}
             {@const dayButtons = getButtonsForDate(day)}
             {@const gradient = getDateGradient(day)}
+            {@const today = isToday(day)}
+            {@const selected = isSelected(day)}
+            {@const currentMonthDay = isCurrentMonth(day)}
             <button
               on:click={() => selectDate(day)}
-              class="aspect-square p-1 rounded-full transition-all hover:bg-gray-100 relative flex items-center justify-center"
-              class:bg-blue-100={isSelected(day)}
-              class:bg-blue-50={isToday(day) && !isSelected(day)}
-              class:text-gray-400={!isCurrentMonth(day)}
-              class:text-gray-800={isCurrentMonth(day)}
-              class:font-bold={isToday(day) || isSelected(day)}
-              style="{isSelected(day) ? 'border: 3px solid #3B82F6;' : isToday(day) ? 'border: 2px solid #93C5FD;' : dayButtons.length > 0 ? `border: 2px solid; ${gradient}` : 'border: 1px solid transparent;'}"
+              class="relative w-full aspect-square flex items-center justify-center transition-all hover:scale-105"
+              class:text-gray-400={!currentMonthDay}
+              class:text-gray-800={currentMonthDay && !selected}
+              class:text-white={selected}
+              class:font-bold={today || selected}
             >
-              <span class="text-sm">
+              <!-- Background circle for gradient (if has activities) -->
+              {#if dayButtons.length > 0 && !selected}
+                <div 
+                  class="absolute inset-0 rounded-full p-0.5"
+                  style="background: {gradient};"
+                >
+                  <div class="w-full h-full rounded-full bg-white"></div>
+                </div>
+              {/if}
+              
+              <!-- Today indicator (light blue circle behind) -->
+              {#if today && !selected}
+                <div class="absolute inset-1 rounded-full bg-blue-100 border-2 border-blue-300"></div>
+              {/if}
+              
+              <!-- Selected indicator (solid blue circle) -->
+              {#if selected}
+                <div class="absolute inset-0 rounded-full bg-blue-600 shadow-lg"></div>
+              {/if}
+              
+              <!-- Date number -->
+              <span class="relative text-sm z-10">
                 {day.format('D')}
               </span>
             </button>

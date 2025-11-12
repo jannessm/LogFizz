@@ -32,57 +32,60 @@ function createTimeLogsStore() {
     async load() {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        // Load from local DB first
+        // Load from local DB first (fast - show data immediately)
         const localTimeLogs = await getAllTimeLogs();
         update(state => ({ ...state, timeLogs: localTimeLogs, isLoading: false }));
 
-        // Try to pull incremental changes from server if online
+        // Try to pull incremental changes from server in background (don't block UI)
         if (isOnline()) {
-          try {
-            // Get last sync cursor
-            let cursor = await getSyncCursor('timelogs');
-            if (!cursor) {
-              // First sync - use epoch time to get all data
-              cursor = new Date(0).toISOString();
-            }
-            
-            const result = await timeLogApi.getSyncChanges(cursor);
-            
-            // Apply changes to local DB
-            for (const timeLog of result.timeLogs) {
-              if ((timeLog as any).deleted_at) {
-                // TimeLog was deleted on server
-                await deleteTimeLogDB(timeLog.id);
-              } else {
-                await saveTimeLogDB(timeLog);
+          // Don't await - do this in the background
+          (async () => {
+            try {
+              // Get last sync cursor
+              let cursor = await getSyncCursor('timelogs');
+              if (!cursor) {
+                // First sync - use epoch time to get all data
+                cursor = new Date(0).toISOString();
               }
-            }
-            
-            // Save new cursor
-            await saveSyncCursor('timelogs', result.cursor);
-            
-            // Reload from DB to reflect changes
-            const updatedTimeLogs = await getAllTimeLogs();
-            update(state => {
-              // Clear active timer if it has a corresponding stop event in synced data
-              let clearedActiveTimer = state.activeTimer;
-              if (clearedActiveTimer && clearedActiveTimer.type === 'start') {
-                // Check if there's a stop event for this timer
-                const hasStopEvent = updatedTimeLogs.some(tl => 
-                  tl.button_id === clearedActiveTimer!.button_id && 
-                  tl.type === 'stop' &&
-                  new Date(tl.timestamp).getTime() > new Date(clearedActiveTimer!.timestamp).getTime()
-                );
-                if (hasStopEvent) {
-                  // Timer was stopped on server, clear it locally
-                  clearedActiveTimer = null;
+              
+              const result = await timeLogApi.getSyncChanges(cursor);
+              
+              // Apply changes to local DB
+              for (const timeLog of result.timeLogs) {
+                if ((timeLog as any).deleted_at) {
+                  // TimeLog was deleted on server
+                  await deleteTimeLogDB(timeLog.id);
+                } else {
+                  await saveTimeLogDB(timeLog);
                 }
               }
-              return { ...state, timeLogs: updatedTimeLogs, activeTimer: clearedActiveTimer };
-            });
-          } catch (error) {
-            console.error('Failed to sync timelogs from server:', error);
-          }
+              
+              // Save new cursor
+              await saveSyncCursor('timelogs', result.cursor);
+              
+              // Reload from DB to reflect changes
+              const updatedTimeLogs = await getAllTimeLogs();
+              update(state => {
+                // Clear active timer if it has a corresponding stop event in synced data
+                let clearedActiveTimer = state.activeTimer;
+                if (clearedActiveTimer && clearedActiveTimer.type === 'start') {
+                  // Check if there's a stop event for this timer
+                  const hasStopEvent = updatedTimeLogs.some(tl => 
+                    tl.button_id === clearedActiveTimer!.button_id && 
+                    tl.type === 'stop' &&
+                    new Date(tl.timestamp).getTime() > new Date(clearedActiveTimer!.timestamp).getTime()
+                  );
+                  if (hasStopEvent) {
+                    // Timer was stopped on server, clear it locally
+                    clearedActiveTimer = null;
+                  }
+                }
+                return { ...state, timeLogs: updatedTimeLogs, activeTimer: clearedActiveTimer };
+              });
+            } catch (error) {
+              console.error('Failed to sync timelogs from server:', error);
+            }
+          })();
         }
       } catch (error: any) {
         update(state => ({ 
@@ -353,6 +356,10 @@ function createTimeLogsStore() {
     async delete(id: string) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
+        // Delete from local DB first
+        await deleteTimeLogDB(id);
+        
+        // Try to delete from server if online
         if (isOnline()) {
           try {
             await timeLogApi.delete(id);
