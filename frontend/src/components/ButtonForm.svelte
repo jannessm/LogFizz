@@ -87,7 +87,8 @@
   aria-label="Close modal"
 >
   <div 
-    class="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto" 
+    class="bg-white rounded-lg w-full max-h-[90vh] overflow-y-auto"
+    style="max-width: 500px;" 
     on:click|stopPropagation
     on:keydown|stopPropagation
     role="dialog"
