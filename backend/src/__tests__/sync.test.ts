@@ -439,7 +439,7 @@ describe('Sync API - Offline-First', () => {
         headers: { cookie: sessionCookie },
         payload: {
           button_id: buttonId1,
-          start_time: new Date(Date.now() - 3600000).toISOString(),
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
           end_time: new Date().toISOString(),
           notes: 'Initial log',
         },
@@ -573,7 +573,7 @@ describe('Sync API - Offline-First', () => {
         headers: { cookie: sessionCookie },
         payload: {
           button_id: buttonId1,
-          start_time: new Date(Date.now() - 7200000).toISOString(),
+          timestamp: new Date(Date.now() - 7200000).toISOString(),
           end_time: new Date(Date.now() - 3600000).toISOString(),
         },
       });
@@ -596,7 +596,7 @@ describe('Sync API - Offline-First', () => {
         headers: { cookie: sessionCookie },
         payload: {
           button_id: buttonId1,
-          start_time: new Date(Date.now() - 1800000).toISOString(),
+          timestamp: new Date(Date.now() - 1800000).toISOString(),
           end_time: new Date().toISOString(),
           notes: 'Recent log',
         },

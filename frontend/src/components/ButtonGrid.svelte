@@ -14,13 +14,15 @@
   }
 </script>
 
-<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 relative">
   {#each buttons as button (button.id)}
-    <TimerButton 
-      {button}
-      {editMode}
-      on:edit={() => handleEdit(button)}
-    />
+    <div class:col-span-2={$timeLogsStore.activeTimer?.button_id === button.id}>
+      <TimerButton 
+        {button}
+        {editMode}
+        on:edit={() => handleEdit(button)}
+      />
+    </div>
   {/each}
 
   {#if buttons.length === 0}

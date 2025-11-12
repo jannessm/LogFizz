@@ -36,21 +36,6 @@
     editMode = !editMode;
   }
 
-  function getTodayProgress() {
-    const today = new Date().toISOString().split('T')[0];
-    const todayMinutes = $timeLogsStore.timeLogs
-      .filter(tl => tl.end_time && tl.start_time.startsWith(today))
-      .reduce((total, tl) => {
-        const start = new Date(tl.start_time).getTime();
-        const end = new Date(tl.end_time!).getTime();
-        return total + Math.floor((end - start) / 60000);
-      }, 0);
-    
-    const goalMinutes = $sortedButtons.reduce((sum, b) => sum + (b.goal_time_minutes || 0), 0);
-    const difference = todayMinutes - goalMinutes;
-    
-    return { todayMinutes, goalMinutes, difference };
-  }
 </script>
 
 <div class="h-screen flex flex-col bg-gray-50">
@@ -89,29 +74,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Today's Summary -->
-  {#if !editMode && $sortedButtons.length > 0}
-    {#each [getTodayProgress()] as progress}
-      <div class="flex-none bg-blue-50 border-b border-blue-100">
-        <div class="max-w-[500px] mx-auto px-4 py-3">
-          <div class="flex items-center justify-between text-sm">
-            <span class="font-medium text-gray-700">Today's Progress:</span>
-            <div class="flex items-center gap-3">
-              <span class="text-gray-600">
-                {Math.floor(progress.todayMinutes / 60)}h {progress.todayMinutes % 60}m / {Math.floor(progress.goalMinutes / 60)}h {progress.goalMinutes % 60}m
-              </span>
-              {#if progress.goalMinutes > 0}
-                <span class="font-semibold" class:text-green-600={progress.difference >= 0} class:text-red-600={progress.difference < 0}>
-                  {progress.difference >= 0 ? '+' : '-'}{Math.floor(Math.abs(progress.difference) / 60)}h {Math.abs(progress.difference) % 60}m
-                </span>
-              {/if}
-            </div>
-          </div>
-        </div>
-      </div>
-    {/each}
-  {/if}
 
   <!-- Scrollable Button Area -->
   <div class="flex-1 overflow-y-auto">

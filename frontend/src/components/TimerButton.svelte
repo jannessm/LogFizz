@@ -20,31 +20,44 @@
 
   // Calculate elapsed time for active timer
   $: if (isActive && activeTimer) {
-    const startTime = new Date(activeTimer.start_time).getTime();
+    const startTime = new Date(activeTimer.timestamp).getTime();
     elapsedTime = Math.floor((Date.now() - startTime) / 1000);
   }
 
-  // Calculate today's total time
+  // Calculate today's total time from start/stop event pairs
   $: {
     const today = dayjs().format('YYYY-MM-DD');
     const todayLogs = $timeLogsStore.timeLogs.filter(tl => 
-      tl.button_id === button.id && tl.start_time.startsWith(today)
-    );
-    todayTime = todayLogs.reduce((total, tl) => {
-      if (tl.end_time) {
-        const start = new Date(tl.start_time).getTime();
-        const end = new Date(tl.end_time).getTime();
-        return total + Math.floor((end - start) / 60000); // minutes
+      tl.button_id === button.id && tl.timestamp && tl.timestamp.startsWith(today)
+    ).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    // Calculate time from start/stop pairs
+    todayTime = 0;
+    let currentStart: typeof todayLogs[0] | null = null;
+    
+    for (const log of todayLogs) {
+      if (log.type === 'start') {
+        currentStart = log;
+      } else if (log.type === 'stop' && currentStart) {
+        const start = new Date(currentStart.timestamp).getTime();
+        const end = new Date(log.timestamp).getTime();
+        todayTime += Math.floor((end - start) / 60000); // minutes
+        currentStart = null;
       }
-      return total;
-    }, 0);
+    }
+    
+    // Add time for currently active timer
+    if (currentStart && isActive && activeTimer?.id === currentStart.id) {
+      const start = new Date(currentStart.timestamp).getTime();
+      todayTime += Math.floor((Date.now() - start) / 60000);
+    }
   }
 
   onMount(() => {
     // Update elapsed time every second for active timers
     interval = setInterval(() => {
       if (isActive && activeTimer) {
-        const startTime = new Date(activeTimer.start_time).getTime();
+        const startTime = new Date(activeTimer.timestamp).getTime();
         elapsedTime = Math.floor((Date.now() - startTime) / 1000);
       }
     }, 1000) as unknown as number;
@@ -87,7 +100,17 @@
     return Math.min(100, (todayTime / button.goal_time_minutes) * 100);
   }
 
+  function getGoalDifference(): { minutes: number; isPositive: boolean } {
+    if (!button.goal_time_minutes) return { minutes: 0, isPositive: false };
+    const difference = todayTime - button.goal_time_minutes;
+    return {
+      minutes: Math.abs(difference),
+      isPositive: difference >= 0
+    };
+  }
+
   $: goalProgress = getGoalProgress();
+  $: goalDifference = getGoalDifference();
 </script>
 
 <div class="relative">
@@ -105,14 +128,45 @@
   
   <button
     on:click={handleClick}
-    class="relative aspect-square rounded-2xl p-4 transition-all duration-300 flex flex-col items-center justify-center text-white shadow-lg w-full"
-    class:scale-110={isActive}
+    class="relative aspect-square rounded-full p-4 transition-all duration-300 flex flex-col items-center justify-center text-white shadow-lg w-full overflow-visible"
     class:shadow-2xl={isActive}
-    style="background-color: {button.color || '#3B82F6'}"
+    class:has-pulse={isActive}
+    style="--button-color: {button.color || '#3B82F6'}; background-color: {button.color || '#3B82F6'}"
   >
+    <!-- Animated background layer -->
+    {#if isActive}
+      <div class="pulse-background" style="background-color: {button.color || '#3B82F6'}"></div>
+    {/if}
+
+    <!-- Circular progress indicator (clock-like) -->
+    {#if button.goal_time_minutes && !editMode}
+      <svg class="progress-ring" width="100%" height="100%" viewBox="0 0 120 120">
+        <!-- Background circle -->
+        <circle
+          class="progress-ring-bg"
+          stroke="rgba(255, 255, 255, 0.2)"
+          stroke-width="3"
+          fill="none"
+          r="56"
+          cx="60"
+          cy="60"
+        />
+        <!-- Progress circle -->
+        <circle
+          class="progress-ring-circle"
+          stroke="rgba(255, 255, 255, 0.9)"
+          stroke-width="3"
+          fill="none"
+          r="56"
+          cx="60"
+          cy="60"
+          style="--progress: {goalProgress}"
+        />
+      </svg>
+    {/if}
 
   <!-- Button content -->
-  <div class="text-center">
+  <div class="text-center relative z-10">
     {#if button.emoji}
       <div class="text-4xl mb-2">{button.emoji}</div>
     {/if}
@@ -122,26 +176,59 @@
       <div class="text-2xl font-mono">{formatTime(elapsedTime)}</div>
     {/if}
     
-    {#if todayTime > 0}
+    {#if button.goal_time_minutes && todayTime > 0}
+      <div class="text-sm opacity-90 mt-2" class:text-green-200={goalDifference.isPositive} class:text-red-200={!goalDifference.isPositive}>
+        {goalDifference.isPositive ? '+' : '-'}{Math.floor(goalDifference.minutes / 60)}h {goalDifference.minutes % 60}m
+      </div>
+    {:else if todayTime > 0}
       <div class="text-sm opacity-90 mt-2">
-        Today: {Math.floor(todayTime / 60)}h {todayTime % 60}m
+        {Math.floor(todayTime / 60)}h {todayTime % 60}m
       </div>
     {/if}
   </div>
-
-  <!-- Goal progress bar -->
-  {#if button.goal_time_minutes && !editMode}
-    <div class="absolute bottom-2 left-2 right-2 h-1 bg-white bg-opacity-30 rounded-full overflow-hidden">
-      <div 
-        class="h-full bg-white transition-all duration-300"
-        style="width: {goalProgress}%"
-      ></div>
-    </div>
-  {/if}
-
-    <!-- Active indicator -->
-    {#if isActive}
-      <div class="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
-    {/if}
   </button>
 </div>
+
+<style>
+  .has-pulse {
+    background-color: var(--button-color) !important;
+  }
+
+  .pulse-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50%;
+    z-index: 0;
+    animation: pulse-scale 1s ease-in-out infinite;
+  }
+
+  .progress-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: rotate(-90deg);
+    z-index: 5;
+  }
+
+  .progress-ring-circle {
+    stroke-dasharray: 351.858; /* 2 * PI * 56 */
+    stroke-dashoffset: calc(351.858 - (351.858 * var(--progress) / 100));
+    transition: stroke-dashoffset 0.3s ease;
+    stroke-linecap: round;
+  }
+
+  @keyframes pulse-scale {
+    0% {
+      transform: scale(1);
+    }
+    30% {
+      transform: scale(1.01);
+    }
+    40%, 100% {
+      transform: scale(1);
+    }
+  }
+</style>

@@ -63,7 +63,23 @@ function createTimeLogsStore() {
             
             // Reload from DB to reflect changes
             const updatedTimeLogs = await getAllTimeLogs();
-            update(state => ({ ...state, timeLogs: updatedTimeLogs }));
+            update(state => {
+              // Clear active timer if it has a corresponding stop event in synced data
+              let clearedActiveTimer = state.activeTimer;
+              if (clearedActiveTimer && clearedActiveTimer.type === 'start') {
+                // Check if there's a stop event for this timer
+                const hasStopEvent = updatedTimeLogs.some(tl => 
+                  tl.button_id === clearedActiveTimer!.button_id && 
+                  tl.type === 'stop' &&
+                  new Date(tl.timestamp).getTime() > new Date(clearedActiveTimer!.timestamp).getTime()
+                );
+                if (hasStopEvent) {
+                  // Timer was stopped on server, clear it locally
+                  clearedActiveTimer = null;
+                }
+              }
+              return { ...state, timeLogs: updatedTimeLogs, activeTimer: clearedActiveTimer };
+            });
           } catch (error) {
             console.error('Failed to sync timelogs from server:', error);
           }
@@ -80,19 +96,55 @@ function createTimeLogsStore() {
     async loadActive() {
       try {
         if (isOnline()) {
-          const active = await timeLogApi.getActive();
-          update(state => ({ ...state, activeTimer: active }));
-          if (active) {
-            await saveTimeLogDB(active);
+          try {
+            const active = await timeLogApi.getActive();
+            update(state => ({ ...state, activeTimer: active }));
+            if (active) {
+              await saveTimeLogDB(active);
+            }
+          } catch (error) {
+            console.error('Failed to fetch active timer from server:', error);
+            // If server fetch fails, don't try to guess from local DB
+            // Better to show no active timer than to show a wrong one
+            update(state => ({ ...state, activeTimer: null }));
           }
         } else {
-          // Find active timer in local DB
+          // When offline, be very conservative about showing active timers
+          // Only consider start events from the last hour without matching stop events
           const localTimeLogs = await getAllTimeLogs();
-          const active = localTimeLogs.find(tl => !tl.end_time);
-          update(state => ({ ...state, activeTimer: active || null }));
+          const oneHourAgo = Date.now() - (60 * 60 * 1000);
+          
+          // Find all start events in the last hour
+          const recentStarts = localTimeLogs.filter(tl => {
+            if (tl.type !== 'start') return false;
+            if (!tl.timestamp) return false;
+            const timestamp = new Date(tl.timestamp).getTime();
+            return timestamp > oneHourAgo;
+          });
+          
+          // Find the most recent start without a matching stop
+          let active: TimeLog | null = null;
+          for (const start of recentStarts.sort((a, b) => 
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          )) {
+            // Check if there's a stop event after this start
+            const hasStop = localTimeLogs.some(tl =>
+              tl.type === 'stop' &&
+              tl.button_id === start.button_id &&
+              new Date(tl.timestamp).getTime() > new Date(start.timestamp).getTime()
+            );
+            if (!hasStop) {
+              active = start;
+              break;
+            }
+          }
+          
+          update(state => ({ ...state, activeTimer: active }));
         }
       } catch (error) {
         console.error('Failed to load active timer:', error);
+        // On error, clear active timer to be safe
+        update(state => ({ ...state, activeTimer: null }));
       }
     },
 
@@ -103,8 +155,12 @@ function createTimeLogsStore() {
           id: crypto.randomUUID(),
           user_id: '', // Will be set by backend
           button_id: buttonId,
-          start_time: new Date().toISOString(),
+          type: 'start',
+          timestamp: new Date().toISOString(),
+          apply_break_calculation: false,
           is_manual: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         };
 
         if (isOnline()) {
@@ -153,67 +209,74 @@ function createTimeLogsStore() {
     async stopTimer(id: string) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        const endTime = new Date().toISOString();
-        
         if (isOnline()) {
           try {
+            // Backend will create a new stop event
             const stopped = await timeLogApi.stop(id);
             await saveTimeLogDB(stopped);
             update(state => {
-              const index = state.timeLogs.findIndex(tl => tl.id === id);
-              const newTimeLogs = [...state.timeLogs];
-              if (index !== -1) {
-                newTimeLogs[index] = stopped;
-              }
+              // Add the stop event to timeLogs
               return {
                 ...state,
                 activeTimer: null,
-                timeLogs: newTimeLogs,
+                timeLogs: [...state.timeLogs, stopped],
                 isLoading: false
               };
             });
             return stopped;
           } catch (error) {
-            // If API fails, update locally and queue for sync
-            update(state => {
-              const index = state.timeLogs.findIndex(tl => tl.id === id);
-              if (index === -1) throw new Error('TimeLog not found');
-              
-              const updatedTimeLog = { ...state.timeLogs[index], end_time: endTime };
-              syncService.queueTimeLogUpdate(updatedTimeLog);
-              
-              const newTimeLogs = [...state.timeLogs];
-              newTimeLogs[index] = updatedTimeLog;
-              
-              return {
-                ...state,
-                activeTimer: null,
-                timeLogs: newTimeLogs,
-                isLoading: false
-              };
-            });
-            return null;
-          }
-        } else {
-          // Offline: update locally and queue for sync
-          update(state => {
-            const index = state.timeLogs.findIndex(tl => tl.id === id);
-            if (index === -1) throw new Error('TimeLog not found');
+            // If API fails, create stop event locally and queue for sync
+            const startEvent = await getAllTimeLogs().then(logs => logs.find(tl => tl.id === id));
+            if (!startEvent) throw new Error('Start event not found');
             
-            const updatedTimeLog = { ...state.timeLogs[index], end_time: endTime };
-            syncService.queueTimeLogUpdate(updatedTimeLog);
+            const stopEvent: TimeLog = {
+              id: crypto.randomUUID(),
+              user_id: startEvent.user_id,
+              button_id: startEvent.button_id,
+              type: 'stop',
+              timestamp: new Date().toISOString(),
+              apply_break_calculation: startEvent.apply_break_calculation,
+              is_manual: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
             
-            const newTimeLogs = [...state.timeLogs];
-            newTimeLogs[index] = updatedTimeLog;
+            await syncService.queueTimeLogCreate(stopEvent);
             
-            return {
+            update(state => ({
               ...state,
               activeTimer: null,
-              timeLogs: newTimeLogs,
+              timeLogs: [...state.timeLogs, stopEvent],
               isLoading: false
-            };
-          });
-          return null;
+            }));
+            return stopEvent;
+          }
+        } else {
+          // Offline: create stop event locally and queue for sync
+          const startEvent = await getAllTimeLogs().then(logs => logs.find(tl => tl.id === id));
+          if (!startEvent) throw new Error('Start event not found');
+          
+          const stopEvent: TimeLog = {
+            id: crypto.randomUUID(),
+            user_id: startEvent.user_id,
+            button_id: startEvent.button_id,
+            type: 'stop',
+            timestamp: new Date().toISOString(),
+            apply_break_calculation: startEvent.apply_break_calculation,
+            is_manual: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          
+          await syncService.queueTimeLogCreate(stopEvent);
+          
+          update(state => ({
+            ...state,
+            activeTimer: null,
+            timeLogs: [...state.timeLogs, stopEvent],
+            isLoading: false
+          }));
+          return stopEvent;
         }
       } catch (error: any) {
         update(state => ({ 
@@ -230,12 +293,15 @@ function createTimeLogsStore() {
       try {
         const timeLog: TimeLog = {
           id: crypto.randomUUID(),
-          user_id: '',
+          user_id: timeLogData.user_id || '',
           button_id: timeLogData.button_id || '',
-          start_time: timeLogData.start_time || new Date().toISOString(),
-          end_time: timeLogData.end_time,
+          type: timeLogData.type || 'start',
+          timestamp: timeLogData.timestamp || new Date().toISOString(),
+          apply_break_calculation: timeLogData.apply_break_calculation ?? false,
           notes: timeLogData.notes,
           is_manual: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         };
 
         if (isOnline()) {
@@ -318,7 +384,7 @@ export const todayTimeLogs = derived(
   $timeLogsStore => {
     const today = new Date().toISOString().split('T')[0];
     return $timeLogsStore.timeLogs.filter(tl => 
-      tl.start_time.startsWith(today)
+      tl.timestamp && tl.timestamp.startsWith(today)
     );
   }
 );

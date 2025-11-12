@@ -52,7 +52,7 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
       if (!db.objectStoreNames.contains('timelogs')) {
         const timelogStore = db.createObjectStore('timelogs', { keyPath: 'id' });
         timelogStore.createIndex('by-button', 'button_id');
-        timelogStore.createIndex('by-start', 'start_time');
+        timelogStore.createIndex('by-start', 'timestamp');
       }
 
       // Sync queue store

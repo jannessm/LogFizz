@@ -41,21 +41,65 @@
     const dateStr = date.format('YYYY-MM-DD');
     const buttonIds = new Set(
       timeLogs
-        .filter(tl => tl.start_time.startsWith(dateStr))
+        .filter(tl => tl.timestamp && tl.timestamp.startsWith(dateStr))
         .map(tl => tl.button_id)
     );
     return buttons.filter(b => buttonIds.has(b.id));
   }
 
-  // Get time logs for selected date
-  function getLogsForSelectedDate() {
+  // Get time logs for selected date and pair them into sessions
+  function getSessionsForSelectedDate() {
     const dateStr = selectedDate.format('YYYY-MM-DD');
-    return timeLogs
-      .filter(tl => tl.start_time.startsWith(dateStr))
-      .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+    const logs = timeLogs
+      .filter(tl => tl.timestamp && tl.timestamp.startsWith(dateStr))
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    // Pair start/stop events into sessions
+    const sessions: Array<{
+      button_id: string;
+      startTime: string;
+      endTime?: string;
+      startLog: typeof logs[0];
+      stopLog?: typeof logs[0];
+    }> = [];
+    
+    const startsByButton = new Map<string, typeof logs[0]>();
+    
+    for (const log of logs) {
+      if (log.type === 'start') {
+        // New start event - save it
+        startsByButton.set(log.button_id, log);
+      } else if (log.type === 'stop') {
+        // Stop event - pair with most recent start for this button
+        const start = startsByButton.get(log.button_id);
+        if (start) {
+          sessions.push({
+            button_id: log.button_id,
+            startTime: start.timestamp,
+            endTime: log.timestamp,
+            startLog: start,
+            stopLog: log,
+          });
+          startsByButton.delete(log.button_id);
+        }
+      }
+    }
+    
+    // Add any remaining unpaired starts as active sessions
+    for (const [button_id, start] of startsByButton.entries()) {
+      sessions.push({
+        button_id,
+        startTime: start.timestamp,
+        startLog: start,
+      });
+    }
+    
+    return sessions.sort((a, b) => 
+      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
   }
 
-  $: selectedDateLogs = getLogsForSelectedDate();
+  $: selectedDateSessions = getSessionsForSelectedDate();
 
   function previousMonth() {
     currentMonth = currentMonth.subtract(1, 'month');
@@ -171,10 +215,10 @@
         {/if}
       </h2>
       
-      {#if selectedDateLogs.length > 0}
+      {#if selectedDateSessions.length > 0}
         <div class="space-y-3">
-          {#each selectedDateLogs as log}
-            {@const button = buttons.find(b => b.id === log.button_id)}
+          {#each selectedDateSessions as session}
+            {@const button = buttons.find(b => b.id === session.button_id)}
             {#if button}
               <div class="flex items-center gap-3 border-b border-gray-100 pb-3 last:border-b-0">
                 <div
@@ -189,16 +233,16 @@
                     <p class="font-medium text-gray-800">{button.name}</p>
                   </div>
                   <p class="text-sm text-gray-500">
-                    {dayjs(log.start_time).format('HH:mm')}
-                    {#if log.end_time}
-                      - {dayjs(log.end_time).format('HH:mm')}
+                    {dayjs(session.startTime).format('HH:mm')}
+                    {#if session.endTime}
+                      - {dayjs(session.endTime).format('HH:mm')}
                     {:else}
                       - Running...
                     {/if}
                   </p>
                 </div>
-                {#if log.end_time}
-                  {@const duration = Math.floor((new Date(log.end_time).getTime() - new Date(log.start_time).getTime()) / 60000)}
+                {#if session.endTime}
+                  {@const duration = Math.floor((new Date(session.endTime).getTime() - new Date(session.startTime).getTime()) / 60000)}
                   <p class="text-sm font-semibold text-gray-700">{formatMinutes(duration)}</p>
                 {/if}
               </div>

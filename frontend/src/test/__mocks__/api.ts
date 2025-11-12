@@ -25,15 +25,30 @@ export const mockButton: Button = {
   created_at: '2024-01-01T00:00:00Z',
 };
 
-// Mock timelog data
+// Mock timelog data - Start event
 export const mockTimeLog: TimeLog = {
   id: 'log-1',
   user_id: '1',
   button_id: 'button-1',
-  start_time: '2024-01-01T09:00:00Z',
-  end_time: '2024-01-01T17:00:00Z',
-  duration: 480,
+  type: 'start',
+  timestamp: '2024-01-01T09:00:00Z',
+  apply_break_calculation: false,
   is_manual: false,
+  created_at: '2024-01-01T09:00:00Z',
+  updated_at: '2024-01-01T09:00:00Z',
+};
+
+// Mock timelog data - Stop event
+export const mockTimeLogStop: TimeLog = {
+  id: 'log-2',
+  user_id: '1',
+  button_id: 'button-1',
+  type: 'stop',
+  timestamp: '2024-01-01T17:00:00Z',
+  apply_break_calculation: false,
+  is_manual: false,
+  created_at: '2024-01-01T17:00:00Z',
+  updated_at: '2024-01-01T17:00:00Z',
 };
 
 // Mock auth API
@@ -58,9 +73,9 @@ export const buttonApi = {
 // Mock timeLog API
 export const timeLogApi = {
   start: vi.fn().mockResolvedValue(mockTimeLog),
-  stop: vi.fn().mockResolvedValue({ ...mockTimeLog, end_time: '2024-01-01T17:00:00Z' }),
+  stop: vi.fn().mockResolvedValue(mockTimeLogStop),
   getActive: vi.fn().mockResolvedValue(null),
-  getAll: vi.fn().mockResolvedValue([mockTimeLog]),
+  getAll: vi.fn().mockResolvedValue([mockTimeLog, mockTimeLogStop]),
   getTodayTime: vi.fn().mockResolvedValue({ total_minutes: 480 }),
   getYearlyStats: vi.fn().mockResolvedValue([]),
   getGoalProgress: vi.fn().mockResolvedValue({ achieved: true, percentage: 100 }),

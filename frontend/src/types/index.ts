@@ -23,17 +23,21 @@ export interface Button {
   created_at: string;
 }
 
-// TimeLog types
+// TimeLog types - Event-based system
+// Each TimeLog represents a single event (start or stop), not a time range
 export interface TimeLog {
   id: string;
   user_id: string;
   button_id: string;
-  start_time: string;
-  end_time?: string;
-  duration?: number; // in minutes
-  break_time_subtracted?: number; // in minutes
+  type: 'start' | 'stop'; // Event type
+  timestamp: string; // When this event occurred
+  timezone?: string;
+  apply_break_calculation: boolean;
   notes?: string;
   is_manual: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at?: string; // Soft delete support
 }
 
 // Holiday types

@@ -152,7 +152,7 @@ describe('TimeLog Routes', () => {
       },
       payload: {
         button_id: buttonId,
-        start_time: startTime.toISOString(),
+        timestamp: startTime.toISOString(),
         end_time: endTime.toISOString(),
         notes: 'Manual entry for yesterday',
       },
@@ -225,7 +225,7 @@ describe('TimeLog Routes', () => {
       },
       payload: {
         button_id: buttonId,
-        start_time: startTime.toISOString(),
+        timestamp: startTime.toISOString(),
         end_time: endTime.toISOString(),
       },
     });
@@ -263,7 +263,7 @@ describe('TimeLog Routes', () => {
       },
       payload: {
         button_id: buttonId,
-        start_time: startTime.toISOString(),
+        timestamp: startTime.toISOString(),
         end_time: endTime.toISOString(),
       },
     });

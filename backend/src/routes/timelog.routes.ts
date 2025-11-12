@@ -209,7 +209,7 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
       tags: ['TimeLogs'],
       body: Type.Object({
         button_id: Type.String(),
-        start_time: Type.String(),
+        timestamp: Type.String(),
         end_time: Type.String(),
         notes: Type.Optional(Type.String()),
         timezone: Type.Optional(Type.String()),
@@ -237,11 +237,11 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const userId = request.session.userId!;
-      const { button_id, start_time, end_time, notes, timezone } = request.body as any;
+      const { button_id, timestamp, end_time, notes, timezone } = request.body as any;
       const logs = await timeLogService.createManualLog(
         userId,
         button_id,
-        new Date(start_time),
+        new Date(timestamp),
         new Date(end_time),
         notes,
         timezone
