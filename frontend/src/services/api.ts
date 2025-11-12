@@ -42,6 +42,14 @@ export const authApi = {
   async updateProfile(name: string, state?: string): Promise<User> {
     return api.put('api/auth/profile', { json: { name, state } }).json();
   },
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return api.post('api/auth/forgot-password', { json: { email } }).json();
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    return api.post('api/auth/reset-password', { json: { token, newPassword } }).json();
+  },
 };
 
 // Button API

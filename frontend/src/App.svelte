@@ -5,6 +5,8 @@
   import Dashboard from './routes/Dashboard.svelte';
   import History from './routes/History.svelte';
   import Settings from './routes/Settings.svelte';
+  import ForgotPassword from './routes/ForgotPassword.svelte';
+  import ResetPassword from './routes/ResetPassword.svelte';
   import { syncService } from './services/sync';
   import { currentPath, navigate } from './lib/navigation';
 
@@ -12,6 +14,10 @@
 
   $: auth = $authStore;
   $: path = $currentPath;
+
+  // Public routes that don't require authentication
+  const publicRoutes = ['/login', '/forgot-password', '/reset-password'];
+  const isPublicRoute = (path: string) => publicRoutes.includes(path);
 
   onMount(async () => {
     await authStore.init();
@@ -25,9 +31,9 @@
     }, 1 * 60 * 1000);
   });
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated and not on a public route
   $: {
-    if (!isLoading && !auth.isAuthenticated && path !== '/login') {
+    if (!isLoading && !auth.isAuthenticated && !isPublicRoute(path)) {
       navigate('/login', { replace: true });
     }
   }
@@ -43,6 +49,10 @@
 {:else}
   {#if path === '/login'}
     <Login />
+  {:else if path === '/forgot-password'}
+    <ForgotPassword />
+  {:else if path === '/reset-password'}
+    <ResetPassword />
   {:else if path === '/history'}
     <History />
   {:else if path === '/settings'}
