@@ -17,6 +17,14 @@ export function hashPasswordForTransport(password: string, email: string): strin
   
   // Create a SHA-256 hash of password + email
   // This creates a deterministic hash that's safe to send over the network
+  // 
+  // NOTE: This is NOT for password storage! This is for transport security only.
+  // The backend will apply proper bcrypt hashing for storage.
+  // SHA-256 is used here because:
+  // 1. It's deterministic (required for authentication)
+  // 2. It's fast (client-side performance)
+  // 3. It prevents plain-text passwords from being transmitted over the network
+  // lgtm[js/insufficient-password-hash]
   const hash = crypto.createHash('sha256');
   hash.update(password);
   hash.update(normalizedEmail);
