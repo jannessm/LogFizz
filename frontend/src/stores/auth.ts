@@ -90,13 +90,13 @@ function createAuthStore() {
       }
     },
 
-    async register(email: string, password: string, name: string) {
-      update(state => ({ ...state, isLoading: true, error: null }));
+    async register(email: string, password: string, name: string, state?: string) {
+      update(storeState => ({ ...storeState, isLoading: true, error: null }));
       try {
-        const user = await authApi.register(email, password, name);
+        const user = await authApi.register(email, password, name, state);
         await saveUser(user);
-        update(state => ({ 
-          ...state, 
+        update(storeState => ({ 
+          ...storeState, 
           user, 
           isAuthenticated: true,
           isLoading: false 
@@ -104,8 +104,8 @@ function createAuthStore() {
         return user;
       } catch (error: any) {
         const errorMessage = error.response?.data?.message || 'Registration failed';
-        update(state => ({ 
-          ...state, 
+        update(storeState => ({ 
+          ...storeState, 
           error: errorMessage,
           isLoading: false 
         }));

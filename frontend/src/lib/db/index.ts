@@ -176,6 +176,15 @@ export async function getSetting(key: string): Promise<any> {
   return db.get('settings', key);
 }
 
+// Sync cursor operations
+export async function saveSyncCursor(type: 'buttons' | 'timelogs', cursor: string): Promise<void> {
+  await saveSetting(`sync_cursor_${type}`, cursor);
+}
+
+export async function getSyncCursor(type: 'buttons' | 'timelogs'): Promise<string | undefined> {
+  return await getSetting(`sync_cursor_${type}`);
+}
+
 // Clear all data
 export async function clearAllData(): Promise<void> {
   const db = await getDB();

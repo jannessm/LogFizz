@@ -1,7 +1,10 @@
 import ky from 'ky';
 import type { User, Button, TimeLog, Holiday } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// In development, use proxy (relative path). In production, use env variable or default to same origin
+const API_BASE_URL = import.meta.env.PROD 
+  ? (import.meta.env.VITE_API_URL || window.location.origin)
+  : '';
 
 // Create a ky instance with default options
 const api = ky.create({
@@ -15,12 +18,32 @@ const api = ky.create({
 
 // Auth API
 export const authApi = {
-  async register(email: string, password: string, name: string): Promise<User> {
-    return api.post('api/auth/register', { json: { email, password, name } }).json();
+  async register(email: string, password: string, name: string, state?: string): Promise<User> {
+    return api.post('api/auth/register', { json: { email, password, name, state } }).json();
   },
 
   async login(email: string, password: string): Promise<User> {
-    return api.post('api/auth/login', { json: { email, password } }).json();
+    console.log('Attempting login with API_BASE_URL:', API_BASE_URL);
+    console.log('Full URL will be:', API_BASE_URL + '/api/auth/login');
+    const response = await api.post('api/auth/login', { json: { email, password } });
+    console.log('Login response status:', response.status);
+    console.log('Login response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('Cookies (will be empty - managed by browser):', response.headers.get('set-cookie'));
+    
+    const userData = await response.json() as User;
+    
+    // Try to make a test request to /me to check if session works
+    console.log('Testing session with /me endpoint...');
+    try {
+      const meResponse = await api.get('api/auth/me');
+      console.log('✓ Test /me request successful - session is working!');
+      const meData = await meResponse.json();
+      console.log('Me response:', meData);
+    } catch (error) {
+      console.error('✗ Test /me request failed - session not working:', error);
+    }
+    
+    return userData;
   },
 
   async logout(): Promise<void> {
@@ -72,6 +95,25 @@ export const buttonApi = {
 
   async delete(id: string): Promise<void> {
     await api.delete(`api/buttons/${id}`);
+  },
+
+  // Cursor-based sync endpoints
+  async getSyncChanges(since: string): Promise<{ buttons: Button[]; cursor: string }> {
+    const searchParams = new URLSearchParams({ since });
+    return api.get('api/buttons/sync', { searchParams }).json();
+  },
+
+  async pushSyncChanges(buttons: Partial<Button>[]): Promise<{
+    saved?: Button[];
+    conflicts?: Array<{
+      id: string;
+      field: string;
+      clientVersion: Partial<Button>;
+      serverVersion: Button;
+    }>;
+    cursor: string;
+  }> {
+    return api.post('api/buttons/sync', { json: { buttons } }).json();
   },
 };
 
@@ -133,6 +175,25 @@ export const timeLogApi = {
 
   async delete(id: string): Promise<void> {
     await api.delete(`api/timelogs/${id}`);
+  },
+
+  // Cursor-based sync endpoints
+  async getSyncChanges(since: string): Promise<{ timeLogs: TimeLog[]; cursor: string }> {
+    const searchParams = new URLSearchParams({ since });
+    return api.get('api/timelogs/sync', { searchParams }).json();
+  },
+
+  async pushSyncChanges(timeLogs: Partial<TimeLog>[]): Promise<{
+    saved?: TimeLog[];
+    conflicts?: Array<{
+      id: string;
+      field: string;
+      clientVersion: Partial<TimeLog>;
+      serverVersion: TimeLog;
+    }>;
+    cursor: string;
+  }> {
+    return api.post('api/timelogs/sync', { json: { timeLogs } }).json();
   },
 };
 

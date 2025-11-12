@@ -7,6 +7,9 @@ import {
   saveTimeLog,
   deleteButton,
   deleteTimeLog,
+  getSyncCursor,
+  saveSyncCursor,
+  getUser,
 } from '../lib/db';
 import { buttonApi, timeLogApi, isOnline } from './api';
 import type { Button, TimeLog, SyncQueueItem } from '../types';
@@ -100,27 +103,26 @@ export class SyncService {
     this.notifyListeners();
   }
 
-  // Sync all pending items
+  // Sync all pending items using cursor-based approach
   async syncAll(): Promise<void> {
     if (this.isSyncing || !isOnline()) {
       return;
     }
 
+    // Check if user is logged in
+    const user = await getUser();
+    if (!user) {
+      console.log('Skipping sync: user not logged in');
+      return;
+    }
+
     this.isSyncing = true;
     try {
-      const items = await getUnsyncedItems();
+      // Phase 1: Push local changes to server
+      await this.pushLocalChanges();
       
-      for (const item of items) {
-        try {
-          await this.syncItem(item);
-          await markItemSynced(item.id);
-          // Delete synced items after a delay
-          setTimeout(() => deleteFromSyncQueue(item.id), 5000);
-        } catch (error) {
-          console.error('Failed to sync item:', item, error);
-          // Continue with next item
-        }
-      }
+      // Phase 2: Pull server changes since last sync
+      await this.pullServerChanges();
       
       this.notifyListeners();
     } finally {
@@ -128,50 +130,150 @@ export class SyncService {
     }
   }
 
-  private async syncItem(item: SyncQueueItem): Promise<void> {
-    switch (item.type) {
-      case 'button':
-        await this.syncButton(item);
-        break;
-      case 'timelog':
-        await this.syncTimeLog(item);
-        break;
-    }
-  }
-
-  private async syncButton(item: SyncQueueItem): Promise<void> {
-    const button = item.data as Button;
+  // Push local queued changes to server
+  private async pushLocalChanges(): Promise<void> {
+    const items = await getUnsyncedItems();
     
-    switch (item.operation) {
-      case 'create':
-        await buttonApi.create(button);
-        break;
-      case 'update':
-        await buttonApi.update(button.id, button);
-        break;
-      case 'delete':
-        await buttonApi.delete(button.id);
-        break;
-    }
-  }
+    // Group items by type
+    const buttonItems = items.filter(item => item.type === 'button');
+    const timeLogItems = items.filter(item => item.type === 'timelog');
 
-  private async syncTimeLog(item: SyncQueueItem): Promise<void> {
-    const timeLog = item.data as TimeLog;
-    
-    switch (item.operation) {
-      case 'create':
-        if (timeLog.is_manual) {
-          await timeLogApi.createManual(timeLog);
-        } else {
-          await timeLogApi.start(timeLog.button_id);
+    // Push buttons
+    if (buttonItems.length > 0) {
+      try {
+        const buttons = buttonItems.map(item => ({
+          ...item.data,
+          updated_at: new Date(item.timestamp).toISOString(),
+          deleted_at: item.operation === 'delete' ? new Date(item.timestamp).toISOString() : undefined,
+        }));
+        
+        const result = await buttonApi.pushSyncChanges(buttons);
+        
+        // Save the new cursor
+        await saveSyncCursor('buttons', result.cursor);
+        
+        // Mark items as synced and delete from queue
+        for (const item of buttonItems) {
+          await markItemSynced(item.id);
+          setTimeout(() => deleteFromSyncQueue(item.id), 5000);
         }
-        break;
-      case 'update':
-        await timeLogApi.update(timeLog.id, timeLog);
-        break;
-      case 'delete':
-        await timeLogApi.delete(timeLog.id);
-        break;
+        
+        // Update local DB with server-confirmed data
+        if (result.saved) {
+          for (const button of result.saved) {
+            await saveButton(button);
+          }
+        }
+        
+        // Handle conflicts
+        if (result.conflicts && result.conflicts.length > 0) {
+          console.warn('Button sync conflicts detected:', result.conflicts);
+          // In a real app, you'd want to show these to the user
+          // For now, we'll use server version (last-write-wins)
+          for (const conflict of result.conflicts) {
+            await saveButton(conflict.serverVersion);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to push button changes:', error);
+      }
+    }
+
+    // Push time logs
+    if (timeLogItems.length > 0) {
+      try {
+        const timeLogs = timeLogItems.map(item => ({
+          ...item.data,
+          updated_at: new Date(item.timestamp).toISOString(),
+          deleted_at: item.operation === 'delete' ? new Date(item.timestamp).toISOString() : undefined,
+        }));
+        
+        const result = await timeLogApi.pushSyncChanges(timeLogs);
+        
+        // Save the new cursor
+        await saveSyncCursor('timelogs', result.cursor);
+        
+        // Mark items as synced and delete from queue
+        for (const item of timeLogItems) {
+          await markItemSynced(item.id);
+          setTimeout(() => deleteFromSyncQueue(item.id), 5000);
+        }
+        
+        // Update local DB with server-confirmed data
+        if (result.saved) {
+          for (const timeLog of result.saved) {
+            await saveTimeLog(timeLog);
+          }
+        }
+        
+        // Handle conflicts
+        if (result.conflicts && result.conflicts.length > 0) {
+          console.warn('TimeLog sync conflicts detected:', result.conflicts);
+          // Use server version (last-write-wins)
+          for (const conflict of result.conflicts) {
+            await saveTimeLog(conflict.serverVersion);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to push timelog changes:', error);
+      }
+    }
+  }
+
+  // Pull server changes since last cursor
+  private async pullServerChanges(): Promise<void> {
+    try {
+      // Pull button changes
+      let buttonCursor = await getSyncCursor('buttons');
+      if (!buttonCursor) {
+        // First sync - use epoch time to get all data
+        buttonCursor = new Date(0).toISOString();
+      }
+      
+      const buttonResult = await buttonApi.getSyncChanges(buttonCursor);
+      
+      // Update local DB with server changes
+      for (const button of buttonResult.buttons) {
+        if ((button as any).deleted_at) {
+          // Button was deleted on server
+          await deleteButton(button.id);
+        } else {
+          await saveButton(button);
+        }
+      }
+      
+      // Save new cursor
+      await saveSyncCursor('buttons', buttonResult.cursor);
+      
+    } catch (error) {
+      console.error('Failed to pull button changes:', error);
+    }
+
+    try {
+      // Pull timelog changes
+      let timeLogCursor = await getSyncCursor('timelogs');
+      if (!timeLogCursor) {
+        // First sync - use epoch time to get all data
+        timeLogCursor = new Date(0).toISOString();
+      }
+      
+      const timeLogResult = await timeLogApi.getSyncChanges(timeLogCursor);
+      
+      // Update local DB with server changes
+      for (const timeLog of timeLogResult.timeLogs) {
+        if ((timeLog as any).deleted_at) {
+          // TimeLog was deleted on server
+          await deleteTimeLog(timeLog.id);
+        } else {
+          await saveTimeLog(timeLog);
+        }
+      }
+      
+      // Save new cursor
+      await saveSyncCursor('timelogs', timeLogResult.cursor);
+      
+    } catch (error) {
+      console.error('Failed to pull timelog changes:', error);
     }
   }
 
@@ -197,10 +299,13 @@ export class SyncService {
 // Export singleton instance
 export const syncService = new SyncService();
 
-// Auto-sync when coming online
+// Auto-sync when coming online (if authenticated)
 if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => {
-    console.log('App is online, syncing...');
-    syncService.syncAll();
+  window.addEventListener('online', async () => {
+    const user = await getUser();
+    if (user) {
+      console.log('App is online, syncing...');
+      syncService.syncAll();
+    }
   });
 }

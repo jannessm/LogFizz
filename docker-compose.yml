@@ -32,7 +32,9 @@ services:
       PORT: 3000
       HOST: 0.0.0.0
       SESSION_SECRET: change-this-secret-in-production-min-32-chars-required-for-security
-      NODE_ENV: production
+      NODE_ENV: development
+      # Allow frontend running on localhost to connect (for development with docker backend)
+      FRONTEND_URL: http://localhost:5173
     ports:
       - "3000:3000"
     depends_on:

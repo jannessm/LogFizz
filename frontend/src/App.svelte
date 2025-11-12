@@ -23,9 +23,9 @@
     await authStore.init();
     isLoading = false;
 
-    // Auto-sync every minute if online
+    // Auto-sync every minute if online and authenticated
     setInterval(() => {
-      if (navigator.onLine) {
+      if (navigator.onLine && $authStore.isAuthenticated) {
         syncService.syncAll();
       }
     }, 1 * 60 * 1000);

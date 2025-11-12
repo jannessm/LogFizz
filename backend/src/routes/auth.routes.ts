@@ -74,7 +74,17 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.code(401).send({ error: 'Invalid credentials' });
     }
 
+    // Set session data
     request.session.userId = user.id;
+    
+    // Session is automatically saved by @fastify/session after the response
+    // But we can log for debugging
+    const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+    if (!isTest) {
+      console.log('Session saved successfully');
+      console.log('Session ID:', request.session.sessionId);
+      console.log('User ID in session:', request.session.userId);
+    }
     
     return reply.send({
       id: user.id,

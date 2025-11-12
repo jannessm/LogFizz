@@ -23,8 +23,44 @@ export async function buildApp() {
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   // Register CORS
+  // Allow multiple origins for development and docker scenarios
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5173',
+    'http://localhost:8080', // Frontend in docker
+    'http://127.0.0.1:8080',
+  ];
+  
+  // Add custom frontend URL if specified
+  if (process.env.FRONTEND_URL) {
+    allowedOrigins.push(process.env.FRONTEND_URL);
+  }
+
   await fastify.register(cors, {
-    origin: true,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, etc)
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      
+      // In production, also check if it matches the frontend URL pattern
+      if (process.env.NODE_ENV === 'production' && process.env.FRONTEND_URL) {
+        callback(null, origin === process.env.FRONTEND_URL);
+        return;
+      }
+      
+      // Log rejected origins for debugging
+      console.warn(`CORS: Rejected origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'), false);
+    },
     credentials: true,
   });
 
@@ -34,11 +70,38 @@ export async function buildApp() {
   // Register session support
   await fastify.register(session, {
     secret: process.env.SESSION_SECRET || 'a-very-secret-key-minimum-32-chars-change-in-production',
+    cookieName: 'sessionId', // Explicit cookie name
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Set to false for tests and development
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax', // Use 'lax' for better compatibility
+      path: '/',
     },
+    saveUninitialized: false, // Don't create session until something is stored
+    rolling: false, // Don't reset cookie expiration on every response (for better test stability)
+  });
+
+  // Add request logging hook for debugging
+  fastify.addHook('onRequest', async (request, reply) => {
+    if (!isTest) {
+      console.log(`[${new Date().toISOString()}] ${request.method} ${request.url}`);
+      console.log('Request headers:', {
+        origin: request.headers.origin,
+        cookie: request.headers.cookie,
+        'content-type': request.headers['content-type'],
+      });
+    }
+  });
+
+  fastify.addHook('onSend', async (request, reply) => {
+    if (!isTest && request.url.includes('/login')) {
+      console.log('Response headers for login:', {
+        'set-cookie': reply.getHeader('set-cookie'),
+        'access-control-allow-credentials': reply.getHeader('access-control-allow-credentials'),
+        'access-control-allow-origin': reply.getHeader('access-control-allow-origin'),
+      });
+    }
   });
 
   // Register rate limiting

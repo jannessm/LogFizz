@@ -1,7 +1,7 @@
 import { writable, derived } from 'svelte/store';
 import type { Button } from '../types';
 import { buttonApi, isOnline } from '../services/api';
-import { getAllButtons, saveButton as saveButtonDB } from '../lib/db';
+import { getAllButtons, saveButton as saveButtonDB, getSyncCursor, saveSyncCursor, deleteButton as deleteButtonDB } from '../lib/db';
 import { syncService } from '../services/sync';
 
 interface ButtonsStore {
@@ -27,15 +27,34 @@ function createButtonsStore() {
         const localButtons = await getAllButtons();
         update(state => ({ ...state, buttons: localButtons, isLoading: false }));
 
-        // Try to sync with server if online
+        // Try to pull incremental changes from server if online
         if (isOnline()) {
           try {
-            const serverButtons = await buttonApi.getAll();
-            // Save to local DB
-            for (const button of serverButtons) {
-              await saveButtonDB(button);
+            // Get last sync cursor
+            let cursor = await getSyncCursor('buttons');
+            if (!cursor) {
+              // First sync - use epoch time to get all data
+              cursor = new Date(0).toISOString();
             }
-            update(state => ({ ...state, buttons: serverButtons }));
+            
+            const result = await buttonApi.getSyncChanges(cursor);
+            
+            // Apply changes to local DB
+            for (const button of result.buttons) {
+              if ((button as any).deleted_at) {
+                // Button was deleted on server
+                await deleteButtonDB(button.id);
+              } else {
+                await saveButtonDB(button);
+              }
+            }
+            
+            // Save new cursor
+            await saveSyncCursor('buttons', result.cursor);
+            
+            // Reload from DB to reflect changes
+            const updatedButtons = await getAllButtons();
+            update(state => ({ ...state, buttons: updatedButtons }));
           } catch (error) {
             console.error('Failed to sync buttons from server:', error);
           }

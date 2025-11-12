@@ -4,7 +4,10 @@ import { timeLogApi, isOnline } from '../services/api';
 import { 
   getAllTimeLogs, 
   saveTimeLog as saveTimeLogDB,
-  getTimeLogsByButton 
+  getTimeLogsByButton,
+  getSyncCursor,
+  saveSyncCursor,
+  deleteTimeLog as deleteTimeLogDB
 } from '../lib/db';
 import { syncService } from '../services/sync';
 
@@ -33,15 +36,34 @@ function createTimeLogsStore() {
         const localTimeLogs = await getAllTimeLogs();
         update(state => ({ ...state, timeLogs: localTimeLogs, isLoading: false }));
 
-        // Try to sync with server if online
+        // Try to pull incremental changes from server if online
         if (isOnline()) {
           try {
-            const serverTimeLogs = await timeLogApi.getAll();
-            // Save to local DB
-            for (const timeLog of serverTimeLogs) {
-              await saveTimeLogDB(timeLog);
+            // Get last sync cursor
+            let cursor = await getSyncCursor('timelogs');
+            if (!cursor) {
+              // First sync - use epoch time to get all data
+              cursor = new Date(0).toISOString();
             }
-            update(state => ({ ...state, timeLogs: serverTimeLogs }));
+            
+            const result = await timeLogApi.getSyncChanges(cursor);
+            
+            // Apply changes to local DB
+            for (const timeLog of result.timeLogs) {
+              if ((timeLog as any).deleted_at) {
+                // TimeLog was deleted on server
+                await deleteTimeLogDB(timeLog.id);
+              } else {
+                await saveTimeLogDB(timeLog);
+              }
+            }
+            
+            // Save new cursor
+            await saveSyncCursor('timelogs', result.cursor);
+            
+            // Reload from DB to reflect changes
+            const updatedTimeLogs = await getAllTimeLogs();
+            update(state => ({ ...state, timeLogs: updatedTimeLogs }));
           } catch (error) {
             console.error('Failed to sync timelogs from server:', error);
           }
