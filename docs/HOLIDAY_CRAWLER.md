@@ -7,10 +7,15 @@ The Holiday Crawler Service automatically fetches public holiday data from exter
 - ✅ Automatic fetching from [Nager.Date API](https://date.nager.at/)
 - ✅ Intelligent caching (auto-refresh after 3 months)
 - ✅ Support for 100+ countries
+- ✅ **State/region-specific holidays for Germany** (see [German State Holidays](GERMAN_STATE_HOLIDAYS.md))
 - ✅ CLI tool for manual management
 - ✅ REST API endpoints for integration
 - ✅ Periodic refresh routine
 - ✅ Metadata tracking (last fetch date, source URL, etc.)
+
+## Related Documentation
+
+- **[German State Holiday Crawler](GERMAN_STATE_HOLIDAYS.md)** - For state-specific holidays in Germany (Bundesländer)
 
 ## API Source
 

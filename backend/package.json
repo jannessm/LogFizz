@@ -17,6 +17,8 @@
     "holiday:crawl": "tsx src/scripts/holiday-crawler.ts",
     "holiday:refresh": "tsx src/scripts/holiday-crawler.ts -- --refresh",
     "holiday:init": "tsx src/scripts/holiday-crawler.ts -- --init",
+    "holiday:state": "tsx src/scripts/german-state-holiday-crawler.ts",
+    "holiday:state:init": "tsx src/scripts/german-state-holiday-crawler.ts -- --init",
     "maintenance": "tsx -e \"import { AppDataSource } from './src/config/database.js'; import { CleanupService } from './src/services/cleanup.service.js'; await AppDataSource.initialize(); const service = new CleanupService(); await service.runAllMaintenanceTasks(); await AppDataSource.destroy();\""
   },
   "keywords": [],

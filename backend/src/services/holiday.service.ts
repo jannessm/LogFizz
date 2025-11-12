@@ -5,34 +5,41 @@ import { Between } from 'typeorm';
 export class HolidayService {
   private holidayRepository = AppDataSource.getRepository(Holiday);
 
-  async getHolidays(country: string, year: number): Promise<Holiday[]> {
+  async getHolidays(country: string, year: number, state?: string): Promise<Holiday[]> {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year + 1, 0, 1);
 
+    const where: any = {
+      country,
+      date: Between(startDate, endDate),
+    };
+
+    if (state !== undefined) {
+      where.state = state;
+    }
+
     return this.holidayRepository.find({
-      where: {
-        country,
-        date: Between(startDate, endDate),
-      },
+      where,
       order: {
         date: 'ASC',
       },
     });
   }
 
-  async addHoliday(country: string, date: Date, name: string, year: number): Promise<Holiday> {
+  async addHoliday(country: string, date: Date, name: string, year: number, state?: string): Promise<Holiday> {
     const holiday = this.holidayRepository.create({
       country,
       date,
       name,
       year,
+      state,
     });
 
     return this.holidayRepository.save(holiday);
   }
 
-  async getWorkingDaysSummary(country: string, year: number): Promise<any> {
-    const holidays = await this.getHolidays(country, year);
+  async getWorkingDaysSummary(country: string, year: number, state?: string): Promise<any> {
+    const holidays = await this.getHolidays(country, year, state);
     
     // Calculate total days in the year
     const startDate = new Date(year, 0, 1);
@@ -68,6 +75,7 @@ export class HolidayService {
     return {
       year,
       country,
+      state,
       totalDays,
       weekdays,
       weekends,
