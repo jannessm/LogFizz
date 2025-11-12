@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { buildApp } from '../app.js';
 import { FastifyInstance } from 'fastify';
+import { hashPasswordForTransport } from '../utils/clientPasswordHash.js';
 
 describe('Authentication Routes', () => {
   let app: FastifyInstance;
@@ -14,12 +15,16 @@ describe('Authentication Routes', () => {
   });
 
   it('should register a new user', async () => {
+    const email = `test${Date.now()}@example.com`;
+    const password = 'testpassword123';
+    const hashedPassword = hashPasswordForTransport(password, email);
+    
     const response = await app.inject({
       method: 'POST',
       url: '/api/auth/register',
       payload: {
-        email: `test${Date.now()}@example.com`,
-        password: 'testpassword123',
+        email,
+        password: hashedPassword,
         name: 'Test User',
         state: 'CA',
       },
@@ -35,13 +40,15 @@ describe('Authentication Routes', () => {
 
   it('should not register a user with duplicate email', async () => {
     const email = `duplicate${Date.now()}@example.com`;
+    const password = 'testpassword123';
+    const hashedPassword = hashPasswordForTransport(password, email);
     
     await app.inject({
       method: 'POST',
       url: '/api/auth/register',
       payload: {
         email,
-        password: 'testpassword123',
+        password: hashedPassword,
         name: 'Test User',
       },
     });
@@ -51,7 +58,7 @@ describe('Authentication Routes', () => {
       url: '/api/auth/register',
       payload: {
         email,
-        password: 'testpassword123',
+        password: hashedPassword,
         name: 'Test User',
       },
     });
@@ -61,13 +68,15 @@ describe('Authentication Routes', () => {
 
   it('should login with correct credentials', async () => {
     const email = `login${Date.now()}@example.com`;
+    const password = 'testpassword123';
+    const hashedPassword = hashPasswordForTransport(password, email);
     
     await app.inject({
       method: 'POST',
       url: '/api/auth/register',
       payload: {
         email,
-        password: 'testpassword123',
+        password: hashedPassword,
         name: 'Test User',
       },
     });
@@ -77,7 +86,7 @@ describe('Authentication Routes', () => {
       url: '/api/auth/login',
       payload: {
         email,
-        password: 'testpassword123',
+        password: hashedPassword,
       },
     });
 
@@ -89,13 +98,16 @@ describe('Authentication Routes', () => {
 
   it('should not login with incorrect password', async () => {
     const email = `wrongpass${Date.now()}@example.com`;
+    const password = 'testpassword123';
+    const hashedPassword = hashPasswordForTransport(password, email);
+    const wrongHashedPassword = hashPasswordForTransport('wrongpassword', email);
     
     await app.inject({
       method: 'POST',
       url: '/api/auth/register',
       payload: {
         email,
-        password: 'testpassword123',
+        password: hashedPassword,
         name: 'Test User',
       },
     });
@@ -105,7 +117,7 @@ describe('Authentication Routes', () => {
       url: '/api/auth/login',
       payload: {
         email,
-        password: 'wrongpassword',
+        password: wrongHashedPassword,
       },
     });
 
@@ -201,6 +213,8 @@ describe('Authentication Routes', () => {
   describe('Forgot Password', () => {
     it('should accept forgot password request for existing email', async () => {
       const email = `forgotpass${Date.now()}@example.com`;
+      const password = 'testpassword123';
+      const hashedPassword = hashPasswordForTransport(password, email);
       
       // Register a user first
       await app.inject({
@@ -208,7 +222,7 @@ describe('Authentication Routes', () => {
         url: '/api/auth/register',
         payload: {
           email,
-          password: 'testpassword123',
+          password: hashedPassword,
           name: 'Test User',
         },
       });
@@ -245,6 +259,8 @@ describe('Authentication Routes', () => {
       const email = `resetpass${Date.now()}@example.com`;
       const originalPassword = 'testpassword123';
       const newPassword = 'newpassword456';
+      const hashedOriginalPassword = hashPasswordForTransport(originalPassword, email);
+      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
       
       // Register a user
       await app.inject({
@@ -252,7 +268,7 @@ describe('Authentication Routes', () => {
         url: '/api/auth/register',
         payload: {
           email,
-          password: originalPassword,
+          password: hashedOriginalPassword,
           name: 'Test User',
         },
       });
@@ -281,7 +297,7 @@ describe('Authentication Routes', () => {
         url: '/api/auth/reset-password',
         payload: {
           token: resetToken,
-          newPassword,
+          newPassword: hashedNewPassword,
         },
       });
 
@@ -295,7 +311,7 @@ describe('Authentication Routes', () => {
         url: '/api/auth/login',
         payload: {
           email,
-          password: originalPassword,
+          password: hashedOriginalPassword,
         },
       });
 
@@ -307,7 +323,7 @@ describe('Authentication Routes', () => {
         url: '/api/auth/login',
         payload: {
           email,
-          password: newPassword,
+          password: hashedNewPassword,
         },
       });
 
@@ -315,12 +331,16 @@ describe('Authentication Routes', () => {
     });
 
     it('should reject password reset with invalid token', async () => {
+      const email = 'dummy@example.com';
+      const newPassword = 'newpassword456';
+      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
+      
       const response = await app.inject({
         method: 'POST',
         url: '/api/auth/reset-password',
         payload: {
           token: 'invalid-token-12345',
-          newPassword: 'newpassword456',
+          newPassword: hashedNewPassword,
         },
       });
 
@@ -331,6 +351,10 @@ describe('Authentication Routes', () => {
 
     it('should reject password reset with expired token', async () => {
       const email = `expiredtoken${Date.now()}@example.com`;
+      const password = 'testpassword123';
+      const hashedPassword = hashPasswordForTransport(password, email);
+      const newPassword = 'newpassword456';
+      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
       
       // Register a user
       await app.inject({
@@ -338,7 +362,7 @@ describe('Authentication Routes', () => {
         url: '/api/auth/register',
         payload: {
           email,
-          password: 'testpassword123',
+          password: hashedPassword,
           name: 'Test User',
         },
       });
@@ -371,7 +395,7 @@ describe('Authentication Routes', () => {
         url: '/api/auth/reset-password',
         payload: {
           token: resetToken,
-          newPassword: 'newpassword456',
+          newPassword: hashedNewPassword,
         },
       });
 
@@ -382,6 +406,10 @@ describe('Authentication Routes', () => {
 
     it('should clear reset token after successful password reset', async () => {
       const email = `cleartoken${Date.now()}@example.com`;
+      const password = 'testpassword123';
+      const hashedPassword = hashPasswordForTransport(password, email);
+      const newPassword = 'newpassword456';
+      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
       
       // Register a user
       await app.inject({
@@ -389,7 +417,7 @@ describe('Authentication Routes', () => {
         url: '/api/auth/register',
         payload: {
           email,
-          password: 'testpassword123',
+          password: hashedPassword,
           name: 'Test User',
         },
       });
@@ -416,7 +444,7 @@ describe('Authentication Routes', () => {
         url: '/api/auth/reset-password',
         payload: {
           token: resetToken,
-          newPassword: 'newpassword456',
+          newPassword: hashedNewPassword,
         },
       });
 
@@ -426,12 +454,15 @@ describe('Authentication Routes', () => {
       expect(updatedUser?.reset_token_expires_at).toBeNull();
 
       // Try to use the same token again
+      const anotherPassword = 'anotherpassword789';
+      const hashedAnotherPassword = hashPasswordForTransport(anotherPassword, email);
+      
       const response = await app.inject({
         method: 'POST',
         url: '/api/auth/reset-password',
         payload: {
           token: resetToken,
-          newPassword: 'anotherpassword789',
+          newPassword: hashedAnotherPassword,
         },
       });
 
@@ -439,12 +470,16 @@ describe('Authentication Routes', () => {
     });
 
     it('should enforce minimum password length on reset', async () => {
+      const email = 'test@example.com';
+      const shortPassword = 'short';
+      const hashedShortPassword = hashPasswordForTransport(shortPassword, email);
+      
       const response = await app.inject({
         method: 'POST',
         url: '/api/auth/reset-password',
         payload: {
           token: 'some-token',
-          newPassword: 'short',
+          newPassword: hashedShortPassword,
         },
       });
 
