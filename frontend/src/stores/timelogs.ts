@@ -288,6 +288,14 @@ function createTimeLogsStore() {
       }
     },
 
+    async create(buttonId: string, timestamp: string, type: 'start' | 'stop') {
+      return this.createManual({
+        button_id: buttonId,
+        timestamp,
+        type,
+      });
+    },
+
     async createManual(timeLogData: Partial<TimeLog>) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
