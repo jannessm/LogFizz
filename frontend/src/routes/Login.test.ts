@@ -11,8 +11,8 @@ vi.mock('../stores/auth', () => ({
   },
 }));
 
-// Mock svelte-routing
-vi.mock('svelte-routing', () => ({
+// Mock navigation
+vi.mock('../lib/navigation', () => ({
   navigate: vi.fn(),
 }));
 
@@ -43,8 +43,17 @@ describe('Login Component', () => {
     expect(emailInput.required).toBe(true);
   });
 
-  it('validates password length', () => {
+  it('does not validate password length in login mode', () => {
     render(Login);
+    const passwordInput = screen.getByLabelText(/Password/i) as HTMLInputElement;
+    expect(passwordInput.type).toBe('password');
+    expect(passwordInput.hasAttribute('minlength')).toBe(false);
+  });
+
+  it('validates password length in register mode', async () => {
+    render(Login);
+    const toggleButton = screen.getByText(/Don't have an account\? Register/i);
+    await fireEvent.click(toggleButton);
     const passwordInput = screen.getByLabelText(/Password/i) as HTMLInputElement;
     expect(passwordInput.type).toBe('password');
     expect(passwordInput.getAttribute('minlength')).toBe('8');

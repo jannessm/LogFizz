@@ -85,7 +85,7 @@
           type="password"
           bind:value={password}
           required
-          minlength="8"
+          minlength={isRegisterMode ? 8 : undefined}
           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="••••••••"
         />

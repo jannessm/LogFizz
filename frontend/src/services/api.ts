@@ -24,7 +24,9 @@ export const authApi = {
   },
 
   async logout(): Promise<void> {
-    await api.post('api/auth/logout');
+    await api.post('api/auth/logout', { 
+      headers: { 'Content-Type': undefined } 
+    });
   },
 
   async getCurrentUser(): Promise<User> {
@@ -37,8 +39,8 @@ export const authApi = {
     });
   },
 
-  async updateProfile(name: string, country?: string): Promise<User> {
-    return api.put('api/auth/profile', { json: { name, country } }).json();
+  async updateProfile(name: string, state?: string): Promise<User> {
+    return api.put('api/auth/profile', { json: { name, state } }).json();
   },
 };
 

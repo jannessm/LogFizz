@@ -3,9 +3,9 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  country?: string;
-  created_at: string;
-  updated_at: string;
+  state?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Button types

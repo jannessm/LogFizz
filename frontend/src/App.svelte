@@ -17,12 +17,12 @@
     await authStore.init();
     isLoading = false;
 
-    // Auto-sync every 5 minutes if online
+    // Auto-sync every minute if online
     setInterval(() => {
       if (navigator.onLine) {
         syncService.syncAll();
       }
-    }, 5 * 60 * 1000);
+    }, 1 * 60 * 1000);
   });
 
   // Redirect to login if not authenticated

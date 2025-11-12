@@ -121,6 +121,83 @@ describe('Authentication Routes', () => {
     expect(response.statusCode).toBe(401);
   });
 
+  it('should logout successfully without a request body', async () => {
+    const email = `logout${Date.now()}@example.com`;
+    
+    // Register and login first
+    await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: {
+        email,
+        password: 'testpassword123',
+        name: 'Test User',
+      },
+    });
+
+    const loginResponse = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: {
+        email,
+        password: 'testpassword123',
+      },
+    });
+
+    const cookies = loginResponse.headers['set-cookie'];
+
+    // Logout without body
+    const logoutResponse = await app.inject({
+      method: 'POST',
+      url: '/api/auth/logout',
+      headers: {
+        cookie: cookies,
+      },
+    });
+
+    expect(logoutResponse.statusCode).toBe(200);
+    const body = JSON.parse(logoutResponse.body);
+    expect(body.message).toContain('Logged out');
+  });
+
+  it('should accept logout with empty body', async () => {
+    const email = `logout2${Date.now()}@example.com`;
+    
+    // Register and login first
+    await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: {
+        email,
+        password: 'testpassword123',
+        name: 'Test User',
+      },
+    });
+
+    const loginResponse = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: {
+        email,
+        password: 'testpassword123',
+      },
+    });
+
+    const cookies = loginResponse.headers['set-cookie'];
+
+    // Logout with empty body
+    const logoutResponse = await app.inject({
+      method: 'POST',
+      url: '/api/auth/logout',
+      headers: {
+        cookie: cookies,
+      },
+      payload: {},
+    });
+
+    expect(logoutResponse.statusCode).toBe(200);
+  });
+
   describe('Forgot Password', () => {
     it('should accept forgot password request for existing email', async () => {
       const email = `forgotpass${Date.now()}@example.com`;

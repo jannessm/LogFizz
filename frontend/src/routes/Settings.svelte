@@ -6,7 +6,7 @@
   import { navigate } from '../lib/navigation';
 
   let name = '';
-  let country = '';
+  let state = '';
   let currentPassword = '';
   let newPassword = '';
   let confirmPassword = '';
@@ -19,7 +19,7 @@
   onMount(async () => {
     if (user) {
       name = user.name;
-      country = user.country || '';
+      state = user.state || '';
     }
     hasPendingSync = await syncService.hasPendingSync();
   });
@@ -29,7 +29,7 @@
     successMessage = '';
     
     try {
-      await authStore.updateProfile(name, country || undefined);
+      await authStore.updateProfile(name, state || undefined);
       successMessage = 'Profile updated successfully';
     } catch (error: any) {
       errorMessage = error.message;
@@ -120,15 +120,15 @@
         </div>
 
         <div>
-          <label for="country" class="block text-sm font-medium text-gray-700 mb-1">
-            Country (optional)
+          <label for="state" class="block text-sm font-medium text-gray-700 mb-1">
+            State/Region (optional)
           </label>
           <input
-            id="country"
+            id="state"
             type="text"
-            bind:value={country}
+            bind:value={state}
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g., Germany, USA"
+            placeholder="e.g., California, Bavaria"
           />
         </div>
 

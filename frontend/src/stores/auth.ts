@@ -130,21 +130,21 @@ function createAuthStore() {
       }
     },
 
-    async updateProfile(name: string, country?: string) {
-      update(state => ({ ...state, isLoading: true, error: null }));
+    async updateProfile(name: string, state?: string) {
+      update(storeState => ({ ...storeState, isLoading: true, error: null }));
       try {
-        const user = await authApi.updateProfile(name, country);
+        const user = await authApi.updateProfile(name, state);
         await saveUser(user);
-        update(state => ({ 
-          ...state, 
+        update(storeState => ({ 
+          ...storeState, 
           user,
           isLoading: false 
         }));
         return user;
       } catch (error: any) {
         const errorMessage = error.response?.data?.message || 'Update failed';
-        update(state => ({ 
-          ...state, 
+        update(storeState => ({ 
+          ...storeState, 
           error: errorMessage,
           isLoading: false 
         }));
