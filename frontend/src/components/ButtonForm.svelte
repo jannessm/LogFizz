@@ -78,8 +78,22 @@
   }
 </script>
 
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" on:click={handleClose}>
-  <div class="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto" on:click|stopPropagation>
+<div 
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
+  on:click={handleClose}
+  on:keydown={(e) => e.key === 'Escape' && handleClose()}
+  role="button"
+  tabindex="-1"
+  aria-label="Close modal"
+>
+  <div 
+    class="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto" 
+    on:click|stopPropagation
+    on:keydown|stopPropagation
+    role="dialog"
+    aria-modal="true"
+    tabindex="-1"
+  >
     <div class="p-6">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-2xl font-bold text-gray-800">
@@ -132,7 +146,7 @@
 
         <!-- Color -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label for="colorPicker" class="block text-sm font-medium text-gray-700 mb-2">
             Color
           </label>
           <div class="flex gap-2 flex-wrap mb-2">
@@ -144,10 +158,12 @@
                 class:border-gray-800={color === preset}
                 class:border-gray-300={color !== preset}
                 style="background-color: {preset}"
+                aria-label="Select color {preset}"
               ></button>
             {/each}
           </div>
           <input
+            id="colorPicker"
             type="color"
             bind:value={color}
             class="w-full h-10 rounded-md border border-gray-300"
@@ -173,10 +189,10 @@
         <!-- Goal Days -->
         {#if goalTimeMinutes > 0}
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <div id="goalDaysLabel" class="block text-sm font-medium text-gray-700 mb-2">
               Goal applies to:
-            </label>
-            <div class="flex gap-2 flex-wrap">
+            </div>
+            <div class="flex gap-2 flex-wrap" role="group" aria-labelledby="goalDaysLabel">
               {#each weekDays as day}
                 <button
                   type="button"
@@ -186,6 +202,7 @@
                   class:text-white={goalDays.includes(day.value)}
                   class:bg-gray-200={!goalDays.includes(day.value)}
                   class:text-gray-700={!goalDays.includes(day.value)}
+                  aria-pressed={goalDays.includes(day.value)}
                 >
                   {day.label}
                 </button>
