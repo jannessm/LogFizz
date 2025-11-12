@@ -3,7 +3,7 @@
   import BottomNav from '../components/BottomNav.svelte';
   import { authStore } from '../stores/auth';
   import { syncService } from '../services/sync';
-  import { navigate } from 'svelte-routing';
+  import { navigate } from '../lib/navigation';
 
   let name = '';
   let country = '';

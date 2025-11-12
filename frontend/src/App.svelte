@@ -1,16 +1,17 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { Router, Route, navigate } from 'svelte-routing';
   import { authStore } from './stores/auth';
   import Login from './routes/Login.svelte';
   import Dashboard from './routes/Dashboard.svelte';
   import History from './routes/History.svelte';
   import Settings from './routes/Settings.svelte';
   import { syncService } from './services/sync';
+  import { currentPath, navigate } from './lib/navigation';
 
   let isLoading = true;
 
   $: auth = $authStore;
+  $: path = $currentPath;
 
   onMount(async () => {
     await authStore.init();
@@ -26,7 +27,7 @@
 
   // Redirect to login if not authenticated
   $: {
-    if (!isLoading && !auth.isAuthenticated) {
+    if (!isLoading && !auth.isAuthenticated && path !== '/login') {
       navigate('/login', { replace: true });
     }
   }
@@ -40,10 +41,13 @@
     </div>
   </div>
 {:else}
-  <Router>
-    <Route path="/login" component={Login} />
-    <Route path="/" component={Dashboard} />
-    <Route path="/history" component={History} />
-    <Route path="/settings" component={Settings} />
-  </Router>
+  {#if path === '/login'}
+    <Login />
+  {:else if path === '/history'}
+    <History />
+  {:else if path === '/settings'}
+    <Settings />
+  {:else}
+    <Dashboard />
+  {/if}
 {/if}

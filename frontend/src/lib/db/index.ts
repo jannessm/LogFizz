@@ -1,4 +1,5 @@
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { openDB } from 'idb';
+import type { DBSchema, IDBPDatabase } from 'idb';
 import type { Button, TimeLog, User, SyncQueueItem } from '../../types';
 
 interface ClockDB extends DBSchema {
@@ -18,7 +19,6 @@ interface ClockDB extends DBSchema {
   syncQueue: {
     key: string;
     value: SyncQueueItem;
-    indexes: { 'by-synced': boolean };
   };
   user: {
     key: string;
@@ -57,8 +57,7 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
 
       // Sync queue store
       if (!db.objectStoreNames.contains('syncQueue')) {
-        const syncStore = db.createObjectStore('syncQueue', { keyPath: 'id' });
-        syncStore.createIndex('by-synced', 'synced');
+        db.createObjectStore('syncQueue', { keyPath: 'id' });
       }
 
       // User store
@@ -131,7 +130,8 @@ export async function addToSyncQueue(item: SyncQueueItem): Promise<void> {
 
 export async function getUnsyncedItems(): Promise<SyncQueueItem[]> {
   const db = await getDB();
-  return db.getAllFromIndex('syncQueue', 'by-synced', false);
+  const allItems = await db.getAll('syncQueue');
+  return allItems.filter(item => !item.synced);
 }
 
 export async function markItemSynced(id: string): Promise<void> {
