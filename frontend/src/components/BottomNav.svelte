@@ -8,8 +8,8 @@
   }
 </script>
 
-<nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
-  <div class="flex justify-around items-center h-16">
+<nav class="flex-none bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 shadow-lg z-40 h-100">
+  <div class="flex justify-center items-center h-16 w-full">
     <button 
       on:click={() => handleNavigate('/')} 
       class="flex-1 flex flex-col items-center justify-center h-full transition-colors {currentTab === 'timer' ? 'text-blue-600' : 'text-gray-600'}"
