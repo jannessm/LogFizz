@@ -13,7 +13,6 @@ export async function authRoutes(fastify: FastifyInstance) {
       tags: ['Authentication'],
       body: Type.Object({
         email: Type.String({ format: 'email' }),
-        password: Type.String({ minLength: 8 }),
         name: Type.String(),
         state: Type.Optional(Type.String()),
       }),
@@ -31,8 +30,8 @@ export async function authRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const { email, password, name, state } = request.body as any;
-      const user = await authService.register(email, password, name, state);
+      const { email, name, state } = request.body as any;
+      const user = await authService.register(email, name, state);
       
       return reply.code(201).send({
         id: user.id,
@@ -45,14 +44,38 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Login endpoint
-  fastify.post('/login', {
+  // Request login code endpoint
+  fastify.post('/request-login-code', {
     ...authRateLimit,
     schema: {
       tags: ['Authentication'],
       body: Type.Object({
         email: Type.String({ format: 'email' }),
-        password: Type.String(),
+      }),
+      response: {
+        200: Type.Object({
+          message: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const { email } = request.body as any;
+    await authService.requestLoginCode(email);
+    
+    // Always return success to not reveal if user exists
+    return reply.code(200).send({
+      message: 'If an account exists with this email, a login code has been sent.',
+    });
+  });
+
+  // Verify login code endpoint
+  fastify.post('/verify-login-code', {
+    ...authRateLimit,
+    schema: {
+      tags: ['Authentication'],
+      body: Type.Object({
+        email: Type.String({ format: 'email' }),
+        code: Type.String({ minLength: 6, maxLength: 6 }),
       }),
       response: {
         200: Type.Object({
@@ -67,11 +90,11 @@ export async function authRoutes(fastify: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
-    const { email, password } = request.body as any;
-    const user = await authService.login(email, password);
+    const { email, code } = request.body as any;
+    const user = await authService.verifyLoginCode(email, code);
 
     if (!user) {
-      return reply.code(401).send({ error: 'Invalid credentials' });
+      return reply.code(401).send({ error: 'Invalid or expired code' });
     }
 
     request.session.userId = user.id;
@@ -130,41 +153,6 @@ export async function authRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // Change password endpoint
-  fastify.put('/change-password', {
-    ...generalAuthRateLimit,
-    schema: {
-      tags: ['Authentication'],
-      body: Type.Object({
-        oldPassword: Type.String(),
-        newPassword: Type.String({ minLength: 8 }),
-      }),
-      response: {
-        200: Type.Object({
-          message: Type.String(),
-        }),
-        401: Type.Object({
-          error: Type.String(),
-        }),
-      },
-    },
-  }, async (request, reply) => {
-    const userId = request.session.userId;
-    
-    if (!userId) {
-      return reply.code(401).send({ error: 'Not authenticated' });
-    }
-
-    const { oldPassword, newPassword } = request.body as any;
-    const success = await authService.changePassword(userId, oldPassword, newPassword);
-
-    if (!success) {
-      return reply.code(401).send({ error: 'Invalid old password' });
-    }
-
-    return reply.send({ message: 'Password changed successfully' });
-  });
-
   // Update user profile endpoint
   fastify.put('/profile', {
     schema: {
@@ -208,60 +196,4 @@ export async function authRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // Request password reset endpoint
-  fastify.post('/forgot-password', {
-    ...passwordResetRateLimit,
-    schema: {
-      tags: ['Authentication'],
-      body: Type.Object({
-        email: Type.String({ format: 'email' }),
-      }),
-      response: {
-        200: Type.Object({
-          message: Type.String(),
-        }),
-      },
-    },
-  }, async (request, reply) => {
-    const { email } = request.body as any;
-    await authService.requestPasswordReset(email);
-
-    // Always return success to prevent email enumeration
-    return reply.send({ 
-      message: 'If an account with that email exists, a password reset link has been sent.' 
-    });
-  });
-
-  // Reset password endpoint
-  fastify.post('/reset-password', {
-    ...passwordResetRateLimit,
-    schema: {
-      tags: ['Authentication'],
-      body: Type.Object({
-        token: Type.String(),
-        newPassword: Type.String({ minLength: 8 }),
-      }),
-      response: {
-        200: Type.Object({
-          message: Type.String(),
-        }),
-        400: Type.Object({
-          error: Type.String(),
-        }),
-      },
-    },
-  }, async (request, reply) => {
-    const { token, newPassword } = request.body as any;
-    const success = await authService.resetPassword(token, newPassword);
-
-    if (!success) {
-      return reply.code(400).send({ 
-        error: 'Invalid or expired reset token' 
-      });
-    }
-
-    return reply.send({ 
-      message: 'Password has been reset successfully' 
-    });
-  });
 }

@@ -348,4 +348,80 @@ export class GermanStateHolidayCrawlerService {
       order: { date: 'ASC' },
     });
   }
+
+  /**
+   * Check if any state needs update (>3 months since last fetch)
+   */
+  async needsAnyUpdate(): Promise<boolean> {
+    const currentYear = new Date().getFullYear();
+    const years = [currentYear - 1, currentYear, currentYear + 1];
+    
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    for (const year of years) {
+      for (const stateCode of Object.keys(GERMAN_STATES)) {
+        const metadata = await this.metadataRepository.findOne({
+          where: { country: this.COUNTRY_CODE, state: stateCode, year },
+        });
+
+        // If no metadata or outdated, update needed
+        if (!metadata || metadata.last_fetched_at < threeMonthsAgo) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Auto-update holidays for last, current, and next year
+   * Returns summary of updates for email notification
+   */
+  async autoUpdateHolidays(): Promise<{
+    updatedStates: Array<{ state: string; count: number }>;
+    totalHolidays: number;
+    years: number[];
+  }> {
+    const currentYear = new Date().getFullYear();
+    const years = [currentYear - 1, currentYear, currentYear + 1];
+    
+    const updatedStates: Array<{ state: string; count: number }> = [];
+    let totalHolidays = 0;
+
+    console.log('Starting auto-update of holidays...');
+
+    for (const year of years) {
+      console.log(`\nProcessing year ${year}...`);
+      
+      for (const [stateCode, stateName] of Object.entries(GERMAN_STATES)) {
+        const needsUpdate = await this.needsRefresh(stateCode as GermanStateCode, year);
+        
+        if (needsUpdate) {
+          console.log(`  Updating ${stateName} (${stateCode})...`);
+          const result = await this.crawlStateHolidays(stateCode as GermanStateCode, year, true);
+          
+          if (result.success) {
+            updatedStates.push({
+              state: `${stateName} (${stateCode}) - ${year}`,
+              count: result.holidayCount,
+            });
+            totalHolidays += result.holidayCount;
+          }
+
+          // Add delay between requests
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+    }
+
+    console.log(`\nAuto-update complete: ${totalHolidays} holidays across ${updatedStates.length} state-years`);
+
+    return {
+      updatedStates,
+      totalHolidays,
+      years,
+    };
+  }
 }

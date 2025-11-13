@@ -12,14 +12,13 @@ export class InitialSchema1699700000000 implements MigrationInterface {
             CREATE TABLE IF NOT EXISTS "users" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "email" character varying NOT NULL,
-                "password_hash" character varying NOT NULL,
                 "name" character varying NOT NULL,
                 "state" character varying,
                 "created_at" TIMESTAMP NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
                 "deleted_at" TIMESTAMP,
-                "reset_token" character varying,
-                "reset_token_expires_at" TIMESTAMP,
+                "login_code" character varying,
+                "login_code_expires_at" TIMESTAMP,
                 CONSTRAINT "UQ_users_email" UNIQUE ("email"),
                 CONSTRAINT "PK_users_id" PRIMARY KEY ("id")
             )
@@ -74,10 +73,27 @@ export class InitialSchema1699700000000 implements MigrationInterface {
             CREATE TABLE IF NOT EXISTS "holidays" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "country" character varying NOT NULL,
+                "state" character varying,
                 "date" date NOT NULL,
                 "name" character varying NOT NULL,
                 "year" integer NOT NULL,
                 CONSTRAINT "PK_holidays_id" PRIMARY KEY ("id")
+            )
+        `);
+
+        // Create holiday_metadata table
+        await queryRunner.query(`
+            CREATE TABLE IF NOT EXISTS "holiday_metadata" (
+                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                "country" character varying NOT NULL,
+                "state" character varying,
+                "year" integer NOT NULL,
+                "last_fetched_at" TIMESTAMP NOT NULL,
+                "holiday_count" integer NOT NULL DEFAULT 0,
+                "source_url" character varying,
+                "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+                "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
+                CONSTRAINT "PK_holiday_metadata_id" PRIMARY KEY ("id")
             )
         `);
 
@@ -86,7 +102,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_user_id" ON "time_logs" ("user_id")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_button_id" ON "time_logs" ("button_id")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_timestamp" ON "time_logs" ("timestamp")`);
-        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_holidays_country_year" ON "holidays" ("country", "year")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_holidays_country_state_year" ON "holidays" ("country", "state", "year")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_users_deleted_at" ON "users" ("deleted_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_buttons_deleted_at" ON "buttons" ("deleted_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_deleted_at" ON "time_logs" ("deleted_at")`);
@@ -98,6 +114,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
         // Drop tables in reverse order (respecting foreign key constraints)
         await queryRunner.query(`DROP TABLE IF EXISTS "time_logs"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "buttons"`);
+        await queryRunner.query(`DROP TABLE IF EXISTS "holiday_metadata"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "holidays"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "users"`);
     }

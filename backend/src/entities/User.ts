@@ -9,9 +9,6 @@ export class User {
   email!: string;
 
   @Column('varchar')
-  password_hash!: string;
-
-  @Column('varchar')
   name!: string;
 
   @Column('varchar', { nullable: true })
@@ -27,10 +24,10 @@ export class User {
   deleted_at?: Date;
 
   @Column('varchar', { nullable: true })
-  reset_token?: string;
+  login_code?: string;
 
   @Column('timestamptz', { nullable: true })
-  reset_token_expires_at?: Date;
+  login_code_expires_at?: Date;
 
   @OneToMany('Button', 'user')
   buttons?: any[];

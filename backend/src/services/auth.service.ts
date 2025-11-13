@@ -1,6 +1,5 @@
 import { AppDataSource } from '../config/database.js';
 import { User } from '../entities/User.js';
-import { hashPassword, verifyPassword } from '../utils/password.js';
 import { IsNull, MoreThan } from 'typeorm';
 import { EmailService } from './email.service.js';
 import crypto from 'crypto';
@@ -9,16 +8,17 @@ export class AuthService {
   private userRepository = AppDataSource.getRepository(User);
   private emailService = new EmailService();
 
-  async register(email: string, password: string, name: string, state?: string): Promise<User> {
+  /**
+   * Register a new user (no password required)
+   */
+  async register(email: string, name: string, state?: string): Promise<User> {
     const existingUser = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
     if (existingUser) {
       throw new Error('User already exists');
     }
 
-    const password_hash = await hashPassword(password);
     const user = this.userRepository.create({
       email,
-      password_hash,
       name,
       state,
     });
@@ -26,16 +26,60 @@ export class AuthService {
     return this.userRepository.save(user);
   }
 
-  async login(email: string, password: string): Promise<User | null> {
+  /**
+   * Request a login code to be sent via email
+   */
+  async requestLoginCode(email: string): Promise<boolean> {
     const user = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
+    
+    // Don't reveal if user exists or not for security reasons
+    if (!user) {
+      return true;
+    }
+
+    // Generate a 6-digit code
+    const loginCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Code expires in 15 minutes
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+
+    user.login_code = loginCode;
+    user.login_code_expires_at = expiresAt;
+    await this.userRepository.save(user);
+
+    // Send login code email
+    try {
+      await this.emailService.sendLoginCode(user.email, loginCode, user.name);
+    } catch (error) {
+      console.error('Failed to send login code email:', error);
+      // Don't throw error to not reveal if user exists
+    }
+
+    return true;
+  }
+
+  /**
+   * Verify login code and return user if valid
+   */
+  async verifyLoginCode(email: string, code: string): Promise<User | null> {
+    const user = await this.userRepository.findOne({
+      where: {
+        email,
+        login_code: code,
+        login_code_expires_at: MoreThan(new Date()),
+        deleted_at: IsNull(),
+      },
+    });
+
     if (!user) {
       return null;
     }
 
-    const isValid = await verifyPassword(password, user.password_hash);
-    if (!isValid) {
-      return null;
-    }
+    // Clear the login code after successful verification
+    user.login_code = null as any;
+    user.login_code_expires_at = null as any;
+    await this.userRepository.save(user);
 
     return user;
   }
@@ -52,73 +96,5 @@ export class AuthService {
 
     Object.assign(user, updates);
     return this.userRepository.save(user);
-  }
-
-  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<boolean> {
-    const user = await this.getUserById(userId);
-    if (!user) {
-      return false;
-    }
-
-    const isValid = await verifyPassword(oldPassword, user.password_hash);
-    if (!isValid) {
-      return false;
-    }
-
-    user.password_hash = await hashPassword(newPassword);
-    await this.userRepository.save(user);
-    return true;
-  }
-
-  async requestPasswordReset(email: string): Promise<boolean> {
-    const user = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
-    
-    // Don't reveal if user exists or not for security reasons
-    if (!user) {
-      return true;
-    }
-
-    // Generate a secure random token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    
-    // Token expires in 1 hour
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 1);
-
-    user.reset_token = resetToken;
-    user.reset_token_expires_at = expiresAt;
-    await this.userRepository.save(user);
-
-    // Send password reset email
-    try {
-      await this.emailService.sendPasswordResetEmail(user.email, resetToken, user.name);
-    } catch (error) {
-      console.error('Failed to send password reset email:', error);
-      // Don't throw error to not reveal if user exists
-    }
-
-    return true;
-  }
-
-  async resetPassword(token: string, newPassword: string): Promise<boolean> {
-    const user = await this.userRepository.findOne({
-      where: {
-        reset_token: token,
-        reset_token_expires_at: MoreThan(new Date()),
-        deleted_at: IsNull(),
-      },
-    });
-
-    if (!user) {
-      return false;
-    }
-
-    // Update password and clear reset token
-    user.password_hash = await hashPassword(newPassword);
-    user.reset_token = null as any;
-    user.reset_token_expires_at = null as any;
-    await this.userRepository.save(user);
-
-    return true;
   }
 }

@@ -48,29 +48,26 @@ export class EmailService {
     };
   }
 
-  async sendPasswordResetEmail(email: string, resetToken: string, userName: string): Promise<void> {
-    const resetUrl = `${this.appUrl}/reset-password?token=${resetToken}`;
-
+  async sendLoginCode(email: string, code: string, userName: string): Promise<void> {
     const mailOptions = {
       from: this.fromEmail,
       to: email,
-      subject: 'Password Reset Request',
+      subject: 'Your Login Code',
       html: `
-        <h1>Password Reset Request</h1>
+        <h1>Your Login Code</h1>
         <p>Hi ${userName},</p>
-        <p>You requested to reset your password. Click the link below to reset it:</p>
-        <p><a href="${resetUrl}">Reset Password</a></p>
-        <p>This link will expire in 1 hour.</p>
+        <p>Your login code is:</p>
+        <h2 style="font-size: 32px; letter-spacing: 8px; font-family: monospace;">${code}</h2>
+        <p>This code will expire in 15 minutes.</p>
         <p>If you didn't request this, please ignore this email.</p>
         <p>Thanks,<br/>The Clock App Team</p>
       `,
       text: `
         Hi ${userName},
 
-        You requested to reset your password. Use the link below to reset it:
-        ${resetUrl}
+        Your login code is: ${code}
 
-        This link will expire in 1 hour.
+        This code will expire in 15 minutes.
 
         If you didn't request this, please ignore this email.
 
@@ -82,8 +79,60 @@ export class EmailService {
     try {
       await this.transporter.sendMail(mailOptions);
     } catch (error) {
-      console.error('Failed to send password reset email:', error);
-      throw new Error('Failed to send password reset email');
+      console.error('Failed to send login code email:', error);
+      throw new Error('Failed to send login code email');
+    }
+  }
+
+  async sendHolidayUpdateNotification(adminEmail: string, summary: {
+    updatedStates: Array<{ state: string; count: number }>;
+    totalHolidays: number;
+    years: number[];
+  }): Promise<void> {
+    const statesList = summary.updatedStates
+      .map(s => `<li>${s.state}: ${s.count} holidays</li>`)
+      .join('\n');
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: adminEmail,
+      subject: 'Holiday Data Update Summary',
+      html: `
+        <h1>Holiday Data Update Summary</h1>
+        <p>The holiday data has been automatically updated.</p>
+        <h3>Summary:</h3>
+        <ul>
+          <li>Total holidays updated: ${summary.totalHolidays}</li>
+          <li>Years: ${summary.years.join(', ')}</li>
+        </ul>
+        <h3>Updated States:</h3>
+        <ul>
+          ${statesList}
+        </ul>
+        <p>Thanks,<br/>The Clock App Team</p>
+      `,
+      text: `
+        Holiday Data Update Summary
+
+        The holiday data has been automatically updated.
+
+        Summary:
+        - Total holidays updated: ${summary.totalHolidays}
+        - Years: ${summary.years.join(', ')}
+
+        Updated States:
+        ${summary.updatedStates.map(s => `- ${s.state}: ${s.count} holidays`).join('\n')}
+
+        Thanks,
+        The Clock App Team
+      `,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send holiday update notification:', error);
+      throw new Error('Failed to send holiday update notification');
     }
   }
 
