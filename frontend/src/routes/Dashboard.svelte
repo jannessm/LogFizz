@@ -10,6 +10,7 @@
   let showButtonForm = false;
   let editMode = false;
   let editingButton: Button | null = null;
+  let toggleMode = true;
 
   onMount(async () => {
     await buttonsStore.load();
@@ -36,51 +37,49 @@
     editMode = !editMode;
   }
 
+  function toggleToggleMode() {
+    toggleMode = !toggleMode;
+  }
+
 </script>
 
 <div class="h-screen flex flex-col bg-gray-50">
-  <!-- Fixed Header -->
-  <div class="flex-none bg-white border-b border-gray-200 shadow-sm">
-    <div class="max-w-[500px] mx-auto px-4 py-4">
-      <div class="flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-gray-800">Timer</h1>
-        <div class="flex gap-2">
-          <button
-            on:click={toggleEditMode}
-            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2"
-          >
-            {#if editMode}
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
-              Done
-            {:else}
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-              Edit
-            {/if}
-          </button>
-          <button
-            on:click={handleAddButton}
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-            Add Button
-          </button>
-        </div>
-      </div>
-    </div>
+  <!-- Header -->
+  <div class="flex mx-auto px-4 py-4 gap-2 absolute top-0 right-0 z-10">
+    <button
+      on:click={toggleToggleMode}
+      class="flex gap-2 text-gray-500 transition-colors"
+    >
+      <span class:icon-[si--toggle-off-line]={!toggleMode}
+            class:icon-[si--toggle-on-duotone]={toggleMode}
+            class:text-blue-400={toggleMode}
+            class:hover:bg-blue-500={toggleMode}
+            style="width: 32px; height: 32px;"></span>
+      <span class="py-1">Auto Stop</span>
+    </button>
+    <button
+      on:click={toggleEditMode}
+      class="px-4 py-2 bg-gray-400 rounded-full hover:bg-blue-500 transition-colors"
+      class:icon-[si--check-circle-line]={editMode}
+      class:icon-[si--edit-detailed-duotone]={!editMode}
+      aria-label="Edit Mode"
+      style="width: 32px; height: 32px;"
+    ></button>
+    <button 
+      on:click={handleAddButton}
+      class="px-4 py-2 bg-blue-600 rounded-full hover:bg-blue-700 transition-colors icon-[si--add-circle-duotone]"
+      style="width: 32px; height: 32px;"
+      aria-label="Add Button"
+    ></button>
   </div>
 
   <!-- Scrollable Button Area -->
-  <div class="flex-1 overflow-y-auto">
-    <div class="max-w-[500px] mx-auto px-4 py-6">
+  <div class="flex overflow-y-auto">
+    <div class="mx-auto px-4 py-6 min-w-full w-full">
       <ButtonGraph 
         buttons={$sortedButtons}
         {editMode}
+        {toggleMode}
         on:edit={handleEditButton}
       />
     </div>

@@ -127,17 +127,6 @@ export const timeLogApi = {
     return api.post(`api/timelogs/stop/${id}`).json();
   },
 
-  async getActive(): Promise<TimeLog | null> {
-    try {
-      return await api.get('api/timelogs/active').json();
-    } catch (error: any) {
-      if (error.response?.status === 404) {
-        return null;
-      }
-      throw error;
-    }
-  },
-
   async getAll(params?: {
     start_date?: string;
     end_date?: string;

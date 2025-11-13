@@ -1,5 +1,6 @@
 import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, type SimulationNodeDatum, type SimulationLinkDatum } from 'd3-force';
 import type { Button, TimeLog } from '../types';
+import type { button } from '../components/ButtonForm.svelte';
 
 export interface ButtonNode extends SimulationNodeDatum {
   id: string;
@@ -20,8 +21,11 @@ export interface ButtonEdge extends SimulationLinkDatum<ButtonNode> {
  * Returns nodes (buttons with frequency) and edges (transitions with weights)
  */
 export function buildButtonGraph(buttons: Button[], timelogs: TimeLog[]): { nodes: ButtonNode[], edges: ButtonEdge[] } {
+  const button_ids = buttons.map(b => b.id);
+
   // Sort timelogs by timestamp
-  const sortedLogs = [...timelogs].sort((a, b) => 
+  const sortedLogs = timelogs.filter(tl => button_ids.includes(tl.button_id))
+                             .sort((a, b) =>
     new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
 
@@ -46,7 +50,19 @@ export function buildButtonGraph(buttons: Button[], timelogs: TimeLog[]): { node
       const to = next.button_id;
       
       if (!transitions[from]) transitions[from] = {};
-      transitions[from][to] = (transitions[from][to] || 0) + 1;
+      transitions[from][to] = (transitions[from][to] || 1) + 1;
+    }
+  }
+  
+  // Add missing transitions with weight 1
+
+  for (const from of button_ids) {
+    if (!transitions[from]) transitions[from] = {};
+
+    for (const to of button_ids) {
+      if (from !== to && !transitions[from][to]) {
+        transitions[from][to] = 1;
+      }
     }
   }
 
@@ -81,7 +97,8 @@ export function computeButtonLayout(
   buttons: Button[], 
   timelogs: TimeLog[],
   width: number = 500,
-  height: number = 600
+  height: number = 600,
+  buttonSize: number = 150
 ): Map<string, { x: number; y: number }> {
   
   if (buttons.length === 0) {
@@ -130,8 +147,8 @@ export function computeButtonLayout(
         return 0.5 + normalizedWeight * 0.5; // 0.5-1.0
       })
     )
-    // Collision force - prevent overlap (button size ~80px diameter)
-    .force('collide', forceCollide<ButtonNode>().radius(50));
+    // Collision force - prevent overlap (button size ~150px diameter)
+    .force('collide', forceCollide<ButtonNode>().radius(buttonSize / 2 + 10));
 
   // Run simulation synchronously
   simulation.stop();

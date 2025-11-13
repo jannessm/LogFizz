@@ -8,15 +8,17 @@
 
   export let buttons: Button[];
   export let editMode = false;
+  export let toggleMode = true;
 
   const dispatch = createEventDispatcher();
+  const buttonSize = 150; // Base size of each button in pixels
 
   let containerWidth = 500;
   let containerHeight = 600;
   let containerEl: HTMLDivElement;
 
   // Compute button positions based on transition graph
-  $: buttonPositions = computeButtonLayout(buttons, $timeLogsStore.timeLogs, containerWidth, containerHeight);
+  $: buttonPositions = computeButtonLayout(buttons, $timeLogsStore.timeLogs, containerWidth, containerHeight, buttonSize);
 
   function handleEdit(button: Button) {
     dispatch('edit', button);
@@ -25,15 +27,15 @@
   onMount(() => {
     if (containerEl) {
       const rect = containerEl.getBoundingClientRect();
-      containerWidth = rect.width || 500;
-      containerHeight = Math.max(rect.height || 600, 600);
+      containerWidth = rect.width;
+      containerHeight = Math.max(rect.height, 600);
     }
   });
 
   afterUpdate(() => {
     if (containerEl && buttons.length > 0) {
       const rect = containerEl.getBoundingClientRect();
-      containerWidth = rect.width || 500;
+      containerWidth = rect.width;
       // Dynamic height based on number of buttons
       containerHeight = Math.max(600, Math.min(1000, 400 + buttons.length * 30));
     }
@@ -42,7 +44,7 @@
 
 <div 
   bind:this={containerEl}
-  class="relative w-full min-h-[600px] bg-gray-50 rounded-lg"
+  class="relative w-full"
   style="height: {containerHeight}px;"
 >
   {#if buttons.length === 0}
@@ -56,20 +58,23 @@
     {#each buttons as button (button.id)}
       {@const position = buttonPositions.get(button.id)}
       {#if position}
-        {@const isActive = $timeLogsStore.activeTimer?.button_id === button.id}
+        {@const isActive = $timeLogsStore.activeTimers.some(t => t.button_id === button.id)}
         <div
-          class="absolute transition-all duration-500 ease-out"
+          class="absolute transition-all duration-500 ease-out rounded-full drop-shadow-lg"
+          class:drop-shadow-2xl={isActive}
+          class:drop-shadow-stone-700={isActive}
           style="
             left: {position.x}px;
             top: {position.y}px;
             transform: translate(-50%, -50%) scale({isActive ? 1.2 : 1});
-            width: {isActive ? 160 : 120}px;
+            width: {isActive ? buttonSize * 1.2 : buttonSize}px;
             z-index: {isActive ? 10 : 1};
           "
         >
           <TimerButton 
             {button}
             {editMode}
+            {toggleMode}
             on:edit={() => handleEdit(button)}
           />
         </div>

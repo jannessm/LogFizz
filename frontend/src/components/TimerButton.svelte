@@ -7,6 +7,7 @@
 
   export let button: Button;
   export let editMode = false;
+  export let toggleMode = true;
 
   const dispatch = createEventDispatcher();
 
@@ -15,8 +16,8 @@
   let todayTime = 0;
   let interval: number | null = null;
 
-  $: activeTimer = $timeLogsStore.activeTimer;
-  $: isActive = activeTimer?.button_id === button.id;
+  $: activeTimer = $timeLogsStore.activeTimers.filter(t => t.button_id === button.id)[0];
+  $: isActive = activeTimer !== undefined;
 
   // Calculate elapsed time for active timer
   $: if (isActive && activeTimer) {
@@ -77,6 +78,13 @@
       // Stop timer
       await timeLogsStore.stopTimer(activeTimer.id);
     } else {
+      if (toggleMode) {
+        // Stop any other active timers first
+        const otherActiveTimers = $timeLogsStore.activeTimers.filter(t => t.button_id !== button.id);
+        for (const timer of otherActiveTimers) {
+          await timeLogsStore.stopTimer(timer.id);
+        }
+      }
       // Start timer
       await timeLogsStore.startTimer(button.id);
     }
@@ -117,19 +125,14 @@
   {#if editMode}
     <button
       on:click={handleDelete}
-      class="absolute -top-2 -right-2 z-10 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 shadow-lg"
-      aria-label="Delete button"
-    >
-      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-      </svg>
-    </button>
+      class="absolute -top-2 -right-2 z-10 w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center hover:bg-gray-600 icon-[si--edit-detailed-duotone]"
+      aria-label="Edit button"
+    ></button>
   {/if}
   
   <button
     on:click={handleClick}
-    class="relative aspect-square rounded-full p-4 transition-all duration-300 flex flex-col items-center justify-center text-white shadow-lg w-full overflow-visible"
-    class:shadow-2xl={isActive}
+    class="relative aspect-square p-4 transition-all duration-300 flex flex-col items-center justify-center text-white w-full overflow-visible min-w-[150px] min-h-[150px] rounded-full"
     class:has-pulse={isActive}
     style="--button-color: {button.color || '#3B82F6'}; background-color: {button.color || '#3B82F6'}"
   >
@@ -225,7 +228,7 @@
       transform: scale(1);
     }
     30% {
-      transform: scale(1.01);
+      transform: scale(1.02);
     }
     40%, 100% {
       transform: scale(1);

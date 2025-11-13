@@ -461,27 +461,19 @@
       <div class="flex items-center gap-2">
         <button
           on:click={previousMonth}
-          class="p-2 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+          class="p-2 hover:bg-blue-500 rounded-lg transition-colors disabled:opacity-50 icon-[si--chevron-left-alt-duotone]"
           aria-label="Previous month"
           disabled={isAnimating}
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
+        ></button>
         <span class="font-semibold text-lg min-w-[150px] text-center text-gray-800">
           {currentMonth.format('MMMM YYYY')}
         </span>
         <button
           on:click={nextMonth}
-          class="p-2 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+          class="p-2 hover:bg-blue-500 rounded-lg transition-colors disabled:opacity-50 icon-[si--chevron-right-alt-duotone]"
           aria-label="Next month"
           disabled={isAnimating}
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+        ></button>
       </div>
     </div>
 
@@ -584,13 +576,10 @@
         </h2>
         <button
           on:click={handleAddTimelog}
-          class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Add
-        </button>
+          class="rounded-full bg-blue-500 hover:bg-blue-700 transition-colors flex items-center gap-1 icon-[si--add-circle-duotone]"
+         style="width: 32px; height: 32px;"
+          aria-label="Add time entry"
+        ></button>
       </div>
       
       {#if selectedDateSessions.length > 0}
@@ -626,21 +615,17 @@
                 <div class="flex gap-1">
                   <button
                     on:click={() => handleEditTimelog(session)}
-                    class="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                    class="p-1 bg-gray-400 hover:bg-blue-600 rounded transition-colors icon-[si--edit-detailed-duotone]"
+                    style="width: 24px; height: 24px;"
                     aria-label="Edit entry"
                   >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
                   </button>
                   <button
                     on:click={() => confirmDelete(session)}
-                    class="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                    class="p-1 text-red-400 hover:bg-red-600 rounded transition-colors icon-[si--bin-duotone]"
+                    style="width: 24px; height: 24px;"
                     aria-label="Delete entry"
                   >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
                   </button>
                 </div>
               </div>
