@@ -67,22 +67,9 @@ function createTimeLogsStore() {
               // Reload from DB to reflect changes
               const updatedTimeLogs = await getAllTimeLogs();
               update(state => {
-                // Clear active timer if it has a corresponding stop event in synced data
-                let clearedActiveTimer = state.activeTimer;
-                if (clearedActiveTimer && clearedActiveTimer.type === 'start') {
-                  // Check if there's a stop event for this timer
-                  const hasStopEvent = updatedTimeLogs.some(tl => 
-                    tl.button_id === clearedActiveTimer!.button_id && 
-                    tl.type === 'stop' &&
-                    new Date(tl.timestamp).getTime() > new Date(clearedActiveTimer!.timestamp).getTime()
-                  );
-                  if (hasStopEvent) {
-                    // Timer was stopped on server, clear it locally
-                    clearedActiveTimer = null;
-                  }
-                }
-                return { ...state, timeLogs: updatedTimeLogs, activeTimer: clearedActiveTimer };
+                return { ...state, timeLogs: updatedTimeLogs};
               });
+              this.loadActive();
             } catch (error) {
               console.error('Failed to sync timelogs from server:', error);
             }
