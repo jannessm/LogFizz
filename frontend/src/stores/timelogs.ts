@@ -263,16 +263,8 @@ function createTimeLogsStore() {
         // Delete from local DB first
         await deleteTimeLogDB(id);
         
-        // Try to delete from server if online
-        if (isOnline()) {
-          try {
-            await timeLogApi.delete(id);
-          } catch (error) {
-            await syncService.queueTimeLogDelete(id);
-          }
-        } else {
-          await syncService.queueTimeLogDelete(id);
-        }
+        // Queue delete for sync
+        await syncService.queueTimeLogDelete(id);
 
         update(state => ({
           ...state,
