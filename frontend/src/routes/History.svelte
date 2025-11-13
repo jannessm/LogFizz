@@ -5,7 +5,11 @@
   import { timeLogsStore } from '../stores/timelogs';
   import { buttonsStore } from '../stores/buttons';
   import dayjs from 'dayjs';
+  import weekOfYear from 'dayjs/plugin/weekOfYear';
   import { Chart, ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
+
+  // Register dayjs plugins
+  dayjs.extend(weekOfYear);
 
   // Register Chart.js components
   Chart.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
@@ -65,7 +69,21 @@
     return days;
   }
 
+  // Get week numbers for the calendar (6 weeks)
+  function getWeekNumbers() {
+    const weeks = [];
+    const days = getCalendarDays();
+    
+    // Get week number for the first day of each week (every 7 days)
+    for (let i = 0; i < 42; i += 7) {
+      weeks.push(days[i].week());
+    }
+    
+    return weeks;
+  }
+
   $: calendarDays = getCalendarDays();
+  $: weekNumbers = getWeekNumbers();
 
   // Get button activities for a specific date
   function getButtonsForDate(date: dayjs.Dayjs) {
@@ -374,15 +392,10 @@
     return date.isSame(currentMonth, 'month');
   }
 
-  // Get gradient for date circle based on buttons used
-  function getDateGradient(date: dayjs.Dayjs): string {
+  // Get button colors for date (for dots display)
+  function getButtonColorsForDate(date: dayjs.Dayjs): string[] {
     const dateButtons = getButtonsForDate(date);
-    if (dateButtons.length === 0) return '';
-    if (dateButtons.length === 1) return dateButtons[0].color || '#3B82F6';
-    
-    const colors = dateButtons.slice(0, 4).map(b => b.color || '#3B82F6');
-    const stops = colors.map((c, i) => `${c} ${(i / colors.length) * 100}%, ${c} ${((i + 1) / colors.length) * 100}%`).join(', ');
-    return `conic-gradient(${stops})`;
+    return dateButtons.slice(0, 3).map(b => b.color || '#3B82F6');
   }
 
   function handleAddTimelog() {
@@ -494,7 +507,10 @@
            class:translate-x-full={slideDirection === 'left'}
            class:-translate-x-full={slideDirection === 'right'}>
         <!-- Calendar header (day names) -->
-        <div class="grid grid-cols-7 gap-1 mb-2">
+        <div class="grid gap-1 mb-2" style="grid-template-columns: 32px repeat(7, 1fr);">
+          <div class="text-center text-xs font-semibold text-gray-500 py-2">
+            Wk
+          </div>
           {#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as day}
             <div class="text-center text-xs font-semibold text-gray-600 py-2">
               {day}
@@ -502,32 +518,28 @@
           {/each}
         </div>
 
-        <!-- Calendar days -->
-        <div class="grid grid-cols-7 gap-1">
-          {#each calendarDays as day}
-            {@const dayButtons = getButtonsForDate(day)}
-            {@const gradient = getDateGradient(day)}
+        <!-- Calendar days with week numbers -->
+        <div class="grid gap-1" style="grid-template-columns: 32px repeat(7, 1fr);">
+          {#each Array(6) as _, weekIndex}
+            <!-- Week number -->
+            <div class="flex items-center justify-center text-xs font-medium text-gray-500">
+              {weekNumbers[weekIndex]}
+            </div>
+            
+            <!-- Days of the week -->
+            {#each calendarDays.slice(weekIndex * 7, (weekIndex + 1) * 7) as day}
+            {@const buttonColors = getButtonColorsForDate(day)}
             {@const today = isToday(day)}
             {@const selected = isSelected(day)}
             {@const currentMonthDay = isCurrentMonth(day)}
             <button
               on:click={() => selectDate(day)}
-              class="relative w-full aspect-square flex items-center justify-center transition-all hover:scale-105"
+              class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 py-1"
               class:text-gray-400={!currentMonthDay}
               class:text-gray-800={currentMonthDay && !selected}
               class:text-white={selected}
               class:font-bold={today || selected}
             >
-              <!-- Background circle for gradient (if has activities) -->
-              {#if dayButtons.length > 0 && !selected}
-                <div 
-                  class="absolute inset-0 rounded-full p-0.5"
-                  style="background: {gradient};"
-                >
-                  <div class="w-full h-full rounded-full bg-white"></div>
-                </div>
-              {/if}
-              
               <!-- Today indicator (light blue circle behind) -->
               {#if today && !selected}
                 <div class="absolute inset-1 rounded-full bg-blue-100 border-2 border-blue-300"></div>
@@ -539,10 +551,23 @@
               {/if}
               
               <!-- Date number -->
-              <span class="relative text-sm z-10">
+              <span class="relative text-sm z-10 mb-1">
                 {day.format('D')}
               </span>
+              
+              <!-- Activity dots -->
+              {#if buttonColors.length > 0}
+                <div class="relative flex gap-0.5 z-10">
+                  {#each buttonColors as color}
+                    <div 
+                      class="w-1 h-1 rounded-full"
+                      style="background-color: {color};"
+                    ></div>
+                  {/each}
+                </div>
+              {/if}
             </button>
+            {/each}
           {/each}
         </div>
       </div>
@@ -598,15 +623,26 @@
                   {@const duration = Math.floor((new Date(session.endTime).getTime() - new Date(session.startTime).getTime()) / 60000)}
                   <p class="text-sm font-semibold text-gray-700">{formatMinutes(duration)}</p>
                 {/if}
-                <button
-                  on:click={() => confirmDelete(session)}
-                  class="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                  aria-label="Delete entry"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+                <div class="flex gap-1">
+                  <button
+                    on:click={() => handleEditTimelog(session)}
+                    class="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                    aria-label="Edit entry"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    on:click={() => confirmDelete(session)}
+                    class="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                    aria-label="Delete entry"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             {/if}
           {/each}

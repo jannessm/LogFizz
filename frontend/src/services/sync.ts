@@ -10,9 +10,11 @@ import {
   getSyncCursor,
   saveSyncCursor,
   getUser,
+  getAllTimeLogs,
 } from '../lib/db';
 import { buttonApi, timeLogApi, isOnline } from './api';
 import type { Button, TimeLog, SyncQueueItem } from '../types';
+import { validateAndFixTimelogs } from '../lib/buttonLayout';
 
 export class SyncService {
   private isSyncing = false;
@@ -182,11 +184,15 @@ export class SyncService {
     // Push time logs
     if (timeLogItems.length > 0) {
       try {
-        const timeLogs = timeLogItems.map(item => ({
+        let timeLogs = timeLogItems.map(item => ({
           ...item.data,
           updated_at: new Date(item.timestamp).toISOString(),
           deleted_at: item.operation === 'delete' ? new Date(item.timestamp).toISOString() : undefined,
         }));
+        
+        // Validate and fix overlapping timelogs before pushing
+        // This ensures a button is stopped before being started again
+        timeLogs = validateAndFixTimelogs(timeLogs);
         
         const result = await timeLogApi.pushSyncChanges(timeLogs);
         

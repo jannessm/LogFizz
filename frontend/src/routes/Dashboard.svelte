@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { buttonsStore, sortedButtons } from '../stores/buttons';
   import { timeLogsStore } from '../stores/timelogs';
-  import ButtonGrid from '../components/ButtonGrid.svelte';
+  import ButtonGraph from '../components/ButtonGraph.svelte';
   import ButtonForm from '../components/ButtonForm.svelte';
   import BottomNav from '../components/BottomNav.svelte';
   import type { Button } from '../types';
@@ -78,7 +78,7 @@
   <!-- Scrollable Button Area -->
   <div class="flex-1 overflow-y-auto">
     <div class="max-w-[500px] mx-auto px-4 py-6">
-      <ButtonGrid 
+      <ButtonGraph 
         buttons={$sortedButtons}
         {editMode}
         on:edit={handleEditButton}
