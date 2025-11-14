@@ -9,13 +9,15 @@
   export let buttons: any[];
   export let timeLogs: any[];
   export let onSelectDate: (date: dayjs.Dayjs) => void;
-  export let slideDirection: 'left' | 'right' | null = null;
+
+  let calendarDays: dayjs.Dayjs[];
+  let weekNumbers: number[];
+  let buttonColors: Map<string, string[]> = new Map();
 
   // Get calendar days for current month - ensure we have exactly 6 weeks (42 days)
   function getCalendarDays() {
     const firstDay = currentMonth.startOf('month');
-    const lastDay = currentMonth.endOf('month');
-    
+
     // Get the day of week for the first day (0 = Sunday, 6 = Saturday)
     const firstDayOfWeek = firstDay.day();
     
@@ -47,8 +49,23 @@
     return weeks;
   }
 
-  $: calendarDays = getCalendarDays();
-  $: weekNumbers = getWeekNumbers();
+  $: if (currentMonth && selectedDate) {
+    calendarDays = getCalendarDays();
+    weekNumbers = getWeekNumbers();
+  }
+
+  $: if (timeLogs.length > 0) {
+    buttonColors = getButtonColorsMap();
+  }
+
+  function getButtonColorsMap(): Map<string, string[]> {
+    const colorMap = new Map<string, string[]>();
+    for (const day of calendarDays) {
+      const colors = getButtonColorsForDate(day);
+      colorMap.set(day.format('YYYY-MM-DD'), colors); 
+    }
+    return colorMap;
+  }
 
   // Get button activities for a specific date
   function getButtonsForDate(date: dayjs.Dayjs) {
@@ -80,14 +97,12 @@
   }
 </script>
 
-<div class="bg-white rounded-lg shadow-md p-4 mb-6 overflow-hidden">
-  <div class="transition-transform duration-300"
-       class:translate-x-full={slideDirection === 'left'}
-       class:-translate-x-full={slideDirection === 'right'}>
+<div class="bg-white rounded-lg shadow-md p-4 mb-6">
+  <div>
     <!-- Calendar header (day names) -->
     <div class="grid gap-1 mb-2" style="grid-template-columns: 32px repeat(7, 1fr);">
       <div class="text-center text-xs font-semibold text-gray-500 py-2">
-        Wk
+        
       </div>
       {#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as day}
         <div class="text-center text-xs font-semibold text-gray-600 py-2">
@@ -97,16 +112,16 @@
     </div>
 
     <!-- Calendar days with week numbers -->
-    <div class="grid gap-1" style="grid-template-columns: 32px repeat(7, 1fr);">
+    <div class="grid gap-x-1" style="grid-template-columns: 32px repeat(7, 1fr);">
       {#each Array(6) as _, weekIndex}
         <!-- Week number -->
-        <div class="flex items-center justify-center text-xs font-medium text-gray-500">
+        <div class="flex items-center justify-center text-xs font-medium text-gray-400 bg-gray-100">
           {weekNumbers[weekIndex]}
         </div>
         
         <!-- Days of the week -->
         {#each calendarDays.slice(weekIndex * 7, (weekIndex + 1) * 7) as day}
-        {@const buttonColors = getButtonColorsForDate(day)}
+        {@const _buttonColors = buttonColors.get(day.format('YYYY-MM-DD')) || []}
         {@const today = isToday(day)}
         {@const selected = isSelected(day)}
         {@const currentMonthDay = isCurrentMonth(day)}
@@ -134,9 +149,9 @@
           </span>
           
           <!-- Activity dots -->
-          {#if buttonColors.length > 0}
+          {#if _buttonColors && _buttonColors.length > 0}
             <div class="relative flex gap-0.5 z-10">
-              {#each buttonColors as color}
+              {#each _buttonColors as color}
                 <div 
                   class="w-1 h-1 rounded-full"
                   style="background-color: {color};"

@@ -2,15 +2,26 @@
 
 A progressive web application built with Svelte and TypeScript that provides an offline-first time tracking experience.
 
+## ToDo
+
+* [X] fix calendar/history
+* [ ] add dayly time goal instead of button wise time goal
+* [ ] export as csv, xlsx
+* [ ] add sick days/kindkrank/arbeitstage at timelog overview
+* [ ] add single stop entry
+* [ ] chart database (one db for each month) to limit computing (getAll)
+
 ## Features
 
 ### 🔒 Authentication
+
 - User registration and login
 - Session-based authentication
 - Secure password management
 - Profile customization
 
 ### ⏱️ Timer Management
+
 - Create customizable tracking buttons
 - Start/stop timers with one click
 - Visual timer feedback with enlarged buttons
@@ -18,6 +29,7 @@ A progressive web application built with Svelte and TypeScript that provides an 
 - Track multiple activities
 
 ### 🎯 Goal Tracking
+
 - Set daily time goals per button
 - Configure goal days (weekdays, weekends, etc.)
 - Visual progress indicators
@@ -25,12 +37,14 @@ A progressive web application built with Svelte and TypeScript that provides an 
 - German labor law compliance (6h: 30min, 9h: 45min breaks)
 
 ### 📊 Statistics & History
+
 - Yearly statistics per activity
 - Recent entries view
 - Time breakdowns
 - Total hours and minutes tracking
 
 ### 🔄 Offline-First Architecture
+
 - **IndexedDB** for local data persistence
 - **Sync Queue** for offline changes
 - **Automatic sync** when connection is restored
@@ -39,6 +53,7 @@ A progressive web application built with Svelte and TypeScript that provides an 
 - Visual offline/online indicators
 
 ### ⚙️ Settings
+
 - Profile management
 - Password change
 - Manual sync trigger

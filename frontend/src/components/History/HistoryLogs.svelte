@@ -2,13 +2,16 @@
   import dayjs from 'dayjs';
 
   export let selectedDate: dayjs.Dayjs;
-  export let sessions: any[];
+  export let timeLogs: any[];
   export let buttons: any[];
   export let onAddTimelog: () => void;
   export let onEditTimelog: (session: any) => void;
   export let onDeleteTimelog: (session: any) => void;
 
+  let sessions: any[] = [];
   let selectedButtonFilter: string | null = null;
+  let filteredSessions: any[] = [];
+  let uniqueButtons: any[] = [];
 
   function formatMinutes(minutes: number): string {
     const hours = Math.floor(minutes / 60);
@@ -20,15 +23,69 @@
     return date.isSame(dayjs(), 'day');
   }
 
-  // Get unique buttons that have sessions
-  $: uniqueButtons = Array.from(new Set(sessions.map(s => s.button_id)))
-    .map(id => buttons.find(b => b.id === id))
-    .filter(b => b !== undefined);
+// Get time logs for selected date and pair them into sessions
+  function getSessionsForSelectedDate() {
+    const dateStr = selectedDate.format('YYYY-MM-DD');
+    const logs = timeLogs
+      .filter(tl => tl.timestamp && tl.timestamp.startsWith(dateStr))
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    // Pair start/stop events into sessions
+    const sessions: Array<{
+      button_id: string;
+      startTime: string;
+      endTime?: string;
+      startLog: typeof logs[0];
+      stopLog?: typeof logs[0];
+    }> = [];
+    
+    const startsByButton = new Map<string, typeof logs[0]>();
+    
+    for (const log of logs) {
+      if (log.type === 'start') {
+        // New start event - save it
+        startsByButton.set(log.button_id, log);
+      } else if (log.type === 'stop') {
+        // Stop event - pair with most recent start for this button
+        const start = startsByButton.get(log.button_id);
+        if (start) {
+          sessions.push({
+            button_id: log.button_id,
+            startTime: start.timestamp,
+            endTime: log.timestamp,
+            startLog: start,
+            stopLog: log,
+          });
+          startsByButton.delete(log.button_id);
+        }
+      }
+    }
+    
+    // Add any remaining unpaired starts as active sessions
+    for (const [button_id, start] of startsByButton.entries()) {
+      sessions.push({
+        button_id,
+        startTime: start.timestamp,
+        startLog: start,
+      });
+    }
+    
+    return sessions.sort((a, b) => 
+      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
+  }
 
-  // Filter sessions by selected button
-  $: filteredSessions = selectedButtonFilter 
-    ? sessions.filter(s => s.button_id === selectedButtonFilter)
-    : sessions;
+  $: if (selectedDate) {
+    sessions = getSessionsForSelectedDate();
+
+    filteredSessions = selectedButtonFilter 
+      ? sessions.filter(s => s.button_id === selectedButtonFilter)
+      : sessions;
+    
+    uniqueButtons = Array.from(new Set(sessions.map(s => s.button_id)))
+      .map(id => buttons.find(b => b.id === id))
+      .filter(b => b !== undefined);
+  }
 </script>
 
 <div class="bg-white rounded-lg shadow-md p-6">
