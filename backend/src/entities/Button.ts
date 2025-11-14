@@ -29,6 +29,9 @@ export class Button {
   @Column('simple-array', { nullable: true })
   goal_days?: number[];
 
+  @Column('uuid', { nullable: true })
+  target_id?: string;
+
   @Column('boolean', { default: false })
   auto_subtract_breaks!: boolean;
 
@@ -44,6 +47,10 @@ export class Button {
   @ManyToOne('User', 'buttons', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user!: any;
+
+  @ManyToOne('DailyTarget', { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'target_id' })
+  daily_target?: any;
 
   @OneToMany('TimeLog', 'button')
   time_logs?: any[];

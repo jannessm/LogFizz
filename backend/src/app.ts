@@ -11,6 +11,7 @@ import { authRoutes } from './routes/auth.routes.js';
 import { buttonRoutes } from './routes/button.routes.js';
 import { timeLogRoutes } from './routes/timelog.routes.js';
 import { holidayRoutes } from './routes/holiday.routes.js';
+import { dailyTargetRoutes } from './routes/daily-target.routes.js';
 import { registerRateLimit } from './config/rateLimit.js';
 import './types/session.js';
 
@@ -126,6 +127,7 @@ export async function buildApp() {
         { name: 'Buttons', description: 'Button management endpoints' },
         { name: 'TimeLogs', description: 'Time logging endpoints' },
         { name: 'Holidays', description: 'Holiday management endpoints' },
+        { name: 'DailyTargets', description: 'Daily target management endpoints' },
       ],
     },
   });
@@ -143,6 +145,7 @@ export async function buildApp() {
   await fastify.register(buttonRoutes, { prefix: '/api/buttons' });
   await fastify.register(timeLogRoutes, { prefix: '/api/timelogs' });
   await fastify.register(holidayRoutes, { prefix: '/api/holidays' });
+  await fastify.register(dailyTargetRoutes);
 
   // Health check endpoint
   fastify.get('/health', async () => {
