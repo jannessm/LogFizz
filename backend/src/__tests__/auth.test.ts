@@ -26,7 +26,8 @@ describe('Authentication Routes', () => {
         email,
         password: hashedPassword,
         name: 'Test User',
-        state: 'CA',
+        country: 'DE',
+        state: 'Berlin',
       },
     });
 
@@ -34,7 +35,8 @@ describe('Authentication Routes', () => {
     const body = JSON.parse(response.body);
     expect(body.email).toBeDefined();
     expect(body.name).toBe('Test User');
-    expect(body.state).toBe('CA');
+    expect(body.country).toBe('DE');
+    expect(body.state).toBe('Berlin');
     expect(body.password_hash).toBeUndefined();
   });
 
@@ -92,7 +94,10 @@ describe('Authentication Routes', () => {
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
+    expect(body.id).toBeDefined();
     expect(body.email).toBe(email);
+    expect(body.country).toBe('DE');
+    expect(body.state).toBe('Berlin');
     expect(body.name).toBe('Test User');
   });
 

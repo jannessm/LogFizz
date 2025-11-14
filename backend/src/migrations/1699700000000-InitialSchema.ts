@@ -14,6 +14,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "email" character varying NOT NULL,
                 "password_hash" character varying NOT NULL,
                 "name" character varying NOT NULL,
+                "country" character varying,
                 "state" character varying,
                 "created_at" TIMESTAMP NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
@@ -31,14 +32,14 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "user_id" uuid NOT NULL,
                 "name" character varying NOT NULL,
-                "duration_minutes" integer NOT NULL,
+                "duration_minutes" text NOT NULL,
                 "weekdays" text NOT NULL,
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "deleted_at" TIMESTAMP WITH TIME ZONE,
                 CONSTRAINT "PK_daily_targets_id" PRIMARY KEY ("id"),
                 CONSTRAINT "FK_daily_targets_user_id" FOREIGN KEY ("user_id") 
-                    REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION
+                REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION
             )
         `);
 
@@ -50,10 +51,6 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "name" character varying NOT NULL,
                 "emoji" character varying,
                 "color" character varying,
-                "position" integer NOT NULL DEFAULT 0,
-                "icon" character varying,
-                "goal_time_minutes" integer,
-                "goal_days" text,
                 "target_id" uuid,
                 "auto_subtract_breaks" boolean NOT NULL DEFAULT false,
                 "created_at" TIMESTAMP NOT NULL DEFAULT now(),
@@ -75,8 +72,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "button_id" uuid NOT NULL,
                 "type" character varying NOT NULL,
                 "timestamp" TIMESTAMP NOT NULL,
-                "apply_break_calculation" boolean NOT NULL DEFAULT false,
-                "notes" text,
+                "description" text,
                 "is_manual" boolean NOT NULL DEFAULT false,
                 "created_at" TIMESTAMP NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
@@ -94,6 +90,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
             CREATE TABLE IF NOT EXISTS "holidays" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "country" character varying NOT NULL,
+                "state" character varying NOT NULL,
                 "date" date NOT NULL,
                 "name" character varying NOT NULL,
                 "year" integer NOT NULL,

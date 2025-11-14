@@ -15,6 +15,9 @@ export class User {
   name!: string;
 
   @Column('varchar', { nullable: true })
+  country?: string;
+
+  @Column('varchar', { nullable: true })
   state?: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
