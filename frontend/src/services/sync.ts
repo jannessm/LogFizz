@@ -5,15 +5,17 @@ import {
   deleteFromSyncQueue,
   saveButton,
   saveTimeLog,
+  saveTarget,
   deleteButton,
   deleteTimeLog,
+  deleteTarget,
   getSyncCursor,
   saveSyncCursor,
   getUser,
   getAllTimeLogs,
 } from '../lib/db';
 import { buttonApi, timeLogApi, isOnline } from './api';
-import type { Button, TimeLog, SyncQueueItem } from '../types';
+import type { Button, TimeLog, DailyTarget, SyncQueueItem } from '../types';
 import { validateAndFixTimelogs } from '../lib/buttonLayout';
 
 export class SyncService {
@@ -102,6 +104,47 @@ export class SyncService {
     };
     await addToSyncQueue(item);
     await deleteTimeLog(timeLogId); // Delete locally immediately
+    this.notifyListeners();
+  }
+
+  async queueTargetCreate(target: DailyTarget): Promise<void> {
+    const item: SyncQueueItem = {
+      id: crypto.randomUUID(),
+      type: 'target' as any,
+      operation: 'create',
+      data: target,
+      timestamp: Date.now(),
+      synced: false,
+    };
+    await addToSyncQueue(item);
+    await saveTarget(target);
+    this.notifyListeners();
+  }
+
+  async queueTargetUpdate(id: string, targetData: Partial<DailyTarget>): Promise<void> {
+    const item: SyncQueueItem = {
+      id: crypto.randomUUID(),
+      type: 'target' as any,
+      operation: 'update',
+      data: { id, ...targetData },
+      timestamp: Date.now(),
+      synced: false,
+    };
+    await addToSyncQueue(item);
+    this.notifyListeners();
+  }
+
+  async queueTargetDelete(targetId: string): Promise<void> {
+    const item: SyncQueueItem = {
+      id: crypto.randomUUID(),
+      type: 'target' as any,
+      operation: 'delete',
+      data: { id: targetId },
+      timestamp: Date.now(),
+      synced: false,
+    };
+    await addToSyncQueue(item);
+    await deleteTarget(targetId);
     this.notifyListeners();
   }
 

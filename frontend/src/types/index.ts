@@ -20,7 +20,19 @@ export interface Button {
   goal_time_minutes?: number;
   goal_days?: number[]; // Array of weekday numbers (0=Sunday, 1=Monday, etc.)
   auto_subtract_breaks: boolean;
+  target_id?: string; // Optional assignment to a daily target
   created_at: string;
+}
+
+// Daily Target types
+export interface DailyTarget {
+  id: string;
+  user_id: string;
+  name: string;
+  duration_minutes: number;
+  weekdays: number[]; // Array of weekday numbers (0=Sunday, 1=Monday, etc.)
+  created_at: string;
+  updated_at: string;
 }
 
 // TimeLog types - Event-based system

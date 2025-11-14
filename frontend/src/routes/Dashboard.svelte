@@ -2,20 +2,26 @@
   import { onMount } from 'svelte';
   import { buttonsStore, sortedButtons } from '../stores/buttons';
   import { timeLogsStore } from '../stores/timelogs';
+  import { targetsStore } from '../stores/targets';
   import ButtonGraph from '../components/ButtonGraph.svelte';
   import ButtonForm from '../components/ButtonForm.svelte';
+  import DailyTargets from '../components/DailyTargets.svelte';
+  import TargetForm from '../components/TargetForm.svelte';
   import BottomNav from '../components/BottomNav.svelte';
-  import type { Button } from '../types';
+  import type { Button, DailyTarget } from '../types';
 
   let showButtonForm = false;
+  let showTargetForm = false;
   let editMode = false;
   let editingButton: Button | null = null;
+  let editingTarget: DailyTarget | null = null;
   let toggleMode = true;
 
   onMount(async () => {
     await buttonsStore.load();
     await timeLogsStore.load();
     await timeLogsStore.loadActive();
+    await targetsStore.load();
   });
 
   function handleAddButton() {
@@ -31,6 +37,21 @@
   function handleCloseForm() {
     showButtonForm = false;
     editingButton = null;
+  }
+
+  function handleAddTarget() {
+    editingTarget = null;
+    showTargetForm = true;
+  }
+
+  function handleEditTarget(target: DailyTarget) {
+    editingTarget = target;
+    showTargetForm = true;
+  }
+
+  function handleCloseTargetForm() {
+    showTargetForm = false;
+    editingTarget = null;
   }
 
   function toggleEditMode() {
@@ -76,6 +97,13 @@
   <!-- Scrollable Button Area -->
   <div class="flex overflow-y-auto">
     <div class="mx-auto px-4 py-6 min-w-full w-full">
+      <!-- Daily Targets Overview -->
+      <DailyTargets 
+        onAddTarget={handleAddTarget}
+        onEditTarget={handleEditTarget}
+      />
+
+      <!-- Button Graph -->
       <ButtonGraph 
         buttons={$sortedButtons}
         {editMode}
@@ -105,6 +133,14 @@
     <ButtonForm 
       button={editingButton}
       on:close={handleCloseForm}
+    />
+  {/if}
+
+  <!-- Target Form Modal -->
+  {#if showTargetForm}
+    <TargetForm 
+      target={editingTarget}
+      on:close={handleCloseTargetForm}
     />
   {/if}
 </div>

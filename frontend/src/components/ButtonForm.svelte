@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import type { Button } from '../types';
   import { buttonsStore } from '../stores/buttons';
+  import { targetsStore } from '../stores/targets';
 
   export let button: Button | null = null;
 
@@ -11,33 +12,15 @@
   let emoji = button?.emoji || '';
   let color = button?.color || '#3B82F6';
   let goalTimeMinutes = button?.goal_time_minutes || 0;
-  let goalDays = button?.goal_days || [1, 2, 3, 4, 5]; // Mon-Fri by default
+  let targetId = button?.target_id || '';
   let autoSubtractBreaks = button?.auto_subtract_breaks ?? false;
   let isLoading = false;
   let errorMessage = '';
-
-  const weekDays = [
-    { value: 0, label: 'Sun' },
-    { value: 1, label: 'Mon' },
-    { value: 2, label: 'Tue' },
-    { value: 3, label: 'Wed' },
-    { value: 4, label: 'Thu' },
-    { value: 5, label: 'Fri' },
-    { value: 6, label: 'Sat' },
-  ];
 
   const colorPresets = [
     '#3B82F6', '#EF4444', '#10B981', '#F59E0B', 
     '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'
   ];
-
-  function toggleDay(day: number) {
-    if (goalDays.includes(day)) {
-      goalDays = goalDays.filter(d => d !== day);
-    } else {
-      goalDays = [...goalDays, day].sort();
-    }
-  }
 
   async function handleSubmit() {
     if (!name.trim()) {
@@ -54,7 +37,7 @@
         emoji: emoji || undefined,
         color,
         goal_time_minutes: goalTimeMinutes > 0 ? goalTimeMinutes : undefined,
-        goal_days: goalDays.length > 0 ? goalDays : undefined,
+        target_id: targetId || undefined,
         auto_subtract_breaks: autoSubtractBreaks,
         position: button?.position || 0,
       };
@@ -171,6 +154,26 @@
           />
         </div>
 
+        <!-- Target Assignment -->
+        <div>
+          <label for="targetId" class="block text-sm font-medium text-gray-700 mb-1">
+            Assign to Target (optional)
+          </label>
+          <select
+            id="targetId"
+            bind:value={targetId}
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">No target</option>
+            {#each $targetsStore as target}
+              <option value={target.id}>{target.name}</option>
+            {/each}
+          </select>
+          <p class="text-xs text-gray-500 mt-1">
+            Assign this button to a daily target to track progress
+          </p>
+        </div>
+
         <!-- Goal Time -->
         <div>
           <label for="goalTime" class="block text-sm font-medium text-gray-700 mb-1">
@@ -185,33 +188,13 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="0 = no goal"
           />
+          <p class="text-xs text-gray-500 mt-1">
+            Optional: Set an individual goal for this button
+          </p>
         </div>
 
-        <!-- Goal Days -->
+        <!-- Auto subtract breaks -->
         {#if goalTimeMinutes > 0}
-          <div>
-            <div id="goalDaysLabel" class="block text-sm font-medium text-gray-700 mb-2">
-              Goal applies to:
-            </div>
-            <div class="flex gap-2 flex-wrap" role="group" aria-labelledby="goalDaysLabel">
-              {#each weekDays as day}
-                <button
-                  type="button"
-                  on:click={() => toggleDay(day.value)}
-                  class="px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                  class:bg-blue-600={goalDays.includes(day.value)}
-                  class:text-white={goalDays.includes(day.value)}
-                  class:bg-gray-200={!goalDays.includes(day.value)}
-                  class:text-gray-700={!goalDays.includes(day.value)}
-                  aria-pressed={goalDays.includes(day.value)}
-                >
-                  {day.label}
-                </button>
-              {/each}
-            </div>
-          </div>
-
-          <!-- Auto subtract breaks -->
           <div class="flex items-center">
             <input
               id="autoBreaks"

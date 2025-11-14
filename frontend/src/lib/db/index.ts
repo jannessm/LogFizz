@@ -1,6 +1,6 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
-import type { Button, TimeLog, User, SyncQueueItem } from '../../types';
+import type { Button, TimeLog, User, SyncQueueItem, DailyTarget } from '../../types';
 
 interface ClockDB extends DBSchema {
   buttons: {
@@ -15,6 +15,10 @@ interface ClockDB extends DBSchema {
       'by-button': string;
       'by-start': string;
     };
+  };
+  targets: {
+    key: string;
+    value: DailyTarget;
   };
   syncQueue: {
     key: string;
@@ -31,7 +35,7 @@ interface ClockDB extends DBSchema {
 }
 
 const DB_NAME = 'clock-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbInstance: IDBPDatabase<ClockDB> | null = null;
 
@@ -68,6 +72,11 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
       // Settings store
       if (!db.objectStoreNames.contains('settings')) {
         db.createObjectStore('settings');
+      }
+
+      // Targets store
+      if (!db.objectStoreNames.contains('targets')) {
+        db.createObjectStore('targets', { keyPath: 'id' });
       }
     },
   });
@@ -185,11 +194,33 @@ export async function getSyncCursor(type: 'buttons' | 'timelogs'): Promise<strin
   return await getSetting(`sync_cursor_${type}`);
 }
 
+// Target operations
+export async function saveTarget(target: DailyTarget): Promise<void> {
+  const db = await getDB();
+  await db.put('targets', target);
+}
+
+export async function getTarget(id: string): Promise<DailyTarget | undefined> {
+  const db = await getDB();
+  return db.get('targets', id);
+}
+
+export async function getAllTargets(): Promise<DailyTarget[]> {
+  const db = await getDB();
+  return db.getAll('targets');
+}
+
+export async function deleteTarget(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('targets', id);
+}
+
 // Clear all data
 export async function clearAllData(): Promise<void> {
   const db = await getDB();
   await db.clear('buttons');
   await db.clear('timelogs');
+  await db.clear('targets');
   await db.clear('syncQueue');
   await db.clear('user');
   await db.clear('settings');
