@@ -145,7 +145,7 @@ export async function buildApp() {
   await fastify.register(buttonRoutes, { prefix: '/api/buttons' });
   await fastify.register(timeLogRoutes, { prefix: '/api/timelogs' });
   await fastify.register(holidayRoutes, { prefix: '/api/holidays' });
-  await fastify.register(dailyTargetRoutes);
+  await fastify.register(dailyTargetRoutes, { prefix: '/api/targets' });
 
   // Health check endpoint
   fastify.get('/health', async () => {

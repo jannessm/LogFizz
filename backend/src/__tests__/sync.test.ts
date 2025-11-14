@@ -61,7 +61,6 @@ describe('Sync API - Offline-First', () => {
           buttons: [{
             id: clientUUID,
             name: 'Client Button',
-            position: 0,
             auto_subtract_breaks: false,
           }],
         },
@@ -86,7 +85,6 @@ describe('Sync API - Offline-First', () => {
           buttons: [{
             id: clientUUID,
             name: 'Offline Created',
-            position: 1,
             auto_subtract_breaks: true,
             emoji: '🔥',
           }],
@@ -102,18 +100,21 @@ describe('Sync API - Offline-First', () => {
 
   describe('Button Sync - Conflict Detection', () => {
     beforeEach(async () => {
-      // Create initial button
+      // Create initial button via sync
+      buttonId1 = '550e8400-e29b-41d4-a716-446655441111';
       const createResponse = await app.inject({
         method: 'POST',
-        url: '/api/buttons',
+        url: '/api/buttons/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          name: 'Initial Button',
-          position: 0,
-          auto_subtract_breaks: false,
+          buttons: [{
+            id: buttonId1,
+            name: 'Initial Button',
+            position: 0,
+            auto_subtract_breaks: false,
+          }],
         },
       });
-      buttonId1 = JSON.parse(createResponse.payload).id;
 
       // Small delay to ensure different timestamps
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -129,12 +130,18 @@ describe('Sync API - Offline-First', () => {
       const syncData = JSON.parse(getSyncResponse.payload);
       const currentButton = syncData.buttons.find((b: any) => b.id === buttonId1);
 
-      // Server updates the button
+      // Server updates the button via sync
       await app.inject({
-        method: 'PUT',
-        url: `/api/buttons/${buttonId1}`,
+        method: 'POST',
+        url: '/api/buttons/sync',
         headers: { cookie: sessionCookie },
-        payload: { name: 'Server Updated' },
+        payload: {
+          buttons: [{
+            id: buttonId1,
+            name: 'Server Updated',
+            auto_subtract_breaks: false,
+          }],
+        },
       });
 
       // Wait for timestamp to be different
@@ -149,7 +156,6 @@ describe('Sync API - Offline-First', () => {
           buttons: [{
             id: buttonId1,
             name: 'Client Updated',
-            position: 0,
             auto_subtract_breaks: false,
             updated_at: currentButton.updated_at, // Old timestamp
           }],
@@ -160,8 +166,8 @@ describe('Sync API - Offline-First', () => {
       const data = JSON.parse(syncResponse.payload);
       
       expect(data.conflicts).toHaveLength(1);
-      expect(data.conflicts[0].id).toBe(buttonId1);
-      expect(data.conflicts[0].field).toBe('button');
+      expect(data.conflicts[0].clientVersion.id).toBe(buttonId1);
+      expect(data.conflicts[0].serverVersion.id).toBe(buttonId1);
       expect(data.conflicts[0].clientVersion.name).toBe('Client Updated');
       expect(data.conflicts[0].serverVersion.name).toBe('Server Updated');
       expect(data.saved).toBeUndefined();
@@ -228,18 +234,21 @@ describe('Sync API - Offline-First', () => {
     });
 
     it('should handle multiple buttons with mixed conflicts', async () => {
-      // Create second button
-      const create2Response = await app.inject({
+      // Create second button via sync
+      buttonId2 = '550e8400-e29b-41d4-a716-446655442222';
+      await app.inject({
         method: 'POST',
-        url: '/api/buttons',
+        url: '/api/buttons/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          name: 'Button 2',
-          position: 1,
-          auto_subtract_breaks: false,
+          buttons: [{
+            id: buttonId2,
+            name: 'Button 2',
+            position: 1,
+            auto_subtract_breaks: false,
+          }],
         },
       });
-      buttonId2 = JSON.parse(create2Response.payload).id;
 
       // Get both buttons from sync endpoint
       const getSyncResponse = await app.inject({
@@ -251,12 +260,19 @@ describe('Sync API - Offline-First', () => {
       const button1 = syncData.buttons.find((b: any) => b.id === buttonId1);
       const button2 = syncData.buttons.find((b: any) => b.id === buttonId2);
 
-      // Update button1 on server
+      // Update button1 on server via sync
       await app.inject({
-        method: 'PUT',
-        url: `/api/buttons/${buttonId1}`,
+        method: 'POST',
+        url: '/api/buttons/sync',
         headers: { cookie: sessionCookie },
-        payload: { name: 'Server Updated B1' },
+        payload: {
+          buttons: [{
+            id: buttonId1,
+            name: 'Server Updated B1',
+            position: 0,
+            auto_subtract_breaks: false,
+          }],
+        },
       });
 
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -290,7 +306,8 @@ describe('Sync API - Offline-First', () => {
       const data = JSON.parse(syncResponse.payload);
       
       expect(data.conflicts).toHaveLength(1);
-      expect(data.conflicts[0].id).toBe(buttonId1);
+      expect(data.conflicts[0].clientVersion.id).toBe(buttonId1);
+      expect(data.conflicts[0].serverVersion.id).toBe(buttonId1);
       expect(data.saved).toHaveLength(1);
       expect(data.saved[0].id).toBe(buttonId2);
       expect(data.saved[0].name).toBe('Client Updated B2');
@@ -335,14 +352,21 @@ describe('Sync API - Offline-First', () => {
     });
 
     it('should return only changed buttons since cursor', async () => {
-      // Create button 1
-      const create1 = await app.inject({
+      // Create button 1 via sync
+      buttonId1 = '550e8400-e29b-41d4-a716-446655443333';
+      await app.inject({
         method: 'POST',
-        url: '/api/buttons',
+        url: '/api/buttons/sync',
         headers: { cookie: sessionCookie },
-        payload: { name: 'Button 1', position: 0, auto_subtract_breaks: false },
+        payload: {
+          buttons: [{
+            id: buttonId1,
+            name: 'Button 1',
+            position: 0,
+            auto_subtract_breaks: false,
+          }],
+        },
       });
-      buttonId1 = JSON.parse(create1.payload).id;
 
       // Get sync cursor
       const sync1 = await app.inject({
@@ -355,14 +379,21 @@ describe('Sync API - Offline-First', () => {
       // Wait to ensure timestamp difference between cursor and next creation
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      // Create button 2 after cursor
-      const create2 = await app.inject({
+      // Create button 2 after cursor via sync
+      buttonId2 = '550e8400-e29b-41d4-a716-446655444444';
+      await app.inject({
         method: 'POST',
-        url: '/api/buttons',
+        url: '/api/buttons/sync',
         headers: { cookie: sessionCookie },
-        payload: { name: 'Button 2', position: 1, auto_subtract_breaks: false },
+        payload: {
+          buttons: [{
+            id: buttonId2,
+            name: 'Button 2',
+            position: 1,
+            auto_subtract_breaks: false,
+          }],
+        },
       });
-      buttonId2 = JSON.parse(create2.payload).id;
 
       // Sync with cursor - should only return button 2
       const sync2 = await app.inject({
@@ -382,14 +413,21 @@ describe('Sync API - Offline-First', () => {
 
   describe('TimeLog Sync - Client-Side UUID Generation', () => {
     beforeEach(async () => {
-      // Create a button first
-      const createButton = await app.inject({
+      // Create a button via sync
+      buttonId1 = '550e8400-e29b-41d4-a716-446655448888';
+      await app.inject({
         method: 'POST',
-        url: '/api/buttons',
+        url: '/api/buttons/sync',
         headers: { cookie: sessionCookie },
-        payload: { name: 'Test Button', position: 0, auto_subtract_breaks: false },
+        payload: {
+          buttons: [{
+            id: buttonId1,
+            name: 'Test Button',
+            position: 0,
+            auto_subtract_breaks: false,
+          }],
+        },
       });
-      buttonId1 = JSON.parse(createButton.payload).id;
     });
 
     it('should accept client-generated UUID for new timelog', async () => {
@@ -405,8 +443,7 @@ describe('Sync API - Offline-First', () => {
             button_id: buttonId1,
             type: 'start',
             timestamp: new Date().toISOString(),
-            apply_break_calculation: false,
-            is_manual: true,
+            timezone: 'Europe/Berlin',
           }],
         },
       });
@@ -423,28 +460,50 @@ describe('Sync API - Offline-First', () => {
 
   describe('TimeLog Sync - Conflict Detection', () => {
     beforeEach(async () => {
-      // Create button
-      const createButton = await app.inject({
+      // Create button via sync
+      buttonId1 = '550e8400-e29b-41d4-a716-446655445555';
+      await app.inject({
         method: 'POST',
-        url: '/api/buttons',
-        headers: { cookie: sessionCookie },
-        payload: { name: 'Test Button', position: 0, auto_subtract_breaks: false },
-      });
-      buttonId1 = JSON.parse(createButton.payload).id;
-
-      // Create timelog
-      const createLog = await app.inject({
-        method: 'POST',
-        url: '/api/timelogs/manual',
+        url: '/api/buttons/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          button_id: buttonId1,
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          end_time: new Date().toISOString(),
-          notes: 'Initial log',
+          buttons: [{
+            id: buttonId1,
+            name: 'Test Button',
+            position: 0,
+            auto_subtract_breaks: false,
+          }],
         },
       });
-      timeLogId1 = JSON.parse(createLog.payload).start.id;
+
+      // Create timelog via sync
+      timeLogId1 = '660e8400-e29b-41d4-a716-446655440001';
+      const timeLogId2 = '660e8400-e29b-41d4-a716-446655440002';
+      await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          timeLogs: [
+            {
+              id: timeLogId1,
+              button_id: buttonId1,
+              type: 'start',
+              timestamp: new Date(Date.now() - 3600000).toISOString(),
+              timezone: 'Europe/Berlin',
+              description: 'Initial log',
+            },
+            {
+              id: timeLogId2,
+              button_id: buttonId1,
+              type: 'stop',
+              timestamp: new Date().toISOString(),
+              timezone: 'Europe/Berlin',
+              description: 'Initial log',
+            },
+          ],
+        },
+      });
 
       await new Promise(resolve => setTimeout(resolve, 10));
     });
@@ -459,12 +518,21 @@ describe('Sync API - Offline-First', () => {
       const logs = JSON.parse(getSync.payload).timeLogs;
       const currentLog = logs.find((l: any) => l.id === timeLogId1);
 
-      // Server updates the log
+      // Server updates the log via sync
       await app.inject({
-        method: 'PUT',
-        url: `/api/timelogs/${timeLogId1}`,
+        method: 'POST',
+        url: '/api/timelogs/sync',
         headers: { cookie: sessionCookie },
-        payload: { notes: 'Server updated notes' },
+        payload: {
+          timeLogs: [{
+            id: timeLogId1,
+            button_id: buttonId1,
+            type: currentLog.type,
+            timestamp: currentLog.timestamp,
+            timezone: currentLog.timezone,
+            description: 'Server updated notes',
+          }],
+        },
       });
 
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -480,9 +548,8 @@ describe('Sync API - Offline-First', () => {
             button_id: buttonId1,
             type: currentLog.type,
             timestamp: currentLog.timestamp,
-            notes: 'Client updated notes',
-            apply_break_calculation: false,
-            is_manual: true,
+            timezone: currentLog.timezone,
+            description: 'Client updated notes',
             updated_at: currentLog.updated_at, // Old timestamp
           }],
         },
@@ -492,10 +559,10 @@ describe('Sync API - Offline-First', () => {
       const data = JSON.parse(syncResponse.payload);
       
       expect(data.conflicts).toHaveLength(1);
-      expect(data.conflicts[0].id).toBe(timeLogId1);
-      expect(data.conflicts[0].field).toBe('timeLog');
-      expect(data.conflicts[0].clientVersion.notes).toBe('Client updated notes');
-      expect(data.conflicts[0].serverVersion.notes).toBe('Server updated notes');
+      expect(data.conflicts[0].clientVersion.id).toBe(timeLogId1);
+      expect(data.conflicts[0].serverVersion.id).toBe(timeLogId1);
+      expect(data.conflicts[0].clientVersion.description).toBe('Client updated notes');
+      expect(data.conflicts[0].serverVersion.description).toBe('Server updated notes');
     });
 
     it('should save when client timelog is newer', async () => {
@@ -522,9 +589,8 @@ describe('Sync API - Offline-First', () => {
             button_id: buttonId1,
             type: currentLog.type,
             timestamp: currentLog.timestamp,
-            notes: 'Client wins',
-            apply_break_calculation: false,
-            is_manual: true,
+            timezone: currentLog.timezone,
+            description: 'Client wins',
             updated_at: futureDate,
           }],
         },
@@ -534,21 +600,28 @@ describe('Sync API - Offline-First', () => {
       const data = JSON.parse(syncResponse.payload);
       
       expect(data.saved).toHaveLength(1);
-      expect(data.saved[0].notes).toBe('Client wins');
+      expect(data.saved[0].description).toBe('Client wins');
       expect(data.conflicts).toBeUndefined();
     });
   });
 
   describe('TimeLog Sync - Cursor-Based Sync', () => {
     beforeEach(async () => {
-      // Create button
-      const createButton = await app.inject({
+      // Create button via sync
+      buttonId1 = '550e8400-e29b-41d4-a716-446655446666';
+      await app.inject({
         method: 'POST',
-        url: '/api/buttons',
+        url: '/api/buttons/sync',
         headers: { cookie: sessionCookie },
-        payload: { name: 'Test Button', position: 0, auto_subtract_breaks: false },
+        payload: {
+          buttons: [{
+            id: buttonId1,
+            name: 'Test Button',
+            position: 0,
+            auto_subtract_breaks: false,
+          }],
+        },
       });
-      buttonId1 = JSON.parse(createButton.payload).id;
     });
 
     it('should return cursor in GET sync response', async () => {
@@ -566,15 +639,30 @@ describe('Sync API - Offline-First', () => {
     });
 
     it('should return only changed timelogs since cursor', async () => {
-      // Create log 1
-      const create1 = await app.inject({
+      // Create log 1 via sync
+      const log1StartId = '660e8400-e29b-41d4-a716-446655440011';
+      const log1EndId = '660e8400-e29b-41d4-a716-446655440012';
+      await app.inject({
         method: 'POST',
-        url: '/api/timelogs/manual',
+        url: '/api/timelogs/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          button_id: buttonId1,
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          end_time: new Date(Date.now() - 3600000).toISOString(),
+          timeLogs: [
+            {
+              id: log1StartId,
+              button_id: buttonId1,
+              type: 'start',
+              timestamp: new Date(Date.now() - 7200000).toISOString(),
+              timezone: 'Europe/Berlin',
+            },
+            {
+              id: log1EndId,
+              button_id: buttonId1,
+              type: 'stop',
+              timestamp: new Date(Date.now() - 3600000).toISOString(),
+              timezone: 'Europe/Berlin',
+            },
+          ],
         },
       });
 
@@ -589,19 +677,34 @@ describe('Sync API - Offline-First', () => {
       // Wait to ensure timestamp difference between cursor and next creation
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      // Create log 2 after cursor
-      const create2 = await app.inject({
+      // Create log 2 after cursor via sync
+      const log2StartId = '660e8400-e29b-41d4-a716-446655440013';
+      const log2EndId = '660e8400-e29b-41d4-a716-446655440014';
+      await app.inject({
         method: 'POST',
-        url: '/api/timelogs/manual',
+        url: '/api/timelogs/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          button_id: buttonId1,
-          timestamp: new Date(Date.now() - 1800000).toISOString(),
-          end_time: new Date().toISOString(),
-          notes: 'Recent log',
+          timeLogs: [
+            {
+              id: log2StartId,
+              button_id: buttonId1,
+              type: 'start',
+              timestamp: new Date(Date.now() - 1800000).toISOString(),
+              timezone: 'Europe/Berlin',
+              description: 'Recent log',
+            },
+            {
+              id: log2EndId,
+              button_id: buttonId1,
+              type: 'stop',
+              timestamp: new Date().toISOString(),
+              timezone: 'Europe/Berlin',
+              description: 'Recent log',
+            },
+          ],
         },
       });
-      const log2Id = JSON.parse(create2.payload).start.id;
 
       // Sync with cursor - should only include log 2 records
       const sync2 = await app.inject({
@@ -616,7 +719,7 @@ describe('Sync API - Offline-First', () => {
       // Should have start and stop for log 2
       expect(data.timeLogs.length).toBeGreaterThan(0);
       const log2Records = data.timeLogs.filter((l: any) => 
-        l.notes === 'Recent log' || l.id === log2Id
+        l.description === 'Recent log' || l.id === log2StartId || l.id === log2EndId
       );
       expect(log2Records.length).toBeGreaterThan(0);
     });
@@ -624,22 +727,38 @@ describe('Sync API - Offline-First', () => {
 
   describe('Sync - Soft Delete Handling', () => {
     beforeEach(async () => {
-      // Create button
-      const createButton = await app.inject({
+      // Create button via sync
+      buttonId1 = '550e8400-e29b-41d4-a716-446655447777';
+      await app.inject({
         method: 'POST',
-        url: '/api/buttons',
+        url: '/api/buttons/sync',
         headers: { cookie: sessionCookie },
-        payload: { name: 'To Delete', position: 0, auto_subtract_breaks: false },
+        payload: {
+          buttons: [{
+            id: buttonId1,
+            name: 'To Delete',
+            position: 0,
+            auto_subtract_breaks: false,
+          }],
+        },
       });
-      buttonId1 = JSON.parse(createButton.payload).id;
     });
 
     it('should sync soft-deleted buttons', async () => {
-      // Delete button
+      // Delete button via sync (set deleted_at)
       await app.inject({
-        method: 'DELETE',
-        url: `/api/buttons/${buttonId1}`,
+        method: 'POST',
+        url: '/api/buttons/sync',
         headers: { cookie: sessionCookie },
+        payload: {
+          buttons: [{
+            id: buttonId1,
+            name: 'To Delete',
+            position: 0,
+            auto_subtract_breaks: false,
+            deleted_at: new Date().toISOString(),
+          }],
+        },
       });
 
       // Sync should include deleted button

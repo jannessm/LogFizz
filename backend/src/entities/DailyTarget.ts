@@ -11,8 +11,8 @@ export class DailyTarget {
   @Column('varchar')
   name!: string;
 
-  @Column('int')
-  duration_minutes!: number;
+  @Column('simple-array')
+  duration_minutes!: number[];
 
   @Column('simple-array')
   weekdays!: number[]; // 0-6 for Sunday-Saturday

@@ -80,6 +80,8 @@ describe('Authentication Routes', () => {
         email,
         password: hashedPassword,
         name: 'Test User',
+        country: 'DE',
+        state: 'Berlin',
       },
     });
 

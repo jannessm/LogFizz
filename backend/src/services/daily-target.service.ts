@@ -1,70 +1,29 @@
 import { AppDataSource } from '../config/database.js';
 import { DailyTarget } from '../entities/DailyTarget.js';
+import { Button } from '../entities/Button.js';
 import { IsNull, MoreThan } from 'typeorm';
 
 export class DailyTargetService {
   private targetRepository = AppDataSource.getRepository(DailyTarget);
-
-  async createTarget(userId: string, data: Partial<DailyTarget>): Promise<DailyTarget> {
-    // Remove timestamp fields to let TypeORM manage them automatically
-    const dataWithoutTimestamps: any = { ...data };
-    delete dataWithoutTimestamps.created_at;
-    delete dataWithoutTimestamps.updated_at;
-    
-    const target: DailyTarget = this.targetRepository.create({
-      ...dataWithoutTimestamps,
-      user_id: userId,
-    } as Partial<DailyTarget>);
-
-    return this.targetRepository.save(target);
-  }
-
-  async getUserTargets(userId: string): Promise<DailyTarget[]> {
-    return this.targetRepository.find({
-      where: { user_id: userId, deleted_at: IsNull() },
-      order: { created_at: 'ASC' },
-    });
-  }
-
-  async getTargetById(id: string, userId: string): Promise<DailyTarget | null> {
-    return this.targetRepository.findOne({
-      where: { id, user_id: userId, deleted_at: IsNull() },
-    });
-  }
-
-  async updateTarget(id: string, userId: string, updates: Partial<DailyTarget>): Promise<DailyTarget | null> {
-    const target = await this.getTargetById(id, userId);
-    if (!target) {
-      return null;
-    }
-
-    Object.assign(target, updates);
-    return this.targetRepository.save(target);
-  }
-
-  async deleteTarget(id: string, userId: string): Promise<boolean> {
-    const target = await this.getTargetById(id, userId);
-    if (!target) {
-      return false;
-    }
-
-    target.deleted_at = new Date();
-    await this.targetRepository.save(target);
-    return true;
-  }
+  private buttonRepository = AppDataSource.getRepository(Button);
 
   /**
    * Get all targets (including soft-deleted) changed since a given timestamp
    * Used for sync functionality
    */
   async getChangedTargetsSince(userId: string, since: Date): Promise<DailyTarget[]> {
-    return this.targetRepository.find({
+    const targets = await this.targetRepository.find({
       where: {
         user_id: userId,
         updated_at: MoreThan(since),
       },
       order: { updated_at: 'ASC' },
     });
+    // Convert weekdays from string[] to number[] (TypeORM simple-array stores as strings)
+    return targets.map(target => ({
+      ...target,
+      weekdays: target.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day)
+    }));
   }
 
   /**
@@ -77,16 +36,12 @@ export class DailyTargetService {
   ): Promise<{
     saved: DailyTarget[];
     conflicts: Array<{
-      id: string;
-      field: 'daily_target';
       clientVersion: Partial<DailyTarget>;
       serverVersion: DailyTarget;
     }>;
   }> {
     const savedTargets: DailyTarget[] = [];
     const conflicts: Array<{
-      id: string;
-      field: 'daily_target';
       clientVersion: Partial<DailyTarget>;
       serverVersion: DailyTarget;
     }> = [];
@@ -105,8 +60,6 @@ export class DailyTargetService {
             if (existing.updated_at > clientTimestamp) {
               // Server has newer data - conflict detected
               conflicts.push({
-                id: existing.id,
-                field: 'daily_target',
                 clientVersion: change,
                 serverVersion: existing,
               });

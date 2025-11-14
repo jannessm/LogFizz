@@ -37,6 +37,9 @@ export async function buttonRoutes(fastify: FastifyInstance) {
         400: Type.Object({
           error: Type.String(),
         }),
+        500: Type.Object({
+          error: Type.String(),
+        }),
       },
     },
   }, async (request, reply) => {
@@ -60,7 +63,8 @@ export async function buttonRoutes(fastify: FastifyInstance) {
         cursor,
       });
     } catch (error) {
-      return reply.code(400).send({ error: 'Invalid timestamp' });
+      console.error('Error fetching buttons:', error);
+      return reply.code(500).send({ error: 'Internal server error' });
     }
   });
 

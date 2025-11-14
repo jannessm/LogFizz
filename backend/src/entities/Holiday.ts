@@ -8,6 +8,9 @@ export class Holiday {
   @Column('varchar')
   country!: string;
 
+  @Column('varchar')
+  state!: string;
+
   @Column('date')
   date!: Date;
 

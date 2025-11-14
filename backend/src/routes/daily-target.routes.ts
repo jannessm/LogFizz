@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import { Type } from '@sinclair/typebox';
 import { DailyTargetService } from '../services/daily-target.service.js';
 
 const targetService = new DailyTargetService();
@@ -11,143 +12,56 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // GET /api/targets - Get all user's targets
-  fastify.get('/api/targets', async (request, reply) => {
-    const userId = request.session.userId!;
-    const targets = await targetService.getUserTargets(userId);
-    return reply.send({ targets });
-  });
-
-  // GET /api/targets/:id - Get a specific target
-  fastify.get<{
-    Params: { id: string }
-  }>('/api/targets/:id', async (request, reply) => {
-    const userId = request.session.userId!;
-    const { id } = request.params;
-      
-      const target = await targetService.getTargetById(id, userId);
-      
-      if (!target) {
-        return reply.status(404).send({ error: 'Target not found' });
-      }
-      
-      return reply.send({ target });
-    });
-
-  // POST /api/targets - Create a new target
-  fastify.post<{
-    Body: {
-      id?: string;
-      name: string;
-      duration_minutes: number;
-      weekdays: number[];
-    }
-  }>('/api/targets', {
+  // GET /api/targets/sync - Get targets changed since timestamp
+  fastify.get('/sync', {
     schema: {
-      body: {
-        type: 'object',
-        required: ['name', 'duration_minutes', 'weekdays'],
-        properties: {
-          id: { type: 'string' },
-          name: { type: 'string', minLength: 1 },
-          duration_minutes: { type: 'integer', minimum: 0 },
-          weekdays: {
-            type: 'array',
-            items: { type: 'integer', minimum: 0, maximum: 6 },
-            minItems: 1,
-            maxItems: 7
-          }
-        }
-      }
+      tags: ['DailyTargets'],
+      querystring: Type.Object({
+        since: Type.String({ format: 'date-time' }),
+      }),
+      response: {
+        200: Type.Object({
+          targets: Type.Array(Type.Object({
+            id: Type.String(),
+            name: Type.String(),
+            duration_minutes: Type.Array(Type.Number()),
+            weekdays: Type.Array(Type.Number()),
+            created_at: Type.String(),
+            updated_at: Type.String(),
+            deleted_at: Type.Optional(Type.String()),
+          })),
+          cursor: Type.String(),
+        }),
+        400: Type.Object({
+          error: Type.String(),
+        }),
+        500: Type.Object({
+          error: Type.String(),
+        }),
+      },
     },
   }, async (request, reply) => {
     const userId = request.session.userId!;
-    const data = request.body;
-      
-      const target = await targetService.createTarget(userId, data);
-      
-      return reply.status(201).send({ target });
-  });
-
-  // PUT /api/targets/:id - Update a target
-  fastify.put<{
-    Params: { id: string };
-    Body: {
-      name?: string;
-      duration_minutes?: number;
-      weekdays?: number[];
-    }
-  }>('/api/targets/:id', {
-    schema: {
-      body: {
-        type: 'object',
-        properties: {
-          name: { type: 'string', minLength: 1 },
-          duration_minutes: { type: 'integer', minimum: 0 },
-          weekdays: {
-            type: 'array',
-            items: { type: 'integer', minimum: 0, maximum: 6 },
-            minItems: 1,
-            maxItems: 7
-          }
-        }
-      }
-    },
-  }, async (request, reply) => {
-    const userId = request.session.userId!;
-    const { id } = request.params;
-    const updates = request.body;
-      
-      const target = await targetService.updateTarget(id, userId, updates);
-      
-      if (!target) {
-        return reply.status(404).send({ error: 'Target not found' });
-      }
-      
-      return reply.send({ target });
-  });
-
-  // DELETE /api/targets/:id - Delete (soft delete) a target
-  fastify.delete<{
-    Params: { id: string }
-  }>('/api/targets/:id', async (request, reply) => {
-    const userId = request.session.userId!;
-    const { id } = request.params;
-      
-      const deleted = await targetService.deleteTarget(id, userId);
-      
-      if (!deleted) {
-        return reply.status(404).send({ error: 'Target not found' });
-      }
-      
-      return reply.status(204).send();
-  });
-
-  // GET /api/sync/targets - Get targets changed since timestamp
-  fastify.get<{
-    Querystring: { since: string }
-  }>('/api/sync/targets', {
-    schema: {
-      querystring: {
-        type: 'object',
-        required: ['since'],
-        properties: {
-          since: { type: 'string' }
-        }
-      }
-    },
-  }, async (request, reply) => {
-    const userId = request.session.userId!;
-    const { since } = request.query;
-      
+    const { since } = request.query as any;
+    
+    try {
       const sinceDate = new Date(since);
       if (isNaN(sinceDate.getTime())) {
-        return reply.status(400).send({ error: 'Invalid since timestamp' });
+        return reply.code(400).send({ error: 'Invalid timestamp format' });
       }
       
       const targets = await targetService.getChangedTargetsSince(userId, sinceDate);
-      
-      return reply.send({ targets });
+
+      const cursor = new Date().toISOString();
+
+      return reply.send({
+        targets,
+        cursor
+      });
+    } catch (error) {
+      console.error('Error fetching targets:', error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
   });
 
   // POST /api/sync/targets/push - Push local changes to server
@@ -156,34 +70,57 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
       targets: Array<{
         id?: string;
         name: string;
-        duration_minutes: number;
+        duration_minutes: number[];
         weekdays: number[];
         updated_at?: string;
         deleted_at?: string;
       }>
     }
-  }>('/api/sync/targets/push', {
+  }>('/sync', {
     schema: {
-      body: {
-        type: 'object',
-        required: ['targets'],
-        properties: {
-          targets: {
-            type: 'array',
-            items: {
-              type: 'object',
-              required: ['name', 'duration_minutes', 'weekdays'],
-              properties: {
-                id: { type: 'string' },
-                name: { type: 'string' },
-                duration_minutes: { type: 'integer' },
-                weekdays: { type: 'array', items: { type: 'integer' } },
-                updated_at: { type: 'string' },
-                deleted_at: { type: 'string' }
-              }
-            }
-          }
-        }
+      tags: ['DailyTargets'],
+      body: Type.Object({
+        targets: Type.Array(Type.Object({
+          id: Type.Optional(Type.String()),
+          name: Type.String(),
+          duration_minutes: Type.Array(Type.Integer()),
+          weekdays: Type.Array(Type.Integer()),
+          updated_at: Type.Optional(Type.String()),
+          deleted_at: Type.Optional(Type.String()),
+        })),
+      }),
+      response: {
+        200: Type.Object({
+          saved: Type.Array(Type.Object({
+            id: Type.String(),
+            name: Type.String(),
+            duration_minutes: Type.Array(Type.Number()),
+            weekdays: Type.Array(Type.Number()),
+            created_at: Type.String(),
+            updated_at: Type.String(),
+            deleted_at: Type.Optional(Type.String()),
+          })),
+          conflicts: Type.Optional(Type.Array(Type.Object({
+            clientVersion: Type.Object({
+              id: Type.String(),
+              name: Type.String(),
+              duration_minutes: Type.Array(Type.Integer()),
+              weekdays: Type.Array(Type.Integer()),
+              updated_at: Type.Optional(Type.String()),
+              deleted_at: Type.Optional(Type.String()),
+            }),
+            serverVersion: Type.Object({
+              id: Type.String(),
+              name: Type.String(),
+              duration_minutes: Type.Array(Type.Number()),
+              weekdays: Type.Array(Type.Number()),
+              created_at: Type.String(),
+              updated_at: Type.String(),
+              deleted_at: Type.Optional(Type.String()),
+            }),
+          }))),
+          cursor: Type.String(),
+        }),
       }
     },
   }, async (request, reply) => {
@@ -191,22 +128,44 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
     const { targets } = request.body;
     
     // Convert string dates to Date objects
-    const targetsWithDates = targets.map(t => ({
+    const processedTargets = targets.map(t => ({
       ...t,
       updated_at: t.updated_at ? new Date(t.updated_at) : undefined,
       deleted_at: t.deleted_at ? new Date(t.deleted_at) : undefined,
     }));
     
-    const result = await targetService.pushTargetChanges(userId, targetsWithDates);
-      
-      if (result.conflicts.length > 0) {
-        return reply.status(409).send({
-          message: 'Conflicts detected',
-          conflicts: result.conflicts,
-          saved: result.saved
-        });
-      }
-      
-      return reply.send({ targets: result.saved });
+    const result = await targetService.pushTargetChanges(userId, processedTargets);
+
+    // Cursor represents the current server state after this operation
+    const cursor = new Date().toISOString();
+    
+    // If conflicts exist, only return conflicts (client needs to resolve)
+    // Otherwise return saved buttons
+    const response: any = {
+      cursor,
+    };
+
+    if (result.conflicts.length > 0) {
+      response.conflicts = result.conflicts.map(c => ({
+        ...c,
+        clientVersion: {
+          ...c.clientVersion,
+          updated_at: c.clientVersion.updated_at?.toISOString(),
+          deleted_at: c.clientVersion.deleted_at?.toISOString(),
+        },
+        serverVersion: {
+          ...c.serverVersion,
+          created_at: c.serverVersion.created_at.toISOString(),
+          updated_at: c.serverVersion.updated_at.toISOString(),
+          deleted_at: c.serverVersion.deleted_at?.toISOString(),
+        },
+      }));
+    }
+    
+    if (result.saved.length > 0) {
+      response.saved = result.saved;
+    }
+
+    return reply.send(response);
   });
 }
