@@ -4,13 +4,14 @@ import { User } from '../entities/User.js';
 import { Button } from '../entities/Button.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
-import { hashPassword } from '../utils/password.js';
 
 /**
  * Seed script for development environment
  * Creates sample users, buttons, time logs, and holidays
  * 
  * Usage: npm run seed
+ * 
+ * Note: Users will need to use email authentication to login
  */
 
 async function seed() {
@@ -37,17 +38,15 @@ async function seed() {
     
     const demoUser = userRepo.create({
       email: 'demo@example.com',
-      password_hash: await hashPassword('demo123'),
       name: 'Demo User',
-      state: 'Berlin',
+      state: 'DE-BE',
     });
     await userRepo.save(demoUser);
     
     const testUser = userRepo.create({
       email: 'test@example.com',
-      password_hash: await hashPassword('test123'),
       name: 'Test User',
-      state: 'Bayern',
+      state: 'DE-BY',
     });
     await userRepo.save(testUser);
     
