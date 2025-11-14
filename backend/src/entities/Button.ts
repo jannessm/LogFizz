@@ -17,18 +17,6 @@ export class Button {
   @Column('varchar', { nullable: true })
   color?: string;
 
-  @Column('int', { default: 0 })
-  position!: number;
-
-  @Column('varchar', { nullable: true })
-  icon?: string;
-
-  @Column('int', { nullable: true })
-  goal_time_minutes?: number;
-
-  @Column('simple-array', { nullable: true })
-  goal_days?: number[];
-
   @Column('uuid', { nullable: true })
   target_id?: string;
 
