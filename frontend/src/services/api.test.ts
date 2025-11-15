@@ -31,8 +31,15 @@ describe('API Service', () => {
       expect(apiModule.timeLogApi).toBeDefined();
       expect(typeof apiModule.timeLogApi.start).toBe('function');
       expect(typeof apiModule.timeLogApi.stop).toBe('function');
-      expect(typeof apiModule.timeLogApi.getActive).toBe('function');
       expect(typeof apiModule.timeLogApi.getAll).toBe('function');
+      expect(typeof apiModule.timeLogApi.getSyncChanges).toBe('function');
+      expect(typeof apiModule.timeLogApi.pushSyncChanges).toBe('function');
+    });
+
+    it('should export targetApi', () => {
+      expect(apiModule.targetApi).toBeDefined();
+      expect(typeof apiModule.targetApi.getSyncChanges).toBe('function');
+      expect(typeof apiModule.targetApi.pushSyncChanges).toBe('function');
     });
 
     it('should export holidayApi', () => {

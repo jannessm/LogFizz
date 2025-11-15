@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { User, Button, TimeLog } from '../../types';
+import type { User, Button, TimeLog, DailyTarget } from '../../types';
 
 // Mock user data
 export const mockUser: User = {
@@ -20,9 +20,21 @@ export const mockButton: Button = {
   color: '#3B82F6',
   position: 0,
   goal_time_minutes: 480,
-  goal_days: [1, 2, 3, 4, 5],
   auto_subtract_breaks: true,
+  target_id: null,
   created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
+};
+
+// Mock target data
+export const mockTarget: DailyTarget = {
+  id: 'target-1',
+  user_id: '1',
+  name: 'Daily Work',
+  duration_minutes: [480, 480, 480, 480, 480], // 8 hours for each weekday
+  weekdays: [1, 2, 3, 4, 5], // Mon-Fri
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
 };
 
 // Mock timelog data - Start event
@@ -68,6 +80,8 @@ export const buttonApi = {
   create: vi.fn().mockResolvedValue(mockButton),
   update: vi.fn().mockResolvedValue(mockButton),
   delete: vi.fn().mockResolvedValue(undefined),
+  getSyncChanges: vi.fn().mockResolvedValue({ buttons: [mockButton], cursor: new Date().toISOString() }),
+  pushSyncChanges: vi.fn().mockResolvedValue({ saved: [mockButton], conflicts: [], cursor: new Date().toISOString() }),
 };
 
 // Mock timeLog API
@@ -82,6 +96,14 @@ export const timeLogApi = {
   createManual: vi.fn().mockResolvedValue(mockTimeLog),
   update: vi.fn().mockResolvedValue(mockTimeLog),
   delete: vi.fn().mockResolvedValue(undefined),
+  getSyncChanges: vi.fn().mockResolvedValue({ timeLogs: [mockTimeLog, mockTimeLogStop], cursor: new Date().toISOString() }),
+  pushSyncChanges: vi.fn().mockResolvedValue({ saved: [mockTimeLog], conflicts: [], cursor: new Date().toISOString() }),
+};
+
+// Mock target API
+export const targetApi = {
+  getSyncChanges: vi.fn().mockResolvedValue({ targets: [mockTarget], cursor: new Date().toISOString() }),
+  pushSyncChanges: vi.fn().mockResolvedValue({ saved: [mockTarget], conflicts: [], cursor: new Date().toISOString() }),
 };
 
 // Mock holiday API

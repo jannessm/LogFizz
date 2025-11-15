@@ -2,7 +2,6 @@ import { writable, derived } from 'svelte/store';
 import type { DailyTarget } from '../types';
 import { saveTarget, getAllTargets, deleteTarget as deleteTargetDB } from '../lib/db';
 import { syncService } from '../services/sync';
-import ky from 'ky';
 
 function createTargetsStore() {
   const { subscribe, set, update } = writable<DailyTarget[]>([]);
@@ -13,23 +12,11 @@ function createTargetsStore() {
     async load() {
       try {
         const targets = await getAllTargets();
-        set(targets);
+        set(targets.filter(t => !t.deleted_at)); // Filter out soft-deleted targets
         
-        // Sync with server in background
-        setTimeout(async () => {
-          try {
-            const serverTargets = await ky.get('api/targets', { credentials: 'include' }).json<DailyTarget[]>();
-            if (serverTargets) {
-              // Save to local DB
-              for (const target of serverTargets) {
-                await saveTarget(target);
-              }
-              set(serverTargets);
-            }
-          } catch (err) {
-            // Offline or error, use local data
-            console.log('Using local targets data');
-          }
+        // Trigger background sync
+        setTimeout(() => {
+          syncService.sync();
         }, 100);
       } catch (error) {
         console.error('Error loading targets:', error);
@@ -42,75 +29,85 @@ function createTargetsStore() {
         id: crypto.randomUUID(),
         user_id: '',
         name: targetData.name || '',
-        duration_minutes: targetData.duration_minutes || 60,
-        weekdays: targetData.weekdays || [1, 2, 3, 4, 5],
+        duration_minutes: targetData.duration_minutes || [60], // Default to 60 minutes
+        weekdays: targetData.weekdays || [1, 2, 3, 4, 5], // Default to weekdays
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
+      // Save locally immediately
       await saveTarget(target);
       
-      if (navigator.onLine) {
-        try {
-          const created = await ky.post('api/targets', { json: target, credentials: 'include' }).json<DailyTarget>();
-          if (created) {
-            await saveTarget(created);
-            update(targets => [...targets, created]);
-            return created;
-          }
-        } catch (error) {
-          console.error('Error creating target on server:', error);
-        }
-      }
-      
-      // Queue for sync if offline
+      // Queue for sync
       await syncService.queueTargetCreate(target);
+      
+      // Update UI
       update(targets => [...targets, target]);
+      
       return target;
     },
 
     async update(id: string, targetData: Partial<DailyTarget>) {
-      const updatedTarget = {
+      // Get current target to merge with updates
+      let currentTarget: DailyTarget | undefined;
+      update(targets => {
+        currentTarget = targets.find(t => t.id === id);
+        return targets;
+      });
+
+      if (!currentTarget) {
+        throw new Error(`Target ${id} not found`);
+      }
+
+      const updatedTarget: DailyTarget = {
+        ...currentTarget,
         ...targetData,
         id,
         updated_at: new Date().toISOString(),
-      } as DailyTarget;
+      };
 
+      // Save locally immediately
       await saveTarget(updatedTarget);
       
-      if (navigator.onLine) {
-        try {
-          const updated = await ky.put(`api/targets/${id}`, { json: targetData, credentials: 'include' }).json<DailyTarget>();
-          if (updated) {
-            await saveTarget(updated);
-            update(targets => targets.map(t => t.id === id ? updated : t));
-            return updated;
-          }
-        } catch (error) {
-          console.error('Error updating target on server:', error);
-        }
-      }
+      // Queue for sync
+      await syncService.queueTargetUpdate(updatedTarget);
       
-      // Queue for sync if offline
-      await syncService.queueTargetUpdate(id, targetData);
+      // Update UI
       update(targets => targets.map(t => t.id === id ? updatedTarget : t));
+      
       return updatedTarget;
     },
 
     async delete(id: string) {
-      await deleteTargetDB(id);
+      // Soft delete locally
+      const deletedTarget: Partial<DailyTarget> = {
+        id,
+        deleted_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
       
-      if (navigator.onLine) {
-        try {
-          await ky.delete(`api/targets/${id}`, { credentials: 'include' });
-        } catch (error) {
-          console.error('Error deleting target on server:', error);
+      // Queue for sync
+      await syncService.queueTargetDelete(id);
+      
+      // Remove from UI immediately
+      update(targets => targets.filter(t => t.id !== id));
+    },
+
+    // Method to handle sync updates
+    async applySync(targets: DailyTarget[]) {
+      const activeTargets = targets.filter(t => !t.deleted_at);
+      
+      // Save all to local DB
+      for (const target of targets) {
+        if (target.deleted_at) {
+          await deleteTargetDB(target.id);
+        } else {
+          await saveTarget(target);
         }
       }
       
-      // Queue for sync if offline
-      await syncService.queueTargetDelete(id);
-      update(targets => targets.filter(t => t.id !== id));
+      // Update UI with active targets only
+      set(activeTargets);
     },
   };
 }

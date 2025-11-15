@@ -14,7 +14,7 @@ import {
   getUser,
   getAllTimeLogs,
 } from '../lib/db';
-import { buttonApi, timeLogApi, isOnline } from './api';
+import { buttonApi, timeLogApi, targetApi, isOnline } from './api';
 import type { Button, TimeLog, DailyTarget, SyncQueueItem } from '../types';
 import { validateAndFixTimelogs } from '../lib/buttonLayout';
 
@@ -110,7 +110,7 @@ export class SyncService {
   async queueTargetCreate(target: DailyTarget): Promise<void> {
     const item: SyncQueueItem = {
       id: crypto.randomUUID(),
-      type: 'target' as any,
+      type: 'target',
       operation: 'create',
       data: target,
       timestamp: Date.now(),
@@ -121,23 +121,24 @@ export class SyncService {
     this.notifyListeners();
   }
 
-  async queueTargetUpdate(id: string, targetData: Partial<DailyTarget>): Promise<void> {
+  async queueTargetUpdate(target: DailyTarget): Promise<void> {
     const item: SyncQueueItem = {
       id: crypto.randomUUID(),
-      type: 'target' as any,
+      type: 'target',
       operation: 'update',
-      data: { id, ...targetData },
+      data: target,
       timestamp: Date.now(),
       synced: false,
     };
     await addToSyncQueue(item);
+    await saveTarget(target);
     this.notifyListeners();
   }
 
   async queueTargetDelete(targetId: string): Promise<void> {
     const item: SyncQueueItem = {
       id: crypto.randomUUID(),
-      type: 'target' as any,
+      type: 'target',
       operation: 'delete',
       data: { id: targetId },
       timestamp: Date.now(),
@@ -175,6 +176,11 @@ export class SyncService {
     }
   }
 
+  // Alias for external calls
+  async sync(): Promise<void> {
+    return this.syncAll();
+  }
+
   // Push local queued changes to server
   private async pushLocalChanges(): Promise<void> {
     const items = await getUnsyncedItems();
@@ -182,6 +188,7 @@ export class SyncService {
     // Group items by type
     const buttonItems = items.filter(item => item.type === 'button');
     const timeLogItems = items.filter(item => item.type === 'timelog');
+    const targetItems = items.filter(item => item.type === 'target');
 
     // Push buttons
     if (buttonItems.length > 0) {
@@ -267,6 +274,46 @@ export class SyncService {
         console.error('Failed to push timelog changes:', error);
       }
     }
+
+    // Push targets
+    if (targetItems.length > 0) {
+      try {
+        const targets = targetItems.map(item => ({
+          ...item.data,
+          updated_at: new Date(item.timestamp).toISOString(),
+          deleted_at: item.operation === 'delete' ? new Date(item.timestamp).toISOString() : undefined,
+        }));
+        
+        const result = await targetApi.pushSyncChanges(targets);
+        
+        // Save the new cursor
+        await saveSyncCursor('targets', result.cursor);
+        
+        // Mark items as synced and delete from queue
+        for (const item of targetItems) {
+          await markItemSynced(item.id);
+          setTimeout(() => deleteFromSyncQueue(item.id), 5000);
+        }
+        
+        // Update local DB with server-confirmed data
+        if (result.saved) {
+          for (const target of result.saved) {
+            await saveTarget(target);
+          }
+        }
+        
+        // Handle conflicts
+        if (result.conflicts && result.conflicts.length > 0) {
+          console.warn('Target sync conflicts detected:', result.conflicts);
+          // Use server version (last-write-wins)
+          for (const conflict of result.conflicts) {
+            await saveTarget(conflict.serverVersion);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to push target changes:', error);
+      }
+    }
   }
 
   // Pull server changes since last cursor
@@ -323,6 +370,33 @@ export class SyncService {
       
     } catch (error) {
       console.error('Failed to pull timelog changes:', error);
+    }
+
+    try {
+      // Pull target changes
+      let targetCursor = await getSyncCursor('targets');
+      if (!targetCursor) {
+        // First sync - use epoch time to get all data
+        targetCursor = new Date(0).toISOString();
+      }
+      
+      const targetResult = await targetApi.getSyncChanges(targetCursor);
+      
+      // Update local DB with server changes
+      for (const target of targetResult.targets) {
+        if ((target as any).deleted_at) {
+          // Target was deleted on server
+          await deleteTarget(target.id);
+        } else {
+          await saveTarget(target);
+        }
+      }
+      
+      // Save new cursor
+      await saveSyncCursor('targets', targetResult.cursor);
+      
+    } catch (error) {
+      console.error('Failed to pull target changes:', error);
     }
   }
 

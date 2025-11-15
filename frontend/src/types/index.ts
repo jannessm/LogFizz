@@ -29,10 +29,11 @@ export interface DailyTarget {
   id: string;
   user_id: string;
   name: string;
-  duration_minutes: number;
+  duration_minutes: number[]; // Array of duration values (one per weekday if needed)
   weekdays: number[]; // Array of weekday numbers (0=Sunday, 1=Monday, etc.)
   created_at: string;
   updated_at: string;
+  deleted_at?: string;
 }
 
 // TimeLog types - Event-based system
@@ -71,7 +72,7 @@ export interface ApiResponse<T> {
 // Sync types for offline-first
 export interface SyncQueueItem {
   id: string;
-  type: 'button' | 'timelog';
+  type: 'button' | 'timelog' | 'target';
   operation: 'create' | 'update' | 'delete';
   data: any;
   timestamp: number;

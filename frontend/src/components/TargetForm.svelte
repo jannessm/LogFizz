@@ -8,8 +8,10 @@
   const dispatch = createEventDispatcher();
 
   let name = target?.name || '';
-  let durationHours = target ? Math.floor(target.duration_minutes / 60) : 1;
-  let durationMinutes = target ? target.duration_minutes % 60 : 30;
+  // Get first duration value if target exists, otherwise default to 90 minutes (1h 30m)
+  const firstDuration = target?.duration_minutes?.[0] || 90;
+  let durationHours = Math.floor(firstDuration / 60);
+  let durationMinutes = firstDuration % 60;
   let weekdays = target?.weekdays || [1, 2, 3, 4, 5]; // Mon-Fri by default
   let isLoading = false;
   let errorMessage = '';
@@ -53,9 +55,13 @@
     errorMessage = '';
 
     try {
+      // Create array with same duration for each selected weekday
+      // Backend expects an array, one entry per weekday that has this target
+      const duration_minutes = weekdays.map(() => totalMinutes);
+      
       const targetData = {
         name: name.trim(),
-        duration_minutes: totalMinutes,
+        duration_minutes,
         weekdays,
       };
 

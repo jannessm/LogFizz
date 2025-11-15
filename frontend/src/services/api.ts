@@ -1,5 +1,5 @@
 import ky from 'ky';
-import type { User, Button, TimeLog, Holiday } from '../types';
+import type { User, Button, TimeLog, Holiday, DailyTarget } from '../types';
 
 // In development, use proxy (relative path). In production, use env variable or default to same origin
 const API_BASE_URL = import.meta.env.PROD 
@@ -183,6 +183,26 @@ export const timeLogApi = {
     cursor: string;
   }> {
     return api.post('api/timelogs/sync', { json: { timeLogs } }).json();
+  },
+};
+
+// Daily Target API
+export const targetApi = {
+  // Cursor-based sync endpoints
+  async getSyncChanges(since: string): Promise<{ targets: any[]; cursor: string }> {
+    const searchParams = new URLSearchParams({ since });
+    return api.get('api/targets/sync', { searchParams }).json();
+  },
+
+  async pushSyncChanges(targets: any[]): Promise<{
+    saved?: any[];
+    conflicts?: Array<{
+      clientVersion: any;
+      serverVersion: any;
+    }>;
+    cursor: string;
+  }> {
+    return api.post('api/targets/sync', { json: { targets } }).json();
   },
 };
 

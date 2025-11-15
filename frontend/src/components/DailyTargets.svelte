@@ -42,11 +42,18 @@
       }
     }
     
-    const percentage = Math.min(100, Math.round((totalMinutes / target.duration_minutes) * 100));
-    const completed = totalMinutes >= target.duration_minutes;
+    // Get duration for today's weekday
+    // duration_minutes is an array with one value per weekday in target.weekdays
+    const today = new Date().getDay();
+    const todayIndex = target.weekdays.indexOf(today);
+    const targetDuration = todayIndex >= 0 ? target.duration_minutes[todayIndex] : (target.duration_minutes[0] || 60);
+    
+    const percentage = Math.min(100, Math.round((totalMinutes / targetDuration) * 100));
+    const completed = totalMinutes >= targetDuration;
     
     return {
       totalMinutes,
+      targetDuration,
       percentage,
       completed,
     };
@@ -92,7 +99,7 @@
             <div class="flex-1">
               <h4 class="font-medium text-gray-800">{target.name}</h4>
               <p class="text-sm text-gray-600">
-                {formatDuration(progress.totalMinutes)} / {formatDuration(target.duration_minutes)}
+                {formatDuration(progress.totalMinutes)} / {formatDuration(progress.targetDuration)}
               </p>
             </div>
             <div class="flex gap-1">
