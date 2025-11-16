@@ -72,8 +72,8 @@
   }
 </script>
 
-<div class="min-h-screen bg-gray-50 pb-16">
-  <div class="mx-auto px-4 py-6" style="max-width: 500px;">
+<div class="h-screen bg-gray-50 flex flex-col">
+  <div class="mx-auto px-4 py-6 overflow-x-auto max-w-500 grow-1">
     <!-- Header -->
     <h1 class="text-2xl font-bold text-gray-800 mb-6">Settings</h1>
 

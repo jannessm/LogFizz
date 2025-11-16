@@ -13,32 +13,32 @@ export const websocketRoutes: FastifyPluginAsync = async (fastify) => {
     const userId = request.session?.userId;
     
     if (!userId) {
-      connection.socket.close(4001, 'Unauthorized');
+      connection.close(4001, 'Unauthorized');
       return;
     }
 
     // Register the client
-    wsService.registerClient(userId, connection.socket);
+    wsService.registerClient(userId, connection);
 
     // Send initial connection success message
-    connection.socket.send(JSON.stringify({
+    connection.send(JSON.stringify({
       type: 'connected',
       data: { userId, timestamp: Date.now() }
     }));
 
     // Handle incoming messages (if needed for future features)
-    connection.socket.on('message', (message) => {
+    connection.on('message', (message: Buffer) => {
       try {
         const data = JSON.parse(message.toString());
         
         // Handle ping from client
         if (data.type === 'ping') {
-          connection.socket.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+          connection.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
         }
         
         // Add other message handlers as needed
-      } catch (error) {
-        fastify.log.error('Error parsing WebSocket message:', error);
+      } catch (error: unknown) {
+        fastify.log.error({ error }, 'Error parsing WebSocket message');
       }
     });
   });

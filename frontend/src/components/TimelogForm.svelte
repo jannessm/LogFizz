@@ -14,6 +14,7 @@
   let endDate = existingLog?.endTime ? dayjs(existingLog.endTime).format('YYYY-MM-DD') : selectedDate.format('YYYY-MM-DD');
   let endTime = existingLog?.endTime ? dayjs(existingLog.endTime).format('HH:mm') : '';
   let isSingleEntry = !existingLog?.endTime;
+  let showDeleteConfirm = false;
 
   $: buttons = $buttonsStore.buttons;
 
@@ -51,29 +52,53 @@
   function handleClose() {
     dispatch('close');
   }
+
+  function handleDeleteClick() {
+    showDeleteConfirm = true;
+  }
+
+  function handleDeleteConfirm() {
+    dispatch('delete', { session: existingLog });
+    showDeleteConfirm = false;
+  }
+
+  function handleDeleteCancel() {
+    showDeleteConfirm = false;
+  }
 </script>
 
+<!-- Modal Overlay -->
 <div 
-  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-  role="button"
-  tabindex="-1"
-  aria-label="Close modal"
+  class="fixed inset-0 z-50 flex items-center justify-center p-4"
   on:click={handleClose}
   on:keydown={(e) => e.key === 'Escape' && handleClose()}
+  role="button"
+  tabindex="0"
 >
+  <!-- Modal Content -->
   <div 
-    class="bg-white rounded-lg shadow-xl w-full max-w-[500px] mx-4 p-6"
+    class="bg-white rounded-lg shadow-2xl w-full max-w-[500px] max-h-[90vh] overflow-hidden flex flex-col"
+    on:click|stopPropagation
+    on:keydown|stopPropagation
     role="dialog"
     aria-modal="true"
     tabindex="-1"
-    on:click|stopPropagation
-    on:keydown={() => {}}
   >
-    <h2 class="text-2xl font-bold text-gray-800 mb-6">
-      {existingLog ? 'Edit' : 'Add'} Time Entry
-    </h2>
+    <!-- Header -->
+    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+      <h2 class="text-xl font-semibold text-gray-800">
+        {existingLog ? 'Edit' : 'Add'} Time Entry
+      </h2>
+      <button
+        on:click={handleClose}
+        class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
+        style="width: 28px; height: 28px;"
+        aria-label="Close"
+      ></button>
+    </div>
 
-    <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+    <!-- Scrollable Content -->
+    <form on:submit|preventDefault={handleSubmit} class="overflow-y-auto flex-1 p-6 space-y-4">
       <!-- Button Selection -->
       <div>
         <label for="button" class="block text-sm font-medium text-gray-700 mb-1">
@@ -165,21 +190,99 @@
       {/if}
 
       <!-- Actions -->
-      <div class="flex gap-3 pt-4">
-        <button
-          type="button"
-          on:click={handleClose}
-          class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          {existingLog ? 'Update' : 'Add'} Entry
-        </button>
+      <div class="space-y-3 pt-4">
+        <div class="flex gap-3">
+          <button
+            type="button"
+            on:click={handleClose}
+            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            {existingLog ? 'Update' : 'Add'} Entry
+          </button>
+        </div>
+        
+        <!-- Delete Button (only shown when editing) -->
+        {#if existingLog}
+          <button
+            type="button"
+            on:click={handleDeleteClick}
+            class="w-full px-4 py-2 border-2 border-red-300 text-red-600 rounded-lg hover:bg-red-50 hover:border-red-400 transition-colors flex items-center justify-center gap-2"
+          >
+            <span class="icon-[si--bin-duotone]" style="width: 20px; height: 20px;"></span>
+            Delete Entry
+          </button>
+        {/if}
       </div>
     </form>
   </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+{#if showDeleteConfirm}
+  <div 
+    class="fixed inset-0 z-[60] flex items-center justify-center p-4"
+    on:click={handleDeleteCancel}
+    on:keydown={(e) => e.key === 'Escape' && handleDeleteCancel()}
+    role="button"
+    tabindex="0"
+  >
+    <!-- Modal Content -->
+    <div 
+      class="bg-white rounded-lg shadow-2xl w-full max-w-[400px] overflow-hidden flex flex-col"
+      on:click|stopPropagation
+      on:keydown|stopPropagation
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+    >
+      <!-- Header -->
+      <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-xl font-semibold text-gray-800">Delete Time Entry?</h3>
+        <button
+          on:click={handleDeleteCancel}
+          class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
+          style="width: 28px; height: 28px;"
+          aria-label="Close"
+        ></button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6 space-y-6">
+        <p class="text-gray-600">This action cannot be undone. Are you sure you want to delete this time entry?</p>
+        <div class="flex gap-3">
+          <button
+            on:click={handleDeleteCancel}
+            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            on:click={handleDeleteConfirm}
+            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<style>
+  /* Add backdrop blur effect */
+  div[role="button"] {
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+  }
+  
+  /* Higher z-index for delete confirmation */
+  div[role="button"]:has(+ div) {
+    z-index: 60;
+  }
+</style>

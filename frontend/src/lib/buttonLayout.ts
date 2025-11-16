@@ -1,6 +1,5 @@
 import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, type SimulationNodeDatum, type SimulationLinkDatum } from 'd3-force';
 import type { Button, TimeLog } from '../types';
-import type { button } from '../components/ButtonForm.svelte';
 
 export interface ButtonNode extends SimulationNodeDatum {
   id: string;
@@ -100,7 +99,7 @@ export function computeButtonLayout(
   height: number = 600,
   buttonSize: number = 150
 ): Map<string, { x: number; y: number }> {
-  
+  console.log(buttons)
   if (buttons.length === 0) {
     return new Map();
   }

@@ -122,3 +122,12 @@ export const todayTargets = derived(
     return $targets.filter(t => t.weekdays.includes(today));
   }
 );
+
+// Derived store for inactive targets (not active today)
+export const inactiveTargets = derived(
+  targetsStore,
+  ($targets) => {
+    const today = new Date().getDay();
+    return $targets.filter(t => !t.weekdays.includes(today));
+  }
+);

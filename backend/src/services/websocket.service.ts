@@ -1,9 +1,9 @@
 import { FastifyInstance } from 'fastify';
-import { SocketStream } from '@fastify/websocket';
+import WebSocket from 'ws';
 
 interface WebSocketClient {
   userId: string;
-  connection: SocketStream['socket'];
+  connection: WebSocket;
 }
 
 export class WebSocketService {
@@ -17,7 +17,7 @@ export class WebSocketService {
   /**
    * Register a new WebSocket client
    */
-  registerClient(userId: string, connection: SocketStream['socket']) {
+  registerClient(userId: string, connection: WebSocket) {
     const client: WebSocketClient = { userId, connection };
     
     const userClients = this.clients.get(userId) || [];
@@ -41,8 +41,8 @@ export class WebSocketService {
       clearInterval(pingInterval);
     });
 
-    connection.on('error', (error) => {
-      this.fastify.log.error(`WebSocket error for user ${userId}:`, error);
+    connection.on('error', (error: Error) => {
+      this.fastify.log.error({ error }, `WebSocket error for user ${userId}`);
       this.unregisterClient(userId, connection);
       clearInterval(pingInterval);
     });
@@ -51,7 +51,7 @@ export class WebSocketService {
   /**
    * Unregister a WebSocket client
    */
-  private unregisterClient(userId: string, connection: SocketStream['socket']) {
+  private unregisterClient(userId: string, connection: WebSocket) {
     const userClients = this.clients.get(userId);
     if (userClients) {
       const updated = userClients.filter(c => c.connection !== connection);
@@ -79,8 +79,8 @@ export class WebSocketService {
       if (client.connection.readyState === client.connection.OPEN) {
         try {
           client.connection.send(message);
-        } catch (error) {
-          this.fastify.log.error(`Failed to send WebSocket message to user ${userId}:`, error);
+        } catch (error: unknown) {
+          this.fastify.log.error({ error }, `Failed to send WebSocket message to user ${userId}`);
         }
       }
     });

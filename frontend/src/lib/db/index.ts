@@ -6,7 +6,6 @@ interface ClockDB extends DBSchema {
   buttons: {
     key: string;
     value: Button;
-    indexes: { 'by-position': number };
   };
   timelogs: {
     key: string;
@@ -49,7 +48,6 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
       // Buttons store
       if (!db.objectStoreNames.contains('buttons')) {
         const buttonStore = db.createObjectStore('buttons', { keyPath: 'id' });
-        buttonStore.createIndex('by-position', 'position');
       }
 
       // TimeLogs store
@@ -97,7 +95,7 @@ export async function getButton(id: string): Promise<Button | undefined> {
 
 export async function getAllButtons(): Promise<Button[]> {
   const db = await getDB();
-  return db.getAllFromIndex('buttons', 'by-position');
+  return db.getAll('buttons');
 }
 
 export async function deleteButton(id: string): Promise<void> {

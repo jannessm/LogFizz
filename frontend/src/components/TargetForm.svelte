@@ -85,35 +85,33 @@
 </script>
 
 <div 
-  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
+  class="fixed inset-0 z-50 flex items-center justify-center p-4" 
   on:click={handleClose}
   on:keydown={(e) => e.key === 'Escape' && handleClose()}
   role="button"
-  tabindex="-1"
-  aria-label="Close modal"
+  tabindex="0"
 >
   <div 
-    class="bg-white rounded-lg w-full max-h-[90vh] overflow-y-auto"
-    style="max-width: 500px;" 
+    class="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
     on:click|stopPropagation
     on:keydown|stopPropagation
     role="dialog"
     aria-modal="true"
     tabindex="-1"
   >
-    <div class="p-6">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-2xl font-bold text-gray-800">
-          {target ? 'Edit' : 'Create'} Daily Target
-        </h2>
-        <button
-          on:click={handleClose}
-          class="text-gray-400 hover:text-gray-600 icon-[si--close-duotone]"
-          aria-label="Close"
-        >
-        </button>
-      </div>
+    <!-- Header -->
+    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+      <h2 class="text-xl font-semibold text-gray-800">{target ? 'Edit' : 'Add'} Daily Target</h2>
+      <button
+        on:click={handleClose}
+        class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
+        style="width: 28px; height: 28px;"
+        aria-label="Close"
+      ></button>
+    </div>
 
+    <!-- Content -->
+    <div class="overflow-y-auto flex-1 p-6">
       {#if errorMessage}
         <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
           {errorMessage}
@@ -138,9 +136,9 @@
 
         <!-- Duration -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <div class="block text-sm font-medium text-gray-700 mb-2">
             Daily Duration *
-          </label>
+          </div>
           <div class="flex gap-4">
             <div class="flex-1">
               <label for="hours" class="block text-xs text-gray-600 mb-1">Hours</label>
@@ -215,3 +213,11 @@
     </div>
   </div>
 </div>
+
+<style>
+  /* Add backdrop blur effect */
+  div[role="button"] {
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+  }
+</style>

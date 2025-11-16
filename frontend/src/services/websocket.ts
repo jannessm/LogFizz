@@ -21,6 +21,7 @@ class WebSocketService {
   private reconnectDelay = 1000; // Start with 1 second
   private pingInterval: number | null = null;
   private listeners: Map<WebSocketEventType, Set<(data: any) => void>> = new Map();
+  private isAuthenticated = false;
   
   public store = writable<WebSocketStore>({
     connected: false,
@@ -29,16 +30,31 @@ class WebSocketService {
   });
 
   constructor() {
-    // Auto-connect on instantiation
-    if (typeof window !== 'undefined') {
+    // Don't auto-connect - wait for explicit call after authentication
+  }
+
+  /**
+   * Set authentication status and connect/disconnect accordingly
+   */
+  setAuthenticated(authenticated: boolean) {
+    this.isAuthenticated = authenticated;
+    
+    if (authenticated) {
       this.connect();
+    } else {
+      this.disconnect();
     }
   }
 
   /**
-   * Connect to WebSocket server
+   * Connect to WebSocket server (only if authenticated)
    */
   connect() {
+    if (!this.isAuthenticated) {
+      console.log('WebSocket: Not connecting - user not authenticated');
+      return;
+    }
+
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       return; // Already connected or connecting
     }
@@ -79,8 +95,8 @@ class WebSocketService {
         this.store.update(s => ({ ...s, connected: false }));
         this.stopPingInterval();
         
-        // Reconnect if not a normal closure
-        if (event.code !== 1000 && event.code !== 1001) {
+        // Only reconnect if authenticated and not a normal closure
+        if (this.isAuthenticated && event.code !== 1000 && event.code !== 1001 && event.code !== 4001) {
           this.scheduleReconnect();
         }
       };

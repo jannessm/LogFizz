@@ -25,6 +25,7 @@ function createButtonsStore() {
       try {
         // Load from local DB first
         const localButtons = await getAllButtons();
+        console.log(localButtons)
         update(state => ({ ...state, buttons: localButtons, isLoading: false }));
 
         // Try to pull incremental changes from server if online
@@ -202,9 +203,3 @@ function createButtonsStore() {
 }
 
 export const buttonsStore = createButtonsStore();
-
-// Derived store for sorted buttons
-export const sortedButtons = derived(
-  buttonsStore,
-  $buttonsStore => $buttonsStore.buttons.sort((a, b) => a.position - b.position)
-);

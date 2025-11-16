@@ -12,10 +12,15 @@
   let selectedButtonFilter: string | null = null;
   let filteredSessions: any[] = [];
   let uniqueButtons: any[] = [];
+  let timelineStart: dayjs.Dayjs | null = null;
+  let timelineEnd: dayjs.Dayjs | null = null;
+  let timelineHours: number = 0;
 
   function formatMinutes(minutes: number): string {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
+    if (hours === 0) return `${mins}m`;
+    if (mins === 0) return `${hours}h`;
     return `${hours}h ${mins}m`;
   }
 
@@ -23,7 +28,7 @@
     return date.isSame(dayjs(), 'day');
   }
 
-// Get time logs for selected date and pair them into sessions
+  // Get time logs for selected date and pair them into sessions
   function getSessionsForSelectedDate() {
     const dateStr = selectedDate.format('YYYY-MM-DD');
     const logs = timeLogs
@@ -75,8 +80,71 @@
     );
   }
 
+  // Calculate timeline bounds and position for each session
+  function calculateTimeline(sessions: any[]) {
+    if (sessions.length === 0) {
+      timelineStart = null;
+      timelineEnd = null;
+      timelineHours = 0;
+      return;
+    }
+
+    // Find earliest start and latest end
+    let earliest = dayjs(sessions[0].startTime);
+    let latest = dayjs(sessions[0].startTime);
+
+    for (const session of sessions) {
+      const start = dayjs(session.startTime);
+      const end = session.endTime ? dayjs(session.endTime) : dayjs();
+
+      if (start.isBefore(earliest)) earliest = start;
+      if (end.isAfter(latest)) latest = end;
+    }
+
+    // Round to nearest hour for cleaner display
+    timelineStart = earliest.startOf('hour');
+    timelineEnd = latest.add(1, 'hour').startOf('hour');
+    timelineHours = timelineEnd.diff(timelineStart, 'hour');
+  }
+
+  // Calculate position and height for a session in the timeline
+  function getSessionStyle(session: any) {
+    if (!timelineStart || !timelineEnd) return '';
+
+    const start = dayjs(session.startTime);
+    const end = session.endTime ? dayjs(session.endTime) : dayjs();
+    
+    const totalMinutes = timelineEnd.diff(timelineStart, 'minute');
+    const startOffset = start.diff(timelineStart, 'minute');
+    const duration = end.diff(start, 'minute');
+
+    const topPercent = (startOffset / totalMinutes) * 100;
+    const heightPercent = (duration / totalMinutes) * 100;
+    
+    // Ensure minimum height of 40px for very short entries
+    const minHeightPercent = (40 / 400) * 100; // 40px min height relative to 400px min timeline
+    const finalHeightPercent = Math.max(heightPercent, minHeightPercent);
+
+    const button = buttons.find(b => b.id === session.button_id);
+    const color = button?.color || '#3B82F6';
+
+    return `top: ${topPercent}%; height: ${finalHeightPercent}%; min-height: 40px; background-color: ${color};`;
+  }
+
+  // Generate hour labels for timeline
+  function getHourLabels(): string[] {
+    if (!timelineStart || timelineHours === 0) return [];
+    
+    const labels: string[] = [];
+    for (let i = 0; i <= timelineHours; i++) {
+      labels.push(timelineStart.add(i, 'hour').format('HH:mm'));
+    }
+    return labels;
+  }
+
   $: if (selectedDate) {
     sessions = getSessionsForSelectedDate();
+    calculateTimeline(sessions);
 
     filteredSessions = selectedButtonFilter 
       ? sessions.filter(s => s.button_id === selectedButtonFilter)
@@ -126,54 +194,77 @@
   {/if}
   
   {#if filteredSessions.length > 0}
-    <div class="space-y-3">
-      {#each filteredSessions as session}
-        {@const button = buttons.find(b => b.id === session.button_id)}
-        {#if button}
-          <div class="flex items-center gap-3 border-b border-gray-100 pb-3 last:border-b-0">
+    <!-- Timeline View -->
+    <div class="flex gap-4">
+      <!-- Time Labels (Y-Axis) -->
+      <div class="flex flex-col justify-between text-xs text-gray-500 py-2" style="min-width: 50px;">
+        {#each getHourLabels() as label}
+          <div class="text-right">{label}</div>
+        {/each}
+      </div>
+
+      <!-- Timeline Container -->
+      <div class="flex-1 relative border-l-2 border-gray-200" style="min-height: 1000px;">
+        <!-- Hour grid lines -->
+        {#each getHourLabels() as _, index}
+          <div 
+            class="absolute left-0 right-0 border-t border-gray-100"
+            style="top: {(index / timelineHours) * 100}%;"
+          ></div>
+        {/each}
+
+        <!-- Session boxes -->
+        {#each filteredSessions as session}
+          {@const button = buttons.find(b => b.id === session.button_id)}
+          {#if button}
+            {@const duration = session.endTime 
+              ? Math.floor((new Date(session.endTime).getTime() - new Date(session.startTime).getTime()) / 60000)
+              : null}
             <div
-              class="w-3 h-3 rounded-full flex-shrink-0"
-              style="background-color: {button.color || '#3B82F6'}"
-            ></div>
-            <div class="flex-1">
-              <div class="flex items-center gap-2">
-                {#if button.emoji}
-                  <span class="text-lg">{button.emoji}</span>
-                {/if}
-                <p class="font-medium text-gray-800">{button.name}</p>
+              class="absolute left-2 right-2 rounded-lg p-2 cursor-pointer transition-all hover:shadow-lg group"
+              style={getSessionStyle(session)}
+              on:click={() => onEditTimelog(session)}
+              on:keydown={(e) => e.key === 'Enter' && onEditTimelog(session)}
+              role="button"
+              tabindex="0"
+            >
+              <div class="flex items-start justify-between gap-2 h-full">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1 text-white font-medium text-sm">
+                    {#if button.emoji}
+                      <span>{button.emoji}</span>
+                    {/if}
+                    <span class="truncate">{button.name}</span>
+                    {#if duration}
+                      <span class="font-semibold">
+                        ({formatMinutes(duration)})
+                      </span>
+                    {/if}
+                  </div>
+                  <div class="text-xs text-white opacity-90 mt-1">
+                    {dayjs(session.startTime).format('HH:mm')}
+                    {#if session.endTime}
+                      - {dayjs(session.endTime).format('HH:mm')}
+                    {:else}
+                      - Running
+                    {/if}
+                  </div>
+                </div>
+                
+                <!-- Action buttons (visible on hover) -->
+                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    on:click|stopPropagation={() => onEditTimelog(session)}
+                    class="p-1 bg-white rounded icon-[si--edit-detailed-duotone] text-white"
+                    style="width: 20px; height: 20px;"
+                    aria-label="Edit entry"
+                  ></button>
+                </div>
               </div>
-              <p class="text-sm text-gray-500">
-                {dayjs(session.startTime).format('HH:mm')}
-                {#if session.endTime}
-                  - {dayjs(session.endTime).format('HH:mm')}
-                {:else}
-                  - Running...
-                {/if}
-              </p>
             </div>
-            {#if session.endTime}
-              {@const duration = Math.floor((new Date(session.endTime).getTime() - new Date(session.startTime).getTime()) / 60000)}
-              <p class="text-sm font-semibold text-gray-700">{formatMinutes(duration)}</p>
-            {/if}
-            <div class="flex gap-1">
-              <button
-                on:click={() => onEditTimelog(session)}
-                class="p-1 bg-gray-400 hover:bg-blue-600 rounded transition-colors icon-[si--edit-detailed-duotone]"
-                style="width: 24px; height: 24px;"
-                aria-label="Edit entry"
-              >
-              </button>
-              <button
-                on:click={() => onDeleteTimelog(session)}
-                class="p-1 text-red-400 hover:bg-red-600 rounded transition-colors icon-[si--bin-duotone]"
-                style="width: 24px; height: 24px;"
-                aria-label="Delete entry"
-              >
-              </button>
-            </div>
-          </div>
-        {/if}
-      {/each}
+          {/if}
+        {/each}
+      </div>
     </div>
   {:else if sessions.length > 0 && selectedButtonFilter}
     <p class="text-gray-500 text-center py-8">No activities for selected button on this date</p>

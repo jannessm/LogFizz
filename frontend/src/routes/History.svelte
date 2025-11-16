@@ -190,11 +190,11 @@
   }
 </script>
 
-<div class="min-h-screen bg-gray-50 pb-16">
-  <div class="max-w-[500px] mx-auto px-4 py-6">
+<div class="flex flex-col h-screen bg-gray-50">
+  <div class="max-w-[500px] mx-auto px-4 py-6 grow-1 overflow-x-auto">
     <!-- Header -->
+    <h1 class="text-2xl font-bold text-gray-800">History</h1>
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">History</h1>
       <div class="flex items-center gap-2">
         <!-- Month Navigation -->
         <button
@@ -284,44 +284,71 @@
       existingLog={editingTimelog}
       on:save={handleSaveTimelog}
       on:close={handleCloseForm}
+      on:delete={(e) => {
+        showTimelogForm = false;
+        deleteTarget = e.detail.session;
+        showDeleteConfirm = true;
+      }}
     />
   {/if}
 
   <!-- Delete Confirmation Modal -->
   {#if showDeleteConfirm}
+    <!-- Modal Overlay -->
     <div 
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      role="button"
-      tabindex="-1"
-      aria-label="Close dialog"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4"
       on:click={cancelDelete}
       on:keydown={(e) => e.key === 'Escape' && cancelDelete()}
+      role="button"
+      tabindex="0"
     >
+      <!-- Modal Content -->
       <div 
-        class="bg-white rounded-lg shadow-xl w-full max-w-[400px] mx-4 p-6"
+        class="bg-white rounded-lg shadow-2xl w-full max-w-[400px] overflow-hidden flex flex-col"
+        on:click|stopPropagation
+        on:keydown|stopPropagation
         role="dialog"
         aria-modal="true"
         tabindex="-1"
-        on:click|stopPropagation
-        on:keydown={() => {}}
       >
-        <h3 class="text-lg font-bold text-gray-800 mb-2">Delete Time Entry?</h3>
-        <p class="text-gray-600 mb-6">This action cannot be undone.</p>
-        <div class="flex gap-3">
+        <!-- Header -->
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h3 class="text-xl font-semibold text-gray-800">Delete Time Entry?</h3>
           <button
             on:click={cancelDelete}
-            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            on:click={handleDelete}
-            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Delete
-          </button>
+            class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
+            style="width: 28px; height: 28px;"
+            aria-label="Close"
+          ></button>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6 space-y-6">
+          <p class="text-gray-600">This action cannot be undone.</p>
+          <div class="flex gap-3">
+            <button
+              on:click={cancelDelete}
+              class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              on:click={handleDelete}
+              class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </div>
     </div>
   {/if}
 </div>
+
+<style>
+  /* Add backdrop blur effect */
+  div[role="button"] {
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+  }
+</style>

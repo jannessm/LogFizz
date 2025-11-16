@@ -8,7 +8,7 @@
   }
 </script>
 
-<nav class="flex-none fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 shadow-lg z-40 max-h-100 pb-8 pt-2">
+<nav class="flex-none grow-0 bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 shadow-lg z-40 max-h-100 pb-8 pt-2">
   <div class="flex justify-center items-center h-16 w-full">
     <button 
       on:click={() => handleNavigate('/')} 

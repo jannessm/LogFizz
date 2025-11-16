@@ -74,7 +74,7 @@ export async function buildApp() {
   await fastify.register(websocket, {
     options: {
       maxPayload: 1048576, // 1MB
-      verifyClient: ({ req }, next) => {
+      verifyClient: ({ req }: { req: any }, next: (result: boolean) => void) => {
         // Additional verification can be added here if needed
         next(true);
       }

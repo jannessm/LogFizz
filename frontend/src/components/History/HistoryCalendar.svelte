@@ -135,7 +135,7 @@
         >
           <!-- Today indicator (light blue circle behind) -->
           {#if today && !selected}
-            <div class="absolute inset-1 rounded-full bg-blue-100 border-2 border-blue-300"></div>
+            <div class="absolute inset-0 rounded-full bg-blue-100 border-2 border-blue-300"></div>
           {/if}
           
           <!-- Selected indicator (solid blue circle) -->
