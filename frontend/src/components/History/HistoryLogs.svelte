@@ -118,11 +118,11 @@
     const startOffset = start.diff(timelineStart, 'minute');
     const duration = end.diff(start, 'minute');
 
-    const topPercent = (startOffset / totalMinutes) * 100;
-    const heightPercent = (duration / totalMinutes) * 100;
+    const topPercent = (startOffset / totalMinutes) * 90;
+    const heightPercent = (duration / totalMinutes) * 90;
     
     // Ensure minimum height of 40px for very short entries
-    const minHeightPercent = (40 / 400) * 100; // 40px min height relative to 400px min timeline
+    const minHeightPercent = (40 / 400) * 90; // 40px min height relative to 400px min timeline
     const finalHeightPercent = Math.max(heightPercent, minHeightPercent);
 
     const button = buttons.find(b => b.id === session.button_id);
@@ -197,9 +197,11 @@
     <!-- Timeline View -->
     <div class="flex gap-4">
       <!-- Time Labels (Y-Axis) -->
-      <div class="flex flex-col justify-between text-xs text-gray-500 py-2" style="min-width: 50px;">
-        {#each getHourLabels() as label}
-          <div class="text-right">{label}</div>
+      <div class="flex-1 grow-0 text-gray-500 relative" style="min-width: 50px;">
+        {#each getHourLabels() as label, index}
+          <div class="absolute right-0 text-right"
+            style="top: {(index / timelineHours) * 90}%;"
+          >{label}</div>
         {/each}
       </div>
 
@@ -209,7 +211,7 @@
         {#each getHourLabels() as _, index}
           <div 
             class="absolute left-0 right-0 border-t border-gray-100"
-            style="top: {(index / timelineHours) * 100}%;"
+            style="top: {(index / timelineHours) * 90}%;"
           ></div>
         {/each}
 
@@ -234,12 +236,13 @@
                     {#if button.emoji}
                       <span>{button.emoji}</span>
                     {/if}
-                    <span class="truncate">{button.name}</span>
+                    <span class="truncate">{button.name}
                     {#if duration}
                       <span class="font-semibold">
                         ({formatMinutes(duration)})
                       </span>
                     {/if}
+                    </span>
                   </div>
                   <div class="text-xs text-white opacity-90 mt-1">
                     {dayjs(session.startTime).format('HH:mm')}
