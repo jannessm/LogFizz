@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import session from '@fastify/session';
+import websocket from '@fastify/websocket';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
@@ -12,6 +13,7 @@ import { buttonRoutes } from './routes/button.routes.js';
 import { timeLogRoutes } from './routes/timelog.routes.js';
 import { holidayRoutes } from './routes/holiday.routes.js';
 import { dailyTargetRoutes } from './routes/daily-target.routes.js';
+import { websocketRoutes } from './routes/websocket.routes.js';
 import { registerRateLimit } from './config/rateLimit.js';
 import './types/session.js';
 
@@ -67,6 +69,17 @@ export async function buildApp() {
 
   // Register cookie support
   await fastify.register(cookie);
+
+  // Register WebSocket support
+  await fastify.register(websocket, {
+    options: {
+      maxPayload: 1048576, // 1MB
+      verifyClient: ({ req }, next) => {
+        // Additional verification can be added here if needed
+        next(true);
+      }
+    }
+  });
 
   // Register session support
   await fastify.register(session, {
@@ -146,6 +159,7 @@ export async function buildApp() {
   await fastify.register(timeLogRoutes, { prefix: '/api/timelogs' });
   await fastify.register(holidayRoutes, { prefix: '/api/holidays' });
   await fastify.register(dailyTargetRoutes, { prefix: '/api/targets' });
+  await fastify.register(websocketRoutes, { prefix: '/api' });
 
   // Health check endpoint
   fastify.get('/health', async () => {

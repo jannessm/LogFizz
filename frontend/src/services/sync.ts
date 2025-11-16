@@ -17,10 +17,26 @@ import {
 import { buttonApi, timeLogApi, targetApi, isOnline } from './api';
 import type { Button, TimeLog, DailyTarget, SyncQueueItem } from '../types';
 import { validateAndFixTimelogs } from '../lib/buttonLayout';
+import { wsService } from './websocket';
 
 export class SyncService {
   private isSyncing = false;
   private syncListeners: (() => void)[] = [];
+
+  constructor() {
+    // Listen for WebSocket events and trigger syncs
+    wsService.on('button_change', () => this.handleRemoteChange());
+    wsService.on('timelog_change', () => this.handleRemoteChange());
+    wsService.on('target_change', () => this.handleRemoteChange());
+    wsService.on('sync_needed', () => this.handleRemoteChange());
+  }
+
+  private async handleRemoteChange() {
+    console.log('Remote change detected, triggering sync');
+    // Debounce syncs - wait a bit before syncing in case multiple changes arrive
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await this.syncAll();
+  }
 
   // Queue operations for sync
   async queueButtonCreate(button: Button): Promise<void> {
