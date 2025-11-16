@@ -140,29 +140,29 @@
       <div class="pulse-background" style="background-color: {button.color || '#3B82F6'}"></div>
     {/if}
 
-    <!-- Circular progress indicator (clock-like) -->
-    {#if button.goal_time_minutes && !editMode}
-      <svg class="progress-ring" width="100%" height="100%" viewBox="0 0 120 120">
+    <!-- Circular progress indicator for seconds (when active) -->
+    {#if isActive && !editMode}
+      <svg class="progress-ring-seconds" width="100%" height="100%" viewBox="0 0 120 120">
         <!-- Background circle -->
         <circle
           class="progress-ring-bg"
-          stroke="rgba(255, 255, 255, 0.2)"
-          stroke-width="3"
+          stroke="rgba(255, 255, 255, 0.15)"
+          stroke-width="4"
           fill="none"
           r="56"
           cx="60"
           cy="60"
         />
-        <!-- Progress circle -->
+        <!-- Seconds progress circle -->
         <circle
-          class="progress-ring-circle"
-          stroke="rgba(255, 255, 255, 0.9)"
-          stroke-width="3"
+          class="progress-ring-seconds-circle"
+          stroke="rgba(255, 255, 255, 0.95)"
+          stroke-width="4"
           fill="none"
           r="56"
           cx="60"
           cy="60"
-          style="--progress: {goalProgress}"
+          style="--seconds-progress: {(elapsedTime % 60) / 60 * 100}"
         />
       </svg>
     {/if}
@@ -178,11 +178,7 @@
       <div class="text-2xl font-mono">{formatTime(elapsedTime)}</div>
     {/if}
     
-    {#if button.goal_time_minutes && todayTime > 0}
-      <div class="text-sm opacity-90 mt-2" class:text-green-200={goalDifference.isPositive} class:text-red-200={!goalDifference.isPositive}>
-        {goalDifference.isPositive ? '+' : '-'}{Math.floor(goalDifference.minutes / 60)}h {goalDifference.minutes % 60}m
-      </div>
-    {:else if todayTime > 0}
+    {#if todayTime > 0}
       <div class="text-sm opacity-90 mt-2">
         {Math.floor(todayTime / 60)}h {todayTime % 60}m
       </div>
@@ -207,7 +203,7 @@
     animation: pulse-scale 1s ease-in-out infinite;
   }
 
-  .progress-ring {
+  .progress-ring-seconds {
     position: absolute;
     top: 0;
     left: 0;
@@ -215,22 +211,25 @@
     z-index: 5;
   }
 
-  .progress-ring-circle {
+  .progress-ring-seconds-circle {
     stroke-dasharray: 351.858; /* 2 * PI * 56 */
-    stroke-dashoffset: calc(351.858 - (351.858 * var(--progress) / 100));
-    transition: stroke-dashoffset 0.3s ease;
+    stroke-dashoffset: calc(351.858 - (351.858 * var(--seconds-progress) / 100));
+    transition: stroke-dashoffset 0.1s linear;
     stroke-linecap: round;
   }
 
   @keyframes pulse-scale {
     0% {
-      transform: scale(1);
-    }
-    30% {
       transform: scale(1.02);
     }
-    40%, 100% {
+    10% {
       transform: scale(1);
+    }
+    70% {
+      transform: scale(1);
+    }
+    100% {
+      transform: scale(1.02);
     }
   }
 </style>

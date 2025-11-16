@@ -95,8 +95,8 @@
 
 <div class="h-screen flex flex-col bg-gray-50">
   <!-- Header -->
-   <div class="flex flex-col bg-transparent">
-    <div class="flex mx-auto px-4 pt-4 gap-2 w-full z-10 justify-end grow-0">
+   <div class="flex flex-col absolute top-0 left-0 right-0 z-20">
+    <div class="flex mx-auto px-4 pt-4 gap-2 w-full z-20 justify-end grow-0">
       <button
         on:click={toggleToggleMode}
         class="flex gap-2 text-gray-500 transition-colors"
