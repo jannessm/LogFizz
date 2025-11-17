@@ -17,9 +17,6 @@
 
   // Update chart when data changes
   $: if (canvas && timeLogs.length > 0) {
-    console.log('currentMonth', currentMonth.format('YYYY-MM'));
-
-
     labels = [];
     data = [];
     colors = [];

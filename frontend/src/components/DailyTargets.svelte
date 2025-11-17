@@ -82,12 +82,6 @@
         // If the first stop is before the first start, we ignore the first stop
         stops.shift();
       }
-
-
-      if (target.name === 'Work Target') {
-        console.log(starts, stops);
-        console.log(dayjs(starts[0].timestamp).diff(dayjs(stops[0].timestamp)) < 0)
-      }
       
       for (let i = 0; i < starts.length; i++) {
         const start = dayjs(starts[i].timestamp);
