@@ -78,6 +78,8 @@ describe('Authentication Routes', () => {
         email,
         password: hashedPassword,
         name: 'Test User',
+        country: 'DE',
+        state: 'Berlin',
       },
     });
 
@@ -94,6 +96,8 @@ describe('Authentication Routes', () => {
     const body = JSON.parse(response.body);
     expect(body.id).toBeDefined();
     expect(body.email).toBe(email);
+    expect(body.country).toBe('DE');
+    expect(body.state).toBe('Berlin');
     expect(body.name).toBe('Test User');
   });
 
