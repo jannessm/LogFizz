@@ -1,0 +1,230 @@
+import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, type SimulationNodeDatum, type SimulationLinkDatum } from 'd3-force';
+import type { Button, TimeLog } from '../types';
+
+export interface ButtonNode extends SimulationNodeDatum {
+  id: string;
+  button: Button;
+  frequency: number;
+  x?: number;
+  y?: number;
+}
+
+export interface ButtonEdge extends SimulationLinkDatum<ButtonNode> {
+  source: ButtonNode | string;
+  target: ButtonNode | string;
+  weight: number;
+}
+
+/**
+ * Analyzes timelogs to build a transition graph between buttons
+ * Returns nodes (buttons with frequency) and edges (transitions with weights)
+ */
+export function buildButtonGraph(buttons: Button[], timelogs: TimeLog[]): { nodes: ButtonNode[], edges: ButtonEdge[] } {
+  const button_ids = buttons.map(b => b.id);
+
+  // Sort timelogs by timestamp
+  const sortedLogs = timelogs.filter(tl => button_ids.includes(tl.button_id))
+                             .sort((a, b) =>
+    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
+  // Count frequency for each button (how many times it was started)
+  const frequency: Record<string, number> = {};
+  buttons.forEach(b => frequency[b.id] = 0);
+  
+  sortedLogs.filter(tl => tl.type === 'start').forEach(tl => {
+    frequency[tl.button_id] = (frequency[tl.button_id] || 0) + 1;
+  });
+
+  // Build transition map: button_id -> next_button_id -> count
+  const transitions: Record<string, Record<string, number>> = {};
+  
+  for (let i = 0; i < sortedLogs.length - 1; i++) {
+    const current = sortedLogs[i];
+    const next = sortedLogs[i + 1];
+    
+    // Look for pattern: current is a stop, next is a start (of a different button)
+    if (current.type === 'stop' && next.type === 'start' && current.button_id !== next.button_id) {
+      const from = current.button_id;
+      const to = next.button_id;
+      
+      if (!transitions[from]) transitions[from] = {};
+      transitions[from][to] = (transitions[from][to] || 1) + 1;
+    }
+  }
+  
+  // Add missing transitions with weight 1
+
+  for (const from of button_ids) {
+    if (!transitions[from]) transitions[from] = {};
+
+    for (const to of button_ids) {
+      if (from !== to && !transitions[from][to]) {
+        transitions[from][to] = 1;
+      }
+    }
+  }
+
+  // Create nodes
+  const nodes: ButtonNode[] = buttons.map(button => ({
+    id: button.id,
+    button,
+    frequency: frequency[button.id] || 0,
+  }));
+
+  // Create edges
+  const edges: ButtonEdge[] = [];
+  Object.entries(transitions).forEach(([from, targets]) => {
+    Object.entries(targets).forEach(([to, weight]) => {
+      edges.push({
+        source: from,
+        target: to,
+        weight,
+      });
+    });
+  });
+
+  return { nodes, edges };
+}
+
+/**
+ * Computes 2D positions for buttons using force-directed layout
+ * More frequently used buttons will be positioned towards the center
+ * Buttons with higher transition weights will be positioned closer together
+ */
+export function computeButtonLayout(
+  buttons: Button[], 
+  timelogs: TimeLog[],
+  width: number = 500,
+  height: number = 600,
+  buttonSize: number = 150
+): Map<string, { x: number; y: number }> {
+  if (buttons.length === 0) {
+    return new Map();
+  }
+
+  const { nodes, edges } = buildButtonGraph(buttons, timelogs);
+
+  // If no nodes, return empty
+  if (nodes.length === 0) {
+    return new Map();
+  }
+
+  // Single node - place in center
+  if (nodes.length === 1) {
+    return new Map([[nodes[0].id, { x: width / 2, y: height / 2 }]]);
+  }
+
+  // Calculate max frequency for normalization
+  const maxFreq = Math.max(...nodes.map(n => n.frequency), 1);
+  const maxWeight = edges.length > 0 ? Math.max(...edges.map(e => e.weight)) : 1;
+
+  // Create force simulation
+  const simulation = forceSimulation(nodes)
+    // Center force pulls nodes towards the center
+    .force('center', forceCenter(width / 2, height / 2))
+    // Charge force - more frequently used buttons have stronger attraction to center
+    .force('charge', forceManyBody<ButtonNode>()
+      .strength(d => {
+        // More frequent buttons = stronger pull to center (more negative = more attraction)
+        const normalizedFreq = d.frequency / maxFreq;
+        return -200 * (1 + normalizedFreq * 2);
+      })
+    )
+    // Link force - higher weight = stronger attraction between connected buttons
+    .force('link', forceLink<ButtonNode, ButtonEdge>(edges)
+      .id(d => d.id)
+      .distance(d => {
+        // Higher weight = closer distance
+        const normalizedWeight = d.weight / maxWeight;
+        return 100 * (1 - normalizedWeight * 0.5); // 50-100 pixels
+      })
+      .strength(d => {
+        // Higher weight = stronger connection
+        const normalizedWeight = d.weight / maxWeight;
+        return 0.5 + normalizedWeight * 0.5; // 0.5-1.0
+      })
+    )
+    // Collision force - prevent overlap (button size ~150px diameter)
+    .force('collide', forceCollide<ButtonNode>().radius(buttonSize / 2 + 10));
+
+  // Run simulation synchronously
+  simulation.stop();
+  for (let i = 0; i < 300; i++) {
+    simulation.tick();
+  }
+
+  // Extract positions
+  const positions = new Map<string, { x: number; y: number }>();
+  nodes.forEach(node => {
+    if (node.x !== undefined && node.y !== undefined) {
+      // Clamp to bounds with padding
+      const padding = 50;
+      const x = Math.max(padding, Math.min(width - padding, node.x));
+      const y = Math.max(padding, Math.min(height - padding, node.y));
+      positions.set(node.id, { x, y });
+    }
+  });
+
+  return positions;
+}
+
+/**
+ * Validates and fixes overlapping timelogs during sync
+ * Ensures a button is stopped before it's started again
+ * Adds a stop event 1 second before the next start if missing
+ */
+export function validateAndFixTimelogs(timelogs: TimeLog[]): TimeLog[] {
+  // Sort by timestamp
+  const sorted = [...timelogs].sort((a, b) => 
+    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
+  const fixed: TimeLog[] = [];
+  const activeStarts = new Map<string, TimeLog>(); // button_id -> active start event
+
+  for (const log of sorted) {
+    const buttonId = log.button_id;
+
+    if (log.type === 'start') {
+      // Check if this button already has an active start
+      if (activeStarts.has(buttonId)) {
+        // Need to insert a stop event 1 second before this start
+        const previousStart = activeStarts.get(buttonId)!;
+        const startTime = new Date(log.timestamp).getTime();
+        const stopTime = new Date(startTime - 1000); // 1 second before
+
+        const autoStop: TimeLog = {
+          id: crypto.randomUUID(),
+          user_id: log.user_id,
+          button_id: buttonId,
+          type: 'stop',
+          timestamp: stopTime.toISOString(),
+          apply_break_calculation: previousStart.apply_break_calculation,
+          is_manual: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        fixed.push(autoStop);
+        activeStarts.delete(buttonId); // Close the previous start
+      }
+
+      // Add this start event
+      fixed.push(log);
+      activeStarts.set(buttonId, log);
+    } else {
+      // Stop event
+      if (activeStarts.has(buttonId)) {
+        // Normal case: stop follows a start
+        fixed.push(log);
+        activeStarts.delete(buttonId);
+      } else {
+        // Orphaned stop event (no corresponding start) - skip it
+        console.warn(`Skipping orphaned stop event for button ${buttonId} at ${log.timestamp}`);
+      }
+    }
+  }
+
+  return fixed;
+}

@@ -9,7 +9,8 @@ export class AuthService {
   private userRepository = AppDataSource.getRepository(User);
   private emailService = new EmailService();
 
-  async register(email: string, password: string, name: string, state?: string): Promise<User> {
+  async register(email: string, password: string, name: string,
+                 country?: string, state?: string): Promise<User> {
     const existingUser = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
     if (existingUser) {
       throw new Error('User already exists');
@@ -20,6 +21,7 @@ export class AuthService {
       email,
       password_hash,
       name,
+      country,
       state,
     });
 

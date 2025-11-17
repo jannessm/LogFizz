@@ -17,17 +17,11 @@ export class TimeLog {
   @Column('timestamptz')
   timestamp!: Date;
 
-  @Column('varchar', { nullable: true })
-  timezone?: string;
-
-  @Column('boolean', { default: false })
-  apply_break_calculation!: boolean;
+  @Column('varchar')
+  timezone!: string;
 
   @Column('text', { nullable: true })
-  notes?: string;
-
-  @Column('boolean', { default: false })
-  is_manual!: boolean;
+  description?: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;

@@ -197,7 +197,7 @@ The workflow is triggered on:
 - `id` (UUID, PK)
 - `user_id` (UUID, FK)
 - `button_id` (UUID, FK)
-- `start_time` (Timestamp)
+- `timestamp` (Timestamp)
 - `end_time` (Timestamp, optional)
 - `duration` (Number, in minutes)
 - `break_time_subtracted` (Number, in minutes)

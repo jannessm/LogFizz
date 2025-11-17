@@ -270,6 +270,17 @@ describe('Rate Limiting for Authentication Routes', () => {
   });
 
   describe('Change password endpoint rate limiting', () => {
+    // Create a fresh app instance for these tests to avoid rate limit contamination
+    let changePasswordApp: FastifyInstance;
+
+    beforeAll(async () => {
+      changePasswordApp = await buildApp();
+    });
+
+    afterAll(async () => {
+      await changePasswordApp.close();
+    });
+
     it('should allow requests within rate limit for authenticated users', async () => {
       const email = `ratelimit-change${Date.now()}@example.com`;
       const password = 'testpassword123';
@@ -278,7 +289,7 @@ describe('Rate Limiting for Authentication Routes', () => {
       const hashedNewPassword = hashPasswordForTransport(newPassword, email);
       
       // Register and login
-      await app.inject({
+      await changePasswordApp.inject({
         method: 'POST',
         url: '/api/auth/register',
         payload: {
@@ -288,7 +299,7 @@ describe('Rate Limiting for Authentication Routes', () => {
         },
       });
 
-      const loginResponse = await app.inject({
+      const loginResponse = await changePasswordApp.inject({
         method: 'POST',
         url: '/api/auth/login',
         payload: {
@@ -297,15 +308,26 @@ describe('Rate Limiting for Authentication Routes', () => {
         },
       });
 
+      // Verify login was successful
+      expect(loginResponse.statusCode).toBe(200);
+      
       const cookies = loginResponse.headers['set-cookie'];
+      
+      // Check if cookies exist before proceeding
+      if (!cookies) {
+        console.error('No cookies in login response:', loginResponse.headers);
+        throw new Error('Login did not set session cookie');
+      }
+
+      const cookieString = Array.isArray(cookies) ? cookies.join('; ') : cookies;
 
       // Make 10 change password requests (within limit)
       for (let i = 0; i < 10; i++) {
-        const response = await app.inject({
+        const response = await changePasswordApp.inject({
           method: 'PUT',
           url: '/api/auth/change-password',
           headers: {
-            cookie: Array.isArray(cookies) ? cookies.join('; ') : cookies,
+            cookie: cookieString,
           },
           payload: {
             oldPassword: hashedPassword,
@@ -326,7 +348,7 @@ describe('Rate Limiting for Authentication Routes', () => {
       const hashedNewPassword = hashPasswordForTransport(newPassword, email);
       
       // Register and login
-      await app.inject({
+      await changePasswordApp.inject({
         method: 'POST',
         url: '/api/auth/register',
         payload: {
@@ -336,7 +358,7 @@ describe('Rate Limiting for Authentication Routes', () => {
         },
       });
 
-      const loginResponse = await app.inject({
+      const loginResponse = await changePasswordApp.inject({
         method: 'POST',
         url: '/api/auth/login',
         payload: {
@@ -345,16 +367,27 @@ describe('Rate Limiting for Authentication Routes', () => {
         },
       });
 
+      // Verify login was successful
+      expect(loginResponse.statusCode).toBe(200);
+      
       const cookies = loginResponse.headers['set-cookie'];
+      
+      // Check if cookies exist before proceeding
+      if (!cookies) {
+        console.error('No cookies in login response:', loginResponse.headers);
+        throw new Error('Login did not set session cookie');
+      }
+
+      const cookieString = Array.isArray(cookies) ? cookies.join('; ') : cookies;
 
       // Make more than 10 change password requests
       const responses = [];
       for (let i = 0; i < 12; i++) {
-        const response = await app.inject({
+        const response = await changePasswordApp.inject({
           method: 'PUT',
           url: '/api/auth/change-password',
           headers: {
-            cookie: Array.isArray(cookies) ? cookies.join('; ') : cookies,
+            cookie: cookieString,
           },
           payload: {
             oldPassword: hashedPassword,
