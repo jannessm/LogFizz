@@ -137,7 +137,6 @@ function createTimeLogsStore() {
 
         update(state => {
           const activeTimers = [...(state.activeTimers || []), timeLog];
-          console.log(activeTimers)
           
           return ({ 
           ...state, 

@@ -99,7 +99,6 @@ export function computeButtonLayout(
   height: number = 600,
   buttonSize: number = 150
 ): Map<string, { x: number; y: number }> {
-  console.log(buttons)
   if (buttons.length === 0) {
     return new Map();
   }

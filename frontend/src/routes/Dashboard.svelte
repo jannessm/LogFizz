@@ -6,7 +6,6 @@
   import ButtonGraph from '../components/ButtonGraph.svelte';
   import ButtonForm from '../components/ButtonForm.svelte';
   import DailyTargets from '../components/DailyTargets.svelte';
-  import InactiveTargets from '../components/InactiveTargets.svelte';
   import TargetForm from '../components/TargetForm.svelte';
   import BottomNav from '../components/BottomNav.svelte';
   import EditOverview from '../components/EditOverview.svelte';
@@ -95,7 +94,7 @@
 
 <div class="h-screen flex flex-col bg-gray-50">
   <!-- Header -->
-   <div class="flex flex-col absolute top-0 left-0 right-0 z-20">
+   <div class="flex flex-col absolute top-0 left-0 right-0">
     <div class="flex mx-auto px-4 pt-4 gap-2 w-full z-20 justify-end grow-0">
       <button
         on:click={toggleToggleMode}

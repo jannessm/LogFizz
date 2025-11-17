@@ -1,9 +1,43 @@
 <script lang="ts">
-  import { todayTargets, targetsStore } from '../stores/targets';
+  import { onMount, onDestroy } from 'svelte';
+  import { todayTargets } from '../stores/targets';
   import { buttonsStore } from '../stores/buttons';
   import { timeLogsStore } from '../stores/timelogs';
   import type { DailyTarget } from '../types';
   import dayjs from 'dayjs';
+
+  let activeTargets: DailyTarget[] = [];
+  let inactiveTargets: DailyTarget[] = [];
+  let progressMap = new Map<string, { totalMinutes: number; targetDuration: number; percentage: number; completed: boolean }>();
+  let interval: number | null = null;
+
+  $: if ($todayTargets.length > 0 && $buttonsStore.buttons && $timeLogsStore.timeLogs) {
+    activeTargets = $todayTargets.filter(t => isTargetActive(t));
+    inactiveTargets = $todayTargets.filter(t => !isTargetActive(t));
+    updateProgressMap();
+  }
+
+  function updateProgressMap() {
+    const map = new Map<string, { totalMinutes: number; targetDuration: number; percentage: number; completed: boolean }>();
+    for (const target of $todayTargets) {
+      map.set(target.id, calculateTargetProgress(target));
+    }
+    progressMap = map;
+  }
+
+  onMount(() => {
+    // Update progress every second
+    interval = setInterval(() => {
+      if ($todayTargets.length > 0) {
+        updateProgressMap();
+      }
+    }, 1000) as unknown as number;
+  });
+
+  onDestroy(() => {
+    if (interval) clearInterval(interval);
+  });
+
 
   // Check if target is currently active (any assigned button is running)
   function isTargetActive(target: DailyTarget): boolean {
@@ -42,11 +76,23 @@
       const stops = buttonLogs.filter(log => log.type === 'stop').sort((a, b) => 
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
+
+      if (starts.length > 0 && stops.length > 0 &&
+        dayjs(stops[0].timestamp).diff(dayjs(starts[0].timestamp)) < 0) {
+        // If the first stop is before the first start, we ignore the first stop
+        stops.shift();
+      }
+
+
+      if (target.name === 'Work Target') {
+        console.log(starts, stops);
+        console.log(dayjs(starts[0].timestamp).diff(dayjs(stops[0].timestamp)) < 0)
+      }
       
       for (let i = 0; i < starts.length; i++) {
         const start = dayjs(starts[i].timestamp);
         const stop = stops[i] ? dayjs(stops[i].timestamp) : dayjs();
-        totalMinutes += stop.diff(start, 'minute');
+        totalMinutes += stop.diff(start, 'minute') + stop.diff(start, 'second') / 60;
       }
     }
     
@@ -58,7 +104,7 @@
     
     const percentage = Math.min(100, Math.round((totalMinutes / targetDuration) * 100));
     const completed = totalMinutes >= targetDuration;
-    
+
     return {
       totalMinutes,
       targetDuration,
@@ -69,7 +115,7 @@
 
   function formatDuration(minutes: number): string {
     const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
+    const mins = Math.ceil(minutes % 60);
     
     if (hours === 0) {
       return `${mins}m`;
@@ -83,41 +129,63 @@
 </script>
 
 {#if $todayTargets.length > 0}
-  <div class="px-4 mb-4">
-    {#each $todayTargets as target}
-      {@const progress = calculateTargetProgress(target)}
-      {@const isActive = isTargetActive(target)}
-      <div 
-        class="flex justify-between items-start gap-4 transition-opacity duration-300"
-        class:opacity-40={!isActive}
-        class:opacity-100={isActive}
-      >
-        <p 
-          class="shrink-0 transition-colors duration-300"
-          class:text-gray-800={isActive}
-          class:text-gray-500={!isActive}
+  <div class="px-4 mb-4 z-0">
+    {#each activeTargets as target}
+      {@const progress = progressMap.get(target.id)}
+      {#if progress}
+        <div 
+          class="flex justify-between items-start gap-4 transition-opacity duration-300 opacity-100"
         >
-          {target.name}
-        </p>
-        <div class="w-full flex flex-col items-end">
-          <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden mt-2 mb-1">
-            <div
-              class="h-full rounded-full transition-all duration-500"
-              class:bg-green-500={progress.completed && isActive}
-              class:bg-blue-500={!progress.completed && isActive}
-              class:bg-gray-400={!isActive}
-              style="width: {progress.percentage}%"
-            ></div>
-          </div>
-          <div 
-            class="text-xs transition-colors duration-300"
-            class:text-gray-500={isActive}
-            class:text-gray-400={!isActive}
+          <p 
+            class="shrink-0 transition-colors duration-300 text-gray-800"
           >
-            {progress.percentage}% ({formatDuration(progress.totalMinutes)} / {formatDuration(progress.targetDuration)})
+            {target.name}
+          </p>
+          <div class="w-full flex flex-col items-end">
+            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden mt-2 mb-1">
+              <div
+                class="h-full rounded-full transition-all duration-500"
+                class:bg-green-500={progress.completed}
+                class:bg-blue-500={!progress.completed}
+                style="width: {progress.percentage}%"
+              ></div>
+            </div>
+            <div 
+              class="text-xs transition-colors duration-300 text-gray-500"
+            >
+              {Math.ceil(progress.percentage)}% ({formatDuration(progress.totalMinutes)} / {formatDuration(progress.targetDuration)})
+            </div>
           </div>
         </div>
-      </div>
+      {/if}
+    {/each}
+
+    {#each inactiveTargets as target}
+      {@const progress = progressMap.get(target.id)}
+      {#if progress}
+        <div 
+          class="flex justify-between items-start gap-4 transition-opacity duration-300 opacity-40"
+        >
+          <p 
+            class="shrink-0 transition-colors duration-300 text-gray-500"
+          >
+            {target.name}
+          </p>
+          <div class="w-full flex flex-col items-end">
+            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden mt-2 mb-1">
+              <div
+                class="h-full rounded-full transition-all duration-500 bg-gray-400"
+                style="width: {progress.percentage}%"
+              ></div>
+            </div>
+            <div 
+              class="text-xs transition-colors duration-300 text-gray-500"
+            >
+              {progress.percentage}% ({formatDuration(progress.totalMinutes)} / {formatDuration(progress.targetDuration)})
+            </div>
+          </div>
+        </div>
+      {/if}
     {/each}
   </div>
 {/if}
