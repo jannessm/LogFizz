@@ -46,15 +46,22 @@ All four entities from the requirements have been implemented:
 - `created_at` (Timestamp)
 
 #### TimeLogs Table
+The TimeLog entity uses an **event-based logging system** where each record represents a single event (start or stop), rather than a time range with start/end times.
+
 - `id` (UUID, Primary Key)
 - `user_id` (UUID, Foreign Key → Users)
 - `button_id` (UUID, Foreign Key → Buttons)
-- `start_time` (Timestamp)
-- `end_time` (Timestamp, optional)
-- `duration` (Number, in minutes)
-- `break_time_subtracted` (Number, in minutes)
+- `type` (Enum: 'start' | 'stop') - **Event type: 'start' for timer start, 'stop' for timer stop**
+- `timestamp` (Timestamp) - **When this event occurred**
+- `timezone` (String, optional) - Timezone of the event
+- `apply_break_calculation` (Boolean) - Whether to apply automatic break calculation
 - `notes` (String, optional)
-- `is_manual` (Boolean)
+- `is_manual` (Boolean) - Whether this was manually entered
+- `created_at` (Timestamp)
+- `updated_at` (Timestamp)
+- `deleted_at` (Timestamp, optional) - **Soft delete support**
+
+**Design Note**: This event-based system allows for flexible time tracking where each timer action (start/stop) is recorded as a discrete event. Duration calculations are performed by pairing consecutive start/stop events for the same button.
 
 #### Holidays Table
 - `id` (UUID, Primary Key)

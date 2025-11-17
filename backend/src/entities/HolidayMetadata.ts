@@ -8,6 +8,9 @@ export class HolidayMetadata {
   @Column('varchar')
   country!: string;
 
+  @Column('varchar')
+  state!: string;
+
   @Column('int')
   year!: number;
 

@@ -26,7 +26,8 @@ describe('Authentication Routes', () => {
         email,
         password: hashedPassword,
         name: 'Test User',
-        state: 'CA',
+        country: 'DE',
+        state: 'Berlin',
       },
     });
 
@@ -34,7 +35,8 @@ describe('Authentication Routes', () => {
     const body = JSON.parse(response.body);
     expect(body.email).toBeDefined();
     expect(body.name).toBe('Test User');
-    expect(body.state).toBe('CA');
+    expect(body.country).toBe('DE');
+    expect(body.state).toBe('Berlin');
     expect(body.password_hash).toBeUndefined();
   });
 
@@ -78,6 +80,8 @@ describe('Authentication Routes', () => {
         email,
         password: hashedPassword,
         name: 'Test User',
+        country: 'DE',
+        state: 'Berlin',
       },
     });
 
@@ -92,7 +96,10 @@ describe('Authentication Routes', () => {
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
+    expect(body.id).toBeDefined();
     expect(body.email).toBe(email);
+    expect(body.country).toBe('DE');
+    expect(body.state).toBe('Berlin');
     expect(body.name).toBe('Test User');
   });
 
@@ -131,6 +138,83 @@ describe('Authentication Routes', () => {
     });
 
     expect(response.statusCode).toBe(401);
+  });
+
+  it('should logout successfully without a request body', async () => {
+    const email = `logout${Date.now()}@example.com`;
+    
+    // Register and login first
+    await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: {
+        email,
+        password: 'testpassword123',
+        name: 'Test User',
+      },
+    });
+
+    const loginResponse = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: {
+        email,
+        password: 'testpassword123',
+      },
+    });
+
+    const cookies = loginResponse.headers['set-cookie'];
+
+    // Logout without body
+    const logoutResponse = await app.inject({
+      method: 'POST',
+      url: '/api/auth/logout',
+      headers: {
+        cookie: cookies,
+      },
+    });
+
+    expect(logoutResponse.statusCode).toBe(200);
+    const body = JSON.parse(logoutResponse.body);
+    expect(body.message).toContain('Logged out');
+  });
+
+  it('should accept logout with empty body', async () => {
+    const email = `logout2${Date.now()}@example.com`;
+    
+    // Register and login first
+    await app.inject({
+      method: 'POST',
+      url: '/api/auth/register',
+      payload: {
+        email,
+        password: 'testpassword123',
+        name: 'Test User',
+      },
+    });
+
+    const loginResponse = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: {
+        email,
+        password: 'testpassword123',
+      },
+    });
+
+    const cookies = loginResponse.headers['set-cookie'];
+
+    // Logout with empty body
+    const logoutResponse = await app.inject({
+      method: 'POST',
+      url: '/api/auth/logout',
+      headers: {
+        cookie: cookies,
+      },
+      payload: {},
+    });
+
+    expect(logoutResponse.statusCode).toBe(200);
   });
 
   describe('Forgot Password', () => {
