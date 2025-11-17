@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { buildApp } from '../app.js';
 import { FastifyInstance } from 'fastify';
 
-describe('Button Routes', () => {
+describe('Button Sync Routes', () => {
   let app: FastifyInstance;
   let authCookie: string;
   let userId: string;
@@ -39,51 +39,58 @@ describe('Button Routes', () => {
     await app.close();
   });
 
-  it('should create a new button', async () => {
+  it('should create a new button via sync', async () => {
+    const buttonId = '550e8400-e29b-41d4-a716-446655440000';
     const response = await app.inject({
       method: 'POST',
-      url: '/api/buttons',
+      url: '/api/buttons/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        name: 'Work',
-        emoji: '💼',
-        color: '#3B82F6',
-        position: 0,
-        goal_time_minutes: 480,
-        goal_days: [1, 2, 3, 4, 5],
-        auto_subtract_breaks: true,
+        buttons: [{
+          id: buttonId,
+          name: 'Work',
+          emoji: '💼',
+          color: '#3B82F6',
+          auto_subtract_breaks: true,
+        }],
       },
     });
 
-    expect(response.statusCode).toBe(201);
+    expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
-    expect(body.name).toBe('Work');
-    expect(body.emoji).toBe('💼');
-    expect(body.goal_time_minutes).toBe(480);
-    expect(body.auto_subtract_breaks).toBe(true);
+    expect(body.saved).toHaveLength(1);
+    expect(body.saved[0].id).toBe(buttonId);
+    expect(body.saved[0].name).toBe('Work');
+    expect(body.saved[0].emoji).toBe('💼');
+    expect(body.saved[0].color).toBe('#3B82F6');
+    expect(body.saved[0].auto_subtract_breaks).toBe(true);
   });
 
-  it('should get all user buttons', async () => {
+  it('should get all user buttons via sync', async () => {
     // Create a button first
+    const buttonId = '660e8400-e29b-41d4-a716-446655440001';
     await app.inject({
       method: 'POST',
-      url: '/api/buttons',
+      url: '/api/buttons/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        name: 'Study',
-        emoji: '📚',
-        color: '#10B981',
-        position: 1,
+        buttons: [{
+          id: buttonId,
+          name: 'Study',
+          emoji: '📚',
+          color: '#10B981',
+          auto_subtract_breaks: false,
+        }],
       },
     });
 
     const response = await app.inject({
       method: 'GET',
-      url: '/api/buttons',
+      url: '/api/buttons/sync?since=1970-01-01T00:00:00.000Z',
       headers: {
         cookie: authCookie,
       },
@@ -91,88 +98,112 @@ describe('Button Routes', () => {
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
-    expect(Array.isArray(body)).toBe(true);
-    expect(body.length).toBeGreaterThan(0);
+    expect(Array.isArray(body.buttons)).toBe(true);
+    expect(body.buttons.length).toBeGreaterThan(0);
+    expect(body.cursor).toBeDefined();
   });
 
-  it('should update a button', async () => {
+  it('should update a button via sync', async () => {
     // Create a button
-    const createResponse = await app.inject({
+    const buttonId = '770e8400-e29b-41d4-a716-446655440002';
+    await app.inject({
       method: 'POST',
-      url: '/api/buttons',
+      url: '/api/buttons/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        name: 'Exercise',
-        position: 2,
+        buttons: [{
+          id: buttonId,
+          name: 'Exercise',
+          auto_subtract_breaks: false,
+        }],
       },
     });
 
-    const buttonId = JSON.parse(createResponse.body).id;
-
     // Update the button
     const updateResponse = await app.inject({
-      method: 'PUT',
-      url: `/api/buttons/${buttonId}`,
+      method: 'POST',
+      url: '/api/buttons/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        name: 'Workout',
-        emoji: '💪',
+        buttons: [{
+          id: buttonId,
+          name: 'Workout',
+          emoji: '💪',
+          auto_subtract_breaks: false,
+        }],
       },
     });
 
     expect(updateResponse.statusCode).toBe(200);
     const body = JSON.parse(updateResponse.body);
-    expect(body.name).toBe('Workout');
-    expect(body.emoji).toBe('💪');
+    expect(body.saved).toHaveLength(1);
+    expect(body.saved[0].name).toBe('Workout');
+    expect(body.saved[0].emoji).toBe('💪');
   });
 
-  it('should delete a button', async () => {
+  it('should soft delete a button via sync', async () => {
     // Create a button
-    const createResponse = await app.inject({
+    const buttonId = '880e8400-e29b-41d4-a716-446655440003';
+    await app.inject({
       method: 'POST',
-      url: '/api/buttons',
+      url: '/api/buttons/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        name: 'Temporary',
-        position: 3,
+        buttons: [{
+          id: buttonId,
+          name: 'Temporary',
+          auto_subtract_breaks: false,
+        }],
       },
     });
 
-    const buttonId = JSON.parse(createResponse.body).id;
-
-    // Delete the button
+    // Soft delete the button
     const deleteResponse = await app.inject({
-      method: 'DELETE',
-      url: `/api/buttons/${buttonId}`,
+      method: 'POST',
+      url: '/api/buttons/sync',
       headers: {
         cookie: authCookie,
+      },
+      payload: {
+        buttons: [{
+          id: buttonId,
+          name: 'Temporary',
+          auto_subtract_breaks: false,
+          deleted_at: new Date().toISOString(),
+        }],
       },
     });
 
     expect(deleteResponse.statusCode).toBe(200);
+    const body = JSON.parse(deleteResponse.body);
+    expect(body.saved).toHaveLength(1);
+    expect(body.saved[0].deleted_at).toBeDefined();
 
-    // Verify it's deleted
-    const getResponse = await app.inject({
+    // Verify it's marked as deleted in sync
+    const syncResponse = await app.inject({
       method: 'GET',
-      url: `/api/buttons/${buttonId}`,
+      url: '/api/buttons/sync?since=1970-01-01T00:00:00.000Z',
       headers: {
         cookie: authCookie,
       },
     });
 
-    expect(getResponse.statusCode).toBe(404);
+    const syncBody = JSON.parse(syncResponse.body);
+    const deletedButton = syncBody.buttons.find((b: any) => b.id === buttonId);
+    expect(deletedButton).toBeDefined();
+    expect(deletedButton.deleted_at).toBeDefined();
   });
 
   it('should not allow unauthenticated requests', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/buttons',
+      url: '/api/buttons/sync?since=1970-01-01T00:00:00.000Z',
     });
 
     expect(response.statusCode).toBe(401);

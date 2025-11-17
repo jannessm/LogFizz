@@ -1,57 +1,9 @@
 import { AppDataSource } from '../config/database.js';
 import { Button } from '../entities/Button.js';
-import { IsNull, MoreThan } from 'typeorm';
+import { MoreThan } from 'typeorm';
 
 export class ButtonService {
   private buttonRepository = AppDataSource.getRepository(Button);
-
-    async createButton(userId: string, data: Partial<Button>): Promise<Button> {
-    // Remove timestamp fields to let TypeORM manage them automatically
-    const dataWithoutTimestamps: any = { ...data };
-    delete dataWithoutTimestamps.created_at;
-    delete dataWithoutTimestamps.updated_at;
-    
-    const button: Button = this.buttonRepository.create({
-      ...dataWithoutTimestamps,
-      user_id: userId,
-    } as Partial<Button>);
-
-    return this.buttonRepository.save(button);
-  }
-
-  async getUserButtons(userId: string): Promise<Button[]> {
-    return this.buttonRepository.find({
-      where: { user_id: userId, deleted_at: IsNull() },
-      order: { position: 'ASC' },
-    });
-  }
-
-  async getButtonById(id: string, userId: string): Promise<Button | null> {
-    return this.buttonRepository.findOne({
-      where: { id, user_id: userId, deleted_at: IsNull() },
-    });
-  }
-
-  async updateButton(id: string, userId: string, updates: Partial<Button>): Promise<Button | null> {
-    const button = await this.getButtonById(id, userId);
-    if (!button) {
-      return null;
-    }
-
-    Object.assign(button, updates);
-    return this.buttonRepository.save(button);
-  }
-
-  async deleteButton(id: string, userId: string): Promise<boolean> {
-    const button = await this.getButtonById(id, userId);
-    if (!button) {
-      return false;
-    }
-
-    button.deleted_at = new Date();
-    await this.buttonRepository.save(button);
-    return true;
-  }
 
   /**
    * Get all buttons (including soft-deleted) changed since a given timestamp
@@ -77,16 +29,12 @@ export class ButtonService {
   ): Promise<{
     saved: Button[];
     conflicts: Array<{
-      id: string;
-      field: 'button';
       clientVersion: Partial<Button>;
       serverVersion: Button;
     }>;
   }> {
     const savedButtons: Button[] = [];
     const conflicts: Array<{
-      id: string;
-      field: 'button';
       clientVersion: Partial<Button>;
       serverVersion: Button;
     }> = [];
@@ -105,8 +53,6 @@ export class ButtonService {
             if (existing.updated_at > clientTimestamp) {
               // Server has newer data - conflict detected
               conflicts.push({
-                id: existing.id,
-                field: 'button',
                 clientVersion: change,
                 serverVersion: existing,
               });

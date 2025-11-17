@@ -1,0 +1,195 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { buttonsStore } from '../stores/buttons';
+  import { timeLogsStore } from '../stores/timelogs';
+  import { targetsStore } from '../stores/targets';
+  import ButtonGraph from '../components/ButtonGraph.svelte';
+  import ButtonForm from '../components/ButtonForm.svelte';
+  import DailyTargets from '../components/DailyTargets.svelte';
+  import TargetForm from '../components/TargetForm.svelte';
+  import BottomNav from '../components/BottomNav.svelte';
+  import EditOverview from '../components/EditOverview.svelte';
+  import AddSelector from '../components/AddSelector.svelte';
+  import type { Button, DailyTarget } from '../types';
+
+  let showButtonForm = false;
+  let showTargetForm = false;
+  let showEditOverview = false;
+  let showAddSelector = false;
+  let editMode = false;
+  let editingButton: Button | null = null;
+  let editingTarget: DailyTarget | null = null;
+  let toggleMode = true;
+
+  onMount(async () => {
+    await buttonsStore.load();
+    await timeLogsStore.load();
+    await timeLogsStore.loadActive();
+    await targetsStore.load();
+  });
+
+  function handleShowAddSelector() {
+    showAddSelector = true;
+  }
+
+  function handleAddSelectorClose() {
+    showAddSelector = false;
+  }
+
+  function handleAddSelectorSelect(event: CustomEvent<{ type: 'button' | 'target' }>) {
+    showAddSelector = false;
+    if (event.detail.type === 'button') {
+      handleAddButton();
+    } else {
+      handleAddTarget();
+    }
+  }
+
+  function handleAddButton() {
+    editingButton = null;
+    showButtonForm = true;
+  }
+
+  function handleEditButton(event: CustomEvent | Button) {
+    const button = 'detail' in event ? event.detail : event;
+    editingButton = button;
+    showButtonForm = true;
+    showEditOverview = false;
+  }
+
+  function handleCloseForm() {
+    showButtonForm = false;
+    editingButton = null;
+  }
+
+  function handleAddTarget() {
+    editingTarget = null;
+    showTargetForm = true;
+  }
+
+  function handleEditTarget(target: DailyTarget) {
+    editingTarget = target;
+    showTargetForm = true;
+    showEditOverview = false;
+  }
+
+  function handleCloseTargetForm() {
+    showTargetForm = false;
+    editingTarget = null;
+  }
+
+  function toggleEditMode() {
+    showEditOverview = !showEditOverview;
+  }
+
+  function handleCloseEditOverview() {
+    showEditOverview = false;
+  }
+
+  function toggleToggleMode() {
+    toggleMode = !toggleMode;
+  }
+
+</script>
+
+<div class="h-screen flex flex-col bg-gray-50">
+  <!-- Header -->
+   <div class="flex flex-col absolute top-0 left-0 right-0">
+    <div class="flex mx-auto px-4 pt-4 gap-2 w-full z-20 justify-end grow-0">
+      <button
+        on:click={toggleToggleMode}
+        class="flex gap-2 text-gray-500 transition-colors"
+      >
+        <span class:icon-[si--toggle-off-line]={!toggleMode}
+              class:icon-[si--toggle-on-duotone]={toggleMode}
+              class:text-blue-400={toggleMode}
+              class:hover:bg-blue-500={toggleMode}
+              style="width: 32px; height: 32px;"></span>
+        <span class="py-1">Auto Stop</span>
+      </button>
+      <button
+        on:click={toggleEditMode}
+        class="px-4 py-2 rounded-full transition-colors icon-[si--edit-detailed-duotone]"
+        class:bg-blue-600={showEditOverview}
+        class:hover:bg-blue-700={showEditOverview}
+        class:bg-gray-400={!showEditOverview}
+        class:hover:bg-gray-500={!showEditOverview}
+        class:text-white={showEditOverview}
+        aria-label="Edit Overview"
+        style="width: 32px; height: 32px;"
+      ></button>
+      <button 
+        on:click={handleShowAddSelector}
+        class="px-4 py-2 bg-blue-600 rounded-full hover:bg-blue-700 transition-colors icon-[si--add-circle-duotone]"
+        style="width: 32px; height: 32px;"
+        aria-label="Add"
+      ></button>
+    </div>
+    <DailyTargets />
+   </div>
+
+  <!-- Scrollable Button Area -->
+  <div class="flex grow-1 overflow-y-auto">
+    <div class="mx-auto px-4 py-6 min-w-full w-full">
+      <!-- Daily Targets Overview -->
+
+      <!-- Button Graph -->
+      <ButtonGraph 
+        buttons={$buttonsStore.buttons}
+        {editMode}
+        {toggleMode}
+        on:edit={handleEditButton}
+      />
+    </div>
+  </div>
+
+  <!-- Fixed Bottom Navigation -->
+  <BottomNav currentTab="timer" />
+
+  <!-- Offline indicator -->
+  {#if !navigator.onLine}
+    <div class="fixed top-20 right-4 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded-lg shadow-lg z-50 max-h-200">
+      <span class="flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3" />
+        </svg>
+        Offline Mode
+      </span>
+    </div>
+  {/if}
+
+  <!-- Edit Overview Modal -->
+  {#if showEditOverview}
+    <EditOverview 
+      onEditButton={handleEditButton}
+      onEditTarget={handleEditTarget}
+      onAddButton={handleAddButton}
+      onAddTarget={handleAddTarget}
+      on:close={handleCloseEditOverview}
+    />
+  {/if}
+
+  <!-- Button Form Modal -->
+  {#if showButtonForm}
+    <ButtonForm 
+      button={editingButton}
+      on:close={handleCloseForm}
+    />
+  {/if}
+
+  <!-- Target Form Modal -->
+  {#if showTargetForm}
+    <TargetForm 
+      target={editingTarget}
+      on:close={handleCloseTargetForm}
+    />
+  {/if}
+
+  <!-- Add Selector Modal -->
+  {#if showAddSelector}
+    <AddSelector 
+      on:close={handleAddSelectorClose}
+      on:select={handleAddSelectorSelect}
+    />
+  {/if}
+</div>
