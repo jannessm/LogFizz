@@ -18,7 +18,7 @@ describe('ButtonForm Component', () => {
 
   it('renders create button form', () => {
     render(ButtonForm, { props: { button: null } });
-    expect(screen.getByText(/Create Button/i)).toBeInTheDocument();
+    expect(screen.getByText(/Add Button/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Button Name/i)).toBeInTheDocument();
   });
 
@@ -52,16 +52,17 @@ describe('ButtonForm Component', () => {
     expect(colorPicker.getAttribute('type')).toBe('color');
   });
 
-  it('has max width of 500px on modal', () => {
+  it('has max width class on modal', () => {
     const { container } = render(ButtonForm, { props: { button: null } });
-    const modal = container.querySelector('[style*="max-width: 500px"]');
+    const modal = container.querySelector('.max-w-lg');
     expect(modal).toBeInTheDocument();
   });
 
   it('renders modal backdrop with close functionality', async () => {
     render(ButtonForm, { props: { button: null } });
-    const backdrop = screen.getByRole('button', { name: /close modal/i });
-    expect(backdrop).toBeInTheDocument();
+    // Check for the close button with proper aria-label
+    const closeButton = screen.getByRole('button', { name: /close/i });
+    expect(closeButton).toBeInTheDocument();
   });
 
   it('renders dialog with proper ARIA attributes', () => {
