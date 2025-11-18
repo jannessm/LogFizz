@@ -169,13 +169,22 @@ export function generateEmailTemplate(data: EmailTemplateData): string {
 
 /**
  * Generates plain text version of email
- * @param data Email template data
+ * 
+ * NOTE: This function is designed ONLY for converting our own HTML email templates
+ * to plain text. It is NOT a general-purpose HTML sanitizer and should NOT be used
+ * with untrusted or user-provided content.
+ * 
+ * Security: The input 'content' comes from our own email templates (welcome.template.ts,
+ * password-reset.template.ts), not from user input. These templates are trusted code.
+ * 
+ * @param data Email template data from trusted templates
  * @returns Plain text email
  */
 export function generatePlainTextEmail(data: EmailTemplateData): string {
   const { title, content, appUrl } = data;
   
-  // Strip HTML tags from content
+  // Strip HTML tags from content (safe - content is from our trusted templates)
+  // We don't decode HTML entities because our templates use plain text, not entities
   const plainContent = content
     .replace(/<h1[^>]*>/gi, '\n\n')
     .replace(/<\/h1>/gi, '\n\n')
@@ -187,11 +196,6 @@ export function generatePlainTextEmail(data: EmailTemplateData): string {
     .replace(/<div[^>]*>/gi, '')
     .replace(/<\/div>/gi, '\n')
     .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
     .trim();
 
   return `

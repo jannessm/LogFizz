@@ -180,8 +180,19 @@ The email templates are designed to work with:
 
 ## Security Considerations
 
+### Email Content Security
 - Never include sensitive data in emails
 - Always use HTTPS links
 - Include expiration times for time-sensitive links
 - Add security notices (e.g., "If you didn't request this...")
 - Don't use email for authentication (use tokens)
+
+### Template Security Model
+**IMPORTANT**: The email template system is designed to work ONLY with trusted, hard-coded template content defined in TypeScript files. 
+
+- ✅ **Safe**: Using templates with static content from `.template.ts` files
+- ✅ **Safe**: Inserting user names, URLs, and dates into template placeholders
+- ❌ **UNSAFE**: Using `generatePlainTextEmail()` with user-provided HTML
+- ❌ **UNSAFE**: Inserting raw user content into template HTML
+
+The `generatePlainTextEmail()` function strips HTML tags but is NOT a security sanitizer. It assumes the input comes from our own trusted templates, not from users. User-provided content should NEVER be passed to this function or inserted directly into email templates without proper escaping.
