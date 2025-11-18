@@ -57,7 +57,7 @@ describe('Email Verification', () => {
       expect(user.email_verification_token).toBeDefined();
       expect(user.email_verification_token).toHaveLength(64); // 32 bytes hex = 64 chars
       expect(user.email_verification_expires_at).toBeDefined();
-      expect(user.email_verified_at).toBeUndefined();
+      expect(user.email_verified_at).toBeNull();
 
       // Verify expiration is ~24 hours in the future
       const expiresAt = user.email_verification_expires_at!;
@@ -125,7 +125,7 @@ describe('Email Verification', () => {
       const user = await userRepo.findOne({ 
         where: { email: 'verify@example.com' } 
       });
-      expect(user.email_verified_at).toBeUndefined();
+      expect(user.email_verified_at).toBeNull();
     });
 
     it('should fail with expired token', async () => {
@@ -148,7 +148,7 @@ describe('Email Verification', () => {
       const unverifiedUser = await userRepo.findOne({ 
         where: { email: 'verify@example.com' } 
       });
-      expect(unverifiedUser.email_verified_at).toBeUndefined();
+      expect(unverifiedUser.email_verified_at).toBeNull();
     });
 
     it('should work without being logged in', async () => {
@@ -247,7 +247,7 @@ describe('Email Verification', () => {
         'Test User'
       );
 
-      expect(user.email_verified_at).toBeUndefined();
+      expect(user.email_verified_at).toBeNull();
       const verificationToken = user.email_verification_token!;
 
       // Step 2: Verify email gets sent
@@ -279,7 +279,7 @@ describe('Email Verification', () => {
         'Test User'
       );
 
-      expect(user.email_verified_at).toBeUndefined();
+      expect(user.email_verified_at).toBeNull();
 
       // User can still login (email verification is optional for now)
       const loginUser = await authService.login('verify@example.com', 'password123');
