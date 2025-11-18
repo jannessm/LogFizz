@@ -5,6 +5,7 @@
   let email = '';
   let password = '';
   let name = '';
+  let country = 'DE';
   let state = '';
   let isRegisterMode = false;
   let errorMessage = '';
@@ -36,7 +37,7 @@
 
     try {
       if (isRegisterMode) {
-        await authStore.register(email, password, name, state || undefined);
+        await authStore.register(email, password, name, country || undefined, state || undefined);
       } else {
         await authStore.login(email, password);
       }
@@ -57,7 +58,7 @@
 <div class="min-h-screen flex items-center justify-center bg-gray-100 px-4">
   <div class="w-full bg-white rounded-lg shadow-md p-8" style="max-width: 500px;">
     <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">
-      {isRegisterMode ? 'Register' : 'Login'} to Clock
+      {isRegisterMode ? 'Register' : 'Login'} to TapShift
     </h1>
 
     {#if errorMessage}
@@ -80,6 +81,21 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Your name"
           />
+        </div>
+
+        <div>
+          <p>To include public holidays in the calculation of working hours, please select your location:</p>
+          <label for="country" class="block text-sm font-medium text-gray-700 mb-1">
+            Country (optional)
+          </label>
+          <select
+            id="country"
+            bind:value={country}
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">-- Select a country --</option>
+            <option value='DE'>Germany</option>
+          </select>
         </div>
 
         <div>

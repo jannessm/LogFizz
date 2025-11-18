@@ -18,8 +18,8 @@ const api = ky.create({
 
 // Auth API
 export const authApi = {
-  async register(email: string, password: string, name: string, state?: string): Promise<User> {
-    return api.post('api/auth/register', { json: { email, password, name, state } }).json();
+  async register(email: string, password: string, name: string, country?: string, state?: string): Promise<User> {
+    return api.post('api/auth/register', { json: { email, password, name, country, state } }).json();
   },
 
   async login(email: string, password: string): Promise<User> {

@@ -96,10 +96,10 @@ function createAuthStore() {
       }
     },
 
-    async register(email: string, password: string, name: string, state?: string) {
+    async register(email: string, password: string, name: string, country?: string, state?: string) {
       update(storeState => ({ ...storeState, isLoading: true, error: null }));
       try {
-        const user = await authApi.register(email, password, name, state);
+        const user = await authApi.register(email, password, name, country, state);
         await saveUser(user);
         update(storeState => ({ 
           ...storeState, 
