@@ -70,7 +70,12 @@ export class UserStateEntryService {
     entryId: string,
     updates: Partial<Pick<UserStateEntry, 'state_id' | 'registered_at'>>
   ): Promise<UserStateEntry | null> {
-    const entry = await this.getStateEntryById(userId, entryId);
+    const entry = await this.stateEntryRepository.findOne({
+      where: {
+        id: entryId,
+        user_id: userId,
+      },
+    });
     if (!entry) {
       return null;
     }
