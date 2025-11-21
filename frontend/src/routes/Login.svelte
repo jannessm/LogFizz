@@ -41,7 +41,15 @@
       } else {
         await authStore.login(email, password);
       }
-      navigate('/');
+      
+      // Check if there's a saved redirect path (e.g., from verify-email)
+      const savedRedirect = sessionStorage.getItem('redirectAfterLogin');
+      if (savedRedirect) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        navigate(savedRedirect);
+      } else {
+        navigate('/');
+      }
     } catch (error: any) {
       errorMessage = error.message || 'Authentication failed';
     } finally {

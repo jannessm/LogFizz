@@ -3,6 +3,9 @@
   import { buttonsStore } from '../stores/buttons';
   import { timeLogsStore } from '../stores/timelogs';
   import { targetsStore } from '../stores/targets';
+  import { authStore } from '../stores/auth';
+  import { snackbar } from '../stores/snackbar';
+  import { authApi } from '../services/api';
   import ButtonGraph from '../components/ButtonGraph.svelte';
   import ButtonForm from '../components/ButtonForm.svelte';
   import DailyTargets from '../components/DailyTargets.svelte';
@@ -20,13 +23,48 @@
   let editingButton: Button | null = null;
   let editingTarget: DailyTarget | null = null;
   let toggleMode = true;
+  let verificationReminderShown = false;
+
+  $: user = $authStore.user;
 
   onMount(async () => {
     await buttonsStore.load();
     await timeLogsStore.load();
     await timeLogsStore.loadActive();
     await targetsStore.load();
+
+    // Check if email is verified and show reminder
+    checkEmailVerification();
   });
+
+  function checkEmailVerification() {
+    if (!user || verificationReminderShown) return;
+
+    // Check if email is not verified (email_verified_at is null or undefined)
+    if (!user.email_verified_at) {
+      verificationReminderShown = true;
+      
+      snackbar.withAction(
+        'Please verify your email address to ensure account security',
+        'warning',
+        'Resend Email',
+        async () => {
+          try {
+            await authApi.resendVerification(user.email);
+            snackbar.success('Verification email sent! Please check your inbox.', 6000);
+          } catch (error: any) {
+            snackbar.error('Failed to send verification email. Please try again later.', 5000);
+          }
+        },
+        0 // Don't auto-dismiss
+      );
+    }
+  }
+
+  // Watch for user changes to re-check verification status
+  $: if (user && !verificationReminderShown) {
+    checkEmailVerification();
+  }
 
   function handleShowAddSelector() {
     showAddSelector = true;

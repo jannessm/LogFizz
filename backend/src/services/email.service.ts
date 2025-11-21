@@ -1,6 +1,9 @@
 import nodemailer from 'nodemailer';
 import { generateWelcomeEmail } from '../templates/emails/welcome.template.js';
 import { generatePasswordResetEmail } from '../templates/emails/password-reset.template.js';
+import dotenv from 'dotenv';
+  // Load environment variables
+  dotenv.config();
 
 export interface EmailConfig {
   host: string;
@@ -23,8 +26,8 @@ export class EmailService {
     const emailConfig = this.getEmailConfig();
     
     this.transporter = nodemailer.createTransport(emailConfig);
-    this.fromEmail = process.env.EMAIL_FROM || 'noreply@clock-app.com';
-    this.appUrl = process.env.APP_URL || 'http://localhost:3000';
+    this.fromEmail = process.env.SMTP_USER || 'noreply@clock-app.com';
+    this.appUrl = process.env.APP_URL || 'http://localhost:5173';
   }
 
   private getEmailConfig(): EmailConfig | any {
@@ -62,7 +65,7 @@ export class EmailService {
     const mailOptions = {
       from: this.fromEmail,
       to: email,
-      subject: 'Welcome to Clock App - Please Verify Your Email',
+      subject: 'Welcome to TapShift - Please Verify Your Email',
       html: emailContent.html,
       text: emailContent.text,
     };

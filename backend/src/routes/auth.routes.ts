@@ -84,6 +84,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           email: Type.String(),
           name: Type.String(),
           state_entries: Type.Array(StateEntryResponseSchema),
+          email_verified_at: Type.Optional(Type.String()),
         }),
         401: Type.Object({
           error: Type.String(),
@@ -118,6 +119,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       email: userWithEntries!.email,
       name: userWithEntries!.name,
       state_entries: userWithEntries!.state_entries || [],
+      email_verified_at: userWithEntries!.email_verified_at || null,
     });
   });
 
@@ -141,6 +143,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           email: Type.String(),
           name: Type.String(),
           state_entries: Type.Array(StateEntryResponseSchema),
+          email_verified_at: Type.Optional(Type.String()),
         }),
         401: Type.Object({
           error: Type.String(),
@@ -164,6 +167,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       email: user.email,
       name: user.name,
       state_entries: user.state_entries || [],
+      email_verified_at: user.email_verified_at || null,
     });
   });
 

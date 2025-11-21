@@ -4,6 +4,7 @@ export interface User {
   email: string;
   name: string;
   state?: string;
+  email_verified_at?: string;
   created_at?: string;
   updated_at?: string;
 }

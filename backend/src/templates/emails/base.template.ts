@@ -137,8 +137,8 @@ export function generateEmailTemplate(data: EmailTemplateData): string {
         <div class="email-container">
           <!-- Header -->
           <div class="header">
-            <div class="header-icon">⏰</div>
-            <h1 class="header-title">Clock App</h1>
+            <div class="header-icon">⏳</div>
+            <h1 class="header-title">TapShift</h1>
           </div>
           
           <!-- Content -->
@@ -148,14 +148,14 @@ export function generateEmailTemplate(data: EmailTemplateData): string {
           
           <!-- Footer -->
           <div class="footer">
-            <p>Thank you for using Clock App!</p>
+            <p>Thank you for using TapShift!</p>
             <p>
-              <a href="${appUrl}">Visit Clock App</a> |
+              <a href="${appUrl}">Visit TapShift</a> |
               <a href="${appUrl}/help">Help Center</a> |
               <a href="${appUrl}/privacy">Privacy Policy</a>
             </p>
             <p style="margin-top: 20px;">
-              © ${new Date().getFullYear()} Clock App. All rights reserved.
+              © ${new Date().getFullYear()} TapShift. All rights reserved.
             </p>
           </div>
         </div>
@@ -200,7 +200,7 @@ export function generatePlainTextEmail(data: EmailTemplateData): string {
 
   return `
 ════════════════════════════════════════
-⏰ Clock App
+⏳ TapShift
 ════════════════════════════════════════
 
 ${title}
@@ -208,12 +208,12 @@ ${title}
 ${plainContent}
 
 ────────────────────────────────────────
-Thank you for using Clock App!
+Thank you for using TapShift!
 
-Visit Clock App: ${appUrl}
+Visit TapShift: ${appUrl}
 Help Center: ${appUrl}/help
 Privacy Policy: ${appUrl}/privacy
 
-© ${new Date().getFullYear()} Clock App. All rights reserved.
+© ${new Date().getFullYear()} TapShift. All rights reserved.
   `.trim();
 }

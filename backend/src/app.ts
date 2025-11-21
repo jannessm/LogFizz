@@ -16,6 +16,7 @@ import { dailyTargetRoutes } from './routes/daily-target.routes.js';
 import { websocketRoutes } from './routes/websocket.routes.js';
 import { stateRoutes } from './routes/state.routes.js';
 import { registerRateLimit } from './config/rateLimit.js';
+import { debugRoutes } from './routes/debug.routes.js';
 import './types/session.js';
 
 export async function buildApp() {
@@ -163,6 +164,10 @@ export async function buildApp() {
   await fastify.register(dailyTargetRoutes, { prefix: '/api/targets' });
   await fastify.register(stateRoutes, { prefix: '/api' });
   await fastify.register(websocketRoutes, { prefix: '/api' });
+
+  if (process.env.NODE_ENV !== 'production') {
+    await fastify.register(debugRoutes, { prefix: '/api/debug' });
+  }
 
   // Health check endpoint
   fastify.get('/health', async () => {

@@ -73,6 +73,14 @@ export const authApi = {
   async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
     return api.post('api/auth/reset-password', { json: { token, newPassword } }).json();
   },
+
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    return api.post('api/auth/verify-email', { json: { token } }).json();
+  },
+
+  async resendVerification(email: string): Promise<{ message: string }> {
+    return api.post('api/auth/resend-verification', { json: { email } }).json();
+  },
 };
 
 // Button API

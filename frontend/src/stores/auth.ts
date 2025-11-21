@@ -3,6 +3,7 @@ import type { User } from '../types';
 import { authApi } from '../services/api';
 import { saveUser, getUser, clearUser, clearAllData } from '../lib/db';
 import { wsService } from '../services/websocket';
+import type { HTTPError } from 'ky';
 
 interface AuthStore {
   user: User | null;
@@ -50,17 +51,32 @@ function createAuthStore() {
           }));
           wsService.setAuthenticated(true);
         } catch (error) {
-          // If offline or unauthorized, use local user
-          if (!localUser) {
-            update(state => ({ 
-              ...state, 
-              isAuthenticated: false,
-              isLoading: false 
-            }));
+          let herror = error as HTTPError;
+          if (!!herror.response && herror.response.status === 401) {
+            // Unauthorized - clear local user
             wsService.setAuthenticated(false);
+            await clearAllData();
+            set({
+              user: null,
+              isAuthenticated: false,
+              isLoading: false,
+              error: null,
+            });
           } else {
-            update(state => ({ ...state, isLoading: false }));
-            // Keep WebSocket connected if we have a local user
+            console.log((error as HTTPError).response.status);
+            // If offline or unauthorized, use local user
+            if (!localUser) {
+              update(state => ({ 
+                ...state, 
+                isAuthenticated: false,
+                isLoading: false 
+              }));
+              wsService.setAuthenticated(false);
+            } else {
+              console.log(error);
+              update(state => ({ ...state, isLoading: false }));
+              // Keep WebSocket connected if we have a local user
+            }
           }
         }
       } catch (error: any) {
@@ -167,6 +183,42 @@ function createAuthStore() {
         update(state => ({ ...state, isLoading: false }));
       } catch (error: any) {
         const errorMessage = error.response?.data?.message || 'Password change failed';
+        update(state => ({ 
+          ...state, 
+          error: errorMessage,
+          isLoading: false 
+        }));
+        throw new Error(errorMessage);
+      }
+    },
+
+    async verifyEmail(token: string): Promise<{ message: string }> {
+      update(state => ({ ...state, isLoading: true, error: null }));
+      try {
+        const response = await authApi.verifyEmail(token);
+        // Refresh user data to get updated email_verified_at
+        await this.init();
+        update(state => ({ ...state, isLoading: false }));
+        return response;
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.error || 'Email verification failed';
+        update(state => ({ 
+          ...state, 
+          error: errorMessage,
+          isLoading: false 
+        }));
+        throw new Error(errorMessage);
+      }
+    },
+
+    async resendVerification(email: string): Promise<{ message: string }> {
+      update(state => ({ ...state, isLoading: true, error: null }));
+      try {
+        const response = await authApi.resendVerification(email);
+        update(state => ({ ...state, isLoading: false }));
+        return response;
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.message || 'Failed to resend verification email';
         update(state => ({ 
           ...state, 
           error: errorMessage,
