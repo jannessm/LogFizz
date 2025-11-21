@@ -13,10 +13,10 @@ export function generateWelcomeEmailContent(data: WelcomeEmailData): string {
   const { userName, verificationUrl } = data;
   
   return `
-    <h1>Welcome to Clock App!</h1>
+    <h1>Welcome to TapShift!</h1>
     <p>Hi ${userName},</p>
     <p>Thank you for signing up! We're excited to have you on board.</p>
-    <p>Clock App helps you track your time efficiently with customizable buttons, automatic logging, and insightful statistics.</p>
+    <p>TapShift helps you track your time efficiently with customizable buttons, automatic logging, and insightful statistics.</p>
     
     <div class="divider"></div>
     

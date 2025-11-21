@@ -15,7 +15,7 @@ export function generatePasswordResetEmailContent(data: PasswordResetEmailData):
   return `
     <h1>Password Reset Request</h1>
     <p>Hi ${userName},</p>
-    <p>We received a request to reset the password for your Clock App account.</p>
+    <p>We received a request to reset the password for your TapShift account.</p>
     <p>If you made this request, click the button below to reset your password:</p>
     
     <p style="text-align: center;">
