@@ -1,6 +1,9 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { authStore } from '../stores/auth';
+  import { statesStore } from '../stores/states';
   import { navigate } from '../lib/navigation';
+
 
   let email = '';
   let password = '';
@@ -10,26 +13,22 @@
   let isRegisterMode = false;
   let errorMessage = '';
   let isLoading = false;
-
-  // German states (Bundesländer)
-  const germanStates = [
-    'Baden-Württemberg',
-    'Bayern',
-    'Berlin',
-    'Brandenburg',
-    'Bremen',
-    'Hamburg',
-    'Hessen',
-    'Mecklenburg-Vorpommern',
-    'Niedersachsen',
-    'Nordrhein-Westfalen',
-    'Rheinland-Pfalz',
-    'Saarland',
-    'Sachsen',
-    'Sachsen-Anhalt',
-    'Schleswig-Holstein',
-    'Thüringen',
+  let countries = [
+    { code: 'DE', name: 'Germany' },
   ];
+  let states: Array<{ country: string; code: string; state: string }> = [];
+  let filteredStates: Array<{ country: string; code: string; state: string }> = [];
+
+  $: if (!!$statesStore.states && $statesStore.states.length > 0) {
+    states = $statesStore.states;
+    const selectedCountry = countries.filter(c => c.code === country)[0].name;
+    filteredStates = states.filter(s => s.country === selectedCountry)
+                           .sort((a, b) => a.state.localeCompare(b.state));
+  }
+
+  onMount(async () => {
+    await statesStore.load();
+  });
 
   async function handleSubmit() {
     errorMessage = '';
@@ -37,7 +36,7 @@
 
     try {
       if (isRegisterMode) {
-        await authStore.register(email, password, name, country || undefined, state || undefined);
+        await authStore.register(email, password, name, state || undefined);
       } else {
         await authStore.login(email, password);
       }
@@ -116,8 +115,8 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">-- Select a state --</option>
-            {#each germanStates as germanState}
-              <option value={germanState}>{germanState}</option>
+            {#each filteredStates as filteredState}
+              <option value={filteredState.code}>{filteredState.state}</option>
             {/each}
           </select>
         </div>

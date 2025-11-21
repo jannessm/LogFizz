@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import type { User } from '../types';
 import { authApi } from '../services/api';
-import { saveUser, getUser, clearUser, clearAllData } from '../lib/db';
+import { saveUser, getUser, clearAllData } from '../lib/db';
 import { wsService } from '../services/websocket';
 import type { HTTPError } from 'ky';
 
@@ -112,10 +112,10 @@ function createAuthStore() {
       }
     },
 
-    async register(email: string, password: string, name: string, country?: string, state?: string) {
+    async register(email: string, password: string, name: string, state?: string) {
       update(storeState => ({ ...storeState, isLoading: true, error: null }));
       try {
-        const user = await authApi.register(email, password, name, country, state);
+        const user = await authApi.register(email, password, name, tate);
         await saveUser(user);
         update(storeState => ({ 
           ...storeState, 

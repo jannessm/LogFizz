@@ -1,5 +1,6 @@
 import { AppDataSource } from '../config/database.js';
 import { User } from '../entities/User.js';
+import { State } from '../entities/State.js';
 import { UserStateEntry } from '../entities/UserStateEntry.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { IsNull, MoreThan } from 'typeorm';
@@ -9,6 +10,8 @@ import crypto from 'crypto';
 
 export class AuthService {
   private userRepository = AppDataSource.getRepository(User);
+  private stateRepository = AppDataSource.getRepository(State);
+  private stateEntryRepository = AppDataSource.getRepository(UserStateEntry);
   private emailService = new EmailService();
   private stateEntryService = new UserStateEntryService();
 
@@ -16,7 +19,7 @@ export class AuthService {
     email: string, 
     password: string, 
     name: string,
-    stateEntries?: Array<{ state_id: string; registered_at: Date | string }>
+    state?: string,
   ): Promise<User> {
     const existingUser = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
     if (existingUser) {
@@ -24,7 +27,16 @@ export class AuthService {
     }
 
     const password_hash = await hashPassword(password);
-    
+    const stateEntries: Array<{ id: string; registered_at: Date | string }> = [];
+    if (state) {
+      const stateEntry = await this.stateRepository.findOne({
+        where: { code: state }
+      });
+      if (stateEntry) {
+        stateEntries.push({ id: stateEntry.id, registered_at: new Date() });
+      }
+    }
+
     // Generate email verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const verificationExpiresAt = new Date();
@@ -49,7 +61,7 @@ export class AuthService {
         
         await this.stateEntryService.createStateEntry(
           newUser.id,
-          entry.state_id,
+          entry.id,
           registeredAt
         );
       }

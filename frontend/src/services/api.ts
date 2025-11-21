@@ -240,6 +240,12 @@ export const holidayApi = {
   },
 };
 
+export const statesApi = {
+  async getAllStates(): Promise<string[]> {
+    return api.get(`api/states`).json();
+  },
+};
+
 // Check if online
 export function isOnline(): boolean {
   return navigator.onLine;

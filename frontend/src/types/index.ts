@@ -3,10 +3,16 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  state?: string;
   email_verified_at?: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface State {
+  id: string;
+  country: string;
+  state: string;
+  code: string; // e.g., 'DE-BW' for Baden-Württemberg
 }
 
 // Button types
