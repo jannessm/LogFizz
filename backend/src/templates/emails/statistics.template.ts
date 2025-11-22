@@ -8,6 +8,18 @@ export interface StatisticsEmailData {
 }
 
 /**
+ * Escapes HTML special characters to prevent XSS
+ */
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
  * Generates a statistics report email with system-wide metrics
  */
 export function generateStatisticsEmail(data: StatisticsEmailData): {
@@ -82,7 +94,7 @@ export function generateStatisticsEmail(data: StatisticsEmailData): {
     <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 16px; margin-bottom: 16px; border-radius: 4px;">
       <h3 style="margin: 0 0 8px 0; color: #1f2937; font-size: 16px;">Most Active User</h3>
       <p style="margin: 4px 0; color: #4b5563;">
-        <strong>${statistics.activity.most_active_user.name}</strong> (${statistics.activity.most_active_user.email})
+        <strong>${escapeHtml(statistics.activity.most_active_user.name)}</strong> (${escapeHtml(statistics.activity.most_active_user.email)})
       </p>
       <p style="margin: 4px 0; color: #10b981; font-weight: bold;">
         ${statistics.activity.most_active_user.hours_tracked.toLocaleString()} hours tracked
@@ -98,7 +110,7 @@ export function generateStatisticsEmail(data: StatisticsEmailData): {
     <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; margin-bottom: 16px; border-radius: 4px;">
       <h3 style="margin: 0 0 8px 0; color: #1f2937; font-size: 16px;">Most Used Button</h3>
       <p style="margin: 4px 0; color: #4b5563;">
-        ${statistics.activity.most_used_button.emoji ? statistics.activity.most_used_button.emoji + ' ' : ''}<strong>${statistics.activity.most_used_button.name}</strong>
+        ${statistics.activity.most_used_button.emoji ? escapeHtml(statistics.activity.most_used_button.emoji) + ' ' : ''}<strong>${escapeHtml(statistics.activity.most_used_button.name)}</strong>
       </p>
       <p style="margin: 4px 0; color: #3b82f6; font-weight: bold;">
         ${statistics.activity.most_used_button.usage_count.toLocaleString()} times used

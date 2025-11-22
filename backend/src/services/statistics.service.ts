@@ -41,6 +41,11 @@ export class StatisticsService {
 
   /**
    * Generate comprehensive system-wide statistics
+   * 
+   * Note: This method performs calculations in-memory and may not be suitable
+   * for systems with very large datasets (>100k time logs). For production systems
+   * with large amounts of data, consider implementing database-level aggregations
+   * or pagination.
    */
   async generateSystemStatistics(): Promise<SystemStatistics> {
     const thirtyDaysAgo = new Date();
