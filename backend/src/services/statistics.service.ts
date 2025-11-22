@@ -153,10 +153,12 @@ export class StatisticsService {
         };
       } else if (log.type === 'stop' && lastStart) {
         // Only count if it's for the same user and button
+        // Note: Since logs are ordered by user_id, button_id, timestamp,
+        // a stop for a different user/button means we've moved to a new group
         if (lastStart.userId === log.user_id && lastStart.buttonId === log.button_id) {
           const duration = log.timestamp.getTime() - lastStart.timestamp.getTime();
           totalMinutes += duration / (1000 * 60);
-          lastStart = null;
+          lastStart = null; // Reset after successful match
         }
       }
     }
