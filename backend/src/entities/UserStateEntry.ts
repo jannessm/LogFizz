@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from './User.js';
+import { DailyTarget } from './DailyTarget.js';
 import { State } from './State.js';
 
 @Entity('user_state_entries')
@@ -8,7 +8,7 @@ export class UserStateEntry {
   id!: string;
 
   @Column('uuid')
-  user_id!: string;
+  target_id!: string;
 
   @Column('uuid')
   state_id!: string;
@@ -25,9 +25,9 @@ export class UserStateEntry {
   @Column('timestamptz', { nullable: true })
   deleted_at?: Date;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
-  user?: User;
+  @ManyToOne(() => DailyTarget, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'target_id' })
+  target?: DailyTarget;
 
   @ManyToOne(() => State, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'state_id' })

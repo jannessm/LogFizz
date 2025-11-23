@@ -6,15 +6,15 @@ export class UserStateEntryService {
   private stateEntryRepository = AppDataSource.getRepository(UserStateEntry);
 
   /**
-   * Create a new state entry for a user
+   * Create a new state entry for a target
    */
   async createStateEntry(
-    userId: string, 
+    targetId: string, 
     stateId: string, 
     registeredAt: Date
   ): Promise<UserStateEntry> {
     const entry = this.stateEntryRepository.create({
-      user_id: userId,
+      target_id: targetId,
       state_id: stateId,
       registered_at: registeredAt,
     });
@@ -22,12 +22,12 @@ export class UserStateEntryService {
   }
 
   /**
-   * Get all state entries for a user (excluding soft-deleted)
+   * Get all state entries for a target (excluding soft-deleted)
    */
-  async getStateEntriesByUser(userId: string): Promise<UserStateEntry[]> {
+  async getStateEntriesByTarget(targetId: string): Promise<UserStateEntry[]> {
     return this.stateEntryRepository.find({
       where: {
-        user_id: userId,
+        target_id: targetId,
         deleted_at: IsNull(),
       },
       relations: ['state'],
@@ -39,10 +39,10 @@ export class UserStateEntryService {
    * Get all state entries (including soft-deleted) changed since a given timestamp
    * Used for sync functionality
    */
-  async getChangedStateEntriesSince(userId: string, since: Date): Promise<UserStateEntry[]> {
+  async getChangedStateEntriesSince(targetId: string, since: Date): Promise<UserStateEntry[]> {
     return this.stateEntryRepository.find({
       where: {
-        user_id: userId,
+        target_id: targetId,
         updated_at: MoreThan(since),
       },
       order: { updated_at: 'ASC' },
@@ -52,11 +52,11 @@ export class UserStateEntryService {
   /**
    * Get a single state entry by ID
    */
-  async getStateEntryById(userId: string, entryId: string): Promise<UserStateEntry | null> {
+  async getStateEntryById(targetId: string, entryId: string): Promise<UserStateEntry | null> {
     return this.stateEntryRepository.findOne({
       where: {
         id: entryId,
-        user_id: userId,
+        target_id: targetId,
       },
       relations: ['state'],
     });
@@ -66,14 +66,14 @@ export class UserStateEntryService {
    * Update an existing state entry
    */
   async updateStateEntry(
-    userId: string,
+    targetId: string,
     entryId: string,
     updates: Partial<Pick<UserStateEntry, 'state_id' | 'registered_at'>>
   ): Promise<UserStateEntry | null> {
     const entry = await this.stateEntryRepository.findOne({
       where: {
         id: entryId,
-        user_id: userId,
+        target_id: targetId,
       },
     });
     if (!entry) {
@@ -87,8 +87,8 @@ export class UserStateEntryService {
   /**
    * Soft delete a state entry
    */
-  async deleteStateEntry(userId: string, entryId: string): Promise<boolean> {
-    const entry = await this.getStateEntryById(userId, entryId);
+  async deleteStateEntry(targetId: string, entryId: string): Promise<boolean> {
+    const entry = await this.getStateEntryById(targetId, entryId);
     if (!entry) {
       return false;
     }
@@ -103,7 +103,7 @@ export class UserStateEntryService {
    * Returns conflicts if any exist, otherwise returns saved entries
    */
   async pushStateEntryChanges(
-    userId: string,
+    targetId: string,
     changes: Array<Partial<UserStateEntry> & { updated_at?: Date }>
   ): Promise<{
     saved: UserStateEntry[];
@@ -122,7 +122,7 @@ export class UserStateEntryService {
       if (change.id) {
         // Check if entry exists on server
         const existing = await this.stateEntryRepository.findOne({
-          where: { id: change.id, user_id: userId },
+          where: { id: change.id, target_id: targetId },
         });
 
         if (existing) {
@@ -149,7 +149,7 @@ export class UserStateEntryService {
           // Entry doesn't exist, create new one with client-provided UUID
           const entry = this.stateEntryRepository.create({
             ...change,
-            user_id: userId,
+            target_id: targetId,
             id: change.id, // Use client-generated UUID
           });
           // Remove updated_at to let TypeORM set it
@@ -161,7 +161,7 @@ export class UserStateEntryService {
         // Create new entry (no ID provided - shouldn't happen in offline-first)
         const entry = this.stateEntryRepository.create({
           ...change,
-          user_id: userId,
+          target_id: targetId,
         });
         delete (entry as any).updated_at;
         const saved = await this.stateEntryRepository.save(entry);
@@ -176,13 +176,13 @@ export class UserStateEntryService {
    * Get state entries within a date range
    */
   async getStateEntriesInRange(
-    userId: string,
+    targetId: string,
     startDate: Date,
     endDate: Date
   ): Promise<UserStateEntry[]> {
     return this.stateEntryRepository
       .createQueryBuilder('entry')
-      .where('entry.user_id = :userId', { userId })
+      .where('entry.target_id = :targetId', { targetId })
       .andWhere('entry.registered_at >= :startDate', { startDate })
       .andWhere('entry.registered_at <= :endDate', { endDate })
       .andWhere('entry.deleted_at IS NULL')
@@ -191,12 +191,12 @@ export class UserStateEntryService {
   }
 
   /**
-   * Get the most recent state entry for a user
+   * Get the most recent state entry for a target
    */
-  async getMostRecentStateEntry(userId: string): Promise<UserStateEntry | null> {
+  async getMostRecentStateEntry(targetId: string): Promise<UserStateEntry | null> {
     return this.stateEntryRepository.findOne({
       where: {
-        user_id: userId,
+        target_id: targetId,
         deleted_at: IsNull(),
       },
       relations: ['state'],

@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 
 @Entity('daily_targets')
 export class DailyTarget {
@@ -29,4 +29,7 @@ export class DailyTarget {
   @ManyToOne('User', 'daily_targets', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user!: any;
+
+  @OneToMany('UserStateEntry', 'target')
+  state_entries?: any[];
 }

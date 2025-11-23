@@ -137,15 +137,15 @@ export class InitialSchema1699700000000 implements MigrationInterface {
         await queryRunner.query(`
             CREATE TABLE IF NOT EXISTS "user_state_entries" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
-                "user_id" uuid NOT NULL,
+                "target_id" uuid NOT NULL,
                 "state_id" uuid NOT NULL,
                 "registered_at" TIMESTAMP WITH TIME ZONE NOT NULL,
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "deleted_at" TIMESTAMP WITH TIME ZONE,
                 CONSTRAINT "PK_user_state_entries_id" PRIMARY KEY ("id"),
-                CONSTRAINT "FK_user_state_entries_user_id" FOREIGN KEY ("user_id") 
-                    REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
+                CONSTRAINT "FK_user_state_entries_target_id" FOREIGN KEY ("target_id") 
+                    REFERENCES "daily_targets"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
                 CONSTRAINT "FK_user_state_entries_state_id" FOREIGN KEY ("state_id") 
                     REFERENCES "states"("id") ON DELETE RESTRICT ON UPDATE NO ACTION
             )
@@ -166,7 +166,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_deleted_at" ON "time_logs" ("deleted_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_buttons_updated_at" ON "buttons" ("updated_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_updated_at" ON "time_logs" ("updated_at")`);
-        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_state_entries_user_id" ON "user_state_entries" ("user_id")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_state_entries_target_id" ON "user_state_entries" ("target_id")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_state_entries_state_id" ON "user_state_entries" ("state_id")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_state_entries_registered_at" ON "user_state_entries" ("registered_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_state_entries_deleted_at" ON "user_state_entries" ("deleted_at")`);
