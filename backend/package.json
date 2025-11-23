@@ -33,7 +33,6 @@
     "@fastify/cors": "^11.1.0",
     "@fastify/rate-limit": "^10.3.0",
     "@fastify/session": "^11.1.1",
-    "@fastify/session-redis-store": "^3.0.0",
     "@fastify/swagger": "^9.6.0",
     "@fastify/swagger-ui": "^5.2.3",
     "@fastify/websocket": "^11.2.0",
@@ -54,6 +53,7 @@
     "@types/nodemailer": "^7.0.3",
     "@types/ws": "^8.18.1",
     "@vitest/ui": "^4.0.8",
+    "fastify-session-redis-store": "^7.1.2",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^4.0.8"
