@@ -1,5 +1,5 @@
 import ky from 'ky';
-import type { User, Button, TimeLog, Holiday, DailyTarget, State } from '../types';
+import type { User, Button, TimeLog, Holiday, DailyTarget, State, MonthlyBalance } from '../types';
 import { hashPasswordForTransport } from '../utils/passwordHash';
 
 // In development, use proxy (relative path). In production, use env variable or default to same origin
@@ -248,6 +248,25 @@ export const statesApi = {
 
   async getStatesByCountry(country: string): Promise<State[]> {
     return api.get(`api/states/${country}`).json();
+  },
+};
+
+// Monthly Balance API
+export const monthlyBalanceApi = {
+  async getBalance(targetId: string, year: number, month: number): Promise<any> {
+    return api.get(`api/monthly-balances/${targetId}/${year}/${month}`).json();
+  },
+
+  async getAllBalances(year: number, month: number): Promise<any[]> {
+    return api.get(`api/monthly-balances/${year}/${month}`).json();
+  },
+
+  async calculateBalance(targetId: string, year: number, month: number): Promise<any> {
+    return api.post(`api/monthly-balances/calculate/${targetId}/${year}/${month}`).json();
+  },
+
+  async recalculateAllBalances(year: number, month: number): Promise<any[]> {
+    return api.post(`api/monthly-balances/calculate/${year}/${month}`).json();
   },
 };
 

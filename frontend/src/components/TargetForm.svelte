@@ -13,6 +13,7 @@
   let durationHours = Math.floor(firstDuration / 60);
   let durationMinutes = firstDuration % 60;
   let weekdays = target?.weekdays || [1, 2, 3, 4, 5]; // Mon-Fri by default
+  let excludeHolidays = target?.exclude_holidays || false;
   let isLoading = false;
   let errorMessage = '';
 
@@ -63,6 +64,7 @@
         name: name.trim(),
         duration_minutes,
         weekdays,
+        exclude_holidays: excludeHolidays,
       };
 
       if (target) {
@@ -189,6 +191,23 @@
               </button>
             {/each}
           </div>
+        </div>
+
+        <!-- Exclude Holidays Toggle -->
+        <div>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              bind:checked={excludeHolidays}
+              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span class="text-sm text-gray-700">
+              Exclude public holidays from balance calculation
+            </span>
+          </label>
+          <p class="text-xs text-gray-500 mt-1 ml-6">
+            When enabled, public holidays won't count as missed target days in the monthly balance
+          </p>
         </div>
 
         <!-- Actions -->

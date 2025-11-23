@@ -5,6 +5,7 @@
   import HistoryCharts from '../components/History/HistoryCharts.svelte';
   import HistoryCalendar from '../components/History/HistoryCalendar.svelte';
   import HistoryLogs from '../components/History/HistoryLogs.svelte';
+  import MonthlyBalance from '../components/History/MonthlyBalance.svelte';
   import { timeLogsStore } from '../stores/timelogs';
   import { buttonsStore } from '../stores/buttons';
   import dayjs from 'dayjs';
@@ -254,6 +255,12 @@
       {buttons}
       {timeLogs}
       onSelectDate={selectDate}
+    />
+
+    <!-- Monthly Balance Component -->
+    <MonthlyBalance
+      year={currentMonth.year()}
+      month={currentMonth.month() + 1}
     />
 
     <!-- Charts Component -->

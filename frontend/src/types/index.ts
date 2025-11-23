@@ -48,9 +48,26 @@ export interface DailyTarget {
   name: string;
   duration_minutes: number[]; // Array of duration values (one per weekday if needed)
   weekdays: number[]; // Array of weekday numbers (0=Sunday, 1=Monday, etc.)
+  exclude_holidays: boolean; // Whether to exclude public holidays from target calculation
   created_at: string;
   updated_at: string;
   deleted_at?: string;
+}
+
+// Monthly Balance types
+export interface MonthlyBalance {
+  id: string;
+  user_id: string;
+  target_id: string;
+  year: number;
+  month: number; // 1-12
+  worked_minutes: number;
+  due_minutes: number;
+  balance_minutes: number;
+  exclude_holidays: boolean;
+  created_at: string;
+  updated_at: string;
+  target?: DailyTarget;
 }
 
 // TimeLog types - Event-based system
