@@ -126,11 +126,16 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // Logout endpoint
   fastify.post('/logout', async (request, reply) => {
-    request.session.destroy((err) => {
-      if (err) {
-        return reply.code(500).send({ error: 'Failed to logout' });
-      }
-      return reply.send({ message: 'Logged out successfully' });
+    return new Promise((resolve, reject) => {
+      request.session.destroy((err) => {
+        if (err) {
+          reply.code(500).send({ error: 'Failed to logout' });
+          reject(err);
+        } else {
+          reply.send({ message: 'Logged out successfully' });
+          resolve(undefined);
+        }
+      });
     });
   });
 
