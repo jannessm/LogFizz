@@ -9,6 +9,7 @@ describe('UserStateEntryService', () => {
   let service: UserStateEntryService;
   let stateService: StateService;
   let testUserId: string;
+  let testTargetId: string;
   let testStateId: string; // Berlin
 
   beforeAll(async () => {
@@ -34,6 +35,18 @@ describe('UserStateEntryService', () => {
     });
     const savedUser = await userRepo.save(user);
     testUserId = savedUser.id;
+
+    // Create a test daily target
+    const { DailyTarget } = await import('../entities/DailyTarget.js');
+    const targetRepo = AppDataSource.getRepository(DailyTarget);
+    const target = targetRepo.create({
+      user_id: testUserId,
+      name: 'Test Target',
+      duration_minutes: [480],
+      weekdays: [1, 2, 3, 4, 5],
+    });
+    const savedTarget = await targetRepo.save(target);
+    testTargetId = savedTarget.id;
   });
 
   afterAll(async () => {
@@ -47,31 +60,31 @@ describe('UserStateEntryService', () => {
   });
 
   beforeEach(async () => {
-    // Hard delete all state entries for this user (including soft-deleted ones)
+    // Hard delete all state entries for this target (including soft-deleted ones)
     const stateEntryRepo = AppDataSource.getRepository(UserStateEntry);
-    await stateEntryRepo.delete({ user_id: testUserId });
+    await stateEntryRepo.delete({ target_id: testTargetId });
   });
 
   it('should create a new state entry', async () => {
     const registeredAt = new Date();
     const entry = await service.createStateEntry(
-      testUserId,
+      testTargetId,
       testStateId,
       registeredAt
     );
 
     expect(entry).toBeDefined();
     expect(entry.id).toBeDefined();
-    expect(entry.user_id).toBe(testUserId);
+    expect(entry.target_id).toBe(testTargetId);
     expect(entry.state_id).toBe(testStateId);
   });
 
-  it('should get all state entries for a user', async () => {
+  it('should get all state entries for a target', async () => {
     const now = new Date();
-    const entry1 = await service.createStateEntry(testUserId, testStateId, now);
-    const entry2 = await service.createStateEntry(testUserId, testStateId, new Date(now.getTime() + 1000));
+    const entry1 = await service.createStateEntry(testTargetId, testStateId, now);
+    const entry2 = await service.createStateEntry(testTargetId, testStateId, new Date(now.getTime() + 1000));
 
-    const entries = await service.getStateEntriesByUser(testUserId);
+    const entries = await service.getStateEntriesByTarget(testTargetId);
     expect(entries).toHaveLength(2);
     // Should be ordered by registered_at DESC
     expect(entries[0].id).toBe(entry2.id);
@@ -79,8 +92,8 @@ describe('UserStateEntryService', () => {
   });
 
   it('should get a single state entry by ID', async () => {
-    const entry = await service.createStateEntry(testUserId, testStateId, new Date());
-    const retrieved = await service.getStateEntryById(testUserId, entry.id);
+    const entry = await service.createStateEntry(testTargetId, testStateId, new Date());
+    const retrieved = await service.getStateEntryById(testTargetId, entry.id);
 
     expect(retrieved).toBeDefined();
     expect(retrieved?.id).toBe(entry.id);
@@ -88,11 +101,11 @@ describe('UserStateEntryService', () => {
   });
 
   it('should update a state entry', async () => {
-    const entry = await service.createStateEntry(testUserId, testStateId, new Date());
+    const entry = await service.createStateEntry(testTargetId, testStateId, new Date());
     
     // Get another state for updating
     const bayernState = await stateService.getStateByCode('DE-BY');
-    const updated = await service.updateStateEntry(testUserId, entry.id, {
+    const updated = await service.updateStateEntry(testTargetId, entry.id, {
       state_id: bayernState!.id,
     });
 
@@ -101,22 +114,22 @@ describe('UserStateEntryService', () => {
   });
 
   it('should soft delete a state entry', async () => {
-    const entry = await service.createStateEntry(testUserId, testStateId, new Date());
-    const deleted = await service.deleteStateEntry(testUserId, entry.id);
+    const entry = await service.createStateEntry(testTargetId, testStateId, new Date());
+    const deleted = await service.deleteStateEntry(testTargetId, entry.id);
 
     expect(deleted).toBe(true);
 
-    const entries = await service.getStateEntriesByUser(testUserId);
+    const entries = await service.getStateEntriesByTarget(testTargetId);
     expect(entries).toHaveLength(0);
   });
 
   it('should get the most recent state entry', async () => {
     const now = new Date();
-    await service.createStateEntry(testUserId, testStateId, new Date(now.getTime() - 2000));
-    await service.createStateEntry(testUserId, testStateId, new Date(now.getTime() - 1000));
-    const latest = await service.createStateEntry(testUserId, testStateId, now);
+    await service.createStateEntry(testTargetId, testStateId, new Date(now.getTime() - 2000));
+    await service.createStateEntry(testTargetId, testStateId, new Date(now.getTime() - 1000));
+    const latest = await service.createStateEntry(testTargetId, testStateId, now);
 
-    const mostRecent = await service.getMostRecentStateEntry(testUserId);
+    const mostRecent = await service.getMostRecentStateEntry(testTargetId);
     expect(mostRecent).toBeDefined();
     expect(mostRecent?.id).toBe(latest.id);
     expect(mostRecent?.state_id).toBe(testStateId);
@@ -127,12 +140,12 @@ describe('UserStateEntryService', () => {
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
 
-    const entry1 = await service.createStateEntry(testUserId, testStateId, twoDaysAgo);
-    const entry2 = await service.createStateEntry(testUserId, testStateId, yesterday);
-    const entry3 = await service.createStateEntry(testUserId, testStateId, now);
+    const entry1 = await service.createStateEntry(testTargetId, testStateId, twoDaysAgo);
+    const entry2 = await service.createStateEntry(testTargetId, testStateId, yesterday);
+    const entry3 = await service.createStateEntry(testTargetId, testStateId, now);
 
     const entries = await service.getStateEntriesInRange(
-      testUserId,
+      testTargetId,
       yesterday,
       now
     );
@@ -145,14 +158,14 @@ describe('UserStateEntryService', () => {
 
   it('should handle sync with conflict detection', async () => {
     const now = new Date();
-    const entry = await service.createStateEntry(testUserId, testStateId, now);
+    const entry = await service.createStateEntry(testTargetId, testStateId, now);
 
     // Get another state for the conflict test
     const bayernState = await stateService.getStateByCode('DE-BY');
 
     // Simulate a client pushing an older version
     const olderTimestamp = new Date(now.getTime() - 1000);
-    const result = await service.pushStateEntryChanges(testUserId, [
+    const result = await service.pushStateEntryChanges(testTargetId, [
       {
         id: entry.id,
         state_id: bayernState!.id,
@@ -167,14 +180,14 @@ describe('UserStateEntryService', () => {
 
   it('should sync without conflicts when client is newer', async () => {
     const past = new Date(Date.now() - 5000);
-    const entry = await service.createStateEntry(testUserId, testStateId, past);
+    const entry = await service.createStateEntry(testTargetId, testStateId, past);
 
     // Get another state for updating
     const bayernState = await stateService.getStateByCode('DE-BY');
 
     // Simulate a client pushing a newer version
     const newerTimestamp = new Date();
-    const result = await service.pushStateEntryChanges(testUserId, [
+    const result = await service.pushStateEntryChanges(testTargetId, [
       {
         id: entry.id,
         state_id: bayernState!.id,

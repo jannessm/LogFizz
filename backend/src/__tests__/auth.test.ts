@@ -34,8 +34,6 @@ describe('Authentication Routes', () => {
     expect(body.email).toBeDefined();
     expect(body.name).toBe('Test User');
     expect(body.password_hash).toBeUndefined();
-    expect(body.state_entries).toBeDefined();
-    expect(Array.isArray(body.state_entries)).toBe(true);
   });
 
   it('should not register a user with duplicate email', async () => {
@@ -66,52 +64,7 @@ describe('Authentication Routes', () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it('should register a user with state entries', async () => {
-    const email = `stateentries${Date.now()}@example.com`;
-    const password = 'testpassword123';
-    const hashedPassword = hashPasswordForTransport(password, email);
-    
-    // Get states to use for testing
-    const statesResponse = await app.inject({
-      method: 'GET',
-      url: '/api/states',
-    });
-    
-    const states = JSON.parse(statesResponse.body);
-    const berlinState = states.find((s: any) => s.code === 'DE-BE');
-    const bayernState = states.find((s: any) => s.code === 'DE-BY');
-    
-    const now = new Date();
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    
-    const response = await app.inject({
-      method: 'POST',
-      url: '/api/auth/register',
-      payload: {
-        email,
-        password: hashedPassword,
-        name: 'State Test User',
-        state_entries: [
-          {
-            state_id: berlinState.id,
-            registered_at: yesterday.toISOString(),
-          },
-          {
-            state_id: bayernState.id,
-            registered_at: now.toISOString(),
-          },
-        ],
-      },
-    });
 
-    expect(response.statusCode).toBe(201);
-    const body = JSON.parse(response.body);
-    expect(body.state_entries).toBeDefined();
-    expect(body.state_entries.length).toBe(2);
-    expect(body.state_entries[0].state_id).toBeDefined();
-    expect(body.state_entries[0].state).toBeDefined();
-    expect(body.state_entries[0].state.code).toBeDefined();
-  });
 
   it('should login with correct credentials', async () => {
     const email = `login${Date.now()}@example.com`;
@@ -142,7 +95,6 @@ describe('Authentication Routes', () => {
     expect(body.id).toBeDefined();
     expect(body.email).toBe(email);
     expect(body.name).toBe('Test User');
-    expect(body.state_entries).toBeDefined();
   });
 
   it('should not login with incorrect password', async () => {
@@ -182,20 +134,12 @@ describe('Authentication Routes', () => {
     expect(response.statusCode).toBe(401);
   });
 
-  it('should return user with state_entries on /me', async () => {
+  it('should return user on /me', async () => {
     const email = `metest${Date.now()}@example.com`;
     const password = 'testpassword123';
     const hashedPassword = hashPasswordForTransport(password, email);
     
-    // Get states
-    const statesResponse = await app.inject({
-      method: 'GET',
-      url: '/api/states',
-    });
-    const states = JSON.parse(statesResponse.body);
-    const berlinState = states.find((s: any) => s.code === 'DE-BE');
-    
-    // Register with state entries
+    // Register
     await app.inject({
       method: 'POST',
       url: '/api/auth/register',
@@ -203,12 +147,6 @@ describe('Authentication Routes', () => {
         email,
         password: hashedPassword,
         name: 'Me Test User',
-        state_entries: [
-          {
-            state_id: berlinState.id,
-            registered_at: new Date().toISOString(),
-          },
-        ],
       },
     });
 
@@ -234,11 +172,9 @@ describe('Authentication Routes', () => {
 
     expect(meResponse.statusCode).toBe(200);
     const body = JSON.parse(meResponse.body);
-    expect(body.state_entries).toBeDefined();
-    expect(body.state_entries.length).toBe(1);
-    expect(body.state_entries[0].state_id).toBe(berlinState.id);
-    expect(body.state_entries[0].state).toBeDefined();
-    expect(body.state_entries[0].state.code).toBe('DE-BE');
+    expect(body.id).toBeDefined();
+    expect(body.email).toBe(email);
+    expect(body.name).toBe('Me Test User');
   });
 
   it('should logout successfully without a request body', async () => {
@@ -653,40 +589,21 @@ describe('Authentication Routes', () => {
   });
 
   describe('Profile Management', () => {
-    it('should update profile with state_entries', async () => {
+    it('should update profile', async () => {
       const email = `profileupdate${Date.now()}@example.com`;
       const password = 'testpassword123';
       const hashedPassword = hashPasswordForTransport(password, email);
       
-      // Get states
-      const statesResponse = await app.inject({
-        method: 'GET',
-        url: '/api/states',
-      });
-      const states = JSON.parse(statesResponse.body);
-      const berlinState = states.find((s: any) => s.code === 'DE-BE');
-      const bayernState = states.find((s: any) => s.code === 'DE-BY');
-      const hessenState = states.find((s: any) => s.code === 'DE-HE');
-      
-      // Register with one state entry
-      const registerResponse = await app.inject({
+      // Register
+      await app.inject({
         method: 'POST',
         url: '/api/auth/register',
         payload: {
           email,
           password: hashedPassword,
           name: 'Profile Test User',
-          state_entries: [
-            {
-              state_id: berlinState.id,
-              registered_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
-            },
-          ],
         },
       });
-
-      const registerBody = JSON.parse(registerResponse.body);
-      const firstEntryId = registerBody.state_entries[0].id;
 
       // Login
       const loginResponse = await app.inject({
@@ -699,7 +616,7 @@ describe('Authentication Routes', () => {
       });
       const cookies = loginResponse.headers['set-cookie'];
 
-      // Update profile with modified state_entries
+      // Update profile
       const updateResponse = await app.inject({
         method: 'PUT',
         url: '/api/auth/profile',
@@ -708,103 +625,12 @@ describe('Authentication Routes', () => {
         },
         payload: {
           name: 'Updated Profile User',
-          state_entries: [
-            {
-              id: firstEntryId,
-              state_id: bayernState.id, // Changed from Berlin to Bayern
-              registered_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-            },
-            {
-              state_id: hessenState.id, // New entry
-              registered_at: new Date().toISOString(),
-            },
-          ],
         },
       });
 
       expect(updateResponse.statusCode).toBe(200);
       const body = JSON.parse(updateResponse.body);
       expect(body.name).toBe('Updated Profile User');
-      expect(body.state_entries).toBeDefined();
-      expect(body.state_entries.length).toBe(2);
-      
-      // Check first entry was updated
-      const updatedFirstEntry = body.state_entries.find((e: any) => e.id === firstEntryId);
-      expect(updatedFirstEntry).toBeDefined();
-      expect(updatedFirstEntry.state_id).toBe(bayernState.id);
-      
-      // Check second entry was added
-      const newEntry = body.state_entries.find((e: any) => e.state_id === hessenState.id);
-      expect(newEntry).toBeDefined();
-    });
-
-    it('should delete state_entries not in update', async () => {
-      const email = `profiledelete${Date.now()}@example.com`;
-      const password = 'testpassword123';
-      const hashedPassword = hashPasswordForTransport(password, email);
-      
-      // Get states
-      const statesResponse = await app.inject({
-        method: 'GET',
-        url: '/api/states',
-      });
-      const states = JSON.parse(statesResponse.body);
-      const berlinState = states.find((s: any) => s.code === 'DE-BE');
-      const bayernState = states.find((s: any) => s.code === 'DE-BY');
-      
-      // Register with two state entries
-      await app.inject({
-        method: 'POST',
-        url: '/api/auth/register',
-        payload: {
-          email,
-          password: hashedPassword,
-          name: 'Delete Test User',
-          state_entries: [
-            {
-              state_id: berlinState.id,
-              registered_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-            },
-            {
-              state_id: bayernState.id,
-              registered_at: new Date().toISOString(),
-            },
-          ],
-        },
-      });
-
-      // Login
-      const loginResponse = await app.inject({
-        method: 'POST',
-        url: '/api/auth/login',
-        payload: {
-          email,
-          password: hashedPassword,
-        },
-      });
-      const cookies = loginResponse.headers['set-cookie'];
-
-      // Update profile with only one entry (should soft-delete the other)
-      const updateResponse = await app.inject({
-        method: 'PUT',
-        url: '/api/auth/profile',
-        headers: {
-          cookie: cookies,
-        },
-        payload: {
-          state_entries: [
-            {
-              state_id: bayernState.id,
-              registered_at: new Date().toISOString(),
-            },
-          ],
-        },
-      });
-
-      expect(updateResponse.statusCode).toBe(200);
-      const body = JSON.parse(updateResponse.body);
-      expect(body.state_entries.length).toBe(1);
-      expect(body.state_entries[0].state_id).toBe(bayernState.id);
     });
   });
 });
