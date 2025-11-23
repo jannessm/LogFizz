@@ -1,5 +1,5 @@
 import ky from 'ky';
-import type { User, Button, TimeLog, Holiday, DailyTarget } from '../types';
+import type { User, Button, TimeLog, Holiday, DailyTarget, State } from '../types';
 
 // In development, use proxy (relative path). In production, use env variable or default to same origin
 const API_BASE_URL = import.meta.env.PROD 
@@ -62,8 +62,8 @@ export const authApi = {
     });
   },
 
-  async updateProfile(name: string, state?: string): Promise<User> {
-    return api.put('api/auth/profile', { json: { name, state } }).json();
+  async updateProfile(data: { name?: string; email?: string; state_entries?: Array<{ id?: string; state_id: string; registered_at: string }> }): Promise<User> {
+    return api.put('api/auth/profile', { json: data }).json();
   },
 
   async forgotPassword(email: string): Promise<{ message: string }> {
@@ -241,8 +241,12 @@ export const holidayApi = {
 };
 
 export const statesApi = {
-  async getAllStates(): Promise<string[]> {
+  async getAllStates(): Promise<State[]> {
     return api.get(`api/states`).json();
+  },
+
+  async getStatesByCountry(country: string): Promise<State[]> {
+    return api.get(`api/states/${country}`).json();
   },
 };
 

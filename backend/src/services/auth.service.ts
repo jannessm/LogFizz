@@ -11,7 +11,6 @@ import crypto from 'crypto';
 export class AuthService {
   private userRepository = AppDataSource.getRepository(User);
   private stateRepository = AppDataSource.getRepository(State);
-  private stateEntryRepository = AppDataSource.getRepository(UserStateEntry);
   private emailService = new EmailService();
   private stateEntryService = new UserStateEntryService();
 

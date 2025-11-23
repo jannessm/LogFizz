@@ -115,7 +115,7 @@ function createAuthStore() {
     async register(email: string, password: string, name: string, state?: string) {
       update(storeState => ({ ...storeState, isLoading: true, error: null }));
       try {
-        const user = await authApi.register(email, password, name, tate);
+        const user = await authApi.register(email, password, name, undefined, state);
         await saveUser(user);
         update(storeState => ({ 
           ...storeState, 
@@ -154,10 +154,10 @@ function createAuthStore() {
       }
     },
 
-    async updateProfile(name: string, state?: string) {
+    async updateProfile(data: { name?: string; email?: string; state_entries?: Array<{ id?: string; state_id: string; registered_at: string }> }) {
       update(storeState => ({ ...storeState, isLoading: true, error: null }));
       try {
-        const user = await authApi.updateProfile(name, state);
+        const user = await authApi.updateProfile(data);
         await saveUser(user);
         update(storeState => ({ 
           ...storeState, 

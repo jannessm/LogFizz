@@ -6,6 +6,7 @@ export interface User {
   email_verified_at?: string;
   created_at?: string;
   updated_at?: string;
+  state_entries?: StateEntry[];
 }
 
 export interface State {
@@ -13,6 +14,15 @@ export interface State {
   country: string;
   state: string;
   code: string; // e.g., 'DE-BW' for Baden-Württemberg
+}
+
+export interface StateEntry {
+  id: string;
+  state_id: string;
+  registered_at: string;
+  created_at: string;
+  updated_at: string;
+  state?: State;
 }
 
 // Button types

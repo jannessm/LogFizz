@@ -28,7 +28,7 @@
         return 'icon-[si--alert-duotone]';
       case 'info':
       default:
-        return 'icon-[si--information-line]';
+        return 'icon-[si--info-duotone]';
     }
   }
 </script>

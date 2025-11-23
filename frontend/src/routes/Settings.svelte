@@ -4,24 +4,57 @@
   import { authStore } from '../stores/auth';
   import { syncService } from '../services/sync';
   import { navigate } from '../lib/navigation';
+  import { statesApi } from '../services/api';
+  import type { State, StateEntry } from '../types';
 
   let name = '';
-  let state = '';
+  let originalName = '';
+  let stateEntries: StateEntry[] = [];
+  let originalStateEntries: StateEntry[] = []; // Track original state for comparison
+  let availableStates: State[] = [];
   let currentPassword = '';
   let newPassword = '';
   let confirmPassword = '';
   let hasPendingSync = false;
   let errorMessage = '';
   let successMessage = '';
+  
+  // For adding/editing state entries
+  let isAddingState = false;
+  let editingStateEntryId: string | null = null;
+  let selectedStateId = '';
+  let registeredAt = '';
 
   $: user = $authStore.user;
+  $: sortedStateEntries = [...stateEntries].sort((a, b) => 
+    new Date(b.registered_at).getTime() - new Date(a.registered_at).getTime()
+  );
+  $: hasNameChanged = name !== originalName;
+  
+  // Check if a state entry has unsaved changes
+  function hasUnsavedChanges(entry: StateEntry): boolean {
+    const original = originalStateEntries.find(o => o.id === entry.id);
+    if (!original) return true; // New entry
+    return original.state_id !== entry.state_id || 
+           original.registered_at !== entry.registered_at;
+  }
 
   onMount(async () => {
     if (user) {
       name = user.name;
-      state = user.state || '';
+      originalName = user.name;
+      stateEntries = user.state_entries || [];
+      // Deep copy to track original state
+      originalStateEntries = JSON.parse(JSON.stringify(stateEntries));
     }
     hasPendingSync = await syncService.hasPendingSync();
+    
+    // Fetch available states
+    try {
+      availableStates = await statesApi.getAllStates();
+    } catch (error) {
+      console.error('Failed to load states:', error);
+    }
   });
 
   async function handleProfileUpdate() {
@@ -29,11 +62,88 @@
     successMessage = '';
     
     try {
-      await authStore.updateProfile(name, state || undefined);
+      await authStore.updateProfile({ 
+        name,
+        state_entries: stateEntries.map(entry => ({
+          id: entry.id,
+          state_id: entry.state_id,
+          registered_at: entry.registered_at
+        }))
+      });
       successMessage = 'Profile updated successfully';
+      // Update original state after successful save
+      originalName = name;
+      originalStateEntries = JSON.parse(JSON.stringify(stateEntries));
     } catch (error: any) {
       errorMessage = error.message;
     }
+  }
+
+  function startAddingState() {
+    isAddingState = true;
+    editingStateEntryId = null;
+    selectedStateId = '';
+    registeredAt = new Date().toISOString().split('T')[0];
+  }
+
+  function startEditingState(entry: StateEntry) {
+    isAddingState = false;
+    editingStateEntryId = entry.id;
+    selectedStateId = entry.state_id;
+    registeredAt = entry.registered_at.split('T')[0];
+  }
+
+  function cancelStateEdit() {
+    isAddingState = false;
+    editingStateEntryId = null;
+    selectedStateId = '';
+    registeredAt = '';
+  }
+
+  function saveStateEntry() {
+    if (!selectedStateId || !registeredAt) {
+      errorMessage = 'Please select a state and enter a date';
+      return;
+    }
+
+    const isoDate = new Date(registeredAt).toISOString();
+    const selectedState = availableStates.find(s => s.id === selectedStateId);
+    
+    if (editingStateEntryId) {
+      // Update existing entry
+      stateEntries = stateEntries.map(entry => 
+        entry.id === editingStateEntryId
+          ? { ...entry, state_id: selectedStateId, registered_at: isoDate, state: selectedState }
+          : entry
+      );
+    } else {
+      // Add new entry
+      const newEntry: StateEntry = {
+        id: crypto.randomUUID(), // Temporary ID, will be replaced by backend
+        state_id: selectedStateId,
+        registered_at: isoDate,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        state: selectedState
+      };
+      stateEntries = [...stateEntries, newEntry];
+    }
+
+    cancelStateEdit();
+  }
+
+  function deleteStateEntry(entryId: string) {
+    if (confirm('Are you sure you want to delete this state entry?')) {
+      stateEntries = stateEntries.filter(entry => entry.id !== entryId);
+    }
+  }
+
+  function formatDate(dateString: string): string {
+    return new Date(dateString).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   }
 
   async function handlePasswordChange() {
@@ -108,28 +218,128 @@
         </div>
 
         <div>
-          <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
-            Name
-          </label>
+          <div class="flex items-center gap-2 mb-1">
+            <label for="name" class="block text-sm font-medium text-gray-700">
+              Name
+            </label>
+            {#if hasNameChanged}
+              <span class="text-xs px-2 py-0.5 bg-orange-200 text-orange-800 rounded-full font-medium">
+                Unsaved
+              </span>
+            {/if}
+          </div>
           <input
             id="name"
             type="text"
             bind:value={name}
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors {hasNameChanged ? 'border-orange-400 bg-orange-50 focus:ring-orange-500' : 'border-gray-300 focus:ring-blue-500'}"
           />
         </div>
 
         <div>
-          <label for="state" class="block text-sm font-medium text-gray-700 mb-1">
-            State/Region (optional)
-          </label>
-          <input
-            id="state"
-            type="text"
-            bind:value={state}
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g., California, Bavaria"
-          />
+          <div class="flex items-center justify-between mb-2">
+            <div class="block text-sm font-medium text-gray-700">
+              State/Region History
+            </div>
+            {#if !isAddingState && !editingStateEntryId}
+              <button
+                on:click={startAddingState}
+                class="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              >
+                <span class="w-4 h-4 icon-[si--add-line]"></span>
+                Add State
+              </button>
+            {/if}
+          </div>
+
+          <!-- Add/Edit State Form -->
+          {#if isAddingState || editingStateEntryId}
+            <div class="mb-3 p-3 border border-gray-300 rounded-md bg-gray-50">
+              <div class="space-y-3">
+                <div>
+                  <label for="stateSelect" class="block text-sm font-medium text-gray-700 mb-1">
+                    State
+                  </label>
+                  <select
+                    id="stateSelect"
+                    bind:value={selectedStateId}
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a state...</option>
+                    {#each availableStates as state}
+                      <option value={state.id}>{state.state} ({state.code})</option>
+                    {/each}
+                  </select>
+                </div>
+                <div>
+                  <label for="registeredDate" class="block text-sm font-medium text-gray-700 mb-1">
+                    Since
+                  </label>
+                  <input
+                    id="registeredDate"
+                    type="date"
+                    bind:value={registeredAt}
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div class="flex gap-2">
+                  <button
+                    on:click={saveStateEntry}
+                    class="flex-1 bg-green-600 text-white py-2 px-3 rounded-md hover:bg-green-700 transition-colors flex items-center justify-center gap-1 text-sm"
+                  >
+                    <span class="w-4 h-4 icon-[si--check-line]"></span>
+                    Save
+                  </button>
+                  <button
+                    on:click={cancelStateEdit}
+                    class="flex-1 bg-gray-500 text-white py-2 px-3 rounded-md hover:bg-gray-600 transition-colors flex items-center justify-center gap-1 text-sm"
+                  >
+                    <span class="w-4 h-4 icon-[si--close-line]"></span>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          {/if}
+
+          <!-- State Entries List -->
+          <div class="space-y-2">
+            {#if sortedStateEntries.length === 0}
+              <p class="text-sm text-gray-500 italic">No state entries yet. Add your first state to include public holidays in your time tracking.</p>
+            {:else}
+              {#each sortedStateEntries as entry (entry.id)}
+                <div class="flex items-center justify-between p-3 border rounded-md transition-colors {hasUnsavedChanges(entry) ? 'border-orange-400 bg-orange-50' : 'border-gray-200 bg-white'}">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                      <div class="font-medium text-gray-900">
+                        {entry.state?.state || 'Unknown State'}
+                      </div>
+                      {#if hasUnsavedChanges(entry)}
+                        <span class="text-xs px-2 py-0.5 bg-orange-200 text-orange-800 rounded-full font-medium">
+                          Unsaved
+                        </span>
+                      {/if}
+                    </div>
+                    <div class="text-sm text-gray-600">
+                      Since: {formatDate(entry.registered_at)}
+                    </div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button
+                      on:click={() => startEditingState(entry)}
+                      class="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors icon-[si--edit-detailed-duotone]"
+                      title="Edit"
+                    ></button>
+                    <button
+                      on:click={() => deleteStateEntry(entry.id)}
+                      class="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors icon-[si--bin-line]"
+                      title="Delete"
+                    ></button>
+                  </div>
+                </div>
+              {/each}
+            {/if}
+          </div>
         </div>
 
         <button
