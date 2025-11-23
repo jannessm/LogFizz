@@ -6,6 +6,7 @@ import { DailyTarget } from '../entities/DailyTarget.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { hashPassword } from '../utils/password.js';
+import crypto from 'crypto';
 
 /**
  * Seed script for development environment
@@ -36,16 +37,25 @@ async function seed() {
     console.log('👤 Creating sample users...');
     const userRepo = AppDataSource.getRepository(User);
     
+    // Hash passwords as the frontend would send them (SHA-256 of password + email, then bcrypt)
+    const demoEmail = 'demo@example.com';
+    const demoPassword = 'demo123';
+    const demoClientHash = crypto.createHash('sha256').update(demoPassword + demoEmail).digest('hex');
+    
     const demoUser = userRepo.create({
-      email: 'demo@example.com',
-      password_hash: await hashPassword('demo123'),
+      email: demoEmail,
+      password_hash: await hashPassword(demoClientHash),
       name: 'Demo User',
     });
     await userRepo.save(demoUser);
     
+    const testEmail = 'test@example.com';
+    const testPassword = 'test123';
+    const testClientHash = crypto.createHash('sha256').update(testPassword + testEmail).digest('hex');
+    
     const testUser = userRepo.create({
-      email: 'test@example.com',
-      password_hash: await hashPassword('test123'),
+      email: testEmail,
+      password_hash: await hashPassword(testClientHash),
       name: 'Test User',
     });
     await userRepo.save(testUser);
