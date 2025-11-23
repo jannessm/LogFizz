@@ -191,7 +191,7 @@
 </script>
 
 <div class="flex flex-col h-screen bg-gray-50">
-  <div class="max-w-[500px] mx-auto px-4 py-6 grow-1 overflow-x-auto">
+  <div class="w-full max-w-lg mx-auto px-4 py-6 grow-1 overflow-x-auto">
     <!-- Header -->
     <h1 class="text-2xl font-bold text-gray-800">History</h1>
     <div class="flex justify-between items-center mb-6">
