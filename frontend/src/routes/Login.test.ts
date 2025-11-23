@@ -23,7 +23,7 @@ describe('Login Component', () => {
 
   it('renders login form by default', () => {
     render(Login);
-    expect(screen.getByText(/Login to Clock/i)).toBeInTheDocument();
+    expect(screen.getByText(/Login to TapShift/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
   });
@@ -32,7 +32,7 @@ describe('Login Component', () => {
     render(Login);
     const toggleButton = screen.getByText(/Don't have an account\? Register/i);
     await fireEvent.click(toggleButton);
-    expect(screen.getByText(/Register to Clock/i)).toBeInTheDocument();
+    expect(screen.getByText(/Register to TapShift/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Name/i)).toBeInTheDocument();
   });
 

@@ -20,7 +20,9 @@
     "holiday:crawl": "tsx src/scripts/holiday-crawler.ts",
     "holiday:refresh": "tsx src/scripts/holiday-crawler.ts -- --refresh",
     "holiday:init": "tsx src/scripts/holiday-crawler.ts -- --init",
-    "maintenance": "tsx -e \"import { AppDataSource } from './src/config/database.js'; import { CleanupService } from './src/services/cleanup.service.js'; await AppDataSource.initialize(); const service = new CleanupService(); await service.runAllMaintenanceTasks(); await AppDataSource.destroy();\""
+    "maintenance": "tsx -e \"import { AppDataSource } from './src/config/database.js'; import { CleanupService } from './src/services/cleanup.service.js'; await AppDataSource.initialize(); const service = new CleanupService(); await service.runAllMaintenanceTasks(); await AppDataSource.destroy();\"",
+    "statistics:send": "tsx src/scripts/statistics.ts",
+    "statistics:show": "tsx src/scripts/statistics.ts -- --show"
   },
   "keywords": [],
   "author": "",
@@ -37,6 +39,7 @@
     "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",
     "fastify": "^5.6.2",
+    "ioredis": "^5.4.1",
     "nodemailer": "^7.0.10",
     "pg": "^8.16.3",
     "reflect-metadata": "^0.2.2",
@@ -50,6 +53,7 @@
     "@types/nodemailer": "^7.0.3",
     "@types/ws": "^8.18.1",
     "@vitest/ui": "^4.0.8",
+    "fastify-session-redis-store": "^7.1.2",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^4.0.8"

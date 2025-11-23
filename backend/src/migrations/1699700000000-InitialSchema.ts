@@ -14,11 +14,12 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "email" character varying NOT NULL,
                 "password_hash" character varying NOT NULL,
                 "name" character varying NOT NULL,
-                "country" character varying,
-                "state" character varying,
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "deleted_at" TIMESTAMP WITH TIME ZONE,
+                "email_verification_token" character varying,
+                "email_verification_expires_at" TIMESTAMP WITH TIME ZONE,
+                "email_verified_at" TIMESTAMP WITH TIME ZONE,
                 "reset_token" character varying,
                 "reset_token_expires_at" TIMESTAMP WITH TIME ZONE,
                 CONSTRAINT "UQ_users_email" UNIQUE ("email"),
@@ -98,6 +99,58 @@ export class InitialSchema1699700000000 implements MigrationInterface {
             )
         `);
 
+        // Create states table
+        await queryRunner.query(`
+            CREATE TABLE IF NOT EXISTS "states" (
+                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                "country" character varying NOT NULL,
+                "state" character varying NOT NULL,
+                "code" character varying NOT NULL,
+                CONSTRAINT "PK_states_id" PRIMARY KEY ("id"),
+                CONSTRAINT "UQ_states_code" UNIQUE ("code")
+            )
+        `);
+
+        // Insert German states
+        await queryRunner.query(`
+            INSERT INTO "states" ("country", "state", "code") VALUES
+            ('Germany', 'Baden-Württemberg', 'DE-BW'),
+            ('Germany', 'Bayern', 'DE-BY'),
+            ('Germany', 'Berlin', 'DE-BE'),
+            ('Germany', 'Brandenburg', 'DE-BB'),
+            ('Germany', 'Bremen', 'DE-HB'),
+            ('Germany', 'Hamburg', 'DE-HH'),
+            ('Germany', 'Hessen', 'DE-HE'),
+            ('Germany', 'Mecklenburg-Vorpommern', 'DE-MV'),
+            ('Germany', 'Niedersachsen', 'DE-NI'),
+            ('Germany', 'Nordrhein-Westfalen', 'DE-NW'),
+            ('Germany', 'Rheinland-Pfalz', 'DE-RP'),
+            ('Germany', 'Saarland', 'DE-SL'),
+            ('Germany', 'Sachsen', 'DE-SN'),
+            ('Germany', 'Sachsen-Anhalt', 'DE-ST'),
+            ('Germany', 'Schleswig-Holstein', 'DE-SH'),
+            ('Germany', 'Thüringen', 'DE-TH')
+            ON CONFLICT (code) DO NOTHING
+        `);
+
+        // Create user_state_entries table
+        await queryRunner.query(`
+            CREATE TABLE IF NOT EXISTS "user_state_entries" (
+                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                "user_id" uuid NOT NULL,
+                "state_id" uuid NOT NULL,
+                "registered_at" TIMESTAMP WITH TIME ZONE NOT NULL,
+                "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+                "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+                "deleted_at" TIMESTAMP WITH TIME ZONE,
+                CONSTRAINT "PK_user_state_entries_id" PRIMARY KEY ("id"),
+                CONSTRAINT "FK_user_state_entries_user_id" FOREIGN KEY ("user_id") 
+                    REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
+                CONSTRAINT "FK_user_state_entries_state_id" FOREIGN KEY ("state_id") 
+                    REFERENCES "states"("id") ON DELETE RESTRICT ON UPDATE NO ACTION
+            )
+        `);
+
         // Create indexes for better performance
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_daily_targets_user_id" ON "daily_targets" ("user_id")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_daily_targets_deleted_at" ON "daily_targets" ("deleted_at")`);
@@ -113,10 +166,17 @@ export class InitialSchema1699700000000 implements MigrationInterface {
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_deleted_at" ON "time_logs" ("deleted_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_buttons_updated_at" ON "buttons" ("updated_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_updated_at" ON "time_logs" ("updated_at")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_state_entries_user_id" ON "user_state_entries" ("user_id")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_state_entries_state_id" ON "user_state_entries" ("state_id")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_state_entries_registered_at" ON "user_state_entries" ("registered_at")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_state_entries_deleted_at" ON "user_state_entries" ("deleted_at")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_state_entries_updated_at" ON "user_state_entries" ("updated_at")`);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         // Drop tables in reverse order (respecting foreign key constraints)
+        await queryRunner.query(`DROP TABLE IF EXISTS "user_state_entries"`);
+        await queryRunner.query(`DROP TABLE IF EXISTS "states"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "time_logs"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "buttons"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "daily_targets"`);

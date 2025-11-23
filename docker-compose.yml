@@ -18,6 +18,20 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: clock-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
@@ -29,6 +43,8 @@ services:
       DB_USERNAME: clock_user
       DB_PASSWORD: clock_password
       DB_DATABASE: clock_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       PORT: 3000
       HOST: 0.0.0.0
       SESSION_SECRET: change-this-secret-in-production-min-32-chars-required-for-security
@@ -39,6 +55,8 @@ services:
       - "3000:3000"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
 
@@ -55,3 +73,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:

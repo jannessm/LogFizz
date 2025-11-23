@@ -7,6 +7,8 @@
   import Settings from './routes/Settings.svelte';
   import ForgotPassword from './routes/ForgotPassword.svelte';
   import ResetPassword from './routes/ResetPassword.svelte';
+  import VerifyEmail from './routes/VerifyEmail.svelte';
+  import Snackbar from './components/Snackbar.svelte';
   import { syncService } from './services/sync';
   import { currentPath, navigate } from './lib/navigation';
 
@@ -16,7 +18,7 @@
   $: path = $currentPath;
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/login', '/forgot-password', '/reset-password'];
+  const publicRoutes = ['/login', '/forgot-password', '/reset-password', '/verify-email'];
   const isPublicRoute = (path: string) => publicRoutes.includes(path);
 
   onMount(async () => {
@@ -53,6 +55,8 @@
     <ForgotPassword />
   {:else if path === '/reset-password'}
     <ResetPassword />
+  {:else if path === '/verify-email'}
+    <VerifyEmail />
   {:else if path === '/history'}
     <History />
   {:else if path === '/settings'}
@@ -61,3 +65,6 @@
     <Dashboard />
   {/if}
 {/if}
+
+<!-- Global Snackbar component -->
+<Snackbar />
