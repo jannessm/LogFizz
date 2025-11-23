@@ -33,7 +33,13 @@ export class AuthService {
     // Handle state_entries if provided (takes priority)
     if (providedStateEntries && providedStateEntries.length > 0) {
       for (const entry of providedStateEntries) {
-        stateEntries.push({ id: entry.state_id, registered_at: entry.registered_at });
+        // Validate that the state_id exists
+        const stateExists = await this.stateRepository.findOne({
+          where: { id: entry.state_id }
+        });
+        if (stateExists) {
+          stateEntries.push({ id: entry.state_id, registered_at: entry.registered_at });
+        }
       }
     } else if (state) {
       // Otherwise, handle single state code
