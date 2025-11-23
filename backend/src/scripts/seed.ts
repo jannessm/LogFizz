@@ -40,8 +40,6 @@ async function seed() {
       email: 'demo@example.com',
       password_hash: await hashPassword('demo123'),
       name: 'Demo User',
-      country: 'DE',
-      state: 'Berlin',
     });
     await userRepo.save(demoUser);
     
@@ -49,14 +47,12 @@ async function seed() {
       email: 'test@example.com',
       password_hash: await hashPassword('test123'),
       name: 'Test User',
-      country: 'DE',
-      state: 'Bayern',
     });
     await userRepo.save(testUser);
     
     console.log('✅ Created 2 sample users');
-    console.log('   - demo@example.com (password: demo123, state: Berlin)');
-    console.log('   - test@example.com (password: test123, state: Bayern)');
+    console.log('   - demo@example.com (password: demo123)');
+    console.log('   - test@example.com (password: test123)');
 
     // Create sample daily targets for demo user (before buttons so we can link them)
     console.log('🎯 Creating sample daily targets...');
