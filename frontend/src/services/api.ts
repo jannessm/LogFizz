@@ -253,23 +253,23 @@ export const statesApi = {
 
 // Monthly Balance API
 export const monthlyBalanceApi = {
-  async getBalance(targetId: string, year: number, month: number): Promise<any> {
+  async getBalance(targetId: string, year: number, month: number): Promise<MonthlyBalance> {
     return api.get(`api/monthly-balances/${targetId}/${year}/${month}`).json();
   },
 
-  async getAllBalances(year: number, month: number): Promise<any[]> {
+  async getAllBalances(year: number, month: number): Promise<MonthlyBalance[]> {
     return api.get(`api/monthly-balances/${year}/${month}`).json();
   },
 
-  async calculateBalance(targetId: string, year: number, month: number): Promise<any> {
-    return api.post(`api/monthly-balances/calculate/${targetId}/${year}/${month}`).json();
+  async calculateBalance(targetId: string, year: number, month: number): Promise<MonthlyBalance> {
+    return api.post(`api/monthly-balances/calculate/${targetId}/${year}/${month}`, {
+      body: '', // Empty body but don't set JSON content-type
+    }).json();
   },
 
-  async recalculateAllBalances(year: number, month: number): Promise<any[]> {
+  async recalculateAllBalances(year: number, month: number): Promise<MonthlyBalance[]> {
     return api.post(`api/monthly-balances/calculate/${year}/${month}`, {
-      headers: {
-        'Content-Type': undefined, // Remove content-type header for empty body
-      },
+      body: '', // Empty body but don't set JSON content-type
     }).json();
   },
 };
