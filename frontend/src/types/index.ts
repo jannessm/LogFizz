@@ -41,6 +41,7 @@ export interface DailyTarget {
   exclude_holidays: boolean; // Whether to exclude public holidays from target calculation
   state_id?: string;
   starting_from?: string; // Date from which tracking starts (important for saldo computations)
+  exclude_holidays: boolean; // Whether to exclude public holidays from target calculation
   created_at: string;
   updated_at: string;
   deleted_at?: string;

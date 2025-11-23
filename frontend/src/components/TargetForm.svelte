@@ -19,6 +19,7 @@
   let excludeHolidays = target?.exclude_holidays || false;
   let stateId = target?.state_id || '';
   let startingFrom = target?.starting_from ? target.starting_from.split('T')[0] : '';
+  let excludeHolidays = target?.exclude_holidays || false;
   let isLoading = false;
   let errorMessage = '';
   let availableStates: State[] = [];
@@ -420,6 +421,23 @@
               </p>
             </div>
           </div>
+        </div>
+
+        <!-- Exclude Holidays Toggle -->
+        <div>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              bind:checked={excludeHolidays}
+              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span class="text-sm text-gray-700">
+              Exclude public holidays from balance calculation
+            </span>
+          </label>
+          <p class="text-xs text-gray-500 mt-1 ml-6">
+            When enabled, public holidays won't count as missed target days in the monthly balance
+          </p>
         </div>
 
         <!-- Actions -->
