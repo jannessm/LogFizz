@@ -14,12 +14,6 @@ export class User {
   @Column('varchar')
   name!: string;
 
-  @Column('varchar', { nullable: true })
-  country?: string;
-
-  @Column('varchar', { nullable: true })
-  state?: string;
-
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 
@@ -28,6 +22,15 @@ export class User {
 
   @Column('timestamptz', { nullable: true })
   deleted_at?: Date;
+
+  @Column('varchar', { nullable: true })
+  email_verification_token?: string;
+
+  @Column('timestamptz', { nullable: true })
+  email_verification_expires_at?: Date;
+
+  @Column('timestamptz', { nullable: true })
+  email_verified_at?: Date;
 
   @Column('varchar', { nullable: true })
   reset_token?: string;
@@ -40,4 +43,7 @@ export class User {
 
   @OneToMany('TimeLog', 'user')
   time_logs?: any[];
+
+  @OneToMany('UserStateEntry', 'user')
+  state_entries?: any[];
 }

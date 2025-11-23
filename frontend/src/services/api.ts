@@ -1,5 +1,5 @@
 import ky from 'ky';
-import type { User, Button, TimeLog, Holiday, DailyTarget } from '../types';
+import type { User, Button, TimeLog, Holiday, DailyTarget, State } from '../types';
 
 // In development, use proxy (relative path). In production, use env variable or default to same origin
 const API_BASE_URL = import.meta.env.PROD 
@@ -18,8 +18,8 @@ const api = ky.create({
 
 // Auth API
 export const authApi = {
-  async register(email: string, password: string, name: string, state?: string): Promise<User> {
-    return api.post('api/auth/register', { json: { email, password, name, state } }).json();
+  async register(email: string, password: string, name: string, country?: string, state?: string): Promise<User> {
+    return api.post('api/auth/register', { json: { email, password, name, country, state } }).json();
   },
 
   async login(email: string, password: string): Promise<User> {
@@ -58,12 +58,12 @@ export const authApi = {
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
     await api.put('api/auth/change-password', { 
-      json: { currentPassword, newPassword } 
+      json: { oldPassword: currentPassword, newPassword } 
     });
   },
 
-  async updateProfile(name: string, state?: string): Promise<User> {
-    return api.put('api/auth/profile', { json: { name, state } }).json();
+  async updateProfile(data: { name?: string; email?: string; state_entries?: Array<{ id?: string; state_id: string; registered_at: string }> }): Promise<User> {
+    return api.put('api/auth/profile', { json: data }).json();
   },
 
   async forgotPassword(email: string): Promise<{ message: string }> {
@@ -72,6 +72,14 @@ export const authApi = {
 
   async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
     return api.post('api/auth/reset-password', { json: { token, newPassword } }).json();
+  },
+
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    return api.post('api/auth/verify-email', { json: { token } }).json();
+  },
+
+  async resendVerification(email: string): Promise<{ message: string }> {
+    return api.post('api/auth/resend-verification', { json: { email } }).json();
   },
 };
 
@@ -229,6 +237,16 @@ export const holidayApi = {
 
   async getCountries(): Promise<string[]> {
     return api.get('api/holidays/countries').json();
+  },
+};
+
+export const statesApi = {
+  async getAllStates(): Promise<State[]> {
+    return api.get(`api/states`).json();
+  },
+
+  async getStatesByCountry(country: string): Promise<State[]> {
+    return api.get(`api/states/${country}`).json();
   },
 };
 

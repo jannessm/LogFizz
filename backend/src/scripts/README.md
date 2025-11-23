@@ -57,6 +57,46 @@ npm run holiday:refresh
 npm run holiday:init
 ```
 
+### Statistics Script (`statistics.ts`)
+
+Generates system-wide statistics and sends them to the admin email address.
+
+**Usage:**
+```bash
+# Send statistics email to admin (using ADMIN_EMAIL from .env)
+npm run statistics:send
+
+# Send statistics email to a specific email address
+npm run statistics:send -- --email custom@example.com
+
+# Display statistics in the console without sending email
+npm run statistics:show
+```
+
+**What it includes:**
+- **User Statistics:** Total users, active users (last 30 days), new users (last 30 days)
+- **Button Statistics:** Total buttons, average buttons per user
+- **Time Tracking Statistics:** Total time logs, logs in last 30 days, total hours tracked
+- **Top Activity:** Most active user and most used button
+
+**Requirements:**
+- Set `ADMIN_EMAIL` in your `.env` file, or provide email with `--email` flag
+- Configure SMTP settings in `.env` for email delivery
+
+**Example Output:**
+```
+═══════════════════════════════════════
+  TAPSHIFT SYSTEM STATISTICS REPORT
+═══════════════════════════════════════
+
+👥 USER STATISTICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total Users: 5
+Active Users (Last 30 Days): 3
+New Users (Last 30 Days): 1
+...
+```
+
 ## Running Scripts
 
 All scripts can be run using npm commands defined in `package.json`:
@@ -69,6 +109,10 @@ npm run seed
 npm run holiday:crawl
 npm run holiday:refresh
 npm run holiday:init
+
+# Generate and send statistics
+npm run statistics:send
+npm run statistics:show
 
 # Database migrations
 npm run migration:generate

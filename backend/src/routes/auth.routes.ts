@@ -5,6 +5,27 @@ import { authRateLimit, passwordResetRateLimit, generalAuthRateLimit } from '../
 
 const authService = new AuthService();
 
+// TypeBox schema for state entry
+const StateEntrySchema = Type.Object({
+  id: Type.Optional(Type.String()),
+  state_id: Type.String(),
+  registered_at: Type.String({ format: 'date-time' }),
+});
+
+const StateEntryResponseSchema = Type.Object({
+  id: Type.String(),
+  state_id: Type.String(),
+  registered_at: Type.String(),
+  created_at: Type.String(),
+  updated_at: Type.String(),
+  state: Type.Optional(Type.Object({
+    id: Type.String(),
+    country: Type.String(),
+    state: Type.String(),
+    code: Type.String(),
+  })),
+});
+
 export async function authRoutes(fastify: FastifyInstance) {
   // Register endpoint
   fastify.post('/register', {
@@ -15,16 +36,15 @@ export async function authRoutes(fastify: FastifyInstance) {
         email: Type.String({ format: 'email' }),
         password: Type.String({ minLength: 8 }),
         name: Type.String(),
-        country: Type.Optional(Type.String()),
         state: Type.Optional(Type.String()),
+        state_entries: Type.Optional(Type.Array(StateEntrySchema)),
       }),
       response: {
         201: Type.Object({
           id: Type.String(),
           email: Type.String(),
           name: Type.String(),
-          country: Type.Optional(Type.String()),
-          state: Type.Optional(Type.String()),
+          state_entries: Type.Array(StateEntryResponseSchema),
         }),
         400: Type.Object({
           error: Type.String(),
@@ -33,15 +53,17 @@ export async function authRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const { email, password, name, country, state } = request.body as any;
-      const user = await authService.register(email, password, name, country, state);
+      const { email, password, name, state, state_entries } = request.body as any;
+      const user = await authService.register(email, password, name, state, state_entries);
+
+      // Fetch user with state entries populated
+      const userWithEntries = await authService.getUserWithStateEntries(user.id);
 
       return reply.code(201).send({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        country: user.country,
-        state: user.state,
+        id: userWithEntries!.id,
+        email: userWithEntries!.email,
+        name: userWithEntries!.name,
+        state_entries: userWithEntries!.state_entries || [],
       });
     } catch (error: any) {
       return reply.code(400).send({ error: error.message });
@@ -62,8 +84,8 @@ export async function authRoutes(fastify: FastifyInstance) {
           id: Type.String(),
           email: Type.String(),
           name: Type.String(),
-          country: Type.Optional(Type.String()),
-          state: Type.Optional(Type.String()),
+          state_entries: Type.Array(StateEntryResponseSchema),
+          email_verified_at: Type.Optional(Type.String()),
         }),
         401: Type.Object({
           error: Type.String(),
@@ -90,12 +112,15 @@ export async function authRoutes(fastify: FastifyInstance) {
       console.log('User ID in session:', request.session.userId);
     }
     
+    // Fetch user with state entries
+    const userWithEntries = await authService.getUserWithStateEntries(user.id);
+    
     return reply.send({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      country: user.country,
-      state: user.state,
+      id: userWithEntries!.id,
+      email: userWithEntries!.email,
+      name: userWithEntries!.name,
+      state_entries: userWithEntries!.state_entries || [],
+      email_verified_at: userWithEntries!.email_verified_at || null,
     });
   });
 
@@ -118,8 +143,8 @@ export async function authRoutes(fastify: FastifyInstance) {
           id: Type.String(),
           email: Type.String(),
           name: Type.String(),
-          country: Type.Optional(Type.String()),
-          state: Type.Optional(Type.String()),
+          state_entries: Type.Array(StateEntryResponseSchema),
+          email_verified_at: Type.Optional(Type.String()),
         }),
         401: Type.Object({
           error: Type.String(),
@@ -133,7 +158,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.code(401).send({ error: 'Not authenticated' });
     }
 
-    const user = await authService.getUserById(userId);
+    const user = await authService.getUserWithStateEntries(userId);
     if (!user) {
       return reply.code(401).send({ error: 'User not found' });
     }
@@ -142,8 +167,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       id: user.id,
       email: user.email,
       name: user.name,
-      country: user.country,
-      state: user.state,
+      state_entries: user.state_entries || [],
+      email_verified_at: user.email_verified_at || null,
     });
   });
 
@@ -189,16 +214,14 @@ export async function authRoutes(fastify: FastifyInstance) {
       body: Type.Object({
         name: Type.Optional(Type.String()),
         email: Type.Optional(Type.String({ format: 'email' })),
-        country: Type.Optional(Type.String()),
-        state: Type.Optional(Type.String()),
+        state_entries: Type.Optional(Type.Array(StateEntrySchema)),
       }),
       response: {
         200: Type.Object({
           id: Type.String(),
           email: Type.String(),
           name: Type.String(),
-          country: Type.Optional(Type.String()),
-          state: Type.Optional(Type.String()),
+          state_entries: Type.Array(StateEntryResponseSchema),
         }),
         401: Type.Object({
           error: Type.String(),
@@ -212,19 +235,21 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.code(401).send({ error: 'Not authenticated' });
     }
 
-    const updates = request.body as any;
-    const user = await authService.updateUser(userId, updates);
+    const { state_entries, ...userUpdates } = request.body as any;
+    const user = await authService.updateUser(userId, userUpdates, state_entries);
 
     if (!user) {
       return reply.code(401).send({ error: 'User not found' });
     }
 
+    // Fetch updated user with state entries
+    const userWithEntries = await authService.getUserWithStateEntries(userId);
+
     return reply.send({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      country: user.country,
-      state: user.state,
+      id: userWithEntries!.id,
+      email: userWithEntries!.email,
+      name: userWithEntries!.name,
+      state_entries: userWithEntries!.state_entries || [],
     });
   });
 
@@ -282,6 +307,62 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     return reply.send({ 
       message: 'Password has been reset successfully' 
+    });
+  });
+
+  // Verify email endpoint (no authentication required)
+  fastify.post('/verify-email', {
+    ...generalAuthRateLimit,
+    schema: {
+      tags: ['Authentication'],
+      body: Type.Object({
+        token: Type.String(),
+      }),
+      response: {
+        200: Type.Object({
+          message: Type.String(),
+        }),
+        400: Type.Object({
+          error: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const { token } = request.body as any;
+    const success = await authService.verifyEmail(token);
+
+    if (!success) {
+      return reply.code(400).send({ 
+        error: 'Invalid or expired verification token' 
+      });
+    }
+
+    return reply.send({ 
+      message: 'Email has been verified successfully' 
+    });
+  });
+
+  // Resend verification email endpoint (no authentication required)
+  fastify.post('/resend-verification', {
+    ...passwordResetRateLimit,
+    schema: {
+      tags: ['Authentication'],
+      body: Type.Object({
+        email: Type.String({ format: 'email' }),
+      }),
+      response: {
+        200: Type.Object({
+          message: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const { email } = request.body as any;
+    await authService.resendVerificationEmail(email);
+
+    // Always return success to prevent email enumeration
+    return reply.send({ 
+      message: 'If an account with that email exists and is not verified, a verification link has been sent.' 
     });
   });
 }

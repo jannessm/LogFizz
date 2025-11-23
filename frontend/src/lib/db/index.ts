@@ -31,10 +31,14 @@ interface ClockDB extends DBSchema {
     key: string;
     value: any;
   };
+  states: {
+    key: string;
+    value: any;
+  }
 }
 
-const DB_NAME = 'clock-db';
-const DB_VERSION = 2;
+const DB_NAME = 'tapshift-db';
+const DB_VERSION = 1;
 
 let dbInstance: IDBPDatabase<ClockDB> | null = null;
 
@@ -75,6 +79,11 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
       // Targets store
       if (!db.objectStoreNames.contains('targets')) {
         db.createObjectStore('targets', { keyPath: 'id' });
+      }
+
+      // States store
+      if (!db.objectStoreNames.contains('states')) {
+        db.createObjectStore('states', { keyPath: 'id' });
       }
     },
   });
@@ -211,6 +220,18 @@ export async function getAllTargets(): Promise<DailyTarget[]> {
 export async function deleteTarget(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('targets', id);
+}
+
+export async function getAllStates(): Promise<any[]> {
+  const db = await getDB();
+  return db.getAll('states');
+}
+
+export async function saveStates(states: any[]): Promise<void> {
+  const db = await getDB();
+  const tx = db.transaction('states', 'readwrite');
+  states.forEach(state => tx.store.put(state));
+  await tx.done;
 }
 
 // Clear all data
