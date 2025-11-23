@@ -212,13 +212,20 @@ export class AuthService {
     return true;
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<boolean> {
+  async resetPassword(token: string, newPassword: string, email?: string): Promise<boolean> {
+    const whereCondition: any = {
+      reset_token: token,
+      reset_token_expires_at: MoreThan(new Date()),
+      deleted_at: IsNull(),
+    };
+
+    // If email is provided, verify it matches (for additional security)
+    if (email) {
+      whereCondition.email = email.toLowerCase().trim();
+    }
+
     const user = await this.userRepository.findOne({
-      where: {
-        reset_token: token,
-        reset_token_expires_at: MoreThan(new Date()),
-        deleted_at: IsNull(),
-      },
+      where: whereCondition,
     });
 
     if (!user) {

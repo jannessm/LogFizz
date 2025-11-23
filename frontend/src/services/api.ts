@@ -1,5 +1,6 @@
 import ky from 'ky';
 import type { User, Button, TimeLog, Holiday, DailyTarget, State } from '../types';
+import { hashPasswordForTransport } from '../utils/passwordHash';
 
 // In development, use proxy (relative path). In production, use env variable or default to same origin
 const API_BASE_URL = import.meta.env.PROD 
@@ -19,26 +20,20 @@ const api = ky.create({
 // Auth API
 export const authApi = {
   async register(email: string, password: string, name: string, country?: string, state?: string): Promise<User> {
-    return api.post('api/auth/register', { json: { email, password, name, country, state } }).json();
+    const hashedPassword = await hashPasswordForTransport(password, email);
+    return api.post('api/auth/register', { json: { email, password: hashedPassword, name, country, state } }).json();
   },
 
   async login(email: string, password: string): Promise<User> {
-    console.log('Attempting login with API_BASE_URL:', API_BASE_URL);
-    console.log('Full URL will be:', API_BASE_URL + '/api/auth/login');
-    const response = await api.post('api/auth/login', { json: { email, password } });
-    console.log('Login response status:', response.status);
-    console.log('Login response headers:', Object.fromEntries(response.headers.entries()));
-    console.log('Cookies (will be empty - managed by browser):', response.headers.get('set-cookie'));
+    const hashedPassword = await hashPasswordForTransport(password, email);
+    const response = await api.post('api/auth/login', { json: { email, password: hashedPassword } });
     
     const userData = await response.json() as User;
     
     // Try to make a test request to /me to check if session works
-    console.log('Testing session with /me endpoint...');
     try {
       const meResponse = await api.get('api/auth/me');
-      console.log('✓ Test /me request successful - session is working!');
       const meData = await meResponse.json();
-      console.log('Me response:', meData);
     } catch (error) {
       console.error('✗ Test /me request failed - session not working:', error);
     }
@@ -57,8 +52,13 @@ export const authApi = {
   },
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    // Get current user email for hashing
+    const currentUser = await this.getCurrentUser();
+    const hashedOldPassword = await hashPasswordForTransport(currentPassword, currentUser.email);
+    const hashedNewPassword = await hashPasswordForTransport(newPassword, currentUser.email);
+    
     await api.put('api/auth/change-password', { 
-      json: { oldPassword: currentPassword, newPassword } 
+      json: { oldPassword: hashedOldPassword, newPassword: hashedNewPassword } 
     });
   },
 
@@ -70,8 +70,9 @@ export const authApi = {
     return api.post('api/auth/forgot-password', { json: { email } }).json();
   },
 
-  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
-    return api.post('api/auth/reset-password', { json: { token, newPassword } }).json();
+  async resetPassword(token: string, newPassword: string, email: string): Promise<{ message: string }> {
+    const hashedPassword = await hashPasswordForTransport(newPassword, email);
+    return api.post('api/auth/reset-password', { json: { token, newPassword: hashedPassword, email } }).json();
   },
 
   async verifyEmail(token: string): Promise<{ message: string }> {

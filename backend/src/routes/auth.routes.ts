@@ -290,6 +290,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       body: Type.Object({
         token: Type.String(),
         newPassword: Type.String({ minLength: 8 }),
+        email: Type.Optional(Type.String({ format: 'email' })), // Optional for backward compatibility
       }),
       response: {
         200: Type.Object({
@@ -301,8 +302,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
-    const { token, newPassword } = request.body as any;
-    const success = await authService.resetPassword(token, newPassword);
+    const { token, newPassword, email } = request.body as any;
+    const success = await authService.resetPassword(token, newPassword, email);
 
     if (!success) {
       return reply.code(400).send({ 
