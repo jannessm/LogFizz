@@ -46,4 +46,7 @@ export class User {
 
   @OneToMany('UserStateEntry', 'user')
   state_entries?: any[];
+
+  @OneToMany('MonthlyBalance', 'user')
+  monthly_balances?: any[];
 }
