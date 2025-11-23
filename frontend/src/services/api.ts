@@ -280,9 +280,11 @@ export const monthlyBalanceApi = {
     }).json();
   },
 
-  async recalculateAllBalances(year: number, month: number): Promise<MonthlyBalance[]> {
+  async recalculateAllBalances(year: number, month: number): Promise<any[]> {
     return api.post(`api/monthly-balances/calculate/${year}/${month}`, {
-      body: '', // Empty body but don't set JSON content-type
+      headers: {
+        'Content-Type': undefined, // Remove content-type header for empty body
+      },
     }).json();
   },
 };
