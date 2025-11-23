@@ -3,11 +3,13 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import session from '@fastify/session';
+import RedisStore from '@fastify/session-redis-store';
 import websocket from '@fastify/websocket';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { AppDataSource } from './config/database.js';
+import { createRedisClient, getRedisClient } from './config/redis.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { buttonRoutes } from './routes/button.routes.js';
 import { timeLogRoutes } from './routes/timelog.routes.js';
@@ -83,8 +85,11 @@ export async function buildApp() {
     }
   });
 
-  // Register session support
-  await fastify.register(session, {
+  // Initialize Redis client for session storage
+  const redis = createRedisClient();
+  
+  // Register session support with Redis store if available
+  const sessionConfig: any = {
     secret: process.env.SESSION_SECRET || 'a-very-secret-key-minimum-32-chars-change-in-production',
     cookieName: 'sessionId', // Explicit cookie name
     cookie: {
@@ -96,7 +101,21 @@ export async function buildApp() {
     },
     saveUninitialized: false, // Don't create session until something is stored
     rolling: false, // Don't reset cookie expiration on every response (for better test stability)
-  });
+  };
+
+  // Use Redis store if Redis is available
+  if (redis) {
+    sessionConfig.store = new RedisStore({
+      client: redis,
+      prefix: 'session:',
+      ttl: 24 * 60 * 60, // 24 hours in seconds
+    });
+    console.log('✓ Session storage configured with Redis');
+  } else {
+    console.log('⚠ Session storage using in-memory store (not recommended for production)');
+  }
+
+  await fastify.register(session, sessionConfig);
 
   // Add request logging hook for debugging
   fastify.addHook('onRequest', async (request, reply) => {
@@ -194,6 +213,36 @@ export async function startServer() {
 
     const host = process.env.HOST || '0.0.0.0';
     const port = parseInt(process.env.PORT || '3000');
+
+    // Handle graceful shutdown
+    const shutdown = async (signal: string) => {
+      console.log(`\n${signal} received, shutting down gracefully...`);
+      
+      try {
+        // Close Fastify server
+        await app.close();
+        console.log('✓ HTTP server closed');
+        
+        // Close Redis connection
+        const redis = getRedisClient();
+        if (redis) {
+          await redis.quit();
+          console.log('✓ Redis connection closed');
+        }
+        
+        // Close database connection
+        await AppDataSource.destroy();
+        console.log('✓ Database connection closed');
+        
+        process.exit(0);
+      } catch (error) {
+        console.error('Error during shutdown:', error);
+        process.exit(1);
+      }
+    };
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
 
     await app.listen({ port, host });
     console.log(`Server listening on http://${host}:${port}`);

@@ -41,16 +41,22 @@ npm install
 cp .env.example .env
 ```
 
-3. Configure your database in `.env`:
+3. Configure your database and Redis in `.env`:
 ```env
 DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=clock_user
 DB_PASSWORD=clock_password
 DB_DATABASE=clock_db
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
 SESSION_SECRET=your-secret-key
 PORT=3000
 ```
+
+**Note**: Redis is optional for development. If not configured, sessions will use in-memory storage. However, Redis is **strongly recommended for production** to persist sessions across server restarts.
 
 4. Set up PostgreSQL database:
 ```bash
@@ -61,7 +67,21 @@ CREATE USER clock_user WITH ENCRYPTED PASSWORD 'clock_password';
 GRANT ALL PRIVILEGES ON DATABASE clock_db TO clock_user;
 ```
 
-5. (Optional) Seed the database with sample data:
+5. (Optional) Set up Redis for persistent sessions:
+```bash
+# Install Redis (macOS)
+brew install redis
+
+# Start Redis
+brew services start redis
+
+# Or run Redis manually
+redis-server
+```
+
+For other platforms, see [Redis installation guide](https://redis.io/docs/getting-started/installation/).
+
+6. (Optional) Seed the database with sample data:
 ```bash
 npm run seed
 ```
