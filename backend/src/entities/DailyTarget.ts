@@ -26,6 +26,9 @@ export class DailyTarget {
   @Column('timestamptz', { nullable: true })
   starting_from?: Date;
 
+  @Column('boolean', { default: false })
+  exclude_holidays!: boolean; // Whether to exclude public holidays from target calculation
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 
@@ -45,4 +48,7 @@ export class DailyTarget {
   @ManyToOne('State', { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'state_id' })
   state?: any;
+
+  @OneToMany('MonthlyBalance', 'target')
+  monthly_balances?: any[];
 }
