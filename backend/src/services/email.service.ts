@@ -1,6 +1,8 @@
 import nodemailer from 'nodemailer';
 import { generateWelcomeEmail } from '../templates/emails/welcome.template.js';
 import { generatePasswordResetEmail } from '../templates/emails/password-reset.template.js';
+import { generateStatisticsEmail } from '../templates/emails/statistics.template.js';
+import { SystemStatistics } from './statistics.service.js';
 import dotenv from 'dotenv';
   // Load environment variables
   dotenv.config();
@@ -100,6 +102,31 @@ export class EmailService {
     } catch (error) {
       console.error('Failed to send password reset email:', error);
       throw new Error('Failed to send password reset email');
+    }
+  }
+
+  async sendStatisticsEmail(email: string, statistics: SystemStatistics): Promise<void> {
+    const reportDate = new Date();
+
+    const emailContent = generateStatisticsEmail({
+      appUrl: this.appUrl,
+      statistics,
+      reportDate,
+    });
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: email,
+      subject: `TapShift System Statistics - ${reportDate.toLocaleDateString()}`,
+      html: emailContent.html,
+      text: emailContent.text,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send statistics email:', error);
+      throw new Error('Failed to send statistics email');
     }
   }
 
