@@ -406,6 +406,7 @@ describe('Authentication Routes', () => {
         payload: {
           token: resetToken,
           newPassword: hashedNewPassword,
+          email,
         },
       });
 
@@ -449,6 +450,7 @@ describe('Authentication Routes', () => {
         payload: {
           token: 'invalid-token-12345',
           newPassword: hashedNewPassword,
+          email,
         },
       });
 
@@ -504,6 +506,7 @@ describe('Authentication Routes', () => {
         payload: {
           token: resetToken,
           newPassword: hashedNewPassword,
+          email,
         },
       });
 
@@ -553,6 +556,7 @@ describe('Authentication Routes', () => {
         payload: {
           token: resetToken,
           newPassword: hashedNewPassword,
+          email,
         },
       });
 
@@ -571,6 +575,7 @@ describe('Authentication Routes', () => {
         payload: {
           token: resetToken,
           newPassword: hashedAnotherPassword,
+          email,
         },
       });
 
@@ -588,10 +593,62 @@ describe('Authentication Routes', () => {
         payload: {
           token: 'some-token',
           newPassword: hashedShortPassword,
+          email,
         },
       });
 
       expect(response.statusCode).toBe(400);
+    });
+
+    it('should reject password reset with wrong email', async () => {
+      const email = `wrongemail${Date.now()}@example.com`;
+      const password = 'testpassword123';
+      const hashedPassword = hashPasswordForTransport(password, email);
+      const newPassword = 'newpassword456';
+      const wrongEmail = 'wrong@example.com';
+      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
+      
+      // Register a user
+      await app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        payload: {
+          email,
+          password: hashedPassword,
+          name: 'Test User',
+        },
+      });
+
+      // Request password reset
+      await app.inject({
+        method: 'POST',
+        url: '/api/auth/forgot-password',
+        payload: {
+          email,
+        },
+      });
+
+      // Get the reset token
+      const { AppDataSource } = await import('../config/database.js');
+      const { User } = await import('../entities/User.js');
+      const userRepository = AppDataSource.getRepository(User);
+      const user = await userRepository.findOne({ where: { email } });
+      const resetToken = user?.reset_token;
+
+      // Try to reset password with wrong email
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/auth/reset-password',
+        payload: {
+          token: resetToken,
+          newPassword: hashedNewPassword,
+          email: wrongEmail,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.error).toContain('Invalid or expired');
     });
   });
 
