@@ -4,15 +4,23 @@ export class AddMonthlyBalanceAndExcludeHolidays1732400000000 implements Migrati
     name = 'AddMonthlyBalanceAndExcludeHolidays1732400000000'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        // Add exclude_holidays column to daily_targets table
+        // Add exclude_holidays column to daily_targets table if it doesn't exist
         await queryRunner.query(`
-            ALTER TABLE "daily_targets" 
-            ADD COLUMN "exclude_holidays" boolean NOT NULL DEFAULT false
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='daily_targets' AND column_name='exclude_holidays'
+                ) THEN
+                    ALTER TABLE "daily_targets" 
+                    ADD COLUMN "exclude_holidays" boolean NOT NULL DEFAULT false;
+                END IF;
+            END $$;
         `);
 
-        // Create monthly_balances table
+        // Create monthly_balances table if it doesn't exist
         await queryRunner.query(`
-            CREATE TABLE "monthly_balances" (
+            CREATE TABLE IF NOT EXISTS "monthly_balances" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "user_id" uuid NOT NULL,
                 "target_id" uuid NOT NULL,
@@ -32,9 +40,9 @@ export class AddMonthlyBalanceAndExcludeHolidays1732400000000 implements Migrati
             )
         `);
 
-        // Create unique index on user_id, target_id, year, month
+        // Create unique index on user_id, target_id, year, month if it doesn't exist
         await queryRunner.query(`
-            CREATE UNIQUE INDEX "IDX_monthly_balances_user_target_year_month" 
+            CREATE UNIQUE INDEX IF NOT EXISTS "IDX_monthly_balances_user_target_year_month" 
             ON "monthly_balances" ("user_id", "target_id", "year", "month")
         `);
     }

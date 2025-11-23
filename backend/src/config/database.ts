@@ -5,9 +5,11 @@ import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { HolidayMetadata } from '../entities/HolidayMetadata.js';
 import { DailyTarget } from '../entities/DailyTarget.js';
+import { MonthlyBalance } from '../entities/MonthlyBalance.js';
 import { UserStateEntry } from '../entities/UserStateEntry.js';
 import { State } from '../entities/State.js';
 import { InitialSchema1699700000000 } from '../migrations/1699700000000-InitialSchema.js';
+import { AddMonthlyBalanceAndExcludeHolidays1732400000000 } from '../migrations/1732400000000-AddMonthlyBalanceAndExcludeHolidays.js';
 
 const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
 const isProduction = process.env.NODE_ENV === 'production';
@@ -21,9 +23,9 @@ export const AppDataSource = new DataSource({
   database: isTest ? 'clock_test_db' : (process.env.DB_DATABASE || 'clock_db'),
   synchronize: !isProduction, // Auto-create tables in dev and test only
   logging: !isProduction && !isTest,
-  entities: [User, Button, TimeLog, Holiday, HolidayMetadata, DailyTarget, UserStateEntry, State],
+  entities: [User, Button, TimeLog, Holiday, HolidayMetadata, DailyTarget, MonthlyBalance, UserStateEntry, State],
   subscribers: [],
-  migrations: [InitialSchema1699700000000],
+  migrations: [InitialSchema1699700000000, AddMonthlyBalanceAndExcludeHolidays1732400000000],
   migrationsRun: isProduction, // Auto-run migrations in production
   // Ensure PostgreSQL uses UTC for all timestamps
   extra: {
