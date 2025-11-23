@@ -220,7 +220,7 @@
                       <div class="text-xs text-gray-500 flex gap-2">
                         {#if button.auto_subtract_breaks}
                           <span class="flex items-center gap-1">
-                            <span class="icon-[si--coffee-duotone]" style="width: 12px; height: 12px;"></span>
+                            <span class="icon-[proicons--coffee-hot]" style="width: 12px; height: 12px;"></span>
                             Auto breaks
                           </span>
                         {/if}
@@ -228,7 +228,7 @@
                           {@const linkedTarget = $targetsStore.find(t => t.id === button.target_id)}
                           {#if linkedTarget}
                             <span class="flex items-center gap-1">
-                              <span class="icon-[si--link-duotone]" style="width: 12px; height: 12px;"></span>
+                              <span class="icon-[proicons--link]" style="width: 12px; height: 12px;"></span>
                               {linkedTarget.name}
                             </span>
                           {/if}

@@ -1,4 +1,11 @@
 import nodemailer from 'nodemailer';
+import { generateWelcomeEmail } from '../templates/emails/welcome.template.js';
+import { generatePasswordResetEmail } from '../templates/emails/password-reset.template.js';
+import { generateStatisticsEmail } from '../templates/emails/statistics.template.js';
+import { SystemStatistics } from './statistics.service.js';
+import dotenv from 'dotenv';
+  // Load environment variables
+  dotenv.config();
 
 export interface EmailConfig {
   host: string;
@@ -21,8 +28,8 @@ export class EmailService {
     const emailConfig = this.getEmailConfig();
     
     this.transporter = nodemailer.createTransport(emailConfig);
-    this.fromEmail = process.env.EMAIL_FROM || 'noreply@clock-app.com';
-    this.appUrl = process.env.APP_URL || 'http://localhost:3000';
+    this.fromEmail = process.env.SMTP_USER || 'noreply@clock-app.com';
+    this.appUrl = process.env.APP_URL || 'http://localhost:5173';
   }
 
   private getEmailConfig(): EmailConfig | any {
@@ -48,35 +55,46 @@ export class EmailService {
     };
   }
 
+  async sendWelcomeEmail(email: string, verificationToken: string, userName: string): Promise<void> {
+    const verificationUrl = `${this.appUrl}/verify-email?token=${verificationToken}`;
+
+    const emailContent = generateWelcomeEmail({
+      userName,
+      verificationUrl,
+      appUrl: this.appUrl,
+    });
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: email,
+      subject: 'Welcome to TapShift - Please Verify Your Email',
+      html: emailContent.html,
+      text: emailContent.text,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send welcome email:', error);
+      throw new Error('Failed to send welcome email');
+    }
+  }
+
   async sendPasswordResetEmail(email: string, resetToken: string, userName: string): Promise<void> {
     const resetUrl = `${this.appUrl}/reset-password?token=${resetToken}`;
+
+    const emailContent = generatePasswordResetEmail({
+      userName,
+      resetUrl,
+      appUrl: this.appUrl,
+    });
 
     const mailOptions = {
       from: this.fromEmail,
       to: email,
       subject: 'Password Reset Request',
-      html: `
-        <h1>Password Reset Request</h1>
-        <p>Hi ${userName},</p>
-        <p>You requested to reset your password. Click the link below to reset it:</p>
-        <p><a href="${resetUrl}">Reset Password</a></p>
-        <p>This link will expire in 1 hour.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-        <p>Thanks,<br/>The Clock App Team</p>
-      `,
-      text: `
-        Hi ${userName},
-
-        You requested to reset your password. Use the link below to reset it:
-        ${resetUrl}
-
-        This link will expire in 1 hour.
-
-        If you didn't request this, please ignore this email.
-
-        Thanks,
-        The Clock App Team
-      `,
+      html: emailContent.html,
+      text: emailContent.text,
     };
 
     try {
@@ -84,6 +102,31 @@ export class EmailService {
     } catch (error) {
       console.error('Failed to send password reset email:', error);
       throw new Error('Failed to send password reset email');
+    }
+  }
+
+  async sendStatisticsEmail(email: string, statistics: SystemStatistics): Promise<void> {
+    const reportDate = new Date();
+
+    const emailContent = generateStatisticsEmail({
+      appUrl: this.appUrl,
+      statistics,
+      reportDate,
+    });
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: email,
+      subject: `TapShift System Statistics - ${reportDate.toLocaleDateString()}`,
+      html: emailContent.html,
+      text: emailContent.text,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send statistics email:', error);
+      throw new Error('Failed to send statistics email');
     }
   }
 
