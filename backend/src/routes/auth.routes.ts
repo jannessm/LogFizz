@@ -36,7 +36,8 @@ export async function authRoutes(fastify: FastifyInstance) {
         email: Type.String({ format: 'email' }),
         password: Type.String({ minLength: 8 }),
         name: Type.String(),
-        state: Type.String(),
+        state: Type.Optional(Type.String()),
+        state_entries: Type.Optional(Type.Array(StateEntrySchema)),
       }),
       response: {
         201: Type.Object({
@@ -52,8 +53,8 @@ export async function authRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const { email, password, name, state } = request.body as any;
-      const user = await authService.register(email, password, name, state);
+      const { email, password, name, state, state_entries } = request.body as any;
+      const user = await authService.register(email, password, name, state, state_entries);
 
       // Fetch user with state entries populated
       const userWithEntries = await authService.getUserWithStateEntries(user.id);

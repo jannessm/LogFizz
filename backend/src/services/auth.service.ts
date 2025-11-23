@@ -20,6 +20,7 @@ export class AuthService {
     password: string, 
     name: string,
     state?: string,
+    providedStateEntries?: Array<{ state_id: string; registered_at: Date | string }>,
   ): Promise<User> {
     const existingUser = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
     if (existingUser) {
@@ -28,7 +29,14 @@ export class AuthService {
 
     const password_hash = await hashPassword(password);
     const stateEntries: Array<{ id: string; registered_at: Date | string }> = [];
-    if (state) {
+    
+    // Handle state_entries if provided (takes priority)
+    if (providedStateEntries && providedStateEntries.length > 0) {
+      for (const entry of providedStateEntries) {
+        stateEntries.push({ id: entry.state_id, registered_at: entry.registered_at });
+      }
+    } else if (state) {
+      // Otherwise, handle single state code
       const stateEntry = await this.stateRepository.findOne({
         where: { code: state }
       });
