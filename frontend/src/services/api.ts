@@ -62,7 +62,7 @@ export const authApi = {
     });
   },
 
-  async updateProfile(data: { name?: string; email?: string; state_entries?: Array<{ id?: string; state_id: string; registered_at: string }> }): Promise<User> {
+  async updateProfile(data: { name?: string; email?: string }): Promise<User> {
     return api.put('api/auth/profile', { json: data }).json();
   },
 

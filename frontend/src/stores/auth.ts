@@ -154,7 +154,7 @@ function createAuthStore() {
       }
     },
 
-    async updateProfile(data: { name?: string; email?: string; state_entries?: Array<{ id?: string; state_id: string; registered_at: string }> }) {
+    async updateProfile(data: { name?: string; email?: string }) {
       update(storeState => ({ ...storeState, isLoading: true, error: null }));
       try {
         const user = await authApi.updateProfile(data);

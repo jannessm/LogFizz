@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity('daily_targets')
 export class DailyTarget {
@@ -17,6 +17,15 @@ export class DailyTarget {
   @Column('simple-array')
   weekdays!: number[]; // 0-6 for Sunday-Saturday
 
+  @Column('varchar', { nullable: true })
+  country?: string;
+
+  @Column('varchar', { nullable: true })
+  state?: string;
+
+  @Column('timestamptz', { nullable: true })
+  registered_at?: Date;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 
@@ -29,7 +38,4 @@ export class DailyTarget {
   @ManyToOne('User', 'daily_targets', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user!: any;
-
-  @OneToMany('TargetStateEntry', 'target')
-  state_entries?: any[];
 }
