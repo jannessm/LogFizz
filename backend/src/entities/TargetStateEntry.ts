@@ -2,8 +2,8 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { DailyTarget } from './DailyTarget.js';
 import { State } from './State.js';
 
-@Entity('user_state_entries')
-export class UserStateEntry {
+@Entity('target_state_entries')
+export class TargetStateEntry {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

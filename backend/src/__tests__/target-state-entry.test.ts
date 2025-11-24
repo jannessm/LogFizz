@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { AppDataSource } from '../config/database.js';
-import { UserStateEntryService } from '../services/user-state-entry.service.js';
+import { TargetStateEntryService } from '../services/target-state-entry.service.js';
 import { StateService } from '../services/state.service.js';
 import { User } from '../entities/User.js';
-import { UserStateEntry } from '../entities/UserStateEntry.js';
+import { TargetStateEntry } from '../entities/TargetStateEntry.js';
 
-describe('UserStateEntryService', () => {
-  let service: UserStateEntryService;
+describe('TargetStateEntryService', () => {
+  let service: TargetStateEntryService;
   let stateService: StateService;
   let testUserId: string;
   let testTargetId: string;
@@ -16,7 +16,7 @@ describe('UserStateEntryService', () => {
     if (!AppDataSource.isInitialized) {
       await AppDataSource.initialize();
     }
-    service = new UserStateEntryService();
+    service = new TargetStateEntryService();
     stateService = new StateService();
 
     // Get a test state (Berlin) - seeded by testDatabase.ts
@@ -61,7 +61,7 @@ describe('UserStateEntryService', () => {
 
   beforeEach(async () => {
     // Hard delete all state entries for this target (including soft-deleted ones)
-    const stateEntryRepo = AppDataSource.getRepository(UserStateEntry);
+    const stateEntryRepo = AppDataSource.getRepository(TargetStateEntry);
     await stateEntryRepo.delete({ target_id: testTargetId });
   });
 

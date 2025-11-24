@@ -1,9 +1,9 @@
 import { AppDataSource } from '../config/database.js';
-import { UserStateEntry } from '../entities/UserStateEntry.js';
+import { TargetStateEntry } from '../entities/TargetStateEntry.js';
 import { MoreThan, IsNull } from 'typeorm';
 
-export class UserStateEntryService {
-  private stateEntryRepository = AppDataSource.getRepository(UserStateEntry);
+export class TargetStateEntryService {
+  private stateEntryRepository = AppDataSource.getRepository(TargetStateEntry);
 
   /**
    * Create a new state entry for a target
@@ -12,7 +12,7 @@ export class UserStateEntryService {
     targetId: string, 
     stateId: string, 
     registeredAt: Date
-  ): Promise<UserStateEntry> {
+  ): Promise<TargetStateEntry> {
     const entry = this.stateEntryRepository.create({
       target_id: targetId,
       state_id: stateId,
@@ -24,7 +24,7 @@ export class UserStateEntryService {
   /**
    * Get all state entries for a target (excluding soft-deleted)
    */
-  async getStateEntriesByTarget(targetId: string): Promise<UserStateEntry[]> {
+  async getStateEntriesByTarget(targetId: string): Promise<TargetStateEntry[]> {
     return this.stateEntryRepository.find({
       where: {
         target_id: targetId,
@@ -39,7 +39,7 @@ export class UserStateEntryService {
    * Get all state entries (including soft-deleted) changed since a given timestamp
    * Used for sync functionality
    */
-  async getChangedStateEntriesSince(targetId: string, since: Date): Promise<UserStateEntry[]> {
+  async getChangedStateEntriesSince(targetId: string, since: Date): Promise<TargetStateEntry[]> {
     return this.stateEntryRepository.find({
       where: {
         target_id: targetId,
@@ -52,7 +52,7 @@ export class UserStateEntryService {
   /**
    * Get a single state entry by ID
    */
-  async getStateEntryById(targetId: string, entryId: string): Promise<UserStateEntry | null> {
+  async getStateEntryById(targetId: string, entryId: string): Promise<TargetStateEntry | null> {
     return this.stateEntryRepository.findOne({
       where: {
         id: entryId,
@@ -68,8 +68,8 @@ export class UserStateEntryService {
   async updateStateEntry(
     targetId: string,
     entryId: string,
-    updates: Partial<Pick<UserStateEntry, 'state_id' | 'registered_at'>>
-  ): Promise<UserStateEntry | null> {
+    updates: Partial<Pick<TargetStateEntry, 'state_id' | 'registered_at'>>
+  ): Promise<TargetStateEntry | null> {
     const entry = await this.stateEntryRepository.findOne({
       where: {
         id: entryId,
@@ -104,18 +104,18 @@ export class UserStateEntryService {
    */
   async pushStateEntryChanges(
     targetId: string,
-    changes: Array<Partial<UserStateEntry> & { updated_at?: Date }>
+    changes: Array<Partial<TargetStateEntry> & { updated_at?: Date }>
   ): Promise<{
-    saved: UserStateEntry[];
+    saved: TargetStateEntry[];
     conflicts: Array<{
-      clientVersion: Partial<UserStateEntry>;
-      serverVersion: UserStateEntry;
+      clientVersion: Partial<TargetStateEntry>;
+      serverVersion: TargetStateEntry;
     }>;
   }> {
-    const savedEntries: UserStateEntry[] = [];
+    const savedEntries: TargetStateEntry[] = [];
     const conflicts: Array<{
-      clientVersion: Partial<UserStateEntry>;
-      serverVersion: UserStateEntry;
+      clientVersion: Partial<TargetStateEntry>;
+      serverVersion: TargetStateEntry;
     }> = [];
 
     for (const change of changes) {
@@ -179,7 +179,7 @@ export class UserStateEntryService {
     targetId: string,
     startDate: Date,
     endDate: Date
-  ): Promise<UserStateEntry[]> {
+  ): Promise<TargetStateEntry[]> {
     return this.stateEntryRepository
       .createQueryBuilder('entry')
       .where('entry.target_id = :targetId', { targetId })
@@ -193,7 +193,7 @@ export class UserStateEntryService {
   /**
    * Get the most recent state entry for a target
    */
-  async getMostRecentStateEntry(targetId: string): Promise<UserStateEntry | null> {
+  async getMostRecentStateEntry(targetId: string): Promise<TargetStateEntry | null> {
     return this.stateEntryRepository.findOne({
       where: {
         target_id: targetId,

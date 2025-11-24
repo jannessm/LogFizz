@@ -30,6 +30,6 @@ export class DailyTarget {
   @JoinColumn({ name: 'user_id' })
   user!: any;
 
-  @OneToMany('UserStateEntry', 'target')
+  @OneToMany('TargetStateEntry', 'target')
   state_entries?: any[];
 }

@@ -50,7 +50,7 @@ export async function initializeTestDatabase() {
   // Force synchronize to recreate tables
   await AppDataSource.synchronize(true);
   
-  // Seed German states (required for user_state_entries tests)
+  // Seed German states (required for target_state_entries tests)
   await seedGermanStates();
   
   console.log('✓ Test database initialized');
