@@ -57,6 +57,7 @@ export class MonthlyBalanceService {
 
   /**
    * Calculate and save monthly balance for a target
+   * Includes cumulative balance from previous months (since starting_from)
    */
   async calculateMonthlyBalance(
     userId: string,
@@ -80,6 +81,41 @@ export class MonthlyBalanceService {
     const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
     const endDate = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
 
+    // Check if this month is before the starting_from date
+    const startingFrom = target.starting_from ? new Date(target.starting_from) : null;
+    if (startingFrom && endDate <= startingFrom) {
+      // This month is entirely before starting_from, no balance should be calculated
+      // Return zero balance
+      let balance = await this.monthlyBalanceRepository.findOne({
+        where: {
+          user_id: userId,
+          target_id: targetId,
+          year,
+          month,
+        },
+      });
+
+      if (balance) {
+        balance.worked_minutes = 0;
+        balance.due_minutes = 0;
+        balance.balance_minutes = 0;
+        balance.exclude_holidays = target.exclude_holidays;
+      } else {
+        balance = this.monthlyBalanceRepository.create({
+          user_id: userId,
+          target_id: targetId,
+          year,
+          month,
+          worked_minutes: 0,
+          due_minutes: 0,
+          balance_minutes: 0,
+          exclude_holidays: target.exclude_holidays,
+        });
+      }
+
+      return await this.monthlyBalanceRepository.save(balance);
+    }
+
     // Get all time logs for buttons linked to this target in this month
     const timeLogs = await this.timeLogRepository
       .createQueryBuilder('tl')
@@ -95,7 +131,7 @@ export class MonthlyBalanceService {
     // Calculate worked minutes from time logs
     const workedMinutes = this.calculateWorkedMinutes(timeLogs);
 
-    // Calculate due minutes based on target
+    // Calculate due minutes based on target (respecting starting_from)
     const dueMinutes = await this.calculateDueMinutes(
       target,
       year,
@@ -104,8 +140,20 @@ export class MonthlyBalanceService {
       userId
     );
 
-    // Calculate balance
-    const balanceMinutes = workedMinutes - dueMinutes;
+    // Calculate this month's balance (worked - due)
+    const thisMonthBalance = workedMinutes - dueMinutes;
+
+    // Get cumulative balance from previous month (if within starting_from range)
+    const previousMonthBalance = await this.getPreviousMonthCumulativeBalance(
+      userId,
+      targetId,
+      year,
+      month,
+      startingFrom
+    );
+
+    // Total balance = previous cumulative + this month's balance
+    const balanceMinutes = previousMonthBalance + thisMonthBalance;
 
     // Check if balance already exists
     let balance = await this.monthlyBalanceRepository.findOne({
@@ -141,6 +189,47 @@ export class MonthlyBalanceService {
   }
 
   /**
+   * Get the cumulative balance from the previous month
+   * Returns 0 if there's no previous balance or if before starting_from
+   */
+  private async getPreviousMonthCumulativeBalance(
+    userId: string,
+    targetId: string,
+    year: number,
+    month: number,
+    startingFrom: Date | null
+  ): Promise<number> {
+    // Calculate previous month
+    let prevYear = year;
+    let prevMonth = month - 1;
+    if (prevMonth < 1) {
+      prevMonth = 12;
+      prevYear = year - 1;
+    }
+
+    // Check if previous month is before starting_from
+    if (startingFrom) {
+      const prevMonthEnd = new Date(Date.UTC(prevYear, prevMonth, 1, 0, 0, 0, 0));
+      if (prevMonthEnd <= startingFrom) {
+        // Previous month is before starting_from, don't include its balance
+        return 0;
+      }
+    }
+
+    // Get previous month's balance
+    const previousBalance = await this.monthlyBalanceRepository.findOne({
+      where: {
+        user_id: userId,
+        target_id: targetId,
+        year: prevYear,
+        month: prevMonth,
+      },
+    });
+
+    return previousBalance ? previousBalance.balance_minutes : 0;
+  }
+
+  /**
    * Calculate total worked minutes from time logs
    */
   private calculateWorkedMinutes(timeLogs: TimeLog[]): number {
@@ -164,6 +253,7 @@ export class MonthlyBalanceService {
 
   /**
    * Calculate due minutes based on target and month
+   * Respects starting_from date - only counts days on or after starting_from
    */
   private async calculateDueMinutes(
     target: DailyTarget,
@@ -187,12 +277,20 @@ export class MonthlyBalanceService {
       );
     }
 
+    // Get starting_from date if set
+    const startingFrom = target.starting_from ? new Date(target.starting_from) : null;
+
     // Iterate through each day of the month
     const daysInMonth = new Date(year, month, 0).getDate();
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(Date.UTC(year, month - 1, day));
       const dayOfWeek = date.getUTCDay(); // 0=Sunday, 6=Saturday
       const dateString = date.toISOString().split('T')[0];
+
+      // Skip days before starting_from
+      if (startingFrom && date < startingFrom) {
+        continue;
+      }
 
       // Check if this day is in the target's weekdays
       if (target.weekdays.includes(dayOfWeek)) {
