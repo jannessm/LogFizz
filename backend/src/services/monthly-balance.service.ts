@@ -3,13 +3,57 @@ import { MonthlyBalance } from '../entities/MonthlyBalance.js';
 import { DailyTarget } from '../entities/DailyTarget.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
-import { Between, In } from 'typeorm';
+import { Between, In, MoreThan } from 'typeorm';
 
 export class MonthlyBalanceService {
   private monthlyBalanceRepository = AppDataSource.getRepository(MonthlyBalance);
   private dailyTargetRepository = AppDataSource.getRepository(DailyTarget);
   private timeLogRepository = AppDataSource.getRepository(TimeLog);
   private holidayRepository = AppDataSource.getRepository(Holiday);
+
+  /**
+   * Get all monthly balances changed since a given timestamp
+   * Used for sync functionality
+   */
+  async getChangedMonthlyBalancesSince(userId: string, since: Date): Promise<MonthlyBalance[]> {
+    return this.monthlyBalanceRepository.find({
+      where: {
+        user_id: userId,
+        updated_at: MoreThan(since),
+      },
+      relations: ['target'],
+      order: { updated_at: 'ASC' },
+    });
+  }
+
+  /**
+   * Recalculate monthly balances for affected months based on time logs
+   * Called after time logs are synced
+   */
+  async recalculateAffectedMonthlyBalances(
+    userId: string,
+    timeLogs: Array<{ timestamp: Date; button_id: string }>
+  ): Promise<MonthlyBalance[]> {
+    // Find unique year/month combinations from the time logs
+    const affectedMonths = new Set<string>();
+    
+    for (const log of timeLogs) {
+      const date = new Date(log.timestamp);
+      const year = date.getUTCFullYear();
+      const month = date.getUTCMonth() + 1; // 1-12
+      affectedMonths.add(`${year}-${month}`);
+    }
+
+    const updatedBalances: MonthlyBalance[] = [];
+    
+    for (const monthKey of affectedMonths) {
+      const [year, month] = monthKey.split('-').map(Number);
+      const balances = await this.recalculateMonthBalances(userId, year, month);
+      updatedBalances.push(...balances);
+    }
+
+    return updatedBalances;
+  }
 
   /**
    * Calculate and save monthly balance for a target

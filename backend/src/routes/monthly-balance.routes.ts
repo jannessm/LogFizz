@@ -12,30 +12,38 @@ export async function monthlyBalanceRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Get monthly balance for a specific target
-  fastify.get('/:targetId/:year/:month', {
+  // Sync endpoint - Get monthly balances changed since timestamp
+  fastify.get('/sync', {
     schema: {
       tags: ['MonthlyBalance'],
-      params: Type.Object({
-        targetId: Type.String({ format: 'uuid' }),
-        year: Type.Integer({ minimum: 2000, maximum: 2100 }),
-        month: Type.Integer({ minimum: 1, maximum: 12 }),
+      querystring: Type.Object({
+        since: Type.String({ format: 'date-time' }),
       }),
       response: {
         200: Type.Object({
-          id: Type.String(),
-          user_id: Type.String(),
-          target_id: Type.String(),
-          year: Type.Integer(),
-          month: Type.Integer(),
-          worked_minutes: Type.Integer(),
-          due_minutes: Type.Integer(),
-          balance_minutes: Type.Integer(),
-          exclude_holidays: Type.Boolean(),
-          created_at: Type.String(),
-          updated_at: Type.String(),
+          monthlyBalances: Type.Array(Type.Object({
+            id: Type.String(),
+            user_id: Type.String(),
+            target_id: Type.String(),
+            year: Type.Integer(),
+            month: Type.Integer(),
+            worked_minutes: Type.Integer(),
+            due_minutes: Type.Integer(),
+            balance_minutes: Type.Integer(),
+            exclude_holidays: Type.Boolean(),
+            created_at: Type.String(),
+            updated_at: Type.String(),
+            target: Type.Optional(Type.Object({
+              id: Type.String(),
+              name: Type.String(),
+              duration_minutes: Type.Array(Type.Integer()),
+              weekdays: Type.Array(Type.Integer()),
+              exclude_holidays: Type.Boolean(),
+            })),
+          })),
+          cursor: Type.String(),
         }),
-        404: Type.Object({
+        400: Type.Object({
           error: Type.String(),
         }),
         500: Type.Object({
@@ -45,169 +53,23 @@ export async function monthlyBalanceRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const userId = request.session.userId!;
-    const { targetId, year, month } = request.params as any;
+    const { since } = request.query as any;
 
     try {
-      const balance = await monthlyBalanceService.getMonthlyBalance(
-        userId,
-        targetId,
-        year,
-        month
-      );
-
-      if (!balance) {
-        return reply.code(404).send({ error: 'Balance not found' });
+      const sinceDate = new Date(since);
+      if (isNaN(sinceDate.getTime())) {
+        return reply.code(400).send({ error: 'Invalid timestamp format' });
       }
 
-      return reply.send(balance);
-    } catch (error) {
-      return reply.code(500).send({ error: 'Internal Server Error' });
-    }
-  });
-
-  // Get all monthly balances for a user in a specific month
-  fastify.get('/:year/:month', {
-    schema: {
-      tags: ['MonthlyBalance'],
-      params: Type.Object({
-        year: Type.Integer({ minimum: 2000, maximum: 2100 }),
-        month: Type.Integer({ minimum: 1, maximum: 12 }),
-      }),
-      response: {
-        200: Type.Array(Type.Object({
-          id: Type.String(),
-          user_id: Type.String(),
-          target_id: Type.String(),
-          year: Type.Integer(),
-          month: Type.Integer(),
-          worked_minutes: Type.Integer(),
-          due_minutes: Type.Integer(),
-          balance_minutes: Type.Integer(),
-          exclude_holidays: Type.Boolean(),
-          created_at: Type.String(),
-          updated_at: Type.String(),
-          target: Type.Optional(Type.Object({
-            id: Type.String(),
-            name: Type.String(),
-            duration_minutes: Type.Array(Type.Integer()),
-            weekdays: Type.Array(Type.Integer()),
-            exclude_holidays: Type.Boolean(),
-          })),
-        })),
-        500: Type.Object({
-          error: Type.String(),
-        }),
-      },
-    },
-  }, async (request, reply) => {
-    const userId = request.session.userId!;
-    const { year, month } = request.params as any;
-
-    try {
-      const balances = await monthlyBalanceService.getAllMonthlyBalances(
-        userId,
-        year,
-        month
-      );
-
-      return reply.send(balances);
-    } catch (error) {
-      return reply.code(500).send({ error: 'Internal Server Error' });
-    }
-  });
-
-  // Calculate/recalculate monthly balance for a specific target
-  fastify.post('/calculate/:targetId/:year/:month', {
-    schema: {
-      tags: ['MonthlyBalance'],
-      params: Type.Object({
-        targetId: Type.String({ format: 'uuid' }),
-        year: Type.Integer({ minimum: 2000, maximum: 2100 }),
-        month: Type.Integer({ minimum: 1, maximum: 12 }),
-      }),
-      response: {
-        200: Type.Object({
-          id: Type.String(),
-          user_id: Type.String(),
-          target_id: Type.String(),
-          year: Type.Integer(),
-          month: Type.Integer(),
-          worked_minutes: Type.Integer(),
-          due_minutes: Type.Integer(),
-          balance_minutes: Type.Integer(),
-          exclude_holidays: Type.Boolean(),
-          created_at: Type.String(),
-          updated_at: Type.String(),
-        }),
-        500: Type.Object({
-          error: Type.String(),
-        }),
-      },
-    },
-  }, async (request, reply) => {
-    const userId = request.session.userId!;
-    const { targetId, year, month } = request.params as any;
-
-    try {
-      const balance = await monthlyBalanceService.calculateMonthlyBalance(
-        userId,
-        targetId,
-        year,
-        month
-      );
-
-      return reply.send(balance);
-    } catch (error: any) {
-      return reply.code(500).send({ error: error.message || 'Internal Server Error' });
-    }
-  });
-
-  // Recalculate all monthly balances for a user in a specific month
-  fastify.post('/calculate/:year/:month', {
-    schema: {
-      tags: ['MonthlyBalance'],
-      params: Type.Object({
-        year: Type.Integer({ minimum: 2000, maximum: 2100 }),
-        month: Type.Integer({ minimum: 1, maximum: 12 }),
-      }),
-      response: {
-        200: Type.Array(Type.Object({
-          id: Type.String(),
-          user_id: Type.String(),
-          target_id: Type.String(),
-          year: Type.Integer(),
-          month: Type.Integer(),
-          worked_minutes: Type.Integer(),
-          due_minutes: Type.Integer(),
-          balance_minutes: Type.Integer(),
-          exclude_holidays: Type.Boolean(),
-          created_at: Type.String(),
-          updated_at: Type.String(),
-          target: Type.Optional(Type.Object({
-            id: Type.String(),
-            name: Type.String(),
-            duration_minutes: Type.Array(Type.Integer()),
-            weekdays: Type.Array(Type.Integer()),
-            exclude_holidays: Type.Boolean(),
-          })),
-        })),
-        500: Type.Object({
-          error: Type.String(),
-        }),
-      },
-    },
-  }, async (request, reply) => {
-    const userId = request.session.userId!;
-    const { year, month } = request.params as any;
-
-    try {
-      const balances = await monthlyBalanceService.recalculateMonthBalances(
-        userId,
-        year,
-        month
-      );
-
-      return reply.send(balances);
+      const monthlyBalances = await monthlyBalanceService.getChangedMonthlyBalancesSince(userId, sinceDate);
+      
+      // Cursor represents the current server state
+      const cursor = new Date().toISOString();
+      
+      return reply.send({
+        monthlyBalances,
+        cursor,
+      });
     } catch (error) {
       return reply.code(500).send({ error: 'Internal Server Error' });
     }

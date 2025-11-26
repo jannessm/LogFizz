@@ -6,7 +6,6 @@ export const mockUser: User = {
   id: '1',
   email: 'test@example.com',
   name: 'Test User',
-  state: 'Berlin',
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
@@ -21,9 +20,8 @@ export const mockButton: Button = {
   position: 0,
   goal_time_minutes: 480,
   auto_subtract_breaks: true,
-  target_id: null,
+  target_id: undefined,
   created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
 };
 
 // Mock target data
@@ -33,6 +31,7 @@ export const mockTarget: DailyTarget = {
   name: 'Daily Work',
   duration_minutes: [480, 480, 480, 480, 480], // 8 hours for each weekday
   weekdays: [1, 2, 3, 4, 5], // Mon-Fri
+  exclude_holidays: false,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };

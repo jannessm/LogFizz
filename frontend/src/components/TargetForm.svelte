@@ -303,6 +303,8 @@
           <p class="text-xs text-gray-500 mt-1 ml-6">
             When enabled, public holidays won't count as missed target days in the monthly balance
           </p>
+        </div>
+
         <!-- Button Assignment -->
         {#if target}
           <div class="border-t pt-4 mt-4">

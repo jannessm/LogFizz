@@ -77,6 +77,7 @@ function createTargetsStore() {
           name: targetData.name || '',
           duration_minutes: targetData.duration_minutes || [60], // Default to 60 minutes
           weekdays: targetData.weekdays || [1, 2, 3, 4, 5], // Default to weekdays
+          exclude_holidays: targetData.exclude_holidays || false,
           state_id: targetData.state_id,
           starting_from: targetData.starting_from,
           created_at: new Date().toISOString(),

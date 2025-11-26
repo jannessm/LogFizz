@@ -1,7 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { MonthlyBalance } from '../../types';
-  import { monthlyBalanceApi } from '../../services/api';
+  import { monthlyBalanceApi, isOnline } from '../../services/api';
+  import { 
+    getMonthlyBalancesByYearMonth, 
+    saveMonthlyBalance,
+    getSyncCursor,
+    saveSyncCursor
+  } from '../../lib/db';
   import dayjs from 'dayjs';
 
   export let year: number;
@@ -15,11 +21,13 @@
     loading = true;
     error = null;
     try {
-      balances = await monthlyBalanceApi.getAllBalances(year, month);
-      
-      // If no balances exist, calculate them
-      if (balances.length === 0) {
-        balances = await monthlyBalanceApi.recalculateAllBalances(year, month);
+      // Load from local DB first (fast - show data immediately)
+      const localBalances = await getMonthlyBalancesByYearMonth(year, month);
+      balances = localBalances;
+
+      // Sync from server in background
+      if (isOnline()) {
+        await syncFromServer();
       }
     } catch (err: any) {
       console.error('Failed to load monthly balances:', err);
@@ -29,16 +37,30 @@
     }
   }
 
-  async function recalculate() {
-    loading = true;
-    error = null;
+  async function syncFromServer() {
     try {
-      balances = await monthlyBalanceApi.recalculateAllBalances(year, month);
-    } catch (err: any) {
-      console.error('Failed to recalculate balances:', err);
-      error = err.message || 'Failed to recalculate balances';
-    } finally {
-      loading = false;
+      // Get last sync cursor
+      let cursor = await getSyncCursor('monthlyBalances');
+      if (!cursor) {
+        // First sync - use epoch time to get all data
+        cursor = new Date(0).toISOString();
+      }
+
+      const result = await monthlyBalanceApi.getSyncChanges(cursor);
+
+      // Apply changes to local DB
+      for (const balance of result.monthlyBalances) {
+        await saveMonthlyBalance(balance);
+      }
+
+      // Save new cursor
+      await saveSyncCursor('monthlyBalances', result.cursor);
+
+      // Reload from DB to reflect changes for current month
+      const updatedBalances = await getMonthlyBalancesByYearMonth(year, month);
+      balances = updatedBalances;
+    } catch (err) {
+      console.error('Failed to sync monthly balances from server:', err);
     }
   }
 
@@ -69,14 +91,6 @@
 <div class="bg-white rounded-lg shadow-md p-4 mb-6">
   <div class="flex justify-between items-center mb-3">
     <h3 class="text-sm font-semibold text-gray-700">Monthly Balance</h3>
-    <button
-      on:click={recalculate}
-      disabled={loading}
-      class="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 transition-colors"
-      title="Recalculate balances"
-    >
-      {loading ? 'Calculating...' : 'Refresh'}
-    </button>
   </div>
 
   {#if error}
