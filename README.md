@@ -327,12 +327,13 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 #### 6.1 Security Measures
 - [ ] Implement HTTPS everywhere
 - [ ] Add CORS configuration
-- [ ] Implement rate limiting
+- [x] Implement rate limiting
 - [ ] Add input sanitization
 - [ ] Implement SQL injection prevention
 - [ ] Add XSS protection
 - [ ] Implement CSRF protection
 - [ ] Set up security headers
+- [x] Add bot protection (hCaptcha for login/register)
 - [ ] Regular dependency updates
 - [ ] Security audit and penetration testing
 
@@ -466,6 +467,7 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - 🏗️ [Implementation Summary](IMPLEMENTATION.md) - What's been built
 - 🛠️ [Framework Decisions](docs/frameworks.md) - Technology choices
 - 📡 [Backend API](backend/README.md) - API documentation
+- 🔒 [hCaptcha Setup](docs/HCAPTCHA.md) - Bot protection configuration
 
 **Backend Status:** ✅ Complete
 - 25+ REST API endpoints

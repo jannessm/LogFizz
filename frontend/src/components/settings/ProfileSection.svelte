@@ -1,29 +1,16 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import StateEntriesManager from './StateEntriesManager.svelte';
-  import type { State, StateEntry } from '../../types';
 
   export let email: string;
   export let name: string;
   export let originalName: string;
-  export let stateEntries: StateEntry[];
-  export let originalStateEntries: StateEntry[];
-  export let availableStates: State[];
 
   const dispatch = createEventDispatcher();
 
   $: hasNameChanged = name !== originalName;
 
   function handleSubmit() {
-    dispatch('submit', { name, stateEntries });
-  }
-
-  function handleStateEntriesChange(event: CustomEvent) {
-    stateEntries = event.detail;
-  }
-
-  function handleStateEntriesError(event: CustomEvent) {
-    dispatch('error', event.detail);
+    dispatch('submit', { name });
   }
 </script>
 
@@ -63,17 +50,10 @@
       />
     </div>
 
-    <StateEntriesManager
-      bind:stateEntries
-      {availableStates}
-      {originalStateEntries}
-      on:change={handleStateEntriesChange}
-      on:error={handleStateEntriesError}
-    />
-
     <button
       on:click={handleSubmit}
-      class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+      disabled={!hasNameChanged}
+      class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <span class="w-5 h-5 icon-[si--check-line]"></span>
       Update Profile

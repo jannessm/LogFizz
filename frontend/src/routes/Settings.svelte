@@ -8,14 +8,9 @@
   import { authStore } from '../stores/auth';
   import { syncService } from '../services/sync';
   import { navigate } from '../lib/navigation';
-  import { statesApi } from '../services/api';
-  import type { State, StateEntry } from '../types';
 
   let name = '';
   let originalName = '';
-  let stateEntries: StateEntry[] = [];
-  let originalStateEntries: StateEntry[] = [];
-  let availableStates: State[] = [];
   let hasPendingSync = false;
   let errorMessage = '';
   let successMessage = '';
@@ -27,40 +22,24 @@
     if (user) {
       name = user.name;
       originalName = user.name;
-      stateEntries = user.state_entries || [];
-      originalStateEntries = JSON.parse(JSON.stringify(stateEntries));
     }
     hasPendingSync = await syncService.hasPendingSync();
-    
-    // Fetch available states
-    try {
-      availableStates = await statesApi.getAllStates();
-    } catch (error) {
-      console.error('Failed to load states:', error);
-    }
   });
 
   async function handleProfileUpdate(event: CustomEvent) {
     errorMessage = '';
     successMessage = '';
     
-    const { name: updatedName, stateEntries: updatedStateEntries } = event.detail;
+    const { name: updatedName } = event.detail;
     
     try {
       const updatedUser = await authStore.updateProfile({ 
-        name: updatedName,
-        state_entries: updatedStateEntries.map((entry: StateEntry) => ({
-          id: entry.id,
-          state_id: entry.state_id,
-          registered_at: entry.registered_at
-        }))
+        name: updatedName
       });
       successMessage = 'Profile updated successfully';
       // Update local state with the server response
       name = updatedUser.name;
       originalName = updatedUser.name;
-      stateEntries = updatedUser.state_entries || [];
-      originalStateEntries = JSON.parse(JSON.stringify(stateEntries));
     } catch (error: any) {
       errorMessage = error.message;
     }
@@ -108,9 +87,6 @@
       email={user?.email || ''}
       bind:name
       {originalName}
-      bind:stateEntries
-      {originalStateEntries}
-      {availableStates}
       on:submit={handleProfileUpdate}
       on:error={handleError}
     />

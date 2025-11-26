@@ -16,6 +16,11 @@ vi.mock('../lib/navigation', () => ({
   navigate: vi.fn(),
 }));
 
+// Mock HCaptcha component
+vi.mock('../components/HCaptcha.svelte', () => ({
+  default: vi.fn(),
+}));
+
 describe('Login Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
