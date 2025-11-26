@@ -12,8 +12,8 @@
   let interval: number | null = null;
 
   $: if ($todayTargets.length > 0 && $buttonsStore.buttons && $timeLogsStore.timeLogs) {
-    activeTargets = $todayTargets.filter(t => isTargetActive(t));
-    inactiveTargets = $todayTargets.filter(t => !isTargetActive(t));
+    activeTargets = $todayTargets.filter(t => isTargetActive(t)).sort((a, b) => a.name.localeCompare(b.name));
+    inactiveTargets = $todayTargets.filter(t => !isTargetActive(t)).sort((a, b) => a.name.localeCompare(b.name));
     updateProgressMap();
   }
 

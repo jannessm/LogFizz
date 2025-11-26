@@ -233,6 +233,13 @@ export class MonthlyBalanceService {
       balances.push(balance);
     }
 
-    return balances;
+    // Reload balances with target relation to include target names
+    const balanceIds = balances.map(b => b.id);
+    return await this.monthlyBalanceRepository.find({
+      where: {
+        id: In(balanceIds),
+      },
+      relations: ['target'],
+    });
   }
 }

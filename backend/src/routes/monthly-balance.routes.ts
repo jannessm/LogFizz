@@ -183,6 +183,13 @@ export async function monthlyBalanceRoutes(fastify: FastifyInstance) {
           exclude_holidays: Type.Boolean(),
           created_at: Type.String(),
           updated_at: Type.String(),
+          target: Type.Optional(Type.Object({
+            id: Type.String(),
+            name: Type.String(),
+            duration_minutes: Type.Array(Type.Integer()),
+            weekdays: Type.Array(Type.Integer()),
+            exclude_holidays: Type.Boolean(),
+          })),
         })),
         500: Type.Object({
           error: Type.String(),

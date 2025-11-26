@@ -145,7 +145,7 @@
           <p class="text-gray-500 text-sm italic">No targets yet</p>
         {:else}
           <div class="space-y-2">
-            {#each $targetsStore.targets as target}
+            {#each $targetsStore.targets.slice().sort((a, b) => a.name.localeCompare(b.name)) as target}
               {@const progress = calculateTargetProgress(target)}
               <div class="border border-gray-200 rounded-lg p-3 hover:border-gray-300 transition-colors">
                 <div class="flex justify-between items-center mb-2">

@@ -89,7 +89,7 @@
     <div class="text-gray-500 text-sm">No targets configured for this month.</div>
   {:else}
     <div class="space-y-3">
-      {#each balances as balance (balance.id)}
+      {#each balances.slice().sort((a, b) => (a.target?.name || '').localeCompare(b.target?.name || '')) as balance (balance.id)}
         <div class="border border-gray-200 rounded-lg p-3">
           <div class="flex justify-between items-start mb-2">
             <div>
