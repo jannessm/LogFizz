@@ -1,12 +1,16 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
 
-  export let sitekey: string;
-  export let onVerify: (token: string) => void;
-  export let onError: ((error: string) => void) | undefined = undefined;
-  export let onExpire: (() => void) | undefined = undefined;
+  interface Props {
+    sitekey: string;
+    onVerify: (token: string) => void;
+    onError?: (error: string) => void;
+    onExpire?: () => void;
+  }
 
-  let widgetId: string | null = null;
+  let { sitekey, onVerify, onError, onExpire }: Props = $props();
+
+  let widgetId: string | null = $state(null);
   let containerRef: HTMLDivElement;
 
   const HCAPTCHA_SCRIPT_ID = 'hcaptcha-script';
@@ -50,11 +54,14 @@
     });
   }
 
-  export function reset() {
+  function reset() {
     if (widgetId !== null && window.hcaptcha) {
       window.hcaptcha.reset(widgetId);
     }
   }
+
+  // Expose reset method
+  export { reset };
 
   onMount(async () => {
     try {

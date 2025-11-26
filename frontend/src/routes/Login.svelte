@@ -10,7 +10,7 @@
   let errorMessage = '';
   let isLoading = false;
   let hcaptchaToken = '';
-  let hcaptchaComponent: any;
+  let hcaptchaComponent: { reset: () => void } | undefined = undefined;
 
   const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || '';
 
@@ -56,7 +56,7 @@
     } catch (error: any) {
       errorMessage = error.message || 'Authentication failed';
       // Reset hCaptcha on error
-      if (hcaptchaComponent) {
+      if (hcaptchaComponent?.reset) {
         hcaptchaComponent.reset();
       }
       hcaptchaToken = '';
@@ -70,7 +70,7 @@
     errorMessage = '';
     hcaptchaToken = '';
     // Reset hCaptcha when switching modes
-    if (hcaptchaComponent) {
+    if (hcaptchaComponent?.reset) {
       hcaptchaComponent.reset();
     }
   }
