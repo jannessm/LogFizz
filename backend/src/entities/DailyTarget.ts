@@ -26,9 +26,6 @@ export class DailyTarget {
   @Column('timestamptz', { nullable: true })
   starting_from?: Date;
 
-  @Column('boolean', { default: false })
-  exclude_holidays!: boolean; // Whether to exclude public holidays from target calculation
-
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 
