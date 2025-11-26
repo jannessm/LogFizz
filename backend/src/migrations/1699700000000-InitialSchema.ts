@@ -35,15 +35,16 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "name" character varying NOT NULL,
                 "duration_minutes" text NOT NULL,
                 "weekdays" text NOT NULL,
-                "country" character varying,
-                "state" character varying,
+                "state_id" uuid,
                 "registered_at" TIMESTAMP WITH TIME ZONE,
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "deleted_at" TIMESTAMP WITH TIME ZONE,
                 CONSTRAINT "PK_daily_targets_id" PRIMARY KEY ("id"),
                 CONSTRAINT "FK_daily_targets_user_id" FOREIGN KEY ("user_id") 
-                REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION
+                    REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
+                CONSTRAINT "FK_daily_targets_state_id" FOREIGN KEY ("state_id")
+                    REFERENCES "states"("id") ON DELETE SET NULL ON UPDATE NO ACTION
             )
         `);
 
@@ -140,6 +141,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
 
         // Create indexes for better performance
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_daily_targets_user_id" ON "daily_targets" ("user_id")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_daily_targets_state_id" ON "daily_targets" ("state_id")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_daily_targets_deleted_at" ON "daily_targets" ("deleted_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_daily_targets_updated_at" ON "daily_targets" ("updated_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_buttons_user_id" ON "buttons" ("user_id")`);

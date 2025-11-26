@@ -6,6 +6,7 @@ import { DailyTarget } from '../entities/DailyTarget.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { hashPassword } from '../utils/password.js';
+import { hashPasswordForTransport } from '../utils/clientPasswordHash.js';
 
 /**
  * Seed script for development environment
@@ -36,16 +37,26 @@ async function seed() {
     console.log('👤 Creating sample users...');
     const userRepo = AppDataSource.getRepository(User);
     
+    // Hash passwords as if they came from the client (SHA-256 with email)
+    // Then bcrypt hash them for storage
+    const demoEmail = 'demo@example.com';
+    const demoPassword = 'demo123';
+    const demoHashedForTransport = hashPasswordForTransport(demoPassword, demoEmail);
+    
     const demoUser = userRepo.create({
-      email: 'demo@example.com',
-      password_hash: await hashPassword('demo123'),
+      email: demoEmail,
+      password_hash: await hashPassword(demoHashedForTransport),
       name: 'Demo User',
     });
     await userRepo.save(demoUser);
     
+    const testEmail = 'test@example.com';
+    const testPassword = 'test123';
+    const testHashedForTransport = hashPasswordForTransport(testPassword, testEmail);
+    
     const testUser = userRepo.create({
-      email: 'test@example.com',
-      password_hash: await hashPassword('test123'),
+      email: testEmail,
+      password_hash: await hashPassword(testHashedForTransport),
       name: 'Test User',
     });
     await userRepo.save(testUser);
@@ -267,36 +278,7 @@ async function seed() {
     console.log('✅ Created sample time logs for the past week');
     console.log('   - Including an active timer for demo user');
 
-    // Create sample holidays for current year
-    // console.log('🎉 Creating sample holidays...');
-    // const holidayRepo = AppDataSource.getRepository(Holiday);
-    // const currentYear = now.getFullYear();
-
-    // const holidays = [
-    //   // US Holidays
-    //   { country: 'US', date: new Date(currentYear, 0, 1), name: "New Year's Day" },
-    //   { country: 'US', date: new Date(currentYear, 6, 4), name: 'Independence Day' },
-    //   { country: 'US', date: new Date(currentYear, 10, 28), name: 'Thanksgiving' },
-    //   { country: 'US', date: new Date(currentYear, 11, 25), name: 'Christmas Day' },
-      
-    //   // German Holidays
-    //   { country: 'DE', date: new Date(currentYear, 0, 1), name: 'Neujahr' },
-    //   { country: 'DE', date: new Date(currentYear, 4, 1), name: 'Tag der Arbeit' },
-    //   { country: 'DE', date: new Date(currentYear, 9, 3), name: 'Tag der Deutschen Einheit' },
-    //   { country: 'DE', date: new Date(currentYear, 11, 25), name: '1. Weihnachtsfeiertag' },
-    //   { country: 'DE', date: new Date(currentYear, 11, 26), name: '2. Weihnachtsfeiertag' },
-    // ];
-
-    // for (const holiday of holidays) {
-    //   await holidayRepo.save(holidayRepo.create({
-    //     country: holiday.country,
-    //     date: holiday.date,
-    //     name: holiday.name,
-    //     year: currentYear,
-    //   }));
-    // }
-
-    // console.log('✅ Created 9 sample holidays');
+    
 
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\n📝 Summary:');

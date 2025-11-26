@@ -38,8 +38,7 @@ export interface DailyTarget {
   name: string;
   duration_minutes: number[]; // Array of duration values (one per weekday if needed)
   weekdays: number[]; // Array of weekday numbers (0=Sunday, 1=Monday, etc.)
-  country?: string;
-  state?: string;
+  state_id?: string;
   registered_at?: string;
   created_at: string;
   updated_at: string;

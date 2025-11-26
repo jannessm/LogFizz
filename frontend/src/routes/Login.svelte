@@ -1,34 +1,13 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { authStore } from '../stores/auth';
-  import { statesStore } from '../stores/states';
   import { navigate } from '../lib/navigation';
-
 
   let email = '';
   let password = '';
   let name = '';
-  let country = 'DE';
-  let state = '';
   let isRegisterMode = false;
   let errorMessage = '';
   let isLoading = false;
-  let countries = [
-    { code: 'DE', name: 'Germany' },
-  ];
-  let states: Array<{ country: string; code: string; state: string }> = [];
-  let filteredStates: Array<{ country: string; code: string; state: string }> = [];
-
-  $: if (!!$statesStore.states && $statesStore.states.length > 0) {
-    states = $statesStore.states;
-    const selectedCountry = countries.filter(c => c.code === country)[0].name;
-    filteredStates = states.filter(s => s.country === selectedCountry)
-                           .sort((a, b) => a.state.localeCompare(b.state));
-  }
-
-  onMount(async () => {
-    await statesStore.load();
-  });
 
   async function handleSubmit() {
     errorMessage = '';
@@ -36,7 +15,7 @@
 
     try {
       if (isRegisterMode) {
-        await authStore.register(email, password, name, state || undefined);
+        await authStore.register(email, password, name);
       } else {
         await authStore.login(email, password);
       }
@@ -88,37 +67,6 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Your name"
           />
-        </div>
-
-        <div>
-          <p>To include public holidays in the calculation of working hours, please select your location:</p>
-          <label for="country" class="block text-sm font-medium text-gray-700 mb-1">
-            Country (optional)
-          </label>
-          <select
-            id="country"
-            bind:value={country}
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">-- Select a country --</option>
-            <option value='DE'>Germany</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="state" class="block text-sm font-medium text-gray-700 mb-1">
-            State (optional)
-          </label>
-          <select
-            id="state"
-            bind:value={state}
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">-- Select a state --</option>
-            {#each filteredStates as filteredState}
-              <option value={filteredState.code}>{filteredState.state}</option>
-            {/each}
-          </select>
         </div>
       {/if}
 

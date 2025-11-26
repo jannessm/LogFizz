@@ -19,9 +19,9 @@ const api = ky.create({
 
 // Auth API
 export const authApi = {
-  async register(email: string, password: string, name: string, country?: string, state?: string): Promise<User> {
+  async register(email: string, password: string, name: string): Promise<User> {
     const hashedPassword = await hashPasswordForTransport(password, email);
-    return api.post('api/auth/register', { json: { email, password: hashedPassword, name, country, state } }).json();
+    return api.post('api/auth/register', { json: { email, password: hashedPassword, name } }).json();
   },
 
   async login(email: string, password: string): Promise<User> {
