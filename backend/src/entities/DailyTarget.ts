@@ -21,7 +21,7 @@ export class DailyTarget {
   state_id?: string;
 
   @Column('timestamptz', { nullable: true })
-  registered_at?: Date;
+  starting_from?: Date;
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;

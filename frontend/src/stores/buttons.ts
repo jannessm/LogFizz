@@ -25,7 +25,6 @@ function createButtonsStore() {
       try {
         // Load from local DB first
         const localButtons = await getAllButtons();
-        console.log(localButtons)
         update(state => ({ ...state, buttons: localButtons, isLoading: false }));
 
         // Try to pull incremental changes from server if online

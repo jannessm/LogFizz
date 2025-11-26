@@ -36,7 +36,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "duration_minutes" text NOT NULL,
                 "weekdays" text NOT NULL,
                 "state_id" uuid,
-                "registered_at" TIMESTAMP WITH TIME ZONE,
+                "starting_from" TIMESTAMP WITH TIME ZONE,
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "deleted_at" TIMESTAMP WITH TIME ZONE,

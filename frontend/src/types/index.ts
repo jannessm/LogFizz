@@ -39,7 +39,7 @@ export interface DailyTarget {
   duration_minutes: number[]; // Array of duration values (one per weekday if needed)
   weekdays: number[]; // Array of weekday numbers (0=Sunday, 1=Monday, etc.)
   state_id?: string;
-  registered_at?: string;
+  starting_from?: string; // Date from which tracking starts (important for saldo computations)
   created_at: string;
   updated_at: string;
   deleted_at?: string;

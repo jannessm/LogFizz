@@ -193,11 +193,11 @@ export async function getSetting(key: string): Promise<any> {
 }
 
 // Sync cursor operations
-export async function saveSyncCursor(type: 'buttons' | 'timelogs', cursor: string): Promise<void> {
+export async function saveSyncCursor(type: 'buttons' | 'timelogs' | 'targets', cursor: string): Promise<void> {
   await saveSetting(`sync_cursor_${type}`, cursor);
 }
 
-export async function getSyncCursor(type: 'buttons' | 'timelogs'): Promise<string | undefined> {
+export async function getSyncCursor(type: 'buttons' | 'timelogs' | 'targets'): Promise<string | undefined> {
   return await getSetting(`sync_cursor_${type}`);
 }
 

@@ -12,7 +12,6 @@ import {
   getSyncCursor,
   saveSyncCursor,
   getUser,
-  getAllTimeLogs,
 } from '../lib/db';
 import { buttonApi, timeLogApi, targetApi, isOnline } from './api';
 import type { Button, TimeLog, DailyTarget, SyncQueueItem } from '../types';

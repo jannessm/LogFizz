@@ -17,7 +17,7 @@
   let durationMinutes = firstDuration % 60;
   let weekdays = target?.weekdays || [1, 2, 3, 4, 5]; // Mon-Fri by default
   let stateId = target?.state_id || '';
-  let registeredAt = target?.registered_at ? target.registered_at.split('T')[0] : '';
+  let startingFrom = target?.starting_from ? target.starting_from.split('T')[0] : '';
   let isLoading = false;
   let errorMessage = '';
   let availableStates: State[] = [];
@@ -150,7 +150,7 @@
         duration_minutes,
         weekdays,
         state_id: stateId || undefined,
-        registered_at: registeredAt ? new Date(registeredAt).toISOString() : undefined,
+        starting_from: startingFrom ? new Date(startingFrom).toISOString() : undefined,
       };
 
       let savedTargetId: string;
@@ -387,23 +387,21 @@
               </div>
             {/if}
 
-            <!-- Registered At -->
-            {#if stateId}
-              <div>
-                <label for="registeredAt" class="block text-sm text-gray-600 mb-1">
-                  Effective Since
-                </label>
-                <input
-                  id="registeredAt"
-                  type="date"
-                  bind:value={registeredAt}
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-                <p class="text-xs text-gray-500 mt-1">
-                  Optional: When did this location become effective for this target?
-                </p>
-              </div>
-            {/if}
+            <!-- Starting From -->
+            <div>
+              <label for="startingFrom" class="block text-sm text-gray-600 mb-1">
+                Tracking Starts From
+              </label>
+              <input
+                id="startingFrom"
+                type="date"
+                bind:value={startingFrom}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+              <p class="text-xs text-gray-500 mt-1">
+                Optional: Date from which tracking starts (important for balance computations)
+              </p>
+            </div>
           </div>
         </div>
 
