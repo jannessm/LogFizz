@@ -1,7 +1,10 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
-  import type { DailyTarget } from '../types';
+  import type { DailyTarget, State, Button } from '../types';
   import { targetsStore } from '../stores/targets';
+  import { statesStore } from '../stores/states';
+  import { buttonsStore } from '../stores/buttons';
 
   export let target: DailyTarget | null = null;
 
@@ -13,8 +16,61 @@
   let durationHours = Math.floor(firstDuration / 60);
   let durationMinutes = firstDuration % 60;
   let weekdays = target?.weekdays || [1, 2, 3, 4, 5]; // Mon-Fri by default
+  let stateId = target?.state_id || '';
+  let startingFrom = target?.starting_from ? target.starting_from.split('T')[0] : '';
   let isLoading = false;
   let errorMessage = '';
+  let availableStates: State[] = [];
+  let selectedCountry = '';
+  let filteredStates: State[] = [];
+  let availableCountries: string[] = [];
+  let availableButtons: Button[] = [];
+  let selectedButtonIds: string[] = [];
+
+  $: if ($buttonsStore.buttons) {
+    availableButtons = $buttonsStore.buttons;
+    
+    // If editing a target, pre-select buttons that are already assigned to this target
+    if (target?.id && availableButtons.length > 0 && selectedButtonIds.length === 0) {
+      selectedButtonIds = availableButtons
+        .filter(b => b.target_id === target.id)
+        .map(b => b.id);
+    }
+  }
+
+  $: if ($statesStore.states) {
+    availableStates = $statesStore.states;
+    
+    // Extract unique countries from states
+    const countries = new Set(availableStates.map(s => s.country));
+    availableCountries = Array.from(countries).sort();
+    
+    // If we have a target with state_id, find and set the country
+    if (target?.state_id && availableStates.length > 0 && !selectedCountry) {
+      const targetState = availableStates.find(s => s.id === target.state_id);
+      if (targetState) {
+        selectedCountry = targetState.country;
+      }
+    }
+  }
+
+  $: {
+    if (selectedCountry) {
+      filteredStates = availableStates.filter(s => s.country === selectedCountry)
+        .sort((a, b) => a.state.localeCompare(b.state));
+    } else {
+      filteredStates = [];
+    }
+  }
+
+  function handleCountryChange() {
+    // Reset state selection when country changes
+    stateId = '';
+  }
+
+  onMount(async () => {
+    await statesStore.load();
+  });
 
   const weekDays = [
     { value: 0, label: 'Sun' },
@@ -31,6 +87,36 @@
       weekdays = weekdays.filter(d => d !== day);
     } else {
       weekdays = [...weekdays, day].sort();
+    }
+  }
+
+  function toggleButton(buttonId: string) {
+    if (selectedButtonIds.includes(buttonId)) {
+      selectedButtonIds = selectedButtonIds.filter(id => id !== buttonId);
+    } else {
+      selectedButtonIds = [...selectedButtonIds, buttonId];
+    }
+  }
+
+  async function updateButtonAssignments(targetId: string) {
+    // Get buttons that were previously assigned to this target
+    const previouslyAssigned = availableButtons
+      .filter(b => b.target_id === (target?.id || null))
+      .map(b => b.id);
+
+    // Find buttons to assign (newly selected)
+    const toAssign = selectedButtonIds.filter(id => !previouslyAssigned.includes(id));
+
+    // Find buttons to unassign (previously selected but now deselected)
+    const toUnassign = previouslyAssigned.filter(id => !selectedButtonIds.includes(id));
+
+    // Update buttons
+    for (const buttonId of toAssign) {
+      await buttonsStore.update(buttonId, { target_id: targetId });
+    }
+
+    for (const buttonId of toUnassign) {
+      await buttonsStore.update(buttonId, { target_id: undefined });
     }
   }
 
@@ -59,17 +145,26 @@
       // Backend expects an array, one entry per weekday that has this target
       const duration_minutes = weekdays.map(() => totalMinutes);
       
-      const targetData = {
+      const targetData: Partial<DailyTarget> = {
         name: name.trim(),
         duration_minutes,
         weekdays,
+        state_id: stateId || undefined,
+        starting_from: startingFrom ? new Date(startingFrom).toISOString() : undefined,
       };
+
+      let savedTargetId: string;
 
       if (target) {
         await targetsStore.update(target.id, targetData);
+        savedTargetId = target.id;
       } else {
-        await targetsStore.create(targetData);
+        const newTarget = await targetsStore.create(targetData);
+        savedTargetId = newTarget.id;
       }
+
+      // Update button assignments
+      await updateButtonAssignments(savedTargetId);
 
       dispatch('close');
     } catch (error: any) {
@@ -188,6 +283,125 @@
                 {day.label}
               </button>
             {/each}
+          </div>
+        </div>
+
+        <!-- Button Assignment -->
+        {#if target}
+          <div class="border-t pt-4 mt-4">
+            <div class="block text-sm font-medium text-gray-700 mb-3">
+              Assign Buttons (Optional)
+            </div>
+            <p class="text-xs text-gray-500 mb-3">
+              Select buttons to track time towards this daily target
+            </p>
+            
+            {#if availableButtons.length === 0}
+              <p class="text-sm text-gray-500 italic">No buttons available. Create buttons first to assign them to this target.</p>
+            {:else}
+              <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+                {#each availableButtons as button}
+                  <button
+                    type="button"
+                    on:click={() => toggleButton(button.id)}
+                    class="flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all duration-200 relative group"
+                    class:border-blue-500={selectedButtonIds.includes(button.id)}
+                    class:bg-blue-50={selectedButtonIds.includes(button.id)}
+                    class:shadow-md={selectedButtonIds.includes(button.id)}
+                    class:border-gray-200={!selectedButtonIds.includes(button.id)}
+                    class:hover:border-gray-300={!selectedButtonIds.includes(button.id)}
+                    class:hover:bg-gray-50={!selectedButtonIds.includes(button.id)}
+                  >
+                    {#if selectedButtonIds.includes(button.id)}
+                      <div class="absolute top-1 right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                        <span class="icon-[si--check-line] text-white w-3 h-3"></span>
+                      </div>
+                    {/if}
+                    
+                    <div class="flex items-center justify-center mb-2">
+                      {#if button.emoji}
+                        <span class="text-2xl">{button.emoji}</span>
+                      {:else if button.icon}
+                        <span class="w-8 h-8 {button.icon}" style="color: {button.color || '#000'}"></span>
+                      {:else}
+                        <span class="w-8 h-8 icon-[si--button-duotone]" style="color: {button.color || '#6B7280'}"></span>
+                      {/if}
+                    </div>
+                    
+                    <span class="text-sm font-medium text-gray-800 text-center line-clamp-2">{button.name}</span>
+                    
+                    {#if button.target_id && button.target_id !== target?.id}
+                      <span class="text-[10px] text-orange-600 mt-1 text-center">assigned elsewhere</span>
+                    {/if}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
+
+        <!-- Holiday Settings -->
+        <div class="border-t pt-4 mt-4">
+          <div class="block text-sm font-medium text-gray-700 mb-3">
+            Holiday Settings (Optional)
+          </div>
+          <p class="text-xs text-gray-500 mb-3">
+            Select your location to exclude public holidays from this target's calculation
+          </p>
+
+          <div class="space-y-3">
+            <!-- Country -->
+            <div>
+              <label for="country" class="block text-sm text-gray-600 mb-1">
+                Country
+              </label>
+              <select
+                id="country"
+                bind:value={selectedCountry}
+                on:change={handleCountryChange}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value="">-- Select a country --</option>
+                {#each availableCountries as country}
+                  <option value={country}>{country}</option>
+                {/each}
+              </select>
+            </div>
+
+            <!-- State -->
+            {#if selectedCountry}
+              <div>
+                <label for="state" class="block text-sm text-gray-600 mb-1">
+                  State/Region
+                </label>
+                <select
+                  id="state"
+                  bind:value={stateId}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value="">-- Select a state --</option>
+                  {#each filteredStates as s}
+                    <option value={s.id}>{s.state} ({s.code})</option>
+                  {/each}
+                </select>
+              </div>
+            {/if}
+
+            <!-- Starting From -->
+            <div>
+              <label for="startingFrom" class="block text-sm text-gray-600 mb-1">
+                Tracking Starts From
+              </label>
+              <input
+                id="startingFrom"
+                type="date"
+                bind:value={startingFrom}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+              <p class="text-xs text-gray-500 mt-1">
+                Optional: Date from which tracking starts (important for balance computations)
+              </p>
+            </div>
           </div>
         </div>
 

@@ -17,6 +17,12 @@ export class DailyTarget {
   @Column('simple-array')
   weekdays!: number[]; // 0-6 for Sunday-Saturday
 
+  @Column('uuid', { nullable: true })
+  state_id?: string;
+
+  @Column('timestamptz', { nullable: true })
+  starting_from?: Date;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 
@@ -29,4 +35,8 @@ export class DailyTarget {
   @ManyToOne('User', 'daily_targets', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user!: any;
+
+  @ManyToOne('State', { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'state_id' })
+  state?: any;
 }
