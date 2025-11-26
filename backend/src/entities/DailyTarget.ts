@@ -39,9 +39,6 @@ export class DailyTarget {
   @JoinColumn({ name: 'user_id' })
   user!: any;
 
-  @OneToMany('MonthlyBalance', 'target')
-  monthly_balances?: any[];
-
   @ManyToOne('State', { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'state_id' })
   state?: any;
