@@ -19,14 +19,27 @@ const api = ky.create({
 
 // Auth API
 export const authApi = {
-  async register(email: string, password: string, name: string): Promise<User> {
+  async register(email: string, password: string, name: string, hcaptchaToken?: string): Promise<User> {
     const hashedPassword = await hashPasswordForTransport(password, email);
-    return api.post('api/auth/register', { json: { email, password: hashedPassword, name } }).json();
+    return api.post('api/auth/register', { 
+      json: { 
+        email, 
+        password: hashedPassword, 
+        name,
+        ...(hcaptchaToken && { hcaptchaToken })
+      } 
+    }).json();
   },
 
-  async login(email: string, password: string): Promise<User> {
+  async login(email: string, password: string, hcaptchaToken?: string): Promise<User> {
     const hashedPassword = await hashPasswordForTransport(password, email);
-    const response = await api.post('api/auth/login', { json: { email, password: hashedPassword } });
+    const response = await api.post('api/auth/login', { 
+      json: { 
+        email, 
+        password: hashedPassword,
+        ...(hcaptchaToken && { hcaptchaToken })
+      } 
+    });
     
     const userData = await response.json() as User;
     

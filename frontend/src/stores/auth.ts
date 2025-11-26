@@ -88,10 +88,10 @@ function createAuthStore() {
       }
     },
 
-    async login(email: string, password: string) {
+    async login(email: string, password: string, hcaptchaToken?: string) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        const user = await authApi.login(email, password);
+        const user = await authApi.login(email, password, hcaptchaToken);
         await saveUser(user);
         update(state => ({ 
           ...state, 
@@ -112,10 +112,10 @@ function createAuthStore() {
       }
     },
 
-    async register(email: string, password: string, name: string) {
+    async register(email: string, password: string, name: string, hcaptchaToken?: string) {
       update(storeState => ({ ...storeState, isLoading: true, error: null }));
       try {
-        const user = await authApi.register(email, password, name);
+        const user = await authApi.register(email, password, name, hcaptchaToken);
         await saveUser(user);
         update(storeState => ({ 
           ...storeState, 

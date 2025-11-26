@@ -1,6 +1,7 @@
 <script lang="ts">
   import { authStore } from '../stores/auth';
   import { navigate } from '../lib/navigation';
+  import HCaptcha from '../components/HCaptcha.svelte';
 
   let email = '';
   let password = '';
@@ -8,16 +9,40 @@
   let isRegisterMode = false;
   let errorMessage = '';
   let isLoading = false;
+  let hcaptchaToken = '';
+  let hcaptchaComponent: any;
+
+  const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || '';
+
+  function handleHCaptchaVerify(token: string) {
+    hcaptchaToken = token;
+  }
+
+  function handleHCaptchaError(error: string) {
+    errorMessage = 'hCaptcha verification failed. Please try again.';
+    console.error('hCaptcha error:', error);
+  }
+
+  function handleHCaptchaExpire() {
+    hcaptchaToken = '';
+    errorMessage = 'hCaptcha expired. Please verify again.';
+  }
 
   async function handleSubmit() {
     errorMessage = '';
+    
+    if (!hcaptchaToken) {
+      errorMessage = 'Please complete the hCaptcha verification';
+      return;
+    }
+
     isLoading = true;
 
     try {
       if (isRegisterMode) {
-        await authStore.register(email, password, name);
+        await authStore.register(email, password, name, hcaptchaToken);
       } else {
-        await authStore.login(email, password);
+        await authStore.login(email, password, hcaptchaToken);
       }
       
       // Check if there's a saved redirect path (e.g., from verify-email)
@@ -30,6 +55,11 @@
       }
     } catch (error: any) {
       errorMessage = error.message || 'Authentication failed';
+      // Reset hCaptcha on error
+      if (hcaptchaComponent) {
+        hcaptchaComponent.reset();
+      }
+      hcaptchaToken = '';
     } finally {
       isLoading = false;
     }
@@ -38,6 +68,11 @@
   function toggleMode() {
     isRegisterMode = !isRegisterMode;
     errorMessage = '';
+    hcaptchaToken = '';
+    // Reset hCaptcha when switching modes
+    if (hcaptchaComponent) {
+      hcaptchaComponent.reset();
+    }
   }
 </script>
 
@@ -112,9 +147,19 @@
         {/if}
       </div>
 
+      {#if HCAPTCHA_SITE_KEY}
+        <HCaptcha 
+          bind:this={hcaptchaComponent}
+          sitekey={HCAPTCHA_SITE_KEY}
+          onVerify={handleHCaptchaVerify}
+          onError={handleHCaptchaError}
+          onExpire={handleHCaptchaExpire}
+        />
+      {/if}
+
       <button
         type="submit"
-        disabled={isLoading}
+        disabled={isLoading || (!hcaptchaToken && !!HCAPTCHA_SITE_KEY)}
         class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
       >
         {isLoading ? 'Please wait...' : isRegisterMode ? 'Register' : 'Login'}

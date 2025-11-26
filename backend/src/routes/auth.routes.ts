@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { AuthService } from '../services/auth.service.js';
 import { authRateLimit, passwordResetRateLimit, generalAuthRateLimit } from '../config/rateLimit.js';
+import { requireHCaptcha } from '../utils/hcaptcha.js';
 
 const authService = new AuthService();
 
@@ -15,6 +16,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         email: Type.String({ format: 'email' }),
         password: Type.String({ minLength: 8 }),
         name: Type.String(),
+        hcaptchaToken: Type.Optional(Type.String()),
       }),
       response: {
         201: Type.Object({
@@ -29,7 +31,11 @@ export async function authRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const { email, password, name } = request.body as any;
+      const { email, password, name, hcaptchaToken } = request.body as any;
+      
+      // Verify hCaptcha if configured
+      await requireHCaptcha(hcaptchaToken, request.ip);
+      
       const user = await authService.register(email, password, name);
 
       return reply.code(201).send({
@@ -50,6 +56,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       body: Type.Object({
         email: Type.String({ format: 'email' }),
         password: Type.String(),
+        hcaptchaToken: Type.Optional(Type.String()),
       }),
       response: {
         200: Type.Object({
@@ -64,31 +71,39 @@ export async function authRoutes(fastify: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
-    const { email, password } = request.body as any;
-    const user = await authService.login(email, password);
+    try {
+      const { email, password, hcaptchaToken } = request.body as any;
+      
+      // Verify hCaptcha if configured
+      await requireHCaptcha(hcaptchaToken, request.ip);
+      
+      const user = await authService.login(email, password);
 
-    if (!user) {
-      return reply.code(401).send({ error: 'Invalid credentials' });
-    }
+      if (!user) {
+        return reply.code(401).send({ error: 'Invalid credentials' });
+      }
 
-    // Set session data
-    request.session.userId = user.id;
-    
-    // Session is automatically saved by @fastify/session after the response
-    // But we can log for debugging
-    const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
-    if (!isTest) {
-      console.log('Session saved successfully');
-      console.log('Session ID:', request.session.sessionId);
-      console.log('User ID in session:', request.session.userId);
+      // Set session data
+      request.session.userId = user.id;
+      
+      // Session is automatically saved by @fastify/session after the response
+      // But we can log for debugging
+      const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+      if (!isTest) {
+        console.log('Session saved successfully');
+        console.log('Session ID:', request.session.sessionId);
+        console.log('User ID in session:', request.session.userId);
+      }
+      
+      return reply.send({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        email_verified_at: user.email_verified_at || null,
+      });
+    } catch (error: any) {
+      return reply.code(401).send({ error: error.message });
     }
-    
-    return reply.send({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      email_verified_at: user.email_verified_at || null,
-    });
   });
 
   // Logout endpoint

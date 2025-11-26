@@ -1,6 +1,13 @@
-import { beforeAll, afterAll } from 'vitest';
+import { beforeAll, afterAll, vi } from 'vitest';
 import { AppDataSource } from '../config/database.js';
 import { initializeTestDatabase } from './testDatabase.js';
+
+// Mock hCaptcha verification for tests
+vi.mock('../utils/hcaptcha.js', () => ({
+  verifyHCaptcha: vi.fn().mockResolvedValue({ success: true }),
+  requireHCaptcha: vi.fn().mockResolvedValue(undefined),
+  isHCaptchaRequired: vi.fn().mockReturnValue(false),
+}));
 
 // Initialize database once before all tests
 beforeAll(async () => {
