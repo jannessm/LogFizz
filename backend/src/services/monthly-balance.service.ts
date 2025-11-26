@@ -207,11 +207,14 @@ export class MonthlyBalanceService {
       prevYear = year - 1;
     }
 
-    // Check if previous month is before starting_from
+    // Check if previous month is entirely before starting_from
+    // We need to check if starting_from is after the END of the previous month
     if (startingFrom) {
-      const prevMonthEnd = new Date(Date.UTC(prevYear, prevMonth, 1, 0, 0, 0, 0));
-      if (prevMonthEnd <= startingFrom) {
-        // Previous month is before starting_from, don't include its balance
+      // Get the first day of the current month (which is the end boundary of prev month)
+      const currentMonthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
+      if (startingFrom >= currentMonthStart) {
+        // starting_from is on or after current month's start,
+        // meaning previous month is entirely before tracking began
         return 0;
       }
     }
