@@ -1,25 +1,18 @@
 import { AppDataSource } from '../config/database.js';
 import { User } from '../entities/User.js';
-import { State } from '../entities/State.js';
-import { UserStateEntry } from '../entities/UserStateEntry.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { IsNull, MoreThan } from 'typeorm';
 import { EmailService } from './email.service.js';
-import { UserStateEntryService } from './user-state-entry.service.js';
 import crypto from 'crypto';
 
 export class AuthService {
   private userRepository = AppDataSource.getRepository(User);
-  private stateRepository = AppDataSource.getRepository(State);
   private emailService = new EmailService();
-  private stateEntryService = new UserStateEntryService();
 
   async register(
     email: string, 
     password: string, 
     name: string,
-    state?: string,
-    providedStateEntries?: Array<{ state_id: string; registered_at: Date | string }>,
   ): Promise<User> {
     const existingUser = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
     if (existingUser) {
@@ -27,28 +20,6 @@ export class AuthService {
     }
 
     const password_hash = await hashPassword(password);
-    const stateEntries: Array<{ id: string; registered_at: Date | string }> = [];
-    
-    // Handle state_entries if provided (takes priority)
-    if (providedStateEntries && providedStateEntries.length > 0) {
-      for (const entry of providedStateEntries) {
-        // Validate that the state_id exists
-        const stateExists = await this.stateRepository.findOne({
-          where: { id: entry.state_id }
-        });
-        if (stateExists) {
-          stateEntries.push({ id: entry.state_id, registered_at: entry.registered_at });
-        }
-      }
-    } else if (state) {
-      // Otherwise, handle single state code
-      const stateEntry = await this.stateRepository.findOne({
-        where: { code: state }
-      });
-      if (stateEntry) {
-        stateEntries.push({ id: stateEntry.id, registered_at: new Date() });
-      }
-    }
 
     // Generate email verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -64,21 +35,6 @@ export class AuthService {
     });
 
     const newUser = await this.userRepository.save(user);
-
-    // Create state entries if provided
-    if (stateEntries && stateEntries.length > 0) {
-      for (const entry of stateEntries) {
-        const registeredAt = typeof entry.registered_at === 'string' 
-          ? new Date(entry.registered_at) 
-          : entry.registered_at;
-        
-        await this.stateEntryService.createStateEntry(
-          newUser.id,
-          entry.id,
-          registeredAt
-        );
-      }
-    }
 
     // Send welcome email with verification link (async, don't wait)
     this.emailService.sendWelcomeEmail(newUser.email, verificationToken, newUser.name)
@@ -105,20 +61,9 @@ export class AuthService {
     return this.userRepository.findOne({ where: { id, deleted_at: IsNull() } });
   }
 
-  async getUserWithStateEntries(id: string): Promise<User & { state_entries?: UserStateEntry[] } | null> {
-    const user = await this.getUserById(id);
-    if (!user) {
-      return null;
-    }
-
-    const stateEntries = await this.stateEntryService.getStateEntriesByUser(id);
-    return { ...user, state_entries: stateEntries };
-  }
-
   async updateUser(
     id: string, 
     updates: Partial<User>,
-    stateEntries?: Array<{ id?: string; state_id: string; registered_at: Date | string }>
   ): Promise<User | null> {
     const user = await this.getUserById(id);
     if (!user) {
@@ -127,41 +72,6 @@ export class AuthService {
 
     Object.assign(user, updates);
     const updatedUser = await this.userRepository.save(user);
-
-    // Handle state entries if provided
-    if (stateEntries !== undefined) {
-      // Get existing entries
-      const existingEntries = await this.stateEntryService.getStateEntriesByUser(id);
-      const existingIds = new Set(existingEntries.map(e => e.id));
-
-      // Update or create entries
-      for (const entry of stateEntries) {
-        const registeredAt = typeof entry.registered_at === 'string' 
-          ? new Date(entry.registered_at) 
-          : entry.registered_at;
-
-        if (entry.id && existingIds.has(entry.id)) {
-          // Update existing entry
-          await this.stateEntryService.updateStateEntry(id, entry.id, {
-            state_id: entry.state_id,
-            registered_at: registeredAt,
-          });
-          existingIds.delete(entry.id);
-        } else {
-          // Create new entry
-          await this.stateEntryService.createStateEntry(
-            id,
-            entry.state_id,
-            registeredAt
-          );
-        }
-      }
-
-      // Delete entries that weren't in the update (soft delete)
-      for (const entryId of existingIds) {
-        await this.stateEntryService.deleteStateEntry(id, entryId);
-      }
-    }
 
     return updatedUser;
   }

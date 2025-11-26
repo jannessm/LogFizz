@@ -26,6 +26,8 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
             name: Type.String(),
             duration_minutes: Type.Array(Type.Number()),
             weekdays: Type.Array(Type.Number()),
+            state_id: Type.Optional(Type.String()),
+            starting_from: Type.Optional(Type.String()),
             created_at: Type.String(),
             updated_at: Type.String(),
             deleted_at: Type.Optional(Type.String()),
@@ -72,6 +74,8 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
         name: string;
         duration_minutes: number[];
         weekdays: number[];
+        state_id?: string;
+        starting_from?: string;
         updated_at?: string;
         deleted_at?: string;
       }>
@@ -85,6 +89,8 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
           name: Type.String(),
           duration_minutes: Type.Array(Type.Integer()),
           weekdays: Type.Array(Type.Integer()),
+          state_id: Type.Optional(Type.String()),
+          starting_from: Type.Optional(Type.String()),
           updated_at: Type.Optional(Type.String()),
           deleted_at: Type.Optional(Type.String()),
         })),
@@ -96,6 +102,8 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
             name: Type.String(),
             duration_minutes: Type.Array(Type.Number()),
             weekdays: Type.Array(Type.Number()),
+            state_id: Type.Optional(Type.String()),
+            starting_from: Type.Optional(Type.String()),
             created_at: Type.String(),
             updated_at: Type.String(),
             deleted_at: Type.Optional(Type.String()),
@@ -106,6 +114,8 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
               name: Type.String(),
               duration_minutes: Type.Array(Type.Integer()),
               weekdays: Type.Array(Type.Integer()),
+              state_id: Type.Optional(Type.String()),
+              starting_from: Type.Optional(Type.String()),
               updated_at: Type.Optional(Type.String()),
               deleted_at: Type.Optional(Type.String()),
             }),
@@ -114,6 +124,8 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
               name: Type.String(),
               duration_minutes: Type.Array(Type.Number()),
               weekdays: Type.Array(Type.Number()),
+              state_id: Type.Optional(Type.String()),
+              starting_from: Type.Optional(Type.String()),
               created_at: Type.String(),
               updated_at: Type.String(),
               deleted_at: Type.Optional(Type.String()),
@@ -130,6 +142,7 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
     // Convert string dates to Date objects
     const processedTargets = targets.map(t => ({
       ...t,
+      starting_from: t.starting_from ? new Date(t.starting_from) : undefined,
       updated_at: t.updated_at ? new Date(t.updated_at) : undefined,
       deleted_at: t.deleted_at ? new Date(t.deleted_at) : undefined,
     }));

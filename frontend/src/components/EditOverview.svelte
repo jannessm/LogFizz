@@ -141,11 +141,11 @@
             ></button>
         </div>
         
-        {#if $targetsStore.length === 0}
+        {#if $targetsStore.targets.length === 0}
           <p class="text-gray-500 text-sm italic">No targets yet</p>
         {:else}
           <div class="space-y-2">
-            {#each $targetsStore as target}
+            {#each $targetsStore.targets as target}
               {@const progress = calculateTargetProgress(target)}
               <div class="border border-gray-200 rounded-lg p-3 hover:border-gray-300 transition-colors">
                 <div class="flex justify-between items-center mb-2">
@@ -225,7 +225,7 @@
                           </span>
                         {/if}
                         {#if button.target_id}
-                          {@const linkedTarget = $targetsStore.find(t => t.id === button.target_id)}
+                          {@const linkedTarget = $targetsStore.targets.find(t => t.id === button.target_id)}
                           {#if linkedTarget}
                             <span class="flex items-center gap-1">
                               <span class="icon-[proicons--link]" style="width: 12px; height: 12px;"></span>

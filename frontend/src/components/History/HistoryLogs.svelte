@@ -142,7 +142,7 @@
     return labels;
   }
 
-  $: if (selectedDate) {
+  $: if (selectedDate || timeLogs) {
     sessions = getSessionsForSelectedDate();
     calculateTimeline(sessions);
 
