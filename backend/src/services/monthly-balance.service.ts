@@ -58,13 +58,14 @@ export class MonthlyBalanceService {
   /**
    * Calculate and save monthly balance for a target
    * Includes cumulative balance from previous months (since starting_from)
+   * Returns null if target has no starting_from date (no balance calculation possible)
    */
   async calculateMonthlyBalance(
     userId: string,
     targetId: string,
     year: number,
     month: number
-  ): Promise<MonthlyBalance> {
+  ): Promise<MonthlyBalance | null> {
     // Get the target
     const target = await this.dailyTargetRepository
       .createQueryBuilder('target')
@@ -77,59 +78,55 @@ export class MonthlyBalanceService {
       throw new Error('Target not found');
     }
 
+    // Do not calculate balance if no starting_from is set
+    const startingFrom = target.starting_from ? new Date(target.starting_from) : null;
+    if (!startingFrom) {
+      // Delete any existing balance for this target (shouldn't exist, but clean up)
+      await this.monthlyBalanceRepository.delete({
+        user_id: userId,
+        target_id: targetId,
+        year,
+        month,
+      });
+      return null;
+    }
+
     // Calculate date range for the month (month is 1-12)
     const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
     const endDate = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
 
     // Check if this month is before the starting_from date
-    const startingFrom = target.starting_from ? new Date(target.starting_from) : null;
-    if (startingFrom && endDate <= startingFrom) {
+    if (endDate <= startingFrom) {
       // This month is entirely before starting_from, no balance should be calculated
-      // Return zero balance
-      let balance = await this.monthlyBalanceRepository.findOne({
-        where: {
-          user_id: userId,
-          target_id: targetId,
-          year,
-          month,
-        },
+      // Delete any existing balance
+      await this.monthlyBalanceRepository.delete({
+        user_id: userId,
+        target_id: targetId,
+        year,
+        month,
       });
-
-      if (balance) {
-        balance.worked_minutes = 0;
-        balance.due_minutes = 0;
-        balance.balance_minutes = 0;
-        balance.exclude_holidays = target.exclude_holidays;
-      } else {
-        balance = this.monthlyBalanceRepository.create({
-          user_id: userId,
-          target_id: targetId,
-          year,
-          month,
-          worked_minutes: 0,
-          due_minutes: 0,
-          balance_minutes: 0,
-          exclude_holidays: target.exclude_holidays,
-        });
-      }
-
-      return await this.monthlyBalanceRepository.save(balance);
+      return null;
     }
 
-    // Get all time logs for buttons linked to this target in this month
+    // Calculate the effective start date for time logs (max of month start or starting_from)
+    const effectiveStartDate = startingFrom > startDate ? startingFrom : startDate;
+
+    // Get all time logs for buttons linked to this target in this month (from effective start date)
+    // Include button info for auto_subtract_breaks flag
     const timeLogs = await this.timeLogRepository
       .createQueryBuilder('tl')
       .innerJoin('buttons', 'b', 'b.id = tl.button_id')
+      .addSelect('b.auto_subtract_breaks', 'auto_subtract_breaks')
       .where('tl.user_id = :userId', { userId })
       .andWhere('b.target_id = :targetId', { targetId })
-      .andWhere('tl.timestamp >= :startDate', { startDate })
+      .andWhere('tl.timestamp >= :effectiveStartDate', { effectiveStartDate })
       .andWhere('tl.timestamp < :endDate', { endDate })
       .andWhere('tl.deleted_at IS NULL')
       .orderBy('tl.timestamp', 'ASC')
-      .getMany();
+      .getRawAndEntities();
 
-    // Calculate worked minutes from time logs
-    const workedMinutes = this.calculateWorkedMinutes(timeLogs);
+    // Calculate worked minutes from time logs (including break subtraction if applicable)
+    const workedMinutes = this.calculateWorkedMinutes(timeLogs.entities, timeLogs.raw);
 
     // Calculate due minutes based on target (respecting starting_from)
     const dueMinutes = await this.calculateDueMinutes(
@@ -234,20 +231,40 @@ export class MonthlyBalanceService {
 
   /**
    * Calculate total worked minutes from time logs
+   * Respects auto_subtract_breaks flag from button if provided in raw data
+   * Break calculation: 30 mins after 6h, 45 mins after 9h
    */
-  private calculateWorkedMinutes(timeLogs: TimeLog[]): number {
+  private calculateWorkedMinutes(timeLogs: TimeLog[], rawData?: any[]): number {
     let totalMinutes = 0;
     let lastStart: TimeLog | null = null;
+    let lastStartRaw: any = null;
 
-    for (const log of timeLogs) {
+    for (let i = 0; i < timeLogs.length; i++) {
+      const log = timeLogs[i];
+      const raw = rawData ? rawData[i] : null;
+      
       if (log.type === 'start') {
         lastStart = log;
+        lastStartRaw = raw;
       } else if (log.type === 'stop' && lastStart) {
         const startTime = new Date(lastStart.timestamp).getTime();
         const stopTime = new Date(log.timestamp).getTime();
-        const minutes = (stopTime - startTime) / (1000 * 60);
-        totalMinutes += minutes;
+        let minutes = (stopTime - startTime) / (1000 * 60);
+        
+        // Apply break subtraction if auto_subtract_breaks is enabled for the button
+        const autoSubtractBreaks = lastStartRaw?.auto_subtract_breaks ?? false;
+        if (autoSubtractBreaks && minutes > 0) {
+          // German break rules: 30 min after 6h, additional 15 min (total 45) after 9h
+          if (minutes >= 9 * 60) {
+            minutes -= 45; // 45 minutes break for 9+ hours
+          } else if (minutes >= 6 * 60) {
+            minutes -= 30; // 30 minutes break for 6-9 hours
+          }
+        }
+        
+        totalMinutes += Math.max(0, minutes);
         lastStart = null;
+        lastStartRaw = null;
       }
     }
 
@@ -366,7 +383,7 @@ export class MonthlyBalanceService {
       .andWhere('target.deleted_at IS NULL')
       .getMany();
 
-    // Calculate balance for each target
+    // Calculate balance for each target (only those with starting_from)
     const balances: MonthlyBalance[] = [];
     for (const target of targets) {
       const balance = await this.calculateMonthlyBalance(
@@ -375,7 +392,13 @@ export class MonthlyBalanceService {
         year,
         month
       );
-      balances.push(balance);
+      if (balance) {
+        balances.push(balance);
+      }
+    }
+
+    if (balances.length === 0) {
+      return [];
     }
 
     // Reload balances with target relation to include target names

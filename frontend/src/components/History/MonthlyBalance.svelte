@@ -1,12 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { MonthlyBalance } from '../../types';
+  import type { MonthlyBalance, DailyTarget } from '../../types';
   import { monthlyBalanceApi, isOnline } from '../../services/api';
   import { 
     getMonthlyBalancesByYearMonth, 
     saveMonthlyBalance,
     getSyncCursor,
-    saveSyncCursor
+    saveSyncCursor,
+    getAllTargets
   } from '../../lib/db';
   import dayjs from 'dayjs';
 
@@ -14,6 +15,7 @@
   export let month: number; // 1-12
 
   let balances: MonthlyBalance[] = [];
+  let targetsWithoutStartingFrom: DailyTarget[] = [];
   let loading = false;
   let error: string | null = null;
 
@@ -24,6 +26,10 @@
       // Load from local DB first (fast - show data immediately)
       const localBalances = await getMonthlyBalancesByYearMonth(year, month);
       balances = localBalances;
+
+      // Load targets to find those without starting_from
+      const allTargets = await getAllTargets();
+      targetsWithoutStartingFrom = allTargets.filter(t => !t.starting_from && !t.deleted_at);
 
       // Sync from server in background
       if (isOnline()) {
@@ -97,9 +103,9 @@
     <div class="text-red-600 text-sm mb-2">{error}</div>
   {/if}
 
-  {#if loading && balances.length === 0}
+  {#if loading && balances.length === 0 && targetsWithoutStartingFrom.length === 0}
     <div class="text-gray-500 text-sm">Loading balances...</div>
-  {:else if balances.length === 0}
+  {:else if balances.length === 0 && targetsWithoutStartingFrom.length === 0}
     <div class="text-gray-500 text-sm">No targets configured for this month.</div>
   {:else}
     <div class="space-y-3">
@@ -129,6 +135,24 @@
             <div>
               <span class="text-gray-600">Due:</span>
               <span class="font-medium text-gray-800 ml-1">{formatHours(balance.due_minutes)}</span>
+            </div>
+          </div>
+        </div>
+      {/each}
+      
+      {#each targetsWithoutStartingFrom.sort((a, b) => a.name.localeCompare(b.name)) as target (target.id)}
+        <div class="border border-amber-200 bg-amber-50 rounded-lg p-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-medium text-gray-800">{target.name}</h4>
+              <span class="text-xs text-amber-700">
+                ⚠️ No starting date set - balance cannot be calculated
+              </span>
+            </div>
+            <div class="text-right">
+              <div class="text-lg font-bold text-gray-400">
+                --
+              </div>
             </div>
           </div>
         </div>

@@ -543,4 +543,175 @@ describe('Monthly Balance Calculations', () => {
       expect(febBalance.balance_minutes).toBe(-1440);
     });
   });
+
+  describe('No Starting From Date', () => {
+    it('should not calculate balance for targets without starting_from', async () => {
+      // Create target WITHOUT starting_from
+      const targetResponse = await app.inject({
+        method: 'POST',
+        url: '/api/targets/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          targets: [{
+            id: '550e8400-e29b-41d4-a716-446655440080',
+            name: 'No Start Target',
+            duration_minutes: [480],
+            weekdays: [1],
+            exclude_holidays: false,
+            // No starting_from set
+          }],
+        },
+      });
+
+      expect(targetResponse.statusCode).toBe(200);
+      targetId = '550e8400-e29b-41d4-a716-446655440080';
+
+      // Create button
+      await app.inject({
+        method: 'POST',
+        url: '/api/buttons/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          buttons: [{
+            id: '550e8400-e29b-41d4-a716-446655440081',
+            name: 'Test Button',
+            auto_subtract_breaks: false,
+            target_id: targetId,
+          }],
+        },
+      });
+
+      buttonId = '550e8400-e29b-41d4-a716-446655440081';
+
+      // Create time log
+      await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          timeLogs: [
+            {
+              id: '550e8400-e29b-41d4-a716-446655440082',
+              button_id: buttonId,
+              type: 'start',
+              timestamp: '2025-01-06T09:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: '550e8400-e29b-41d4-a716-446655440083',
+              button_id: buttonId,
+              type: 'stop',
+              timestamp: '2025-01-06T17:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      });
+
+      // Get monthly balances - should not include this target
+      const syncResponse = await app.inject({
+        method: 'GET',
+        url: '/api/monthly-balances/sync?since=1970-01-01T00:00:00.000Z',
+        headers: { cookie: sessionCookie },
+      });
+
+      expect(syncResponse.statusCode).toBe(200);
+      const data = JSON.parse(syncResponse.payload);
+
+      // Should not find any balance for this target
+      const noStartBalance = data.monthlyBalances.find(
+        (b: any) => b.target_id === targetId
+      );
+
+      expect(noStartBalance).toBeUndefined();
+    });
+  });
+
+  describe('Break Subtraction', () => {
+    it('should subtract breaks when auto_subtract_breaks is enabled', async () => {
+      // Create target
+      const targetResponse = await app.inject({
+        method: 'POST',
+        url: '/api/targets/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          targets: [{
+            id: '550e8400-e29b-41d4-a716-446655440090',
+            name: 'Break Test Target',
+            duration_minutes: [480],
+            weekdays: [1],
+            exclude_holidays: false,
+            starting_from: '2025-01-01T00:00:00.000Z',
+          }],
+        },
+      });
+
+      expect(targetResponse.statusCode).toBe(200);
+      targetId = '550e8400-e29b-41d4-a716-446655440090';
+
+      // Create button WITH auto_subtract_breaks enabled
+      await app.inject({
+        method: 'POST',
+        url: '/api/buttons/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          buttons: [{
+            id: '550e8400-e29b-41d4-a716-446655440091',
+            name: 'Break Button',
+            auto_subtract_breaks: true, // Enable break subtraction
+            target_id: targetId,
+          }],
+        },
+      });
+
+      buttonId = '550e8400-e29b-41d4-a716-446655440091';
+
+      // Create time log for 9 hours (should subtract 45 mins break)
+      await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          timeLogs: [
+            {
+              id: '550e8400-e29b-41d4-a716-446655440092',
+              button_id: buttonId,
+              type: 'start',
+              timestamp: '2025-01-06T08:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: '550e8400-e29b-41d4-a716-446655440093',
+              button_id: buttonId,
+              type: 'stop',
+              timestamp: '2025-01-06T17:00:00.000Z', // 9 hours total
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      });
+
+      // Get monthly balance
+      const syncResponse = await app.inject({
+        method: 'GET',
+        url: '/api/monthly-balances/sync?since=1970-01-01T00:00:00.000Z',
+        headers: { cookie: sessionCookie },
+      });
+
+      expect(syncResponse.statusCode).toBe(200);
+      const data = JSON.parse(syncResponse.payload);
+
+      const janBalance = data.monthlyBalances.find(
+        (b: any) => b.year === 2025 && b.month === 1 && b.target_id === targetId
+      );
+
+      expect(janBalance).toBeDefined();
+      // 9 hours (540 mins) - 45 min break = 495 mins
+      expect(janBalance.worked_minutes).toBe(495);
+    });
+  });
 });
