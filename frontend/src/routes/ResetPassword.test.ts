@@ -60,10 +60,19 @@ describe('ResetPassword Component', () => {
     expect(screen.getByText(/Back to Login/i)).toBeInTheDocument();
   });
 
-  it('shows error when no token or email in URL', () => {
+  it('shows error when no token in URL', () => {
     (window as any).location = { search: '' };
     render(ResetPassword);
     
     expect(screen.getByText(/Invalid reset link/i)).toBeInTheDocument();
+  });
+
+  it('works with token only (no email) for backward compatibility', () => {
+    (window as any).location = { search: '?token=test-token-123' };
+    render(ResetPassword);
+    
+    // Should render the form, not show an error
+    expect(screen.getByRole('heading', { name: /Reset Password/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/New Password/i)).toBeInTheDocument();
   });
 });

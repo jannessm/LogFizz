@@ -16,9 +16,9 @@
     const urlParams = new URLSearchParams(window.location.search);
     const tokenParam = urlParams.get('token');
     const emailParam = urlParams.get('email');
-    if (tokenParam && emailParam) {
+    if (tokenParam) {
       token = tokenParam;
-      email = emailParam;
+      email = emailParam || ''; // Email is optional for backward compatibility
     } else {
       errorMessage = 'Invalid reset link. Please request a new password reset.';
     }

@@ -45,7 +45,7 @@ export class RefactorTimeLogStructure1732825000000 implements MigrationInterface
                 end_timestamp = p.end_timestamp,
                 duration_minutes = CASE 
                     WHEN p.end_timestamp IS NOT NULL 
-                    THEN EXTRACT(EPOCH FROM (p.end_timestamp - p.start_timestamp)) / 60
+                    THEN ROUND(EXTRACT(EPOCH FROM (p.end_timestamp - p.start_timestamp)) / 60)
                     ELSE NULL 
                 END
             FROM paired_logs p
