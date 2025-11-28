@@ -6,7 +6,7 @@ import { DailyTarget } from '../entities/DailyTarget.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { hashPassword } from '../utils/password.js';
-import { hashPasswordForTransport } from '../utils/clientPasswordHash.js';
+import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.node.js';
 
 /**
  * Seed script for development environment

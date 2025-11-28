@@ -1,6 +1,6 @@
 import ky from 'ky';
 import type { User, Button, TimeLog, Holiday, DailyTarget, State, MonthlyBalance } from '../types';
-import { hashPasswordForTransport } from '../utils/passwordHash';
+import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.browser.js';
 
 // In development, use proxy (relative path). In production, use env variable or default to same origin
 const API_BASE_URL = import.meta.env.PROD 

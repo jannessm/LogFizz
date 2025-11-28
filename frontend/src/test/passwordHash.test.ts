@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hashPasswordForTransport } from '../utils/passwordHash';
+import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.browser.js';
 
 describe('Password Hash Utility', () => {
   it('should produce a deterministic hash', async () => {

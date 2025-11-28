@@ -10,6 +10,7 @@
     getAllTargets
   } from '../../lib/db';
   import dayjs from 'dayjs';
+  import { formatMinutes, formatHours, getBalanceColor } from '../../../../lib/utils/timeFormat.js';
 
   export let year: number;
   export let month: number; // 1-12
@@ -73,24 +74,6 @@
   // Load balances when year or month changes
   $: if (year && month) {
     loadBalances();
-  }
-
-  function formatMinutes(minutes: number): string {
-    const hours = Math.floor(Math.abs(minutes) / 60);
-    const mins = Math.abs(minutes) % 60;
-    const sign = minutes < 0 ? '-' : '+';
-    return `${sign}${hours}h ${mins}m`;
-  }
-
-  function formatHours(minutes: number): string {
-    const hours = (minutes / 60).toFixed(1);
-    return `${hours}h`;
-  }
-
-  function getBalanceColor(balanceMinutes: number): string {
-    if (balanceMinutes > 0) return 'text-green-600';
-    if (balanceMinutes < 0) return 'text-red-600';
-    return 'text-gray-600';
   }
 </script>
 

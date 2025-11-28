@@ -4,6 +4,7 @@
   import { timeLogsStore } from '../stores/timelogs';
   import { buttonsStore } from '../stores/buttons';
   import dayjs from 'dayjs';
+  import { formatTime } from '../../../lib/utils/timeFormat.js';
 
   export let button: Button;
   export let editMode = false;
@@ -94,12 +95,6 @@
     if (confirm(`Delete "${button.name}"?`)) {
       await buttonsStore.delete(button.id);
     }
-  }
-
-  function formatTime(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   }
 
   function getGoalProgress(): number {

@@ -1,0 +1,30 @@
+{
+  "name": "@clock/shared",
+  "version": "1.0.0",
+  "description": "Shared utilities for clock frontend and backend",
+  "type": "module",
+  "exports": {
+    "./utils/passwordHash": {
+      "browser": "./utils/passwordHash.browser.js",
+      "node": "./utils/passwordHash.node.js",
+      "default": "./utils/passwordHash.browser.js"
+    },
+    "./utils/monthlyBalance": "./utils/monthlyBalance.js",
+    "./utils/timeFormat": "./utils/timeFormat.js"
+  },
+  "engines": {
+    "node": ">=20.12.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.8"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.19"
+  }
+}

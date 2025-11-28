@@ -1,5 +1,6 @@
 <script lang="ts">
   import dayjs from 'dayjs';
+  import { formatMinutesCompact as formatMinutes } from '../../../../lib/utils/timeFormat.js';
 
   export let selectedDate: dayjs.Dayjs;
   export let timeLogs: any[];
@@ -15,14 +16,6 @@
   let timelineStart: dayjs.Dayjs | null = null;
   let timelineEnd: dayjs.Dayjs | null = null;
   let timelineHours: number = 0;
-
-  function formatMinutes(minutes: number): string {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours === 0) return `${mins}m`;
-    if (mins === 0) return `${hours}h`;
-    return `${hours}h ${mins}m`;
-  }
 
   function isToday(date: dayjs.Dayjs): boolean {
     return date.isSame(dayjs(), 'day');
