@@ -150,6 +150,7 @@ async function seed() {
     console.log('✅ Created 5 sample buttons (2 linked to daily targets)');
 
     // Create sample time logs for demo user
+    // Now using the new structure with start_timestamp, end_timestamp, and duration_minutes
     console.log('⏱️  Creating sample time logs...');
     const timeLogRepo = AppDataSource.getRepository(TimeLog);
 
@@ -163,24 +164,15 @@ async function seed() {
       if (dayOfWeek !== 0 && dayOfWeek !== 6) {
         // Work session: 9:00 AM - 5:00 PM (8 hours exactly to match target)
         const workStart = new Date(Date.UTC(2025, 9, day, 9, 0, 0));
-        const workStop = new Date(Date.UTC(2025, 9, day, 17, 0, 0));
+        const workEnd = new Date(Date.UTC(2025, 9, day, 17, 0, 0));
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
           button_id: workButton.id,
-          type: 'start',
-          timestamp: workStart,
+          start_timestamp: workStart,
+          end_timestamp: workEnd,
           timezone: 'Europe/Berlin',
-          notes: 'October work start',
-        }));
-
-        await timeLogRepo.save(timeLogRepo.create({
-          user_id: demoUser.id,
-          button_id: workButton.id,
-          type: 'stop',
-          timestamp: workStop,
-          timezone: 'Europe/Berlin',
-          notes: 'October work end',
+          notes: 'October work session',
         }));
       }
     }
@@ -195,47 +187,29 @@ async function seed() {
       if (dayOfWeek !== 0 && dayOfWeek !== 6) {
         // Work session: 9:00 AM - 5:30 PM (8.5 hours - 30 min overtime)
         const workStart = new Date(Date.UTC(2025, 10, day, 9, 0, 0));
-        const workStop = new Date(Date.UTC(2025, 10, day, 17, 30, 0));
+        const workEnd = new Date(Date.UTC(2025, 10, day, 17, 30, 0));
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
           button_id: workButton.id,
-          type: 'start',
-          timestamp: workStart,
+          start_timestamp: workStart,
+          end_timestamp: workEnd,
           timezone: 'Europe/Berlin',
-          notes: 'November work start',
-        }));
-
-        await timeLogRepo.save(timeLogRepo.create({
-          user_id: demoUser.id,
-          button_id: workButton.id,
-          type: 'stop',
-          timestamp: workStop,
-          timezone: 'Europe/Berlin',
-          notes: 'November work end',
+          notes: 'November work session',
         }));
 
         // Study sessions on Tue & Thu
         if (dayOfWeek === 2 || dayOfWeek === 4) {
           const studyStart = new Date(Date.UTC(2025, 10, day, 19, 0, 0));
-          const studyStop = new Date(Date.UTC(2025, 10, day, 21, 0, 0)); // 2 hours
+          const studyEnd = new Date(Date.UTC(2025, 10, day, 21, 0, 0)); // 2 hours
 
           await timeLogRepo.save(timeLogRepo.create({
             user_id: demoUser.id,
             button_id: studyButton.id,
-            type: 'start',
-            timestamp: studyStart,
+            start_timestamp: studyStart,
+            end_timestamp: studyEnd,
             timezone: 'Europe/Berlin',
-            notes: 'November study start',
-          }));
-
-          await timeLogRepo.save(timeLogRepo.create({
-            user_id: demoUser.id,
-            button_id: studyButton.id,
-            type: 'stop',
-            timestamp: studyStop,
-            timezone: 'Europe/Berlin',
-            notes: 'November study end',
+            notes: 'November study session',
           }));
         }
       }
@@ -258,50 +232,32 @@ async function seed() {
         // Work session: 9:00 AM - 5:30 PM
         const workStart = new Date(date);
         workStart.setHours(9, 0, 0, 0);
-        const workStop = new Date(date);
-        workStop.setHours(17, 30, 0, 0);
+        const workEnd = new Date(date);
+        workEnd.setHours(17, 30, 0, 0);
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
           button_id: workButton.id,
-          type: 'start',
-          timestamp: workStart,
+          start_timestamp: workStart,
+          end_timestamp: workEnd,
           timezone: 'Europe/Berlin',
-          notes: 'Starting work day',
-        }));
-
-        await timeLogRepo.save(timeLogRepo.create({
-          user_id: demoUser.id,
-          button_id: workButton.id,
-          type: 'stop',
-          timestamp: workStop,
-          timezone: 'Europe/Berlin',
-          notes: 'End of work day',
+          notes: 'Work day',
         }));
 
         // Study session: 7:00 PM - 9:00 PM
         if (daysAgo > 2) { // Only for older days
           const studyStart = new Date(date);
           studyStart.setHours(19, 0, 0, 0);
-          const studyStop = new Date(date);
-          studyStop.setHours(21, 0, 0, 0);
+          const studyEnd = new Date(date);
+          studyEnd.setHours(21, 0, 0, 0);
 
           await timeLogRepo.save(timeLogRepo.create({
             user_id: demoUser.id,
             button_id: studyButton.id,
-            type: 'start',
-            timestamp: studyStart,
+            start_timestamp: studyStart,
+            end_timestamp: studyEnd,
             timezone: 'Europe/Berlin',
             notes: 'Evening study session',
-          }));
-
-          await timeLogRepo.save(timeLogRepo.create({
-            user_id: demoUser.id,
-            button_id: studyButton.id,
-            type: 'stop',
-            timestamp: studyStop,
-            timezone: 'Europe/Berlin',
-            notes: 'Study session complete',
           }));
         }
       }
@@ -310,25 +266,16 @@ async function seed() {
       if (dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5) {
         const exerciseStart = new Date(date);
         exerciseStart.setHours(6, 30, 0, 0);
-        const exerciseStop = new Date(date);
-        exerciseStop.setHours(7, 30, 0, 0);
+        const exerciseEnd = new Date(date);
+        exerciseEnd.setHours(7, 30, 0, 0);
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
           button_id: exerciseButton.id,
-          type: 'start',
-          timestamp: exerciseStart,
+          start_timestamp: exerciseStart,
+          end_timestamp: exerciseEnd,
           timezone: 'Europe/Berlin',
           notes: 'Morning workout',
-        }));
-
-        await timeLogRepo.save(timeLogRepo.create({
-          user_id: demoUser.id,
-          button_id: exerciseButton.id,
-          type: 'stop',
-          timestamp: exerciseStop,
-          timezone: 'Europe/Berlin',
-          notes: 'Workout complete',
         }));
       }
 
@@ -336,38 +283,29 @@ async function seed() {
       if (dayOfWeek === 0 || dayOfWeek === 6) {
         const projectStart = new Date(date);
         projectStart.setHours(10, 0, 0, 0);
-        const projectStop = new Date(date);
-        projectStop.setHours(13, 30, 0, 0);
+        const projectEnd = new Date(date);
+        projectEnd.setHours(13, 30, 0, 0);
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
           button_id: projectButton.id,
-          type: 'start',
-          timestamp: projectStart,
+          start_timestamp: projectStart,
+          end_timestamp: projectEnd,
           timezone: 'Europe/Berlin',
           notes: 'Weekend coding session',
-        }));
-
-        await timeLogRepo.save(timeLogRepo.create({
-          user_id: demoUser.id,
-          button_id: projectButton.id,
-          type: 'stop',
-          timestamp: projectStop,
-          timezone: 'Europe/Berlin',
-          notes: 'Project work done',
         }));
       }
     }
 
-    // Add an active timer for today (only start, no stop)
+    // Add an active timer for today (only start, no end)
     const activeStart = new Date();
     activeStart.setHours(activeStart.getHours() - 2, 0, 0, 0);
     
     await timeLogRepo.save(timeLogRepo.create({
       user_id: demoUser.id,
       button_id: workButton.id,
-      type: 'start',
-      timestamp: activeStart,
+      start_timestamp: activeStart,
+      // No end_timestamp - this is an active timer
       timezone: 'Europe/Berlin',
       notes: 'Currently working',
     }));

@@ -3,7 +3,7 @@ import { MonthlyBalance } from '../entities/MonthlyBalance.js';
 import { DailyTarget } from '../entities/DailyTarget.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
-import { Between, In, MoreThan } from 'typeorm';
+import { Between, In, MoreThan, Not, IsNull } from 'typeorm';
 import dayjs from '../utils/dayjs.js';
 import { 
   calculateWorkedMinutes as calculateWorkedMinutesShared, 
@@ -40,7 +40,7 @@ export class MonthlyBalanceService {
    */
   async recalculateAffectedMonthlyBalances(
     userId: string,
-    timeLogs: Array<{ timestamp: Date; button_id: string }>
+    timeLogs: Array<{ start_timestamp: Date; button_id: string }>
   ): Promise<MonthlyBalance[]> {
     if (timeLogs.length === 0) {
       return [];
@@ -143,10 +143,10 @@ export class MonthlyBalanceService {
       .addSelect('b.auto_subtract_breaks', 'auto_subtract_breaks')
       .where('tl.user_id = :userId', { userId })
       .andWhere('b.target_id = :targetId', { targetId })
-      .andWhere('tl.timestamp >= :effectiveStartDate', { effectiveStartDate: effectiveStartDate.toDate() })
-      .andWhere('tl.timestamp < :endDate', { endDate: endDate.toDate() })
+      .andWhere('tl.start_timestamp >= :effectiveStartDate', { effectiveStartDate: effectiveStartDate.toDate() })
+      .andWhere('tl.start_timestamp < :endDate', { endDate: endDate.toDate() })
       .andWhere('tl.deleted_at IS NULL')
-      .orderBy('tl.timestamp', 'ASC')
+      .orderBy('tl.start_timestamp', 'ASC')
       .getRawAndEntities();
 
     // Calculate worked minutes from time logs (including break subtraction if applicable)
@@ -252,11 +252,18 @@ export class MonthlyBalanceService {
 
   /**
    * Calculate total worked minutes from time logs
+   * Uses duration_minutes if available, otherwise calculates from timestamps
    * Respects auto_subtract_breaks flag from button if provided in raw data
    * Break calculation: 30 mins after 6h, 45 mins after 9h
    */
   private calculateWorkedMinutes(timeLogs: TimeLog[], rawData?: any[]): number {
-    return calculateWorkedMinutesShared(timeLogs, rawData);
+    // Convert TimeLog entities to the format expected by shared function
+    const logsForCalculation = timeLogs.map(tl => ({
+      start_timestamp: tl.start_timestamp,
+      end_timestamp: tl.end_timestamp,
+      duration_minutes: tl.duration_minutes,
+    }));
+    return calculateWorkedMinutesShared(logsForCalculation, rawData);
   }
 
   /**

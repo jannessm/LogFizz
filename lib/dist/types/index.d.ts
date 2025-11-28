@@ -60,8 +60,9 @@ export interface TimeLog {
     id: string;
     user_id: string;
     button_id: string;
-    type: 'start' | 'stop';
-    timestamp: string;
+    start_timestamp: string;
+    end_timestamp?: string;
+    duration_minutes?: number;
     timezone: string;
     apply_break_calculation: boolean;
     notes?: string;
@@ -123,8 +124,9 @@ export interface DailyTargetEntity extends Omit<DailyTarget, 'starting_from' | '
     updated_at: Date;
     deleted_at?: Date;
 }
-export interface TimeLogEntity extends Omit<TimeLog, 'timestamp' | 'created_at' | 'updated_at' | 'deleted_at'> {
-    timestamp: Date;
+export interface TimeLogEntity extends Omit<TimeLog, 'start_timestamp' | 'end_timestamp' | 'created_at' | 'updated_at' | 'deleted_at'> {
+    start_timestamp: Date;
+    end_timestamp?: Date;
     created_at: Date;
     updated_at: Date;
     deleted_at?: Date;

@@ -66,14 +66,15 @@ export interface MonthlyBalance {
   target?: DailyTarget;
 }
 
-// TimeLog types - Event-based system
-// Each TimeLog represents a single event (start or stop), not a time range
+// TimeLog types - Time range based system
+// Each TimeLog represents a time tracking session with start/end timestamps
 export interface TimeLog {
   id: string;
   user_id: string;
   button_id: string;
-  type: 'start' | 'stop'; // Event type
-  timestamp: string; // When this event occurred
+  start_timestamp: string; // When the session started
+  end_timestamp?: string; // When the session ended (null if still running)
+  duration_minutes?: number; // Auto-calculated when end_timestamp is set
   timezone: string;
   apply_break_calculation: boolean;
   notes?: string;
@@ -152,8 +153,9 @@ export interface DailyTargetEntity extends Omit<DailyTarget, 'starting_from' | '
   deleted_at?: Date;
 }
 
-export interface TimeLogEntity extends Omit<TimeLog, 'timestamp' | 'created_at' | 'updated_at' | 'deleted_at'> {
-  timestamp: Date;
+export interface TimeLogEntity extends Omit<TimeLog, 'start_timestamp' | 'end_timestamp' | 'created_at' | 'updated_at' | 'deleted_at'> {
+  start_timestamp: Date;
+  end_timestamp?: Date;
   created_at: Date;
   updated_at: Date;
   deleted_at?: Date;

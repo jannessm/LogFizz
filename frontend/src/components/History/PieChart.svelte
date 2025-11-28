@@ -43,30 +43,25 @@
     
     const stats = new Map<string, number>();
     
-    // Get all logs for the month
+    // Get all logs for the month - each log is already a session with duration
     const monthLogs = timeLogs.filter(tl => {
-      if (!tl.timestamp) return false;
-      const logDate = tl.timestamp.substring(0, 10);
+      if (!tl.start_timestamp) return false;
+      const logDate = tl.start_timestamp.substring(0, 10);
       return logDate >= monthStart && logDate <= monthEnd;
     });
     
-    // Pair start/stop to calculate durations
-    const startsByButton = new Map<string, typeof monthLogs[0]>();
-    
-    for (const log of monthLogs.sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    )) {
-      if (log.type === 'start') {
-        startsByButton.set(log.button_id, log);
-      } else if (log.type === 'stop') {
-        const start = startsByButton.get(log.button_id);
-        if (start) {
-          const duration = Math.floor(
-            (new Date(log.timestamp).getTime() - new Date(start.timestamp).getTime()) / 60000
+    // Sum up durations for each button
+    for (const log of monthLogs) {
+      // Only count completed sessions
+      if (log.end_timestamp) {
+        let duration = log.duration_minutes;
+        if (duration === undefined || duration === null) {
+          // Calculate duration if not stored
+          duration = Math.floor(
+            (new Date(log.end_timestamp).getTime() - new Date(log.start_timestamp).getTime()) / 60000
           );
-          stats.set(log.button_id, (stats.get(log.button_id) || 0) + duration);
-          startsByButton.delete(log.button_id);
         }
+        stats.set(log.button_id, (stats.get(log.button_id) || 0) + duration);
       }
     }
     

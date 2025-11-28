@@ -22,35 +22,33 @@
 
   // Calculate elapsed time for active timer
   $: if (isActive && activeTimer) {
-    const startTime = new Date(activeTimer.timestamp).getTime();
+    const startTime = new Date(activeTimer.start_timestamp).getTime();
     elapsedTime = Math.floor((Date.now() - startTime) / 1000);
   }
 
-  // Calculate today's total time from start/stop event pairs
+  // Calculate today's total time from completed timelogs
   $: {
     const today = dayjs().format('YYYY-MM-DD');
     const todayLogs = $timeLogsStore.timeLogs.filter(tl => 
-      tl.button_id === button.id && tl.timestamp && tl.timestamp.startsWith(today)
-    ).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      tl.button_id === button.id && tl.start_timestamp && tl.start_timestamp.startsWith(today)
+    );
     
-    // Calculate time from start/stop pairs
+    // Sum up durations from completed logs
     todayTime = 0;
-    let currentStart: typeof todayLogs[0] | null = null;
-    
     for (const log of todayLogs) {
-      if (log.type === 'start') {
-        currentStart = log;
-      } else if (log.type === 'stop' && currentStart) {
-        const start = new Date(currentStart.timestamp).getTime();
-        const end = new Date(log.timestamp).getTime();
-        todayTime += Math.floor((end - start) / 60000); // minutes
-        currentStart = null;
+      if (log.end_timestamp && log.duration_minutes) {
+        todayTime += log.duration_minutes;
+      } else if (log.end_timestamp) {
+        // Calculate if duration wasn't stored
+        const start = new Date(log.start_timestamp).getTime();
+        const end = new Date(log.end_timestamp).getTime();
+        todayTime += Math.floor((end - start) / 60000);
       }
     }
     
     // Add time for currently active timer
-    if (currentStart && isActive && activeTimer?.id === currentStart.id) {
-      const start = new Date(currentStart.timestamp).getTime();
+    if (isActive && activeTimer && activeTimer.start_timestamp.startsWith(today)) {
+      const start = new Date(activeTimer.start_timestamp).getTime();
       todayTime += Math.floor((Date.now() - start) / 60000);
     }
   }
@@ -59,7 +57,7 @@
     // Update elapsed time every second for active timers
     interval = setInterval(() => {
       if (isActive && activeTimer) {
-        const startTime = new Date(activeTimer.timestamp).getTime();
+        const startTime = new Date(activeTimer.start_timestamp).getTime();
         elapsedTime = Math.floor((Date.now() - startTime) / 1000);
       }
     }, 1000) as unknown as number;

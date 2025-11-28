@@ -1,7 +1,8 @@
 import dayjs from 'dayjs';
 export interface TimeLog {
-    timestamp: Date;
-    type: 'start' | 'stop';
+    start_timestamp: Date;
+    end_timestamp?: Date;
+    duration_minutes?: number;
 }
 export interface TimeLogWithButton extends TimeLog {
     auto_subtract_breaks?: boolean;
@@ -13,10 +14,11 @@ export interface DailyTarget {
 }
 /**
  * Calculate total worked minutes from time logs
+ * Uses duration_minutes if available, otherwise calculates from timestamps
  * Respects auto_subtract_breaks flag if provided
  * Break calculation: 30 mins after 6h, 45 mins after 9h
  *
- * @param timeLogs - Array of time logs with timestamps and types
+ * @param timeLogs - Array of time logs with timestamps and optional duration
  * @param rawData - Optional array of raw data containing auto_subtract_breaks flag
  * @returns Total worked minutes (rounded)
  */
@@ -38,10 +40,10 @@ export declare function calculateDueMinutes(target: DailyTarget, year: number, m
  * Get affected months from a list of time logs
  * Returns the earliest month that should be recalculated
  *
- * @param timeLogs - Array of time logs with timestamps
+ * @param timeLogs - Array of time logs with start_timestamp
  * @returns Earliest affected month as dayjs object, or null if no logs
  */
 export declare function getEarliestAffectedMonth(timeLogs: Array<{
-    timestamp: Date;
+    start_timestamp: Date;
 }>): dayjs.Dayjs | null;
 //# sourceMappingURL=monthlyBalance.d.ts.map

@@ -8,6 +8,7 @@ import { DailyTarget } from '../entities/DailyTarget.js';
 import { MonthlyBalance } from '../entities/MonthlyBalance.js';
 import { State } from '../entities/State.js';
 import { InitialSchema1699700000000 } from '../migrations/1699700000000-InitialSchema.js';
+import { RefactorTimeLogStructure1732825000000 } from '../migrations/1732825000000-RefactorTimeLogStructure.js';
 
 const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
 const isProduction = process.env.NODE_ENV === 'production';
@@ -23,7 +24,7 @@ export const AppDataSource = new DataSource({
   logging: !isProduction && !isTest,
   entities: [User, Button, TimeLog, Holiday, HolidayMetadata, DailyTarget, MonthlyBalance, State],
   subscribers: [],
-  migrations: [InitialSchema1699700000000],
+  migrations: [InitialSchema1699700000000, RefactorTimeLogStructure1732825000000],
   migrationsRun: isProduction, // Auto-run migrations in production
   // Ensure PostgreSQL uses UTC for all timestamps
   extra: {

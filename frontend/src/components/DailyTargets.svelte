@@ -63,30 +63,31 @@
     let totalMinutes = 0;
     
     for (const button of assignedButtons) {
+      // Get today's logs for this button
       const buttonLogs = $timeLogsStore.timeLogs.filter(log => 
         log.button_id === button.id &&
-        dayjs(log.timestamp).isAfter(todayStart) &&
-        dayjs(log.timestamp).isBefore(todayEnd)
+        log.start_timestamp &&
+        dayjs(log.start_timestamp).isAfter(todayStart) &&
+        dayjs(log.start_timestamp).isBefore(todayEnd)
       );
       
-      // Calculate time from start/stop pairs
-      const starts = buttonLogs.filter(log => log.type === 'start').sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-      const stops = buttonLogs.filter(log => log.type === 'stop').sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-
-      if (starts.length > 0 && stops.length > 0 &&
-        dayjs(stops[0].timestamp).diff(dayjs(starts[0].timestamp)) < 0) {
-        // If the first stop is before the first start, we ignore the first stop
-        stops.shift();
-      }
-      
-      for (let i = 0; i < starts.length; i++) {
-        const start = dayjs(starts[i].timestamp);
-        const stop = stops[i] ? dayjs(stops[i].timestamp) : dayjs();
-        totalMinutes += stop.diff(start, 'minute') + stop.diff(start, 'second') / 60;
+      // Sum durations from completed sessions
+      for (const log of buttonLogs) {
+        if (log.end_timestamp) {
+          // Use pre-calculated duration if available
+          if (log.duration_minutes !== undefined && log.duration_minutes !== null) {
+            totalMinutes += log.duration_minutes;
+          } else {
+            // Calculate from timestamps
+            const start = dayjs(log.start_timestamp);
+            const end = dayjs(log.end_timestamp);
+            totalMinutes += end.diff(start, 'minute', true);
+          }
+        } else {
+          // Active session - calculate from start to now
+          const start = dayjs(log.start_timestamp);
+          totalMinutes += dayjs().diff(start, 'minute', true);
+        }
       }
     }
     

@@ -40,28 +40,25 @@
       const date = currentMonth.date(day);
       const dateStr = date.format('YYYY-MM-DD');
       
+      // Filter logs for this day
       const dayLogs = timeLogs.filter(tl => 
-        tl.timestamp && tl.timestamp.startsWith(dateStr)
-      ).sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        tl.start_timestamp && tl.start_timestamp.startsWith(dateStr)
       );
       
-      const startsByButton = new Map<string, typeof dayLogs[0]>();
-      
+      // Sum durations for each button
       for (const log of dayLogs) {
-        if (log.type === 'start') {
-          startsByButton.set(log.button_id, log);
-        } else if (log.type === 'stop') {
-          const start = startsByButton.get(log.button_id);
-          if (start) {
-            const duration = Math.floor(
-              (new Date(log.timestamp).getTime() - new Date(start.timestamp).getTime()) / 60000
+        // Only count completed sessions
+        if (log.end_timestamp) {
+          let duration = log.duration_minutes;
+          if (duration === undefined || duration === null) {
+            // Calculate if not stored
+            duration = Math.floor(
+              (new Date(log.end_timestamp).getTime() - new Date(log.start_timestamp).getTime()) / 60000
             );
-            const buttonData = buttonDailyData.get(log.button_id);
-            if (buttonData) {
-              buttonData[day - 1] += duration / 60; // Convert to hours
-            }
-            startsByButton.delete(log.button_id);
+          }
+          const buttonData = buttonDailyData.get(log.button_id);
+          if (buttonData) {
+            buttonData[day - 1] += duration / 60; // Convert to hours
           }
         }
       }

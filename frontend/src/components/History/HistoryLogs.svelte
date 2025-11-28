@@ -21,56 +21,19 @@
     return date.isSame(dayjs(), 'day');
   }
 
-  // Get time logs for selected date and pair them into sessions
+  // Get time logs for selected date - each log is already a session
   function getSessionsForSelectedDate() {
     const dateStr = selectedDate.format('YYYY-MM-DD');
-    const logs = timeLogs
-      .filter(tl => tl.timestamp && tl.timestamp.startsWith(dateStr))
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-    
-    // Pair start/stop events into sessions
-    const sessions: Array<{
-      button_id: string;
-      startTime: string;
-      endTime?: string;
-      startLog: typeof logs[0];
-      stopLog?: typeof logs[0];
-    }> = [];
-    
-    const startsByButton = new Map<string, typeof logs[0]>();
-    
-    for (const log of logs) {
-      if (log.type === 'start') {
-        // New start event - save it
-        startsByButton.set(log.button_id, log);
-      } else if (log.type === 'stop') {
-        // Stop event - pair with most recent start for this button
-        const start = startsByButton.get(log.button_id);
-        if (start) {
-          sessions.push({
-            button_id: log.button_id,
-            startTime: start.timestamp,
-            endTime: log.timestamp,
-            startLog: start,
-            stopLog: log,
-          });
-          startsByButton.delete(log.button_id);
-        }
-      }
-    }
-    
-    // Add any remaining unpaired starts as active sessions
-    for (const [button_id, start] of startsByButton.entries()) {
-      sessions.push({
-        button_id,
-        startTime: start.timestamp,
-        startLog: start,
-      });
-    }
-    
-    return sessions.sort((a, b) => 
-      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-    );
+    return timeLogs
+      .filter(tl => tl.start_timestamp && tl.start_timestamp.startsWith(dateStr))
+      .map(log => ({
+        button_id: log.button_id,
+        startTime: log.start_timestamp,
+        endTime: log.end_timestamp,
+        duration: log.duration_minutes,
+        log: log,
+      }))
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }
 
   // Calculate timeline bounds and position for each session

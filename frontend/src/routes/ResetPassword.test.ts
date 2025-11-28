@@ -19,9 +19,9 @@ vi.mock('../lib/navigation', () => ({
 describe('ResetPassword Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock URL search params
+    // Mock URL search params with token and email
     delete (window as any).location;
-    (window as any).location = { search: '?token=test-token-123' };
+    (window as any).location = { search: '?token=test-token-123&email=test@example.com' };
   });
 
   it('renders reset password form', () => {
@@ -60,7 +60,7 @@ describe('ResetPassword Component', () => {
     expect(screen.getByText(/Back to Login/i)).toBeInTheDocument();
   });
 
-  it('shows error when no token in URL', () => {
+  it('shows error when no token or email in URL', () => {
     (window as any).location = { search: '' };
     render(ResetPassword);
     

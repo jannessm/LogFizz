@@ -58,8 +58,8 @@
   }
 
   $: timeLogs = $timeLogsStore.timeLogs.filter(tl => 
-    dayjs(tl.timestamp).month() === currentMonth.month() && 
-    dayjs(tl.timestamp).year() === currentMonth.year()
+    dayjs(tl.start_timestamp).month() === currentMonth.month() && 
+    dayjs(tl.start_timestamp).year() === currentMonth.year()
   );
   $: buttons = $buttonsStore.buttons;
 

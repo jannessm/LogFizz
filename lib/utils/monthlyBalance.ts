@@ -10,8 +10,9 @@ dayjs.extend(timezone);
 dayjs.tz.setDefault('UTC');
 
 export interface TimeLog {
-  timestamp: Date;
-  type: 'start' | 'stop';
+  start_timestamp: Date;
+  end_timestamp?: Date;
+  duration_minutes?: number;
 }
 
 export interface TimeLogWithButton extends TimeLog {
@@ -26,10 +27,11 @@ export interface DailyTarget {
 
 /**
  * Calculate total worked minutes from time logs
+ * Uses duration_minutes if available, otherwise calculates from timestamps
  * Respects auto_subtract_breaks flag if provided
  * Break calculation: 30 mins after 6h, 45 mins after 9h
  * 
- * @param timeLogs - Array of time logs with timestamps and types
+ * @param timeLogs - Array of time logs with timestamps and optional duration
  * @param rawData - Optional array of raw data containing auto_subtract_breaks flag
  * @returns Total worked minutes (rounded)
  */
@@ -38,36 +40,36 @@ export function calculateWorkedMinutes(
   rawData?: Array<{ auto_subtract_breaks?: boolean }>
 ): number {
   let totalMinutes = 0;
-  let lastStart: TimeLog | null = null;
-  let lastStartRaw: { auto_subtract_breaks?: boolean } | null = null;
 
   for (let i = 0; i < timeLogs.length; i++) {
     const log = timeLogs[i];
     const raw = rawData ? rawData[i] : null;
     
-    if (log.type === 'start') {
-      lastStart = log;
-      lastStartRaw = raw;
-    } else if (log.type === 'stop' && lastStart) {
-      const startTime = dayjs(lastStart.timestamp);
-      const stopTime = dayjs(log.timestamp);
-      let minutes = stopTime.diff(startTime, 'minute', true);
-      
-      // Apply break subtraction if auto_subtract_breaks is enabled for the button
-      const autoSubtractBreaks = lastStartRaw?.auto_subtract_breaks ?? false;
-      if (autoSubtractBreaks && minutes > 0) {
-        // German break rules: 30 min after 6h, additional 15 min (total 45) after 9h
-        if (minutes >= 9 * 60) {
-          minutes -= 45; // 45 minutes break for 9+ hours
-        } else if (minutes >= 6 * 60) {
-          minutes -= 30; // 30 minutes break for 6-9 hours
-        }
-      }
-      
-      totalMinutes += Math.max(0, minutes);
-      lastStart = null;
-      lastStartRaw = null;
+    // Skip logs without an end timestamp (still running)
+    if (!log.end_timestamp) {
+      continue;
     }
+    
+    // Use pre-calculated duration if available, otherwise calculate from timestamps
+    let minutes = log.duration_minutes;
+    if (minutes === undefined || minutes === null) {
+      const startTime = dayjs(log.start_timestamp);
+      const endTime = dayjs(log.end_timestamp);
+      minutes = endTime.diff(startTime, 'minute', true);
+    }
+    
+    // Apply break subtraction if auto_subtract_breaks is enabled
+    const autoSubtractBreaks = raw?.auto_subtract_breaks ?? false;
+    if (autoSubtractBreaks && minutes > 0) {
+      // German break rules: 30 min after 6h, additional 15 min (total 45) after 9h
+      if (minutes >= 9 * 60) {
+        minutes -= 45; // 45 minutes break for 9+ hours
+      } else if (minutes >= 6 * 60) {
+        minutes -= 30; // 30 minutes break for 6-9 hours
+      }
+    }
+    
+    totalMinutes += Math.max(0, minutes);
   }
 
   return Math.round(totalMinutes);
@@ -131,10 +133,10 @@ export function calculateDueMinutes(
  * Get affected months from a list of time logs
  * Returns the earliest month that should be recalculated
  * 
- * @param timeLogs - Array of time logs with timestamps
+ * @param timeLogs - Array of time logs with start_timestamp
  * @returns Earliest affected month as dayjs object, or null if no logs
  */
-export function getEarliestAffectedMonth(timeLogs: Array<{ timestamp: Date }>): dayjs.Dayjs | null {
+export function getEarliestAffectedMonth(timeLogs: Array<{ start_timestamp: Date }>): dayjs.Dayjs | null {
   if (timeLogs.length === 0) {
     return null;
   }
@@ -142,7 +144,7 @@ export function getEarliestAffectedMonth(timeLogs: Array<{ timestamp: Date }>): 
   let earliestDate: dayjs.Dayjs | null = null;
   
   for (const log of timeLogs) {
-    const date = dayjs(log.timestamp).utc().startOf('month');
+    const date = dayjs(log.start_timestamp).utc().startOf('month');
     if (!earliestDate || date.isBefore(earliestDate)) {
       earliestDate = date;
     }

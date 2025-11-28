@@ -66,7 +66,7 @@ export class MonthlyBalanceService {
    * Finds the earliest affected month and recalculates all months from there until today
    */
   async recalculateAffectedMonthlyBalances(
-    timeLogs: Array<{ timestamp: Date | string; button_id: string }>
+    timeLogs: Array<{ start_timestamp: Date | string; button_id: string }>
   ): Promise<void> {
     if (timeLogs.length === 0) {
       return;
@@ -75,7 +75,7 @@ export class MonthlyBalanceService {
     // Convert string timestamps to Date objects
     const normalizedTimeLogs = timeLogs.map(log => ({
       ...log,
-      timestamp: typeof log.timestamp === 'string' ? new Date(log.timestamp) : log.timestamp,
+      start_timestamp: typeof log.start_timestamp === 'string' ? new Date(log.start_timestamp) : log.start_timestamp,
     }));
 
     // Find the earliest affected month
@@ -185,13 +185,14 @@ export class MonthlyBalanceService {
       tl =>
         buttonIds.has(tl.button_id) &&
         !tl.deleted_at &&
-        dayjs(tl.timestamp).isAfter(effectiveStartDate) &&
-        dayjs(tl.timestamp).isBefore(endDate)
+        tl.start_timestamp &&
+        dayjs(tl.start_timestamp).isAfter(effectiveStartDate.subtract(1, 'day')) &&
+        dayjs(tl.start_timestamp).isBefore(endDate)
     );
 
-    // Sort by timestamp
+    // Sort by start_timestamp
     relevantTimeLogs.sort((a, b) =>
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      new Date(a.start_timestamp).getTime() - new Date(b.start_timestamp).getTime()
     );
 
     // Create raw data array with auto_subtract_breaks flag
@@ -201,12 +202,13 @@ export class MonthlyBalanceService {
 
     // Convert timeLogs to the format expected by the shared function
     const timeLogsForCalc = relevantTimeLogs.map(tl => ({
-      timestamp: new Date(tl.timestamp),
-      type: tl.type as 'start' | 'stop',
+      start_timestamp: new Date(tl.start_timestamp),
+      end_timestamp: tl.end_timestamp ? new Date(tl.end_timestamp) : undefined,
+      duration_minutes: tl.duration_minutes,
     }));
 
     // Calculate worked minutes from time logs
-    const workedMinutes = this.calculateWorkedMinutes(timeLogsForCalc, rawData);
+    const workedMinutes = calculateWorkedMinutesShared(timeLogsForCalc, rawData);
 
     // Calculate due minutes based on target
     const dueMinutes = await this.calculateDueMinutes(
@@ -286,17 +288,6 @@ export class MonthlyBalanceService {
     const previousBalance = await getMonthlyBalance(balanceId);
 
     return previousBalance ? previousBalance.balance_minutes : 0;
-  }
-
-  /**
-   * Calculate total worked minutes from time logs
-   * Respects auto_subtract_breaks flag from button
-   */
-  private calculateWorkedMinutes(
-    timeLogs: Array<{ timestamp: Date; type: 'start' | 'stop' }>,
-    rawData?: Array<{ auto_subtract_breaks?: boolean }>
-  ): number {
-    return calculateWorkedMinutesShared(timeLogs, rawData);
   }
 
   /**

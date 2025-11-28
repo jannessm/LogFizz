@@ -20,8 +20,29 @@ const createMockButton = (id: string, targetId: string, autoSubtractBreaks = fal
   name: 'Work Button',
   target_id: targetId,
   auto_subtract_breaks: autoSubtractBreaks,
-  position: 0,
   created_at: '2025-01-01T00:00:00.000Z',
+  updated_at: '2025-01-01T00:00:00.000Z',
+});
+
+// Helper to create a mock timelog
+const createMockTimeLog = (
+  id: string,
+  buttonId: string,
+  startTimestamp: string,
+  endTimestamp?: string,
+  durationMinutes?: number
+): TimeLog => ({
+  id,
+  user_id: 'user-1',
+  button_id: buttonId,
+  start_timestamp: startTimestamp,
+  end_timestamp: endTimestamp,
+  duration_minutes: durationMinutes,
+  timezone: 'UTC',
+  apply_break_calculation: false,
+  is_manual: false,
+  created_at: startTimestamp,
+  updated_at: endTimestamp || startTimestamp,
 });
 
 describe('MonthlyBalanceService', () => {
@@ -55,30 +76,7 @@ describe('MonthlyBalanceService', () => {
 
       // Mock time logs: Monday Jan 6, 2025, 9:00-17:00 (8 hours)
       const timeLogs: TimeLog[] = [
-        {
-          id: 'log-1',
-          user_id: 'user-1',
-          button_id: buttonId,
-          type: 'start',
-          timestamp: '2025-01-06T09:00:00.000Z',
-          timezone: 'UTC',
-          apply_break_calculation: false,
-          is_manual: false,
-          created_at: '2025-01-06T09:00:00.000Z',
-          updated_at: '2025-01-06T09:00:00.000Z',
-        },
-        {
-          id: 'log-2',
-          user_id: 'user-1',
-          button_id: buttonId,
-          type: 'stop',
-          timestamp: '2025-01-06T17:00:00.000Z',
-          timezone: 'UTC',
-          apply_break_calculation: false,
-          is_manual: false,
-          created_at: '2025-01-06T17:00:00.000Z',
-          updated_at: '2025-01-06T17:00:00.000Z',
-        },
+        createMockTimeLog('log-1', buttonId, '2025-01-06T09:00:00.000Z', '2025-01-06T17:00:00.000Z', 480),
       ];
 
       // Setup mocks
@@ -143,30 +141,7 @@ describe('MonthlyBalanceService', () => {
 
       // Time logs for January only
       const timeLogs: TimeLog[] = [
-        {
-          id: 'log-1',
-          user_id: 'user-1',
-          button_id: buttonId,
-          type: 'start',
-          timestamp: '2025-01-06T09:00:00.000Z',
-          timezone: 'UTC',
-          apply_break_calculation: false,
-          is_manual: false,
-          created_at: '2025-01-06T09:00:00.000Z',
-          updated_at: '2025-01-06T09:00:00.000Z',
-        },
-        {
-          id: 'log-2',
-          user_id: 'user-1',
-          button_id: buttonId,
-          type: 'stop',
-          timestamp: '2025-01-06T17:00:00.000Z',
-          timezone: 'UTC',
-          apply_break_calculation: false,
-          is_manual: false,
-          created_at: '2025-01-06T17:00:00.000Z',
-          updated_at: '2025-01-06T17:00:00.000Z',
-        },
+        createMockTimeLog('log-1', buttonId, '2025-01-06T09:00:00.000Z', '2025-01-06T17:00:00.000Z', 480),
       ];
 
       // Mock previous month balance (December 2024)
@@ -225,30 +200,7 @@ describe('MonthlyBalanceService', () => {
       const button = createMockButton(buttonId, targetId);
 
       const timeLogs: TimeLog[] = [
-        {
-          id: 'log-1',
-          user_id: 'user-1',
-          button_id: buttonId,
-          type: 'start',
-          timestamp: '2025-01-20T09:00:00.000Z',
-          timezone: 'UTC',
-          apply_break_calculation: false,
-          is_manual: false,
-          created_at: '2025-01-20T09:00:00.000Z',
-          updated_at: '2025-01-20T09:00:00.000Z',
-        },
-        {
-          id: 'log-2',
-          user_id: 'user-1',
-          button_id: buttonId,
-          type: 'stop',
-          timestamp: '2025-01-20T17:00:00.000Z',
-          timezone: 'UTC',
-          apply_break_calculation: false,
-          is_manual: false,
-          created_at: '2025-01-20T17:00:00.000Z',
-          updated_at: '2025-01-20T17:00:00.000Z',
-        },
+        createMockTimeLog('log-1', buttonId, '2025-01-20T09:00:00.000Z', '2025-01-20T17:00:00.000Z', 480),
       ];
 
       vi.mocked(db.getAllTargets).mockResolvedValue([target]);
@@ -285,32 +237,9 @@ describe('MonthlyBalanceService', () => {
       // Button with auto_subtract_breaks enabled
       const button = createMockButton(buttonId, targetId, true);
 
-      // Time logs: Monday Jan 6, 2025, 8:00-18:00 (10 hours)
+      // Time logs: Monday Jan 6, 2025, 8:00-18:00 (10 hours = 600 minutes)
       const timeLogs: TimeLog[] = [
-        {
-          id: 'log-1',
-          user_id: 'user-1',
-          button_id: buttonId,
-          type: 'start',
-          timestamp: '2025-01-06T08:00:00.000Z',
-          timezone: 'UTC',
-          apply_break_calculation: false,
-          is_manual: false,
-          created_at: '2025-01-06T08:00:00.000Z',
-          updated_at: '2025-01-06T08:00:00.000Z',
-        },
-        {
-          id: 'log-2',
-          user_id: 'user-1',
-          button_id: buttonId,
-          type: 'stop',
-          timestamp: '2025-01-06T18:00:00.000Z',
-          timezone: 'UTC',
-          apply_break_calculation: false,
-          is_manual: false,
-          created_at: '2025-01-06T18:00:00.000Z',
-          updated_at: '2025-01-06T18:00:00.000Z',
-        },
+        createMockTimeLog('log-1', buttonId, '2025-01-06T08:00:00.000Z', '2025-01-06T18:00:00.000Z', 600),
       ];
 
       vi.mocked(db.getAllTargets).mockResolvedValue([target]);
@@ -408,7 +337,7 @@ describe('MonthlyBalanceService', () => {
       // Time logs from December 2024
       const timeLogs = [
         {
-          timestamp: '2024-12-02T09:00:00.000Z',
+          start_timestamp: '2024-12-02T09:00:00.000Z',
           button_id: buttonId,
         },
       ];

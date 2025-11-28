@@ -30,7 +30,7 @@ async function recalculateBalancesForTimeLogs(timeLogs: TimeLog[]): Promise<void
 
   try {
     const timeLogsForRecalc = timeLogs.map(tl => ({
-      timestamp: tl.timestamp,
+      start_timestamp: tl.start_timestamp,
       button_id: tl.button_id,
     }));
     await monthlyBalanceService.recalculateAffectedMonthlyBalances(timeLogsForRecalc);
@@ -113,19 +113,13 @@ function createTimeLogsStore() {
         for (const button of buttons) {
           const localTimeLogs = await getTimeLogsByButton(button.id);
           localTimeLogs.sort((a, b) => 
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            new Date(b.start_timestamp).getTime() - new Date(a.start_timestamp).getTime()
           );
           
-          // filter last start events per button
-          const recentStart = localTimeLogs.filter(tl => tl.type === 'start')[0];
-          // filter last stop events per button
-          const recentStop = localTimeLogs.filter(tl => tl.type === 'stop')[0];
-          
-          // Check if there's a corresponding start event and no stop event after it
-          const startAfterStop = recentStop && recentStart && new Date(recentStop.timestamp).getTime() < new Date(recentStart.timestamp).getTime() || false;
-
-          if (startAfterStop) {
-            activeTimers.push(recentStart);
+          // Find the most recent log that has no end_timestamp (still running)
+          const activeLog = localTimeLogs.find(tl => !tl.end_timestamp);
+          if (activeLog) {
+            activeTimers.push(activeLog);
           }
         }
 
@@ -144,8 +138,8 @@ function createTimeLogsStore() {
           id: crypto.randomUUID(),
           user_id: '', // Will be set by backend
           button_id: buttonId,
-          type: 'start',
-          timestamp: new Date().toISOString(),
+          start_timestamp: new Date().toISOString(),
+          // No end_timestamp - timer is running
           timezone: 'UTC',
           apply_break_calculation: false,
           is_manual: false,
@@ -183,35 +177,35 @@ function createTimeLogsStore() {
     async stopTimer(id: string) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        // create stop event locally and queue for sync
-        const startEvent = await getAllTimeLogs().then(logs => logs.find(tl => tl.id === id));
-        if (!startEvent) throw new Error('Start event not found');
+        // Find the running timer and update it with end_timestamp
+        const allTimeLogs = await getAllTimeLogs();
+        const runningTimer = allTimeLogs.find(tl => tl.id === id);
+        if (!runningTimer) throw new Error('Timer not found');
         
-        const stopEvent: TimeLog = {
-          id: crypto.randomUUID(),
-          user_id: startEvent.user_id,
-          button_id: startEvent.button_id,
-          type: 'stop',
-          timestamp: new Date().toISOString(),
-          timezone: startEvent.timezone || 'UTC',
-          apply_break_calculation: startEvent.apply_break_calculation,
-          is_manual: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+        const now = new Date();
+        const start = new Date(runningTimer.start_timestamp);
+        const durationMinutes = Math.round((now.getTime() - start.getTime()) / (1000 * 60));
+        
+        // Update the timer with end timestamp and duration
+        const updatedTimeLog: TimeLog = {
+          ...runningTimer,
+          end_timestamp: now.toISOString(),
+          duration_minutes: durationMinutes,
+          updated_at: now.toISOString(),
         };
         
-        await syncService.queueTimeLogCreate(stopEvent);
+        await syncService.queueTimeLogUpdate(updatedTimeLog);
         
         // Recalculate monthly balances
-        await recalculateBalancesForTimeLogs([startEvent, stopEvent]);
+        await recalculateBalancesForTimeLogs([updatedTimeLog]);
         
         update(state => ({
           ...state,
           activeTimers: state.activeTimers.filter(t => t.id !== id),
-          timeLogs: [...state.timeLogs, stopEvent],
+          timeLogs: state.timeLogs.map(tl => tl.id === id ? updatedTimeLog : tl),
           isLoading: false
         }));
-        return stopEvent;
+        return updatedTimeLog;
       } catch (error: any) {
         update(state => ({ 
           ...state, 
@@ -222,23 +216,32 @@ function createTimeLogsStore() {
       }
     },
 
-    async create(buttonId: string, timestamp: string, type: 'start' | 'stop') {
+    async create(buttonId: string, startTimestamp: string, endTimestamp?: string) {
       return this.createManual({
         button_id: buttonId,
-        timestamp,
-        type,
+        start_timestamp: startTimestamp,
+        end_timestamp: endTimestamp,
       });
     },
 
     async createManual(timeLogData: Partial<TimeLog>) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
+        // Calculate duration if end_timestamp is provided
+        let durationMinutes: number | undefined;
+        if (timeLogData.start_timestamp && timeLogData.end_timestamp) {
+          const start = new Date(timeLogData.start_timestamp);
+          const end = new Date(timeLogData.end_timestamp);
+          durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+        }
+        
         const timeLog: TimeLog = {
           id: crypto.randomUUID(),
           user_id: timeLogData.user_id || '',
           button_id: timeLogData.button_id || '',
-          type: timeLogData.type || 'start',
-          timestamp: timeLogData.timestamp || new Date().toISOString(),
+          start_timestamp: timeLogData.start_timestamp || new Date().toISOString(),
+          end_timestamp: timeLogData.end_timestamp,
+          duration_minutes: durationMinutes,
           timezone: timeLogData.timezone || 'UTC',
           apply_break_calculation: timeLogData.apply_break_calculation ?? false,
           notes: timeLogData.notes,
@@ -337,7 +340,7 @@ export const todayTimeLogs = derived(
   $timeLogsStore => {
     const today = new Date().toISOString().split('T')[0];
     return $timeLogsStore.timeLogs.filter(tl => 
-      tl.timestamp && tl.timestamp.startsWith(today)
+      tl.start_timestamp && tl.start_timestamp.startsWith(today)
     );
   }
 );
