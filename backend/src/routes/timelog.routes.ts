@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { TimeLogService } from '../services/timelog.service.js';
 import { MonthlyBalanceService } from '../services/monthly-balance.service.js';
+import dayjs from '../utils/dayjs.js';
 
 const timeLogService = new TimeLogService();
 const monthlyBalanceService = new MonthlyBalanceService();
@@ -49,16 +50,16 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
     const { since } = request.query as any;
 
     try {
-      const sinceDate = new Date(since);
-      if (isNaN(sinceDate.getTime())) {
+      const sinceDate = dayjs(since);
+      if (!sinceDate.isValid()) {
         return reply.code(400).send({ error: 'Invalid timestamp format' });
       }
 
-      const timeLogs = await timeLogService.getChangedTimeLogsSince(userId, sinceDate);
+      const timeLogs = await timeLogService.getChangedTimeLogsSince(userId, sinceDate.toDate());
       
       // Cursor represents the current server state - all changes up to this moment have been returned
       // Next sync should request changes after this timestamp
-      const cursor = new Date().toISOString();
+      const cursor = dayjs().toISOString();
       
       return reply.send({
         timeLogs,
@@ -132,9 +133,9 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
     // Convert string timestamps to Date objects
     const processedTimeLogs = timeLogs.map((log: any) => ({
       ...log,
-      timestamp: new Date(log.timestamp),
-      updated_at: new Date(log.updated_at),
-      deleted_at: log.deleted_at ? new Date(log.deleted_at) : undefined,
+      timestamp: dayjs(log.timestamp).toDate(),
+      updated_at: dayjs(log.updated_at).toDate(),
+      deleted_at: log.deleted_at ? dayjs(log.deleted_at).toDate() : undefined,
     }));
 
     const result = await timeLogService.pushTimeLogChanges(userId, processedTimeLogs);

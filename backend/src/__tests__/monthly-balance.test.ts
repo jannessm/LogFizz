@@ -714,4 +714,321 @@ describe('Monthly Balance Calculations', () => {
       expect(janBalance.worked_minutes).toBe(495);
     });
   });
+
+  describe('Recalculate Affected Monthly Balances', () => {
+    it('should recalculate from earliest affected month through to current month', async () => {
+      // Create target starting from January 2025
+      const targetResponse = await app.inject({
+        method: 'POST',
+        url: '/api/targets/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          targets: [{
+            id: '550e8400-e29b-41d4-a716-446655440100',
+            name: 'Cascade Test Target',
+            duration_minutes: [480], // 8 hours per Monday
+            weekdays: [1], // Monday only
+            exclude_holidays: false,
+            starting_from: '2025-01-01T00:00:00.000Z',
+          }],
+        },
+      });
+
+      expect(targetResponse.statusCode).toBe(200);
+      targetId = '550e8400-e29b-41d4-a716-446655440100';
+
+      // Create button
+      await app.inject({
+        method: 'POST',
+        url: '/api/buttons/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          buttons: [{
+            id: '550e8400-e29b-41d4-a716-446655440101',
+            name: 'Test Button',
+            auto_subtract_breaks: false,
+            target_id: targetId,
+          }],
+        },
+      });
+
+      buttonId = '550e8400-e29b-41d4-a716-446655440101';
+
+      // Create time logs in January (work extra 2 hours on first Monday)
+      // January 2025: Mondays are 6, 13, 20, 27
+      await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          timeLogs: [
+            {
+              id: '550e8400-e29b-41d4-a716-446655440102',
+              button_id: buttonId,
+              type: 'start',
+              timestamp: '2025-01-06T08:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: '550e8400-e29b-41d4-a716-446655440103',
+              button_id: buttonId,
+              type: 'stop',
+              timestamp: '2025-01-06T18:00:00.000Z', // 10 hours
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      });
+
+      // Get initial balances
+      let syncResponse = await app.inject({
+        method: 'GET',
+        url: '/api/monthly-balances/sync?since=1970-01-01T00:00:00.000Z',
+        headers: { cookie: sessionCookie },
+      });
+
+      expect(syncResponse.statusCode).toBe(200);
+      let data = JSON.parse(syncResponse.payload);
+      
+      const janBalance = data.monthlyBalances.find(
+        (b: any) => b.year === 2025 && b.month === 1 && b.target_id === targetId
+      );
+
+      expect(janBalance).toBeDefined();
+      // January: 4 Mondays * 480 = 1920 due, 600 worked = -1320 balance
+      expect(janBalance.due_minutes).toBe(1920);
+      expect(janBalance.worked_minutes).toBe(600);
+      expect(janBalance.balance_minutes).toBe(-1320);
+
+      // Now add more work in March (skip February) - work 16 hours on first Monday
+      await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          timeLogs: [
+            {
+              id: '550e8400-e29b-41d4-a716-446655440104',
+              button_id: buttonId,
+              type: 'start',
+              timestamp: '2025-03-03T08:00:00.000Z', // First Monday in March
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: '550e8400-e29b-41d4-a716-446655440105',
+              button_id: buttonId,
+              type: 'stop',
+              timestamp: '2025-03-04T00:00:00.000Z', // 16 hours
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      });
+
+      // Get updated balances - should recalculate Jan, Feb, March, and all months through November
+      syncResponse = await app.inject({
+        method: 'GET',
+        url: '/api/monthly-balances/sync?since=1970-01-01T00:00:00.000Z',
+        headers: { cookie: sessionCookie },
+      });
+
+      expect(syncResponse.statusCode).toBe(200);
+      data = JSON.parse(syncResponse.payload);
+
+      // Find all month balances
+      const janBalanceUpdated = data.monthlyBalances.find(
+        (b: any) => b.year === 2025 && b.month === 1 && b.target_id === targetId
+      );
+      const febBalance = data.monthlyBalances.find(
+        (b: any) => b.year === 2025 && b.month === 2 && b.target_id === targetId
+      );
+      const marBalance = data.monthlyBalances.find(
+        (b: any) => b.year === 2025 && b.month === 3 && b.target_id === targetId
+      );
+      const aprBalance = data.monthlyBalances.find(
+        (b: any) => b.year === 2025 && b.month === 4 && b.target_id === targetId
+      );
+
+      // Verify January still has same values but balance carries forward
+      expect(janBalanceUpdated.worked_minutes).toBe(600);
+      expect(janBalanceUpdated.due_minutes).toBe(1920);
+      expect(janBalanceUpdated.balance_minutes).toBe(-1320);
+
+      // Verify February was calculated (no work, but has due time)
+      expect(febBalance).toBeDefined();
+      // February 2025: Mondays are 3, 10, 17, 24 = 4 Mondays
+      expect(febBalance.worked_minutes).toBe(0);
+      expect(febBalance.due_minutes).toBe(1920); // 4 * 480
+      // February balance = Jan cumulative (-1320) + Feb (0 - 1920) = -3240
+      expect(febBalance.balance_minutes).toBe(-3240);
+
+      // Verify March was calculated with new time log
+      expect(marBalance).toBeDefined();
+      // March 2025: Mondays are 3, 10, 17, 24, 31 = 5 Mondays
+      expect(marBalance.worked_minutes).toBe(960); // 16 hours
+      expect(marBalance.due_minutes).toBe(2400); // 5 * 480
+      // March balance = Feb cumulative (-3240) + March (960 - 2400) = -4680
+      expect(marBalance.balance_minutes).toBe(-4680);
+
+      // Verify April was also calculated (demonstrating cascade)
+      expect(aprBalance).toBeDefined();
+      // April 2025: Mondays are 7, 14, 21, 28 = 4 Mondays
+      expect(aprBalance.worked_minutes).toBe(0);
+      expect(aprBalance.due_minutes).toBe(1920); // 4 * 480
+      // April balance = March cumulative (-4680) + April (0 - 1920) = -6600
+      expect(aprBalance.balance_minutes).toBe(-6600);
+
+      // Verify that months up to current month (November) were calculated
+      const targetBalances = data.monthlyBalances.filter(
+        (b: any) => b.target_id === targetId
+      );
+      
+      // Should have balances for Jan through Nov 2025 (11 months)
+      expect(targetBalances.length).toBeGreaterThanOrEqual(11);
+      
+      // Verify November exists and has cumulative balance from all previous months
+      const novBalance = data.monthlyBalances.find(
+        (b: any) => b.year === 2025 && b.month === 11 && b.target_id === targetId
+      );
+      expect(novBalance).toBeDefined();
+      // November balance should be negative (accumulated deficit)
+      expect(novBalance.balance_minutes).toBeLessThan(0);
+    });
+
+    it('should handle empty time logs array gracefully', async () => {
+      const result = await monthlyBalanceService.recalculateAffectedMonthlyBalances(
+        userId,
+        []
+      );
+      
+      expect(result).toEqual([]);
+    });
+
+    it('should recalculate only from the earliest month when multiple non-consecutive months affected', async () => {
+      // Create target
+      const targetResponse = await app.inject({
+        method: 'POST',
+        url: '/api/targets/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          targets: [{
+            id: '550e8400-e29b-41d4-a716-446655440110',
+            name: 'Multi Month Target',
+            duration_minutes: [480],
+            weekdays: [1],
+            exclude_holidays: false,
+            starting_from: '2025-01-01T00:00:00.000Z',
+          }],
+        },
+      });
+
+      targetId = '550e8400-e29b-41d4-a716-446655440110';
+
+      // Create button
+      await app.inject({
+        method: 'POST',
+        url: '/api/buttons/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          buttons: [{
+            id: '550e8400-e29b-41d4-a716-446655440111',
+            name: 'Test Button',
+            auto_subtract_breaks: false,
+            target_id: targetId,
+          }],
+        },
+      });
+
+      // Add time logs in January, March, and May (non-consecutive)
+      await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          timeLogs: [
+            // January
+            {
+              id: '550e8400-e29b-41d4-a716-446655440112',
+              button_id: '550e8400-e29b-41d4-a716-446655440111',
+              type: 'start',
+              timestamp: '2025-01-06T08:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: '550e8400-e29b-41d4-a716-446655440113',
+              button_id: '550e8400-e29b-41d4-a716-446655440111',
+              type: 'stop',
+              timestamp: '2025-01-06T16:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+            // March
+            {
+              id: '550e8400-e29b-41d4-a716-446655440114',
+              button_id: '550e8400-e29b-41d4-a716-446655440111',
+              type: 'start',
+              timestamp: '2025-03-03T08:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: '550e8400-e29b-41d4-a716-446655440115',
+              button_id: '550e8400-e29b-41d4-a716-446655440111',
+              type: 'stop',
+              timestamp: '2025-03-03T16:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+            // May
+            {
+              id: '550e8400-e29b-41d4-a716-446655440116',
+              button_id: '550e8400-e29b-41d4-a716-446655440111',
+              type: 'start',
+              timestamp: '2025-05-05T08:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: '550e8400-e29b-41d4-a716-446655440117',
+              button_id: '550e8400-e29b-41d4-a716-446655440111',
+              type: 'stop',
+              timestamp: '2025-05-05T16:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      });
+
+      // Get balances
+      const syncResponse = await app.inject({
+        method: 'GET',
+        url: '/api/monthly-balances/sync?since=1970-01-01T00:00:00.000Z',
+        headers: { cookie: sessionCookie },
+      });
+
+      const data = JSON.parse(syncResponse.payload);
+      const targetBalances = data.monthlyBalances.filter(
+        (b: any) => b.target_id === targetId
+      );
+
+      // Should have February and April even though no time logs for those months
+      const febBalance = targetBalances.find((b: any) => b.month === 2);
+      const aprBalance = targetBalances.find((b: any) => b.month === 4);
+
+      expect(febBalance).toBeDefined();
+      expect(aprBalance).toBeDefined();
+
+      // February should have cumulative balance from January
+      expect(febBalance.balance_minutes).not.toBe(febBalance.worked_minutes - febBalance.due_minutes);
+      
+      // April should have cumulative balance from March
+      expect(aprBalance.balance_minutes).not.toBe(aprBalance.worked_minutes - aprBalance.due_minutes);
+    });
+  });
 });

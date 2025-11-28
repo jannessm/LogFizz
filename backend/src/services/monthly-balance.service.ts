@@ -4,6 +4,7 @@ import { DailyTarget } from '../entities/DailyTarget.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { Between, In, MoreThan } from 'typeorm';
+import dayjs from '../utils/dayjs.js';
 
 export class MonthlyBalanceService {
   private monthlyBalanceRepository = AppDataSource.getRepository(MonthlyBalance);
@@ -29,27 +30,48 @@ export class MonthlyBalanceService {
   /**
    * Recalculate monthly balances for affected months based on time logs
    * Called after time logs are synced
+   * Finds the earliest affected month and recalculates all months from there until today
+   * to ensure cumulative balances are correct
    */
   async recalculateAffectedMonthlyBalances(
     userId: string,
     timeLogs: Array<{ timestamp: Date; button_id: string }>
   ): Promise<MonthlyBalance[]> {
-    // Find unique year/month combinations from the time logs
-    const affectedMonths = new Set<string>();
-    
-    for (const log of timeLogs) {
-      const date = new Date(log.timestamp);
-      const year = date.getUTCFullYear();
-      const month = date.getUTCMonth() + 1; // 1-12
-      affectedMonths.add(`${year}-${month}`);
+    if (timeLogs.length === 0) {
+      return [];
     }
 
-    const updatedBalances: MonthlyBalance[] = [];
+    // Find the earliest affected month
+    let earliestDate: dayjs.Dayjs | null = null;
     
-    for (const monthKey of affectedMonths) {
-      const [year, month] = monthKey.split('-').map(Number);
+    for (const log of timeLogs) {
+      const date = dayjs(log.timestamp).utc().startOf('month');
+      if (!earliestDate || date.isBefore(earliestDate)) {
+        earliestDate = date;
+      }
+    }
+
+    if (!earliestDate) {
+      return [];
+    }
+
+    // Calculate end date (current month)
+    const today = dayjs().utc();
+    const endDate = today.startOf('month');
+
+    // Recalculate all months from earliest affected month to current month
+    const updatedBalances: MonthlyBalance[] = [];
+    let currentMonth = earliestDate;
+
+    while (currentMonth.isBefore(endDate) || currentMonth.isSame(endDate)) {
+      const year = currentMonth.year();
+      const month = currentMonth.month() + 1; // 1-12
+      
       const balances = await this.recalculateMonthBalances(userId, year, month);
       updatedBalances.push(...balances);
+      
+      // Move to next month
+      currentMonth = currentMonth.add(1, 'month');
     }
 
     return updatedBalances;
@@ -78,8 +100,12 @@ export class MonthlyBalanceService {
       throw new Error('Target not found');
     }
 
+    // Convert weekdays and duration_minutes from strings to numbers (TypeORM simple-array stores as strings)
+    target.weekdays = target.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day);
+    target.duration_minutes = target.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min);
+
     // Do not calculate balance if no starting_from is set
-    const startingFrom = target.starting_from ? new Date(target.starting_from) : null;
+    const startingFrom = target.starting_from ? dayjs(target.starting_from).utc() : null;
     if (!startingFrom) {
       // Delete any existing balance for this target (shouldn't exist, but clean up)
       await this.monthlyBalanceRepository.delete({
@@ -92,11 +118,11 @@ export class MonthlyBalanceService {
     }
 
     // Calculate date range for the month (month is 1-12)
-    const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
-    const endDate = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+    const startDate = dayjs.utc(`${year}-${month.toString().padStart(2, '0')}-01`).startOf('day');
+    const endDate = startDate.add(1, 'month');
 
     // Check if this month is before the starting_from date
-    if (endDate <= startingFrom) {
+    if (endDate.isBefore(startingFrom) || endDate.isSame(startingFrom)) {
       // This month is entirely before starting_from, no balance should be calculated
       // Delete any existing balance
       await this.monthlyBalanceRepository.delete({
@@ -109,7 +135,7 @@ export class MonthlyBalanceService {
     }
 
     // Calculate the effective start date for time logs (max of month start or starting_from)
-    const effectiveStartDate = startingFrom > startDate ? startingFrom : startDate;
+    const effectiveStartDate = startingFrom.isAfter(startDate) ? startingFrom : startDate;
 
     // Get all time logs for buttons linked to this target in this month (from effective start date)
     // Include button info for auto_subtract_breaks flag
@@ -119,8 +145,8 @@ export class MonthlyBalanceService {
       .addSelect('b.auto_subtract_breaks', 'auto_subtract_breaks')
       .where('tl.user_id = :userId', { userId })
       .andWhere('b.target_id = :targetId', { targetId })
-      .andWhere('tl.timestamp >= :effectiveStartDate', { effectiveStartDate })
-      .andWhere('tl.timestamp < :endDate', { endDate })
+      .andWhere('tl.timestamp >= :effectiveStartDate', { effectiveStartDate: effectiveStartDate.toDate() })
+      .andWhere('tl.timestamp < :endDate', { endDate: endDate.toDate() })
       .andWhere('tl.deleted_at IS NULL')
       .orderBy('tl.timestamp', 'ASC')
       .getRawAndEntities();
@@ -194,22 +220,19 @@ export class MonthlyBalanceService {
     targetId: string,
     year: number,
     month: number,
-    startingFrom: Date | null
+    startingFrom: dayjs.Dayjs | null
   ): Promise<number> {
-    // Calculate previous month
-    let prevYear = year;
-    let prevMonth = month - 1;
-    if (prevMonth < 1) {
-      prevMonth = 12;
-      prevYear = year - 1;
-    }
+    // Calculate previous month using dayjs
+    const currentMonth = dayjs.utc(`${year}-${month.toString().padStart(2, '0')}-01`);
+    const previousMonth = currentMonth.subtract(1, 'month');
+    const prevYear = previousMonth.year();
+    const prevMonth = previousMonth.month() + 1; // dayjs months are 0-indexed
 
     // Check if previous month is entirely before starting_from
     // We need to check if starting_from is after the END of the previous month
     if (startingFrom) {
-      // Get the first day of the current month (which is the end boundary of prev month)
-      const currentMonthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
-      if (startingFrom >= currentMonthStart) {
+      const currentMonthStart = currentMonth.startOf('day');
+      if (startingFrom.isAfter(currentMonthStart) || startingFrom.isSame(currentMonthStart)) {
         // starting_from is on or after current month's start,
         // meaning previous month is entirely before tracking began
         return 0;
@@ -247,9 +270,9 @@ export class MonthlyBalanceService {
         lastStart = log;
         lastStartRaw = raw;
       } else if (log.type === 'stop' && lastStart) {
-        const startTime = new Date(lastStart.timestamp).getTime();
-        const stopTime = new Date(log.timestamp).getTime();
-        let minutes = (stopTime - startTime) / (1000 * 60);
+        const startTime = dayjs(lastStart.timestamp);
+        const stopTime = dayjs(log.timestamp);
+        let minutes = stopTime.diff(startTime, 'minute', true);
         
         // Apply break subtraction if auto_subtract_breaks is enabled for the button
         const autoSubtractBreaks = lastStartRaw?.auto_subtract_breaks ?? false;
@@ -293,22 +316,24 @@ export class MonthlyBalanceService {
         },
       });
       holidays = new Set(
-        holidayRecords.map((h) => new Date(h.date).toISOString().split('T')[0])
+        holidayRecords.map((h) => dayjs(h.date).format('YYYY-MM-DD'))
       );
     }
 
     // Get starting_from date if set
-    const startingFrom = target.starting_from ? new Date(target.starting_from) : null;
+    const startingFrom = target.starting_from ? dayjs(target.starting_from).utc() : null;
 
-    // Iterate through each day of the month
-    const daysInMonth = new Date(year, month, 0).getDate();
+    // Iterate through each day of the month using dayjs
+    const monthStart = dayjs.utc(`${year}-${month.toString().padStart(2, '0')}-01`);
+    const daysInMonth = monthStart.daysInMonth();
+    
     for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(Date.UTC(year, month - 1, day));
-      const dayOfWeek = date.getUTCDay(); // 0=Sunday, 6=Saturday
-      const dateString = date.toISOString().split('T')[0];
+      const date = monthStart.date(day);
+      const dayOfWeek = date.day(); // 0=Sunday, 6=Saturday
+      const dateString = date.format('YYYY-MM-DD');
 
       // Skip days before starting_from
-      if (startingFrom && date < startingFrom) {
+      if (startingFrom && date.isBefore(startingFrom, 'day')) {
         continue;
       }
 
