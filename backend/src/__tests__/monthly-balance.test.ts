@@ -112,6 +112,12 @@ describe('Monthly Balance Calculations', () => {
         },
       });
 
+      // Manually trigger monthly balance recalculation
+      await monthlyBalanceService.recalculateAffectedMonthlyBalances(
+        userId,
+        [{ start_timestamp: new Date('2025-01-06T09:00:00.000Z'), button_id: buttonId }]
+      );
+
       // Get monthly balance via sync
       const syncResponse = await app.inject({
         method: 'GET',
@@ -187,6 +193,12 @@ describe('Monthly Balance Calculations', () => {
           ],
         },
       });
+
+      // Manually trigger monthly balance recalculation
+      await monthlyBalanceService.recalculateAffectedMonthlyBalances(
+        userId,
+        [{ start_timestamp: new Date('2025-01-06T09:00:00.000Z'), button_id: buttonId }]
+      );
 
       // Get monthly balance
       const syncResponse = await app.inject({
@@ -293,6 +305,12 @@ describe('Monthly Balance Calculations', () => {
         },
       });
 
+      // Manually trigger monthly balance recalculation
+      await monthlyBalanceService.recalculateAffectedMonthlyBalances(
+        userId,
+        [{ start_timestamp: new Date('2024-12-02T08:00:00.000Z'), button_id: buttonId }]
+      );
+
       // Get monthly balances
       const syncResponse = await app.inject({
         method: 'GET',
@@ -391,6 +409,12 @@ describe('Monthly Balance Calculations', () => {
         },
       });
 
+      // Manually trigger monthly balance recalculation
+      await monthlyBalanceService.recalculateAffectedMonthlyBalances(
+        userId,
+        [{ start_timestamp: new Date('2025-01-20T09:00:00.000Z'), button_id: buttonId }]
+      );
+
       // Get monthly balance
       const syncResponse = await app.inject({
         method: 'GET',
@@ -470,6 +494,12 @@ describe('Monthly Balance Calculations', () => {
           ],
         },
       });
+
+      // Manually trigger monthly balance recalculation
+      await monthlyBalanceService.recalculateAffectedMonthlyBalances(
+        userId,
+        [{ start_timestamp: new Date('2025-02-03T09:00:00.000Z'), button_id: buttonId }]
+      );
 
       // Get monthly balances
       const syncResponse = await app.inject({
@@ -631,6 +661,12 @@ describe('Monthly Balance Calculations', () => {
         },
       });
 
+      // Manually trigger monthly balance recalculation
+      await monthlyBalanceService.recalculateAffectedMonthlyBalances(
+        userId,
+        [{ start_timestamp: new Date('2025-01-06T08:00:00.000Z'), button_id: buttonId }]
+      );
+
       // Get monthly balance
       const syncResponse = await app.inject({
         method: 'GET',
@@ -710,6 +746,12 @@ describe('Monthly Balance Calculations', () => {
         },
       });
 
+      // Manually trigger monthly balance recalculation
+      await monthlyBalanceService.recalculateAffectedMonthlyBalances(
+        userId,
+        [{ start_timestamp: new Date('2025-01-06T08:00:00.000Z'), button_id: buttonId }]
+      );
+
       // Get initial balances
       let syncResponse = await app.inject({
         method: 'GET',
@@ -748,6 +790,12 @@ describe('Monthly Balance Calculations', () => {
           ],
         },
       });
+
+      // Manually trigger monthly balance recalculation
+      await monthlyBalanceService.recalculateAffectedMonthlyBalances(
+        userId,
+        [{ start_timestamp: new Date('2025-01-06T08:00:00.000Z'), button_id: buttonId }]
+      );
 
       // Get updated balances - should recalculate Jan, Feb, March, and all months through November
       syncResponse = await app.inject({
@@ -900,6 +948,12 @@ describe('Monthly Balance Calculations', () => {
           ],
         },
       });
+
+      // Manually trigger monthly balance recalculation
+      await monthlyBalanceService.recalculateAffectedMonthlyBalances(
+        userId,
+        [{ start_timestamp: new Date('2025-01-06T08:00:00.000Z'), button_id: '550e8400-e29b-41d4-a716-446655440111' }]
+      );
 
       // Get balances
       const syncResponse = await app.inject({
