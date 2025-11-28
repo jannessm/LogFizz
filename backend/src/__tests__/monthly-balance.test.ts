@@ -103,16 +103,8 @@ describe('Monthly Balance Calculations', () => {
             {
               id: '550e8400-e29b-41d4-a716-446655440003',
               button_id: buttonId,
-              type: 'start',
-              timestamp: '2025-01-06T09:00:00.000Z',
-              timezone: 'UTC',
-              updated_at: new Date().toISOString(),
-            },
-            {
-              id: '550e8400-e29b-41d4-a716-446655440004',
-              button_id: buttonId,
-              type: 'stop',
-              timestamp: '2025-01-06T17:00:00.000Z',
+              start_timestamp: '2025-01-06T09:00:00.000Z',
+              end_timestamp: '2025-01-06T17:00:00.000Z',
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             },
@@ -187,16 +179,8 @@ describe('Monthly Balance Calculations', () => {
             {
               id: '550e8400-e29b-41d4-a716-446655440012',
               button_id: buttonId,
-              type: 'start',
-              timestamp: '2025-01-06T09:00:00.000Z',
-              timezone: 'UTC',
-              updated_at: new Date().toISOString(),
-            },
-            {
-              id: '550e8400-e29b-41d4-a716-446655440013',
-              button_id: buttonId,
-              type: 'stop',
-              timestamp: '2025-01-06T17:00:00.000Z',
+              start_timestamp: '2025-01-06T09:00:00.000Z',
+              end_timestamp: '2025-01-06T17:00:00.000Z',
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             },
@@ -274,18 +258,10 @@ describe('Monthly Balance Calculations', () => {
       
       decemberMondays.forEach((day, idx) => {
         decTimeLogs.push({
-          id: `550e8400-e29b-41d4-a716-44665544003${idx * 2}`,
+          id: `550e8400-e29b-41d4-a716-44665544003${idx}`,
           button_id: buttonId,
-          type: 'start',
-          timestamp: `2024-12-${day.toString().padStart(2, '0')}T08:00:00.000Z`,
-          timezone: 'UTC',
-          updated_at: new Date().toISOString(),
-        });
-        decTimeLogs.push({
-          id: `550e8400-e29b-41d4-a716-44665544003${idx * 2 + 1}`,
-          button_id: buttonId,
-          type: 'stop',
-          timestamp: `2024-12-${day.toString().padStart(2, '0')}T18:00:00.000Z`, // 10 hours
+          start_timestamp: `2024-12-${day.toString().padStart(2, '0')}T08:00:00.000Z`,
+          end_timestamp: `2024-12-${day.toString().padStart(2, '0')}T18:00:00.000Z`, // 10 hours
           timezone: 'UTC',
           updated_at: new Date().toISOString(),
         });
@@ -308,16 +284,8 @@ describe('Monthly Balance Calculations', () => {
             {
               id: '550e8400-e29b-41d4-a716-446655440050',
               button_id: buttonId,
-              type: 'start',
-              timestamp: '2025-01-06T09:00:00.000Z',
-              timezone: 'UTC',
-              updated_at: new Date().toISOString(),
-            },
-            {
-              id: '550e8400-e29b-41d4-a716-446655440051',
-              button_id: buttonId,
-              type: 'stop',
-              timestamp: '2025-01-06T17:00:00.000Z',
+              start_timestamp: '2025-01-06T09:00:00.000Z',
+              end_timestamp: '2025-01-06T17:00:00.000Z',
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             },
@@ -414,16 +382,8 @@ describe('Monthly Balance Calculations', () => {
             {
               id: '550e8400-e29b-41d4-a716-446655440062',
               button_id: buttonId,
-              type: 'start',
-              timestamp: '2025-01-20T09:00:00.000Z',
-              timezone: 'UTC',
-              updated_at: new Date().toISOString(),
-            },
-            {
-              id: '550e8400-e29b-41d4-a716-446655440063',
-              button_id: buttonId,
-              type: 'stop',
-              timestamp: '2025-01-20T17:00:00.000Z',
+              start_timestamp: '2025-01-20T09:00:00.000Z',
+              end_timestamp: '2025-01-20T17:00:00.000Z',
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             },
@@ -502,16 +462,8 @@ describe('Monthly Balance Calculations', () => {
             {
               id: '550e8400-e29b-41d4-a716-446655440072',
               button_id: buttonId,
-              type: 'start',
-              timestamp: '2025-02-03T09:00:00.000Z', // Monday Feb 3
-              timezone: 'UTC',
-              updated_at: new Date().toISOString(),
-            },
-            {
-              id: '550e8400-e29b-41d4-a716-446655440073',
-              button_id: buttonId,
-              type: 'stop',
-              timestamp: '2025-02-03T17:00:00.000Z',
+              start_timestamp: '2025-02-03T09:00:00.000Z', // Monday Feb 3
+              end_timestamp: '2025-02-03T17:00:00.000Z',
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             },
@@ -593,16 +545,8 @@ describe('Monthly Balance Calculations', () => {
             {
               id: '550e8400-e29b-41d4-a716-446655440082',
               button_id: buttonId,
-              type: 'start',
-              timestamp: '2025-01-06T09:00:00.000Z',
-              timezone: 'UTC',
-              updated_at: new Date().toISOString(),
-            },
-            {
-              id: '550e8400-e29b-41d4-a716-446655440083',
-              button_id: buttonId,
-              type: 'stop',
-              timestamp: '2025-01-06T17:00:00.000Z',
+              start_timestamp: '2025-01-06T09:00:00.000Z',
+              end_timestamp: '2025-01-06T17:00:00.000Z',
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             },
@@ -678,16 +622,8 @@ describe('Monthly Balance Calculations', () => {
             {
               id: '550e8400-e29b-41d4-a716-446655440092',
               button_id: buttonId,
-              type: 'start',
-              timestamp: '2025-01-06T08:00:00.000Z',
-              timezone: 'UTC',
-              updated_at: new Date().toISOString(),
-            },
-            {
-              id: '550e8400-e29b-41d4-a716-446655440093',
-              button_id: buttonId,
-              type: 'stop',
-              timestamp: '2025-01-06T17:00:00.000Z', // 9 hours total
+              start_timestamp: '2025-01-06T08:00:00.000Z',
+              end_timestamp: '2025-01-06T17:00:00.000Z', // 9 hours total
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             },
@@ -765,16 +701,8 @@ describe('Monthly Balance Calculations', () => {
             {
               id: '550e8400-e29b-41d4-a716-446655440102',
               button_id: buttonId,
-              type: 'start',
-              timestamp: '2025-01-06T08:00:00.000Z',
-              timezone: 'UTC',
-              updated_at: new Date().toISOString(),
-            },
-            {
-              id: '550e8400-e29b-41d4-a716-446655440103',
-              button_id: buttonId,
-              type: 'stop',
-              timestamp: '2025-01-06T18:00:00.000Z', // 10 hours
+              start_timestamp: '2025-01-06T08:00:00.000Z',
+              end_timestamp: '2025-01-06T18:00:00.000Z', // 10 hours
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             },
@@ -812,16 +740,8 @@ describe('Monthly Balance Calculations', () => {
             {
               id: '550e8400-e29b-41d4-a716-446655440104',
               button_id: buttonId,
-              type: 'start',
-              timestamp: '2025-03-03T08:00:00.000Z', // First Monday in March
-              timezone: 'UTC',
-              updated_at: new Date().toISOString(),
-            },
-            {
-              id: '550e8400-e29b-41d4-a716-446655440105',
-              button_id: buttonId,
-              type: 'stop',
-              timestamp: '2025-03-04T00:00:00.000Z', // 16 hours
+              start_timestamp: '2025-03-03T08:00:00.000Z', // First Monday in March
+              end_timestamp: '2025-03-04T00:00:00.000Z', // 16 hours
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             },
@@ -954,16 +874,8 @@ describe('Monthly Balance Calculations', () => {
             {
               id: '550e8400-e29b-41d4-a716-446655440112',
               button_id: '550e8400-e29b-41d4-a716-446655440111',
-              type: 'start',
-              timestamp: '2025-01-06T08:00:00.000Z',
-              timezone: 'UTC',
-              updated_at: new Date().toISOString(),
-            },
-            {
-              id: '550e8400-e29b-41d4-a716-446655440113',
-              button_id: '550e8400-e29b-41d4-a716-446655440111',
-              type: 'stop',
-              timestamp: '2025-01-06T16:00:00.000Z',
+              start_timestamp: '2025-01-06T08:00:00.000Z',
+              end_timestamp: '2025-01-06T16:00:00.000Z',
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             },
@@ -971,16 +883,8 @@ describe('Monthly Balance Calculations', () => {
             {
               id: '550e8400-e29b-41d4-a716-446655440114',
               button_id: '550e8400-e29b-41d4-a716-446655440111',
-              type: 'start',
-              timestamp: '2025-03-03T08:00:00.000Z',
-              timezone: 'UTC',
-              updated_at: new Date().toISOString(),
-            },
-            {
-              id: '550e8400-e29b-41d4-a716-446655440115',
-              button_id: '550e8400-e29b-41d4-a716-446655440111',
-              type: 'stop',
-              timestamp: '2025-03-03T16:00:00.000Z',
+              start_timestamp: '2025-03-03T08:00:00.000Z',
+              end_timestamp: '2025-03-03T16:00:00.000Z',
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             },
@@ -988,16 +892,8 @@ describe('Monthly Balance Calculations', () => {
             {
               id: '550e8400-e29b-41d4-a716-446655440116',
               button_id: '550e8400-e29b-41d4-a716-446655440111',
-              type: 'start',
-              timestamp: '2025-05-05T08:00:00.000Z',
-              timezone: 'UTC',
-              updated_at: new Date().toISOString(),
-            },
-            {
-              id: '550e8400-e29b-41d4-a716-446655440117',
-              button_id: '550e8400-e29b-41d4-a716-446655440111',
-              type: 'stop',
-              timestamp: '2025-05-05T16:00:00.000Z',
+              start_timestamp: '2025-05-05T08:00:00.000Z',
+              end_timestamp: '2025-05-05T16:00:00.000Z',
               timezone: 'UTC',
               updated_at: new Date().toISOString(),
             },

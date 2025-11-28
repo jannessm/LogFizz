@@ -70,14 +70,15 @@ export class InitialSchema1699700000000 implements MigrationInterface {
             )
         `);
 
-        // Create time_logs table
+        // Create time_logs table with start/end timestamp structure
         await queryRunner.query(`
             CREATE TABLE IF NOT EXISTS "time_logs" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "user_id" uuid NOT NULL,
                 "button_id" uuid NOT NULL,
-                "type" character varying NOT NULL,
-                "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL,
+                "start_timestamp" TIMESTAMP WITH TIME ZONE NOT NULL,
+                "end_timestamp" TIMESTAMP WITH TIME ZONE,
+                "duration_minutes" integer,
                 "timezone" character varying NOT NULL,
                 "apply_break_calculation" boolean NOT NULL DEFAULT false,
                 "notes" text,
@@ -183,7 +184,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_buttons_target_id" ON "buttons" ("target_id")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_user_id" ON "time_logs" ("user_id")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_button_id" ON "time_logs" ("button_id")`);
-        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_timestamp" ON "time_logs" ("timestamp")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_start_timestamp" ON "time_logs" ("start_timestamp")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_holidays_country_year" ON "holidays" ("country", "year")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_users_deleted_at" ON "users" ("deleted_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_buttons_deleted_at" ON "buttons" ("deleted_at")`);
