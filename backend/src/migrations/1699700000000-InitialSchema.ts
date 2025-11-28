@@ -79,7 +79,9 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "type" character varying NOT NULL,
                 "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL,
                 "timezone" character varying NOT NULL,
-                "description" text,
+                "apply_break_calculation" boolean NOT NULL DEFAULT false,
+                "notes" text,
+                "is_manual" boolean NOT NULL DEFAULT false,
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "deleted_at" TIMESTAMP WITH TIME ZONE,
@@ -96,11 +98,23 @@ export class InitialSchema1699700000000 implements MigrationInterface {
             CREATE TABLE IF NOT EXISTS "holidays" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "country" character varying NOT NULL,
-                "state" character varying NOT NULL,
                 "date" date NOT NULL,
                 "name" character varying NOT NULL,
                 "year" integer NOT NULL,
                 CONSTRAINT "PK_holidays_id" PRIMARY KEY ("id")
+            )
+        `);
+
+        // Create holiday_metadata table
+        await queryRunner.query(`
+            CREATE TABLE IF NOT EXISTS "holiday_metadata" (
+                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                "country" character varying NOT NULL,
+                "year" integer NOT NULL,
+                "last_updated" TIMESTAMP NOT NULL,
+                "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+                "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
+                CONSTRAINT "PK_holiday_metadata_id" PRIMARY KEY ("id")
             )
         `);
 
@@ -188,6 +202,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE IF EXISTS "time_logs"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "buttons"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "daily_targets"`);
+        await queryRunner.query(`DROP TABLE IF EXISTS "holiday_metadata"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "holidays"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "users"`);
     }

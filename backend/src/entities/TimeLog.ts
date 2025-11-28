@@ -1,7 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import type { TimeLogEntity } from '../../../lib/types/index.js';
 
 @Entity('time_logs')
-export class TimeLog {
+export class TimeLog implements TimeLogEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
@@ -20,8 +21,14 @@ export class TimeLog {
   @Column('varchar')
   timezone!: string;
 
+  @Column('boolean', { default: false })
+  apply_break_calculation!: boolean;
+
   @Column('text', { nullable: true })
-  description?: string;
+  notes?: string;
+
+  @Column('boolean', { default: false })
+  is_manual!: boolean;
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;

@@ -1,7 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import type { DailyTargetEntity } from '../../../lib/types/index.js';
 
 @Entity('daily_targets')
-export class DailyTarget {
+export class DailyTarget implements DailyTargetEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

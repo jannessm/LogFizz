@@ -1,7 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import type { StateEntity } from '../../../lib/types/index.js';
 
 @Entity('states')
-export class State {
+export class State implements StateEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

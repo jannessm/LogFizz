@@ -11,12 +11,32 @@ import {
   deleteTimeLog as deleteTimeLogDB
 } from '../lib/db';
 import { syncService } from '../services/sync';
+import { monthlyBalanceService } from '../services/monthly-balance.service';
 
 interface TimeLogsStore {
   timeLogs: TimeLog[];
   activeTimers: TimeLog[];
   isLoading: boolean;
   error: string | null;
+}
+
+/**
+ * Helper function to recalculate monthly balances after timelog changes
+ */
+async function recalculateBalancesForTimeLogs(timeLogs: TimeLog[]): Promise<void> {
+  if (timeLogs.length === 0) {
+    return;
+  }
+
+  try {
+    const timeLogsForRecalc = timeLogs.map(tl => ({
+      timestamp: tl.timestamp,
+      button_id: tl.button_id,
+    }));
+    await monthlyBalanceService.recalculateAffectedMonthlyBalances(timeLogsForRecalc);
+  } catch (error) {
+    console.error('Failed to recalculate monthly balances:', error);
+  }
 }
 
 function createTimeLogsStore() {
@@ -126,6 +146,7 @@ function createTimeLogsStore() {
           button_id: buttonId,
           type: 'start',
           timestamp: new Date().toISOString(),
+          timezone: 'UTC',
           apply_break_calculation: false,
           is_manual: false,
           created_at: new Date().toISOString(),
@@ -134,6 +155,9 @@ function createTimeLogsStore() {
 
         // Offline: queue for sync
         await syncService.queueTimeLogCreate(timeLog);
+
+        // Recalculate monthly balances
+        await recalculateBalancesForTimeLogs([timeLog]);
 
         update(state => {
           const activeTimers = [...(state.activeTimers || []), timeLog];
@@ -169,6 +193,7 @@ function createTimeLogsStore() {
           button_id: startEvent.button_id,
           type: 'stop',
           timestamp: new Date().toISOString(),
+          timezone: startEvent.timezone || 'UTC',
           apply_break_calculation: startEvent.apply_break_calculation,
           is_manual: false,
           created_at: new Date().toISOString(),
@@ -176,6 +201,9 @@ function createTimeLogsStore() {
         };
         
         await syncService.queueTimeLogCreate(stopEvent);
+        
+        // Recalculate monthly balances
+        await recalculateBalancesForTimeLogs([startEvent, stopEvent]);
         
         update(state => ({
           ...state,
@@ -211,6 +239,7 @@ function createTimeLogsStore() {
           button_id: timeLogData.button_id || '',
           type: timeLogData.type || 'start',
           timestamp: timeLogData.timestamp || new Date().toISOString(),
+          timezone: timeLogData.timezone || 'UTC',
           apply_break_calculation: timeLogData.apply_break_calculation ?? false,
           notes: timeLogData.notes,
           is_manual: true,
@@ -222,6 +251,8 @@ function createTimeLogsStore() {
           try {
             const created = await timeLogApi.createManual(timeLog);
             await saveTimeLogDB(created);
+            // Recalculate monthly balances
+            await recalculateBalancesForTimeLogs([created]);
             update(state => ({ 
               ...state, 
               timeLogs: [...state.timeLogs, created],
@@ -230,6 +261,8 @@ function createTimeLogsStore() {
             return created;
           } catch (error) {
             await syncService.queueTimeLogCreate(timeLog);
+            // Recalculate monthly balances
+            await recalculateBalancesForTimeLogs([timeLog]);
             update(state => ({ 
               ...state, 
               timeLogs: [...state.timeLogs, timeLog],
@@ -239,6 +272,8 @@ function createTimeLogsStore() {
           }
         } else {
           await syncService.queueTimeLogCreate(timeLog);
+          // Recalculate monthly balances
+          await recalculateBalancesForTimeLogs([timeLog]);
           update(state => ({ 
             ...state, 
             timeLogs: [...state.timeLogs, timeLog],
@@ -259,11 +294,19 @@ function createTimeLogsStore() {
     async delete(id: string) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
+        // Get the timelog before deleting to recalculate balances
+        const timeLog = await getAllTimeLogs().then(logs => logs.find(tl => tl.id === id));
+        
         // Delete from local DB first
         await deleteTimeLogDB(id);
         
         // Queue delete for sync
         await syncService.queueTimeLogDelete(id);
+
+        // Recalculate monthly balances if timelog was found
+        if (timeLog) {
+          await recalculateBalancesForTimeLogs([timeLog]);
+        }
 
         update(state => ({
           ...state,

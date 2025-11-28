@@ -1,8 +1,9 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import type { MonthlyBalanceEntity } from '../../../lib/types/index.js';
 
 @Entity('monthly_balances')
 @Index(['user_id', 'target_id', 'year', 'month'], { unique: true })
-export class MonthlyBalance {
+export class MonthlyBalance implements MonthlyBalanceEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

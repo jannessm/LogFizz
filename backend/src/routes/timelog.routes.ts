@@ -1,11 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { TimeLogService } from '../services/timelog.service.js';
-import { MonthlyBalanceService } from '../services/monthly-balance.service.js';
 import dayjs from '../utils/dayjs.js';
 
 const timeLogService = new TimeLogService();
-const monthlyBalanceService = new MonthlyBalanceService();
 
 export async function timeLogRoutes(fastify: FastifyInstance) {
   // Middleware to check authentication
@@ -140,14 +138,8 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
 
     const result = await timeLogService.pushTimeLogChanges(userId, processedTimeLogs);
     
-    // Recalculate monthly balances for affected months
-    if (result.saved.length > 0) {
-      const timeLogsForRecalc = result.saved.map(log => ({
-        timestamp: log.timestamp,
-        button_id: log.button_id,
-      }));
-      await monthlyBalanceService.recalculateAffectedMonthlyBalances(userId, timeLogsForRecalc);
-    }
+    // Note: Monthly balance recalculation is now handled in the frontend
+    // to ensure balances are calculated correctly in offline-first scenarios
     
     // Cursor represents the current server state after this operation
     const cursor = new Date().toISOString();

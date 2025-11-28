@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import type { MonthlyBalance, DailyTarget } from '../../types';
   import { monthlyBalanceApi, isOnline } from '../../services/api';
   import { 
@@ -9,7 +8,6 @@
     saveSyncCursor,
     getAllTargets
   } from '../../lib/db';
-  import dayjs from 'dayjs';
   import { formatMinutes, formatHours, getBalanceColor } from '../../../../lib/utils/timeFormat.js';
 
   export let year: number;
@@ -24,13 +22,17 @@
     loading = true;
     error = null;
     try {
-      // Load from local DB first (fast - show data immediately)
-      const localBalances = await getMonthlyBalancesByYearMonth(year, month);
-      balances = localBalances;
-
       // Load targets to find those without starting_from
       const allTargets = await getAllTargets();
       targetsWithoutStartingFrom = allTargets.filter(t => !t.starting_from && !t.deleted_at);
+
+      // Check and recalculate missing balances for targets with starting_from
+      const { monthlyBalanceService } = await import('../../services/monthly-balance.service');
+      await monthlyBalanceService.checkAndRecalculateMissingBalances();
+
+      // Load from local DB first (fast - show data immediately)
+      const localBalances = await getMonthlyBalancesByYearMonth(year, month);
+      balances = localBalances;
 
       // Sync from server in background
       if (isOnline()) {

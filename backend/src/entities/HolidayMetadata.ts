@@ -1,27 +1,19 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import type { HolidayMetadataEntity } from '../../../lib/types/index.js';
 
 @Entity('holiday_metadata')
-export class HolidayMetadata {
+export class HolidayMetadata implements Omit<HolidayMetadataEntity, 'last_updated'> {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column('varchar')
   country!: string;
 
-  @Column('varchar')
-  state!: string;
-
   @Column('int')
   year!: number;
 
   @Column('timestamp')
-  last_fetched_at!: Date;
-
-  @Column('int', { default: 0 })
-  holiday_count!: number;
-
-  @Column('varchar', { nullable: true })
-  source_url?: string;
+  last_updated!: Date;
 
   @CreateDateColumn()
   created_at!: Date;

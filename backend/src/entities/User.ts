@@ -1,7 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import type { UserEntity } from '../../../lib/types/index.js';
 
 @Entity('users')
-export class User {
+export class User implements UserEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
