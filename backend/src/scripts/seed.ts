@@ -171,7 +171,7 @@ async function seed() {
           type: 'start',
           timestamp: workStart,
           timezone: 'Europe/Berlin',
-          description: 'October work start',
+          notes: 'October work start',
         }));
 
         await timeLogRepo.save(timeLogRepo.create({
@@ -180,7 +180,7 @@ async function seed() {
           type: 'stop',
           timestamp: workStop,
           timezone: 'Europe/Berlin',
-          description: 'October work end',
+          notes: 'October work end',
         }));
       }
     }
@@ -203,7 +203,7 @@ async function seed() {
           type: 'start',
           timestamp: workStart,
           timezone: 'Europe/Berlin',
-          description: 'November work start',
+          notes: 'November work start',
         }));
 
         await timeLogRepo.save(timeLogRepo.create({
@@ -212,7 +212,7 @@ async function seed() {
           type: 'stop',
           timestamp: workStop,
           timezone: 'Europe/Berlin',
-          description: 'November work end',
+          notes: 'November work end',
         }));
 
         // Study sessions on Tue & Thu
@@ -226,7 +226,7 @@ async function seed() {
             type: 'start',
             timestamp: studyStart,
             timezone: 'Europe/Berlin',
-            description: 'November study start',
+            notes: 'November study start',
           }));
 
           await timeLogRepo.save(timeLogRepo.create({
@@ -235,7 +235,7 @@ async function seed() {
             type: 'stop',
             timestamp: studyStop,
             timezone: 'Europe/Berlin',
-            description: 'November study end',
+            notes: 'November study end',
           }));
         }
       }
@@ -267,7 +267,7 @@ async function seed() {
           type: 'start',
           timestamp: workStart,
           timezone: 'Europe/Berlin',
-          description: 'Starting work day',
+          notes: 'Starting work day',
         }));
 
         await timeLogRepo.save(timeLogRepo.create({
@@ -276,7 +276,7 @@ async function seed() {
           type: 'stop',
           timestamp: workStop,
           timezone: 'Europe/Berlin',
-          description: 'End of work day',
+          notes: 'End of work day',
         }));
 
         // Study session: 7:00 PM - 9:00 PM
@@ -292,7 +292,7 @@ async function seed() {
             type: 'start',
             timestamp: studyStart,
             timezone: 'Europe/Berlin',
-            description: 'Evening study session',
+            notes: 'Evening study session',
           }));
 
           await timeLogRepo.save(timeLogRepo.create({
@@ -301,7 +301,7 @@ async function seed() {
             type: 'stop',
             timestamp: studyStop,
             timezone: 'Europe/Berlin',
-            description: 'Study session complete',
+            notes: 'Study session complete',
           }));
         }
       }
@@ -319,7 +319,7 @@ async function seed() {
           type: 'start',
           timestamp: exerciseStart,
           timezone: 'Europe/Berlin',
-          description: 'Morning workout',
+          notes: 'Morning workout',
         }));
 
         await timeLogRepo.save(timeLogRepo.create({
@@ -328,7 +328,7 @@ async function seed() {
           type: 'stop',
           timestamp: exerciseStop,
           timezone: 'Europe/Berlin',
-          description: 'Workout complete',
+          notes: 'Workout complete',
         }));
       }
 
@@ -345,7 +345,7 @@ async function seed() {
           type: 'start',
           timestamp: projectStart,
           timezone: 'Europe/Berlin',
-          description: 'Weekend coding session',
+          notes: 'Weekend coding session',
         }));
 
         await timeLogRepo.save(timeLogRepo.create({
@@ -354,7 +354,7 @@ async function seed() {
           type: 'stop',
           timestamp: projectStop,
           timezone: 'Europe/Berlin',
-          description: 'Project work done',
+          notes: 'Project work done',
         }));
       }
     }
@@ -369,7 +369,7 @@ async function seed() {
       type: 'start',
       timestamp: activeStart,
       timezone: 'Europe/Berlin',
-      description: 'Currently working',
+      notes: 'Currently working',
     }));
 
     console.log('✅ Created sample time logs');
