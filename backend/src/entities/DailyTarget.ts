@@ -21,8 +21,8 @@ export class DailyTarget implements DailyTargetEntity {
   @Column('boolean', { default: false })
   exclude_holidays!: boolean; // Whether to exclude public holidays from target calculation
 
-  @Column('uuid', { nullable: true })
-  state_id?: string;
+  @Column('varchar', { nullable: true })
+  state_code?: string;
 
   @Column('timestamptz', { nullable: true })
   starting_from?: Date;
@@ -41,7 +41,7 @@ export class DailyTarget implements DailyTargetEntity {
   user!: any;
 
   @ManyToOne('State', { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'state_id' })
+  @JoinColumn({ name: 'state_code', referencedColumnName: 'code' })
   state?: any;
 
   @OneToMany('MonthlyBalance', 'target')

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
   import type { MonthlyBalance, DailyTarget } from '../../types';
   import { monthlyBalanceApi, isOnline } from '../../services/api';
   import { 
@@ -17,6 +18,8 @@
   let targetsWithoutStartingFrom: DailyTarget[] = [];
   let loading = false;
   let error: string | null = null;
+  let refreshTick = 0; // Used to trigger reactivity for running sessions
+  let intervalId: number | undefined;
 
   async function loadBalances() {
     loading = true;
@@ -74,9 +77,36 @@
   }
 
   // Load balances when year or month changes
-  $: if (year && month) {
+  $: if (year && month || refreshTick) {
     loadBalances();
   }
+
+  // Check if there are any running sessions in current workspace
+  async function hasRunningSessions(): Promise<boolean> {
+    const { getAllTimeLogs } = await import('../../lib/db');
+    const timeLogs = await getAllTimeLogs();
+    return timeLogs.some(tl => tl.start_timestamp && !tl.end_timestamp);
+  }
+
+  // Set up interval to refresh running sessions every 30 seconds
+  onMount(async () => {
+    if (await hasRunningSessions()) {
+      intervalId = window.setInterval(async () => {
+        if (await hasRunningSessions()) {
+          refreshTick++;
+        } else if (intervalId) {
+          window.clearInterval(intervalId);
+          intervalId = undefined;
+        }
+      }, 30000); // Update every 30 seconds
+    }
+  });
+
+  onDestroy(() => {
+    if (intervalId) {
+      window.clearInterval(intervalId);
+    }
+  });
 </script>
 
 <div class="bg-white rounded-lg shadow-md p-4 mb-6">

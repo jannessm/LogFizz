@@ -3,6 +3,7 @@
   import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
   import { numberToHoursMinutes } from '../../lib/chart_utils';
   import { createEventDispatcher } from 'svelte';
+  import dayjs from 'dayjs';
   
   export let buttons: any[];
   export let currentMonth: any;
@@ -16,9 +17,11 @@
 
   let canvas: HTMLCanvasElement;
   let chart: Chart | null = null;
+  let refreshTick = 0; // Used to trigger reactivity for running sessions
+  let intervalId: number | undefined;
 
   // Update chart when data changes
-  $: if (canvas && timeLogs.length > 0 && buttons.length > 0) {
+  $: if (canvas && (timeLogs.length > 0 || refreshTick) && buttons.length > 0) {
     const daysInMonth = currentMonth.daysInMonth();
     labels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
     updateChart();
@@ -27,6 +30,7 @@
   // Calculate daily stats per button for stacked bar chart
   function getDailyStatsPerButton() {
     const daysInMonth = currentMonth.daysInMonth();
+    const now = dayjs();
     
     // Create a map to store daily durations per button
     const buttonDailyData = new Map<string, number[]>();
@@ -47,15 +51,20 @@
       
       // Sum durations for each button
       for (const log of dayLogs) {
-        // Only count completed sessions
-        if (log.end_timestamp) {
-          let duration = log.duration_minutes;
-          if (duration === undefined || duration === null) {
-            // Calculate if not stored
-            duration = Math.floor(
-              (new Date(log.end_timestamp).getTime() - new Date(log.start_timestamp).getTime()) / 60000
-            );
-          }
+        let duration = log.duration_minutes;
+        
+        // For running sessions (no end_timestamp), calculate duration to current time
+        if (!log.end_timestamp && log.start_timestamp) {
+          const start = dayjs(log.start_timestamp);
+          duration = now.diff(start, 'minute');
+        } else if (log.end_timestamp && (duration === undefined || duration === null)) {
+          // Calculate if not stored
+          duration = Math.floor(
+            (new Date(log.end_timestamp).getTime() - new Date(log.start_timestamp).getTime()) / 60000
+          );
+        }
+        
+        if (duration !== undefined && duration !== null) {
           const buttonData = buttonDailyData.get(log.button_id);
           if (buttonData) {
             buttonData[day - 1] += duration / 60; // Convert to hours
@@ -154,13 +163,33 @@
     });
   }
 
+  // Check if there are any running sessions
+  function hasRunningSessions(): boolean {
+    return timeLogs.some(tl => tl.start_timestamp && !tl.end_timestamp);
+  }
+
   onMount(() => {
     Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+    
+    // Set up interval to refresh running sessions every 30 seconds
+    if (hasRunningSessions()) {
+      intervalId = window.setInterval(() => {
+        if (hasRunningSessions()) {
+          refreshTick++;
+        } else if (intervalId) {
+          window.clearInterval(intervalId);
+          intervalId = undefined;
+        }
+      }, 30000); // Update every 30 seconds
+    }
   });
 
   onDestroy(() => {
     if (chart) {
       chart.destroy();
+    }
+    if (intervalId) {
+      window.clearInterval(intervalId);
     }
   });
 </script>

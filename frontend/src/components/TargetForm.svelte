@@ -17,7 +17,7 @@
   let durationMinutes = firstDuration % 60;
   let weekdays = target?.weekdays || [1, 2, 3, 4, 5]; // Mon-Fri by default
   let excludeHolidays = target?.exclude_holidays || false;
-  let stateId = target?.state_id || '';
+  let stateCode = target?.state_code || '';
   let startingFrom = target?.starting_from ? target.starting_from.split('T')[0] : '';
   let isLoading = false;
   let errorMessage = '';
@@ -46,9 +46,9 @@
     const countries = new Set(availableStates.map(s => s.country));
     availableCountries = Array.from(countries).sort();
     
-    // If we have a target with state_id, find and set the country
-    if (target?.state_id && availableStates.length > 0 && !selectedCountry) {
-      const targetState = availableStates.find(s => s.id === target.state_id);
+    // If we have a target with state_code, find and set the country
+    if (target?.state_code && availableStates.length > 0 && !selectedCountry) {
+      const targetState = availableStates.find(s => s.code === target.state_code);
       if (targetState) {
         selectedCountry = targetState.country;
       }
@@ -66,7 +66,7 @@
 
   function handleCountryChange() {
     // Reset state selection when country changes
-    stateId = '';
+    stateCode = '';
   }
 
   onMount(async () => {
@@ -151,7 +151,7 @@
         duration_minutes,
         weekdays,
         exclude_holidays: excludeHolidays,
-        state_id: stateId || undefined,
+        state_code: stateCode || undefined,
         starting_from: startingFrom ? new Date(startingFrom).toISOString() : undefined,
       };
 
@@ -395,12 +395,12 @@
                 </label>
                 <select
                   id="state"
-                  bind:value={stateId}
+                  bind:value={stateCode}
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 >
                   <option value="">-- Select a state --</option>
                   {#each filteredStates as s}
-                    <option value={s.id}>{s.state} ({s.code})</option>
+                    <option value={s.code}>{s.state} ({s.code})</option>
                   {/each}
                 </select>
               </div>

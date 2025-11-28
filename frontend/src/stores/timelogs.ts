@@ -4,6 +4,7 @@ import { timeLogApi, isOnline } from '../services/api';
 import { 
   getAllButtons,
   getAllTimeLogs, 
+  getButton,
   saveTimeLog as saveTimeLogDB,
   getTimeLogsByButton,
   getSyncCursor,
@@ -37,6 +38,26 @@ async function recalculateBalancesForTimeLogs(timeLogs: TimeLog[]): Promise<void
   } catch (error) {
     console.error('Failed to recalculate monthly balances:', error);
   }
+}
+
+/**
+ * Compute difference in minutes between two timestamps and optionally apply
+ * the German break rules (30 min after 6h, 45 min after 9h).
+ */
+function computeDurationMinutes(startTs: string | Date, endTs: string | Date, applyBreaks: boolean | undefined): number {
+  const start = new Date(startTs);
+  const end = new Date(endTs);
+  let minutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+
+  if (applyBreaks) {
+    if (minutes >= 9 * 60) {
+      minutes -= 45;
+    } else if (minutes >= 6 * 60) {
+      minutes -= 30;
+    }
+  }
+
+  return Math.max(0, minutes);
 }
 
 function createTimeLogsStore() {
@@ -182,9 +203,8 @@ function createTimeLogsStore() {
         const runningTimer = allTimeLogs.find(tl => tl.id === id);
         if (!runningTimer) throw new Error('Timer not found');
         
-        const now = new Date();
-        const start = new Date(runningTimer.start_timestamp);
-        const durationMinutes = Math.round((now.getTime() - start.getTime()) / (1000 * 60));
+  const now = new Date();
+  const durationMinutes = computeDurationMinutes(runningTimer.start_timestamp, now.toISOString(), runningTimer.apply_break_calculation);
         
         // Update the timer with end timestamp and duration
         const updatedTimeLog: TimeLog = {
@@ -216,6 +236,60 @@ function createTimeLogsStore() {
       }
     },
 
+    async update(id: string, updates: Partial<TimeLog>) {
+      update(state => ({ ...state, isLoading: true, error: null }));
+      try {
+        // Get existing timelog
+        const allTimeLogs = await getAllTimeLogs();
+        const existingTimeLog = allTimeLogs.find(tl => tl.id === id);
+        if (!existingTimeLog) {
+          throw new Error('TimeLog not found');
+        }
+
+        // Calculate duration if timestamps are provided
+        let durationMinutes = updates.duration_minutes;
+        const startTimestamp = updates.start_timestamp || existingTimeLog.start_timestamp;
+        const endTimestamp = updates.end_timestamp !== undefined ? updates.end_timestamp : existingTimeLog.end_timestamp;
+        
+        if (startTimestamp && endTimestamp && durationMinutes === undefined) {
+          // Determine whether to apply break calculations - prefer explicit flag in updates, fallback to existing value
+          const applyBreaks = updates.apply_break_calculation ?? existingTimeLog.apply_break_calculation;
+          durationMinutes = computeDurationMinutes(startTimestamp, endTimestamp, applyBreaks);
+        } else if (endTimestamp === null || endTimestamp === undefined) {
+          // If end timestamp is removed (running), clear duration
+          durationMinutes = undefined;
+        }
+
+        const updatedTimeLog: TimeLog = {
+          ...existingTimeLog,
+          ...updates,
+          duration_minutes: durationMinutes,
+          updated_at: new Date().toISOString(),
+        };
+
+        // Queue for sync
+        await syncService.queueTimeLogUpdate(updatedTimeLog);
+
+        // Recalculate monthly balances
+        await recalculateBalancesForTimeLogs([updatedTimeLog]);
+
+        update(state => ({
+          ...state,
+          timeLogs: state.timeLogs.map(tl => tl.id === id ? updatedTimeLog : tl),
+          isLoading: false
+        }));
+
+        return updatedTimeLog;
+      } catch (error: any) {
+        update(state => ({ 
+          ...state, 
+          error: error.message,
+          isLoading: false 
+        }));
+        throw error;
+      }
+    },
+
     async create(buttonId: string, startTimestamp: string, endTimestamp?: string) {
       return this.createManual({
         button_id: buttonId,
@@ -227,12 +301,24 @@ function createTimeLogsStore() {
     async createManual(timeLogData: Partial<TimeLog>) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        // Calculate duration if end_timestamp is provided
+        // Determine applyBreaks from button settings (button.auto_subtract_breaks)
         let durationMinutes: number | undefined;
+        let applyBreaksFromButton = false;
+        if (timeLogData.button_id) {
+          try {
+            const btn = await getButton(timeLogData.button_id);
+            applyBreaksFromButton = !!btn?.auto_subtract_breaks;
+          } catch (err) {
+            // If reading the button fails, fall back to provided flag or false
+            console.warn('Failed to read button for auto_subtract_breaks, falling back:', err);
+            applyBreaksFromButton = false;
+          }
+        }
+
+        // Calculate duration if end_timestamp is provided
         if (timeLogData.start_timestamp && timeLogData.end_timestamp) {
-          const start = new Date(timeLogData.start_timestamp);
-          const end = new Date(timeLogData.end_timestamp);
-          durationMinutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+          const applyBreaks = timeLogData.apply_break_calculation ?? applyBreaksFromButton ?? false;
+          durationMinutes = computeDurationMinutes(timeLogData.start_timestamp, timeLogData.end_timestamp, applyBreaks);
         }
         
         const timeLog: TimeLog = {
@@ -243,7 +329,8 @@ function createTimeLogsStore() {
           end_timestamp: timeLogData.end_timestamp,
           duration_minutes: durationMinutes,
           timezone: timeLogData.timezone || 'UTC',
-          apply_break_calculation: timeLogData.apply_break_calculation ?? false,
+          // Prefer explicit flag in payload, otherwise use the button's auto_subtract_breaks setting
+          apply_break_calculation: timeLogData.apply_break_calculation ?? applyBreaksFromButton ?? false,
           notes: timeLogData.notes,
           is_manual: true,
           created_at: new Date().toISOString(),

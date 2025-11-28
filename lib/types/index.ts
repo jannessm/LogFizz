@@ -15,10 +15,9 @@ export interface User {
 }
 
 export interface State {
-  id: string;
+  code: string; // e.g., 'DE-BW' for Baden-Württemberg (primary key)
   country: string;
   state: string;
-  code: string; // e.g., 'DE-BW' for Baden-Württemberg
 }
 
 // Button types
@@ -43,7 +42,7 @@ export interface DailyTarget {
   duration_minutes: number[]; // Array of duration values (one per weekday if needed)
   weekdays: number[]; // Array of weekday numbers (0=Sunday, 1=Monday, etc.)
   exclude_holidays: boolean; // Whether to exclude public holidays from target calculation
-  state_id?: string;
+  state_code?: string;
   starting_from?: string; // Date from which tracking starts (important for saldo computations)
   created_at: string;
   updated_at: string;
@@ -188,8 +187,7 @@ export interface HolidayMetadataEntity extends Omit<HolidayMetadata, 'last_updat
 }
 
 export interface StateEntity {
-  id: string;
+  code: string; // Primary key
   country: string;
   state: string;
-  code: string;
 }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import dayjs from 'dayjs';
+  import { onMount, onDestroy } from 'svelte';
   import { formatMinutesCompact as formatMinutes } from '../../../../lib/utils/timeFormat.js';
 
   export let selectedDate: dayjs.Dayjs;
@@ -16,6 +17,8 @@
   let timelineStart: dayjs.Dayjs | null = null;
   let timelineEnd: dayjs.Dayjs | null = null;
   let timelineHours: number = 0;
+  let refreshTick = 0; // Used to trigger reactivity for running sessions
+  let intervalId: number | undefined;
 
   function isToday(date: dayjs.Dayjs): boolean {
     return date.isSame(dayjs(), 'day');
@@ -24,15 +27,26 @@
   // Get time logs for selected date - each log is already a session
   function getSessionsForSelectedDate() {
     const dateStr = selectedDate.format('YYYY-MM-DD');
+    const now = dayjs();
+    
     return timeLogs
       .filter(tl => tl.start_timestamp && tl.start_timestamp.startsWith(dateStr))
-      .map(log => ({
-        button_id: log.button_id,
-        startTime: log.start_timestamp,
-        endTime: log.end_timestamp,
-        duration: log.duration_minutes,
-        log: log,
-      }))
+      .map(log => {
+        // For running sessions (no end_timestamp), calculate duration to current time
+        let duration = log.duration_minutes;
+        if (!log.end_timestamp && log.start_timestamp) {
+          const start = dayjs(log.start_timestamp);
+          duration = now.diff(start, 'minute');
+        }
+        
+        return {
+          button_id: log.button_id,
+          startTime: log.start_timestamp,
+          endTime: log.end_timestamp,
+          duration: duration,
+          log: log,
+        };
+      })
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }
 
@@ -98,7 +112,7 @@
     return labels;
   }
 
-  $: if (selectedDate || timeLogs) {
+  $: if (selectedDate || timeLogs || refreshTick) {
     sessions = getSessionsForSelectedDate();
     calculateTimeline(sessions);
 
@@ -110,6 +124,31 @@
       .map(id => buttons.find(b => b.id === id))
       .filter(b => b !== undefined);
   }
+
+  // Check if there are any running sessions
+  function hasRunningSessions(): boolean {
+    return timeLogs.some(tl => tl.start_timestamp && !tl.end_timestamp);
+  }
+
+  // Set up interval to refresh running sessions every 30 seconds
+  onMount(() => {
+    if (hasRunningSessions()) {
+      intervalId = window.setInterval(() => {
+        if (hasRunningSessions()) {
+          refreshTick++;
+        } else if (intervalId) {
+          window.clearInterval(intervalId);
+          intervalId = undefined;
+        }
+      }, 30000); // Update every 30 seconds
+    }
+  });
+
+  onDestroy(() => {
+    if (intervalId) {
+      window.clearInterval(intervalId);
+    }
+  });
 </script>
 
 <div class="bg-white rounded-lg shadow-md p-6">
@@ -175,9 +214,8 @@
         {#each filteredSessions as session}
           {@const button = buttons.find(b => b.id === session.button_id)}
           {#if button}
-            {@const duration = session.endTime 
-              ? Math.floor((new Date(session.endTime).getTime() - new Date(session.startTime).getTime()) / 60000)
-              : null}
+            {@const duration = session.duration 
+              ? session.duration : Math.floor((new Date().getTime() - new Date(session.startTime).getTime()) / 60000)}
             <div
               class="absolute left-2 right-2 rounded-lg p-2 cursor-pointer transition-all hover:shadow-lg group"
               style={getSessionStyle(session)}

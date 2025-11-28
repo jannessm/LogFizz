@@ -11,7 +11,6 @@
   let name = button?.name || '';
   let emoji = button?.emoji || '';
   let color = button?.color || '#3B82F6';
-  let goalTimeMinutes = button?.goal_time_minutes || 0;
   let targetId = button?.target_id || '';
   let autoSubtractBreaks = button?.auto_subtract_breaks ?? false;
   let isLoading = false;
@@ -36,10 +35,8 @@
         name: name.trim(),
         emoji: emoji || undefined,
         color,
-        goal_time_minutes: goalTimeMinutes > 0 ? goalTimeMinutes : undefined,
         target_id: targetId || undefined,
         auto_subtract_breaks: autoSubtractBreaks,
-        position: button?.position || 0,
       };
 
       if (button) {
@@ -173,44 +170,22 @@
         </div>
 
         <!-- Goal Time -->
-        <div>
-          <label for="goalTime" class="block text-sm font-medium text-gray-700 mb-1">
-            Daily Goal (minutes)
-          </label>
-          <input
-            id="goalTime"
-            type="number"
-            bind:value={goalTimeMinutes}
-            min="0"
-            step="15"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="0 = no goal"
-          />
-          <p class="text-xs text-gray-500 mt-1">
-            Optional: Set an individual goal for this button
-          </p>
-        </div>
-
         <!-- Auto subtract breaks -->
-        {#if goalTimeMinutes > 0}
-          <div class="flex items-center">
-            <input
-              id="autoBreaks"
-              type="checkbox"
-              bind:checked={autoSubtractBreaks}
-              class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <label for="autoBreaks" class="ml-2 text-sm text-gray-700">
-              Automatically subtract break time
-            </label>
-          </div>
-          {#if autoSubtractBreaks}
-            <div class="text-xs text-gray-500 pl-6">
-              <p>• 6-9 hours: 30 min break</p>
-              <p>• 9+ hours: 45 min break</p>
-            </div>
-          {/if}
-        {/if}
+        <div class="flex items-center">
+          <input
+            id="autoBreaks"
+            type="checkbox"
+            bind:checked={autoSubtractBreaks}
+            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          />
+          <label for="autoBreaks" class="ml-2 text-sm text-gray-700">
+            Automatically subtract break time
+          </label>
+        </div>
+        <div class="text-xs text-gray-500 pl-6">
+          <p>• 6-9 hours: 30 min break</p>
+          <p>• 9+ hours: 45 min break</p>
+        </div>
 
         <!-- Actions -->
         <div class="flex gap-3 pt-4">

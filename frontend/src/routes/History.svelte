@@ -149,11 +149,20 @@
   async function handleSaveTimelog(event: CustomEvent) {
     const { button_id, startTimestamp, endTimestamp, existingLog } = event.detail;
     
-    // For now, just add new entries
-    // In a full implementation, you'd call the API to create/update timelogs
-    await timeLogsStore.create(button_id, startTimestamp, 'start');
-    if (endTimestamp) {
-      await timeLogsStore.create(button_id, endTimestamp, 'stop');
+    if (existingLog && existingLog.log) {
+      // Editing existing timelog session - update it
+      await timeLogsStore.update(existingLog.log.id, {
+        button_id,
+        start_timestamp: startTimestamp,
+        end_timestamp: endTimestamp || undefined,
+      });
+    } else {
+      // Creating new timelog session
+      await timeLogsStore.createManual({
+        button_id,
+        start_timestamp: startTimestamp,
+        end_timestamp: endTimestamp || undefined,
+      });
     }
     
     showTimelogForm = false;
@@ -173,12 +182,9 @@
   async function handleDelete() {
     if (!deleteTarget) return;
     
-    // Delete the timelog entries
-    if (deleteTarget.startLog?.id) {
-      await timeLogsStore.delete(deleteTarget.startLog.id);
-    }
-    if (deleteTarget.stopLog?.id) {
-      await timeLogsStore.delete(deleteTarget.stopLog.id);
+    // Delete the timelog session
+    if (deleteTarget.log?.id) {
+      await timeLogsStore.delete(deleteTarget.log.id);
     }
     
     showDeleteConfirm = false;

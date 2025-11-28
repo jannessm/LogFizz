@@ -40,21 +40,18 @@ export function calculateWorkedMinutes(
   rawData?: Array<{ auto_subtract_breaks?: boolean }>
 ): number {
   let totalMinutes = 0;
+  const now = dayjs();
 
   for (let i = 0; i < timeLogs.length; i++) {
     const log = timeLogs[i];
     const raw = rawData ? rawData[i] : null;
     
-    // Skip logs without an end timestamp (still running)
-    if (!log.end_timestamp) {
-      continue;
-    }
-    
     // Use pre-calculated duration if available, otherwise calculate from timestamps
     let minutes = log.duration_minutes;
     if (minutes === undefined || minutes === null) {
       const startTime = dayjs(log.start_timestamp);
-      const endTime = dayjs(log.end_timestamp);
+      // For running sessions (no end_timestamp), calculate duration to current time
+      const endTime = log.end_timestamp ? dayjs(log.end_timestamp) : now;
       minutes = endTime.diff(startTime, 'minute', true);
     }
     

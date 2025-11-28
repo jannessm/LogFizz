@@ -72,7 +72,7 @@
     const dateStr = date.format('YYYY-MM-DD');
     const buttonIds = new Set(
       timeLogs
-        .filter(tl => tl.timestamp && tl.timestamp.startsWith(dateStr))
+        .filter(tl => tl.start_timestamp && tl.start_timestamp.startsWith(dateStr))
         .map(tl => tl.button_id)
     );
     return buttons.filter(b => buttonIds.has(b.id));
