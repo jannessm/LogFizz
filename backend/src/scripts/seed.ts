@@ -173,6 +173,7 @@ async function seed() {
           end_timestamp: workEnd,
           timezone: 'Europe/Berlin',
           notes: 'October work session',
+          apply_break_calculation: workButton.auto_subtract_breaks,
         }));
       }
     }
@@ -196,6 +197,7 @@ async function seed() {
           end_timestamp: workEnd,
           timezone: 'Europe/Berlin',
           notes: 'November work session',
+          apply_break_calculation: workButton.auto_subtract_breaks,
         }));
 
         // Study sessions on Tue & Thu
@@ -210,6 +212,7 @@ async function seed() {
             end_timestamp: studyEnd,
             timezone: 'Europe/Berlin',
             notes: 'November study session',
+            apply_break_calculation: studyButton.auto_subtract_breaks,
           }));
         }
       }
@@ -242,6 +245,7 @@ async function seed() {
           end_timestamp: workEnd,
           timezone: 'Europe/Berlin',
           notes: 'Work day',
+          apply_break_calculation: workButton.auto_subtract_breaks,
         }));
 
         // Study session: 7:00 PM - 9:00 PM
@@ -258,6 +262,7 @@ async function seed() {
             end_timestamp: studyEnd,
             timezone: 'Europe/Berlin',
             notes: 'Evening study session',
+            apply_break_calculation: studyButton.auto_subtract_breaks,
           }));
         }
       }
@@ -276,6 +281,7 @@ async function seed() {
           end_timestamp: exerciseEnd,
           timezone: 'Europe/Berlin',
           notes: 'Morning workout',
+          apply_break_calculation: exerciseButton.auto_subtract_breaks,
         }));
       }
 
@@ -293,6 +299,7 @@ async function seed() {
           end_timestamp: projectEnd,
           timezone: 'Europe/Berlin',
           notes: 'Weekend coding session',
+          apply_break_calculation: projectButton.auto_subtract_breaks,
         }));
       }
     }
@@ -308,6 +315,7 @@ async function seed() {
       // No end_timestamp - this is an active timer
       timezone: 'Europe/Berlin',
       notes: 'Currently working',
+      apply_break_calculation: workButton.auto_subtract_breaks,
     }));
 
     console.log('✅ Created sample time logs');
