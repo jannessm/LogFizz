@@ -9,7 +9,6 @@
   export let buttons: any[];
   export let onAddTimelog: () => void;
   export let onEditTimelog: (session: any) => void;
-  export let onDeleteTimelog: (session: any) => void;
 
   let sessions: any[] = [];
   let selectedButtonFilter: string | null = null;
