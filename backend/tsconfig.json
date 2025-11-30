@@ -5,7 +5,6 @@
     "moduleResolution": "bundler",
     "lib": ["ES2022"],
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -14,8 +13,12 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "strictPropertyInitialization": false,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": "./",
+    "paths": {
+      "@clock/shared/*": ["../lib/utils/*"]
+    }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../lib/**/*"],
   "exclude": ["node_modules", "dist", "**/*.test.ts"]
 }

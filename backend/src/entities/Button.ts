@@ -1,7 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import type { ButtonEntity } from '../../../lib/types/index.js';
 
 @Entity('buttons')
-export class Button {
+export class Button implements ButtonEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

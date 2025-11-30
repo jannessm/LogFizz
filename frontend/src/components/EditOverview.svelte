@@ -46,23 +46,31 @@
     let totalMinutes = 0;
     
     for (const button of assignedButtons) {
+      // Get today's logs for this button
       const buttonLogs = $timeLogsStore.timeLogs.filter(log => 
         log.button_id === button.id &&
-        dayjs(log.timestamp).isAfter(todayStart) &&
-        dayjs(log.timestamp).isBefore(todayEnd)
+        log.start_timestamp &&
+        dayjs(log.start_timestamp).isAfter(todayStart) &&
+        dayjs(log.start_timestamp).isBefore(todayEnd)
       );
       
-      const starts = buttonLogs.filter(log => log.type === 'start').sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-      const stops = buttonLogs.filter(log => log.type === 'stop').sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-      
-      for (let i = 0; i < starts.length; i++) {
-        const start = dayjs(starts[i].timestamp);
-        const stop = stops[i] ? dayjs(stops[i].timestamp) : dayjs();
-        totalMinutes += stop.diff(start, 'minute');
+      // Sum durations from completed sessions
+      for (const log of buttonLogs) {
+        if (log.end_timestamp) {
+          // Use pre-calculated duration if available
+          if (log.duration_minutes !== undefined && log.duration_minutes !== null) {
+            totalMinutes += log.duration_minutes;
+          } else {
+            // Calculate from timestamps
+            const start = dayjs(log.start_timestamp);
+            const end = dayjs(log.end_timestamp);
+            totalMinutes += end.diff(start, 'minute');
+          }
+        } else {
+          // Active session - calculate from start to now
+          const start = dayjs(log.start_timestamp);
+          totalMinutes += dayjs().diff(start, 'minute');
+        }
       }
     }
     
@@ -145,7 +153,7 @@
           <p class="text-gray-500 text-sm italic">No targets yet</p>
         {:else}
           <div class="space-y-2">
-            {#each $targetsStore.targets as target}
+            {#each $targetsStore.targets.slice().sort((a, b) => a.name.localeCompare(b.name)) as target}
               {@const progress = calculateTargetProgress(target)}
               <div class="border border-gray-200 rounded-lg p-3 hover:border-gray-300 transition-colors">
                 <div class="flex justify-between items-center mb-2">

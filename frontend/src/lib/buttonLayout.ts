@@ -22,29 +22,30 @@ export interface ButtonEdge extends SimulationLinkDatum<ButtonNode> {
 export function buildButtonGraph(buttons: Button[], timelogs: TimeLog[]): { nodes: ButtonNode[], edges: ButtonEdge[] } {
   const button_ids = buttons.map(b => b.id);
 
-  // Sort timelogs by timestamp
+  // Sort timelogs by start_timestamp
   const sortedLogs = timelogs.filter(tl => button_ids.includes(tl.button_id))
                              .sort((a, b) =>
-    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    new Date(a.start_timestamp).getTime() - new Date(b.start_timestamp).getTime()
   );
 
-  // Count frequency for each button (how many times it was started)
+  // Count frequency for each button (how many times it was used)
   const frequency: Record<string, number> = {};
   buttons.forEach(b => frequency[b.id] = 0);
   
-  sortedLogs.filter(tl => tl.type === 'start').forEach(tl => {
+  sortedLogs.forEach(tl => {
     frequency[tl.button_id] = (frequency[tl.button_id] || 0) + 1;
   });
 
   // Build transition map: button_id -> next_button_id -> count
   const transitions: Record<string, Record<string, number>> = {};
   
+  // Look for consecutive completed sessions
   for (let i = 0; i < sortedLogs.length - 1; i++) {
     const current = sortedLogs[i];
     const next = sortedLogs[i + 1];
     
-    // Look for pattern: current is a stop, next is a start (of a different button)
-    if (current.type === 'stop' && next.type === 'start' && current.button_id !== next.button_id) {
+    // Only count transition if current session ended and next is a different button
+    if (current.end_timestamp && current.button_id !== next.button_id) {
       const from = current.button_id;
       const to = next.button_id;
       
@@ -171,58 +172,52 @@ export function computeButtonLayout(
 
 /**
  * Validates and fixes overlapping timelogs during sync
- * Ensures a button is stopped before it's started again
- * Adds a stop event 1 second before the next start if missing
+ * Ensures timelogs with no end_timestamp get proper end_timestamp
+ * when a new session starts for the same button
  */
 export function validateAndFixTimelogs(timelogs: TimeLog[]): TimeLog[] {
-  // Sort by timestamp
+  // Sort by start_timestamp
   const sorted = [...timelogs].sort((a, b) => 
-    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    new Date(a.start_timestamp).getTime() - new Date(b.start_timestamp).getTime()
   );
 
   const fixed: TimeLog[] = [];
-  const activeStarts = new Map<string, TimeLog>(); // button_id -> active start event
+  const activeSession = new Map<string, TimeLog>(); // button_id -> active session without end
 
   for (const log of sorted) {
     const buttonId = log.button_id;
 
-    if (log.type === 'start') {
-      // Check if this button already has an active start
-      if (activeStarts.has(buttonId)) {
-        // Need to insert a stop event 1 second before this start
-        const previousStart = activeStarts.get(buttonId)!;
-        const startTime = new Date(log.timestamp).getTime();
-        const stopTime = new Date(startTime - 1000); // 1 second before
+    // Check if this button already has an active session without end
+    if (activeSession.has(buttonId) && !log.end_timestamp) {
+      // Need to close the previous session 1 second before this one starts
+      const previousSession = activeSession.get(buttonId)!;
+      const startTime = new Date(log.start_timestamp).getTime();
+      const endTime = new Date(startTime - 1000); // 1 second before
+      const durationMinutes = Math.round((endTime.getTime() - new Date(previousSession.start_timestamp).getTime()) / (1000 * 60));
 
-        const autoStop: TimeLog = {
-          id: crypto.randomUUID(),
-          user_id: log.user_id,
-          button_id: buttonId,
-          type: 'stop',
-          timestamp: stopTime.toISOString(),
-          apply_break_calculation: previousStart.apply_break_calculation,
-          is_manual: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
+      // Update the previous session with end_timestamp and duration
+      const updatedPrevious: TimeLog = {
+        ...previousSession,
+        end_timestamp: endTime.toISOString(),
+        duration_minutes: durationMinutes,
+        updated_at: new Date().toISOString(),
+      };
 
-        fixed.push(autoStop);
-        activeStarts.delete(buttonId); // Close the previous start
+      // Replace the previous session in fixed array
+      const prevIndex = fixed.findIndex(f => f.id === previousSession.id);
+      if (prevIndex >= 0) {
+        fixed[prevIndex] = updatedPrevious;
       }
+      
+      activeSession.delete(buttonId);
+    }
 
-      // Add this start event
-      fixed.push(log);
-      activeStarts.set(buttonId, log);
-    } else {
-      // Stop event
-      if (activeStarts.has(buttonId)) {
-        // Normal case: stop follows a start
-        fixed.push(log);
-        activeStarts.delete(buttonId);
-      } else {
-        // Orphaned stop event (no corresponding start) - skip it
-        console.warn(`Skipping orphaned stop event for button ${buttonId} at ${log.timestamp}`);
-      }
+    // Add this session
+    fixed.push(log);
+    
+    // Track if this is an active session (no end_timestamp)
+    if (!log.end_timestamp) {
+      activeSession.set(buttonId, log);
     }
   }
 

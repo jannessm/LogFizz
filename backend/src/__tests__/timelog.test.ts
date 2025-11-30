@@ -57,7 +57,7 @@ describe('TimeLog Sync Routes', () => {
 
   it('should create a new time log via sync', async () => {
     const timeLogId = '660e8400-e29b-41d4-a716-446655440001';
-    const timestamp = new Date().toISOString();
+    const startTimestamp = new Date().toISOString();
     
     const response = await app.inject({
       method: 'POST',
@@ -69,10 +69,9 @@ describe('TimeLog Sync Routes', () => {
         timeLogs: [{
           id: timeLogId,
           button_id: buttonId,
-          type: 'start',
-          timestamp,
+          start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
-          description: 'Starting work session',
+          notes: 'Starting work session',
         }],
       },
     });
@@ -82,13 +81,16 @@ describe('TimeLog Sync Routes', () => {
     expect(body.saved).toHaveLength(1);
     expect(body.saved[0].id).toBe(timeLogId);
     expect(body.saved[0].button_id).toBe(buttonId);
-    expect(body.saved[0].type).toBe('start');
+    expect(body.saved[0].start_timestamp).toBeDefined();
     expect(body.saved[0].timezone).toBe('Europe/Berlin');
-    expect(body.saved[0].description).toBe('Starting work session');
+    expect(body.saved[0].notes).toBe('Starting work session');
   });
 
   it('should get all user time logs via sync', async () => {
     const timeLogId = '770e8400-e29b-41d4-a716-446655440002';
+    const startTime = new Date(Date.now() - 3600000).toISOString();
+    const endTime = new Date().toISOString();
+    
     await app.inject({
       method: 'POST',
       url: '/api/timelogs/sync',
@@ -99,8 +101,8 @@ describe('TimeLog Sync Routes', () => {
         timeLogs: [{
           id: timeLogId,
           button_id: buttonId,
-          type: 'stop',
-          timestamp: new Date().toISOString(),
+          start_timestamp: startTime,
+          end_timestamp: endTime,
           timezone: 'Europe/Berlin',
         }],
       },
@@ -123,7 +125,7 @@ describe('TimeLog Sync Routes', () => {
 
   it('should update a time log via sync', async () => {
     const timeLogId = '880e8400-e29b-41d4-a716-446655440003';
-    const timestamp = new Date(Date.now() - 3600000).toISOString();
+    const startTimestamp = new Date(Date.now() - 3600000).toISOString();
     
     await app.inject({
       method: 'POST',
@@ -135,10 +137,9 @@ describe('TimeLog Sync Routes', () => {
         timeLogs: [{
           id: timeLogId,
           button_id: buttonId,
-          type: 'start',
-          timestamp,
+          start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
-          description: 'Initial description',
+          notes: 'Initial notes',
         }],
       },
     });
@@ -153,10 +154,9 @@ describe('TimeLog Sync Routes', () => {
         timeLogs: [{
           id: timeLogId,
           button_id: buttonId,
-          type: 'start',
-          timestamp,
+          start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
-          description: 'Updated description',
+          notes: 'Updated notes',
         }],
       },
     });
@@ -164,11 +164,13 @@ describe('TimeLog Sync Routes', () => {
     expect(updateResponse.statusCode).toBe(200);
     const body = JSON.parse(updateResponse.body);
     expect(body.saved).toHaveLength(1);
-    expect(body.saved[0].description).toBe('Updated description');
+    expect(body.saved[0].notes).toBe('Updated notes');
   });
 
   it('should soft delete a time log via sync', async () => {
     const timeLogId = '990e8400-e29b-41d4-a716-446655440004';
+    const startTimestamp = new Date().toISOString();
+    
     await app.inject({
       method: 'POST',
       url: '/api/timelogs/sync',
@@ -179,10 +181,9 @@ describe('TimeLog Sync Routes', () => {
         timeLogs: [{
           id: timeLogId,
           button_id: buttonId,
-          type: 'start',
-          timestamp: new Date().toISOString(),
+          start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
-          description: 'To be deleted',
+          notes: 'To be deleted',
         }],
       },
     });
@@ -197,10 +198,9 @@ describe('TimeLog Sync Routes', () => {
         timeLogs: [{
           id: timeLogId,
           button_id: buttonId,
-          type: 'start',
-          timestamp: new Date().toISOString(),
+          start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
-          description: 'To be deleted',
+          notes: 'To be deleted',
           deleted_at: new Date().toISOString(),
         }],
       },
@@ -234,11 +234,10 @@ describe('TimeLog Sync Routes', () => {
     expect(response.statusCode).toBe(401);
   });
 
-  it('should handle multiple time logs (start/stop pair)', async () => {
-    const startLogId = 'aa0e8400-e29b-41d4-a716-446655440005';
-    const stopLogId = 'bb0e8400-e29b-41d4-a716-446655440006';
+  it('should handle time log with start and end timestamps', async () => {
+    const timeLogId = 'aa0e8400-e29b-41d4-a716-446655440005';
     const startTime = new Date(Date.now() - 7200000).toISOString();
-    const stopTime = new Date(Date.now() - 3600000).toISOString();
+    const endTime = new Date(Date.now() - 3600000).toISOString();
 
     const response = await app.inject({
       method: 'POST',
@@ -249,20 +248,12 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [
           {
-            id: startLogId,
+            id: timeLogId,
             button_id: buttonId,
-            type: 'start',
-            timestamp: startTime,
+            start_timestamp: startTime,
+            end_timestamp: endTime,
             timezone: 'Europe/Berlin',
-            description: 'Work session start',
-          },
-          {
-            id: stopLogId,
-            button_id: buttonId,
-            type: 'stop',
-            timestamp: stopTime,
-            timezone: 'Europe/Berlin',
-            description: 'Work session end',
+            notes: 'Work session',
           },
         ],
       },
@@ -270,15 +261,13 @@ describe('TimeLog Sync Routes', () => {
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
-    expect(body.saved).toHaveLength(2);
+    expect(body.saved).toHaveLength(1);
     
-    const startLog = body.saved.find((l: any) => l.id === startLogId);
-    const stopLog = body.saved.find((l: any) => l.id === stopLogId);
-    
-    expect(startLog.type).toBe('start');
-    expect(stopLog.type).toBe('stop');
-    expect(startLog.description).toBe('Work session start');
-    expect(stopLog.description).toBe('Work session end');
+    const savedLog = body.saved[0];
+    expect(savedLog.start_timestamp).toBeDefined();
+    expect(savedLog.end_timestamp).toBeDefined();
+    expect(savedLog.duration_minutes).toBe(60); // 1 hour
+    expect(savedLog.notes).toBe('Work session');
   });
 
   it('should return cursor for incremental sync', async () => {
@@ -321,10 +310,9 @@ describe('TimeLog Sync Routes', () => {
         timeLogs: [{
           id: newLogId,
           button_id: buttonId,
-          type: 'start',
-          timestamp: new Date().toISOString(),
+          start_timestamp: new Date().toISOString(),
           timezone: 'Europe/Berlin',
-          description: 'Recent log',
+          notes: 'Recent log',
         }],
       },
     });
@@ -342,7 +330,7 @@ describe('TimeLog Sync Routes', () => {
     
     const recentLog = body.timeLogs.find((l: any) => l.id === newLogId);
     expect(recentLog).toBeDefined();
-    expect(recentLog.description).toBe('Recent log');
+    expect(recentLog.notes).toBe('Recent log');
   });
 
   it('should handle different timezones', async () => {
@@ -358,10 +346,9 @@ describe('TimeLog Sync Routes', () => {
         timeLogs: [{
           id: timeLogId,
           button_id: buttonId,
-          type: 'start',
-          timestamp: new Date().toISOString(),
+          start_timestamp: new Date().toISOString(),
           timezone: 'America/New_York',
-          description: 'US session',
+          notes: 'US session',
         }],
       },
     });

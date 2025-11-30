@@ -29,11 +29,9 @@ describe('ButtonForm Component', () => {
       name: 'Work',
       emoji: '💼',
       color: '#3B82F6',
-      position: 0,
-      goal_time_minutes: 480,
-      goal_days: [1, 2, 3, 4, 5],
       auto_subtract_breaks: true,
       created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
     };
     render(ButtonForm, { props: { button: mockButton } });
     expect(screen.getByText(/Edit Button/i)).toBeInTheDocument();

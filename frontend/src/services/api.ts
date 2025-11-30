@@ -1,6 +1,6 @@
 import ky from 'ky';
-import type { User, Button, TimeLog, Holiday, DailyTarget, State } from '../types';
-import { hashPasswordForTransport } from '../utils/passwordHash';
+import type { User, Button, TimeLog, Holiday, DailyTarget, State, MonthlyBalance } from '../types';
+import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.browser.js';
 
 // In development, use proxy (relative path). In production, use env variable or default to same origin
 const API_BASE_URL = import.meta.env.PROD 
@@ -261,6 +261,14 @@ export const statesApi = {
 
   async getStatesByCountry(country: string): Promise<State[]> {
     return api.get(`api/states/${country}`).json();
+  },
+};
+
+// Monthly Balance API
+export const monthlyBalanceApi = {
+  async getSyncChanges(since: string): Promise<{ monthlyBalances: MonthlyBalance[]; cursor: string }> {
+    const searchParams = new URLSearchParams({ since });
+    return api.get('api/monthly-balances/sync', { searchParams }).json();
   },
 };
 

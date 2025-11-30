@@ -75,9 +75,7 @@ async function main() {
         const metadata = await crawler.getMetadata(country, year);
         if (metadata) {
           console.log('\nMetadata:');
-          console.log(`  Last fetched: ${metadata.last_fetched_at.toISOString()}`);
-          console.log(`  Holiday count: ${metadata.holiday_count}`);
-          console.log(`  Source: ${metadata.source_url}`);
+          console.log(`  Last updated: ${metadata.last_updated.toISOString()}`);
         }
       } else {
         console.error(`\n✗ ${result.message}`);
@@ -115,9 +113,9 @@ async function main() {
         console.log('No holiday data found in database.');
       } else {
         metadata.forEach((m) => {
-          const daysAgo = Math.floor((Date.now() - m.last_fetched_at.getTime()) / (1000 * 60 * 60 * 24));
+          const daysAgo = Math.floor((Date.now() - m.last_updated.getTime()) / (1000 * 60 * 60 * 24));
           const needsRefresh = daysAgo > 90 ? '⚠️ ' : '';
-          console.log(`${needsRefresh}${m.country} ${m.year}: ${m.holiday_count} holidays (fetched ${daysAgo} days ago)`);
+          console.log(`${needsRefresh}${m.country} ${m.year}: (updated ${daysAgo} days ago)`);
         });
       }
     }

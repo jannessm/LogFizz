@@ -5,6 +5,7 @@ on:
     branches: [ main, develop, copilot/** ]
     paths:
       - 'backend/**'
+      - 'lib/**'
       - '.github/workflows/backend-tests.yml'
 
 jobs:
@@ -46,6 +47,14 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
+
+      - name: Install shared lib dependencies
+        working-directory: lib
+        run: npm ci
+
+      - name: Build shared lib
+        working-directory: lib
+        run: npm run build
 
       - name: Install dependencies
         working-directory: backend
