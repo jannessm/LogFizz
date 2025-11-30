@@ -11,11 +11,14 @@ export class ButtonService {
    * Used for sync functionality
    */
   async getChangedButtonsSince(userId: string, since: Date): Promise<Button[]> {
+    // Include records where either updated_at or created_at is greater than `since`.
+    // Some DBs may have limited timestamp resolution; checking created_at ensures newly
+    // created rows after the cursor are not missed.
     return this.buttonRepository.find({
-      where: {
-        user_id: userId,
-        updated_at: MoreThan(since),
-      },
+      where: [
+        { user_id: userId, updated_at: MoreThan(since) },
+        { user_id: userId, created_at: MoreThan(since) },
+      ],
       order: { updated_at: 'ASC' },
     });
   }

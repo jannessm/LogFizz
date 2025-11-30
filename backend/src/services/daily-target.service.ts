@@ -14,10 +14,10 @@ export class DailyTargetService {
    */
   async getChangedTargetsSince(userId: string, since: Date): Promise<DailyTarget[]> {
     const targets = await this.targetRepository.find({
-      where: {
-        user_id: userId,
-        updated_at: MoreThan(since),
-      },
+      where: [
+        { user_id: userId, updated_at: MoreThan(since) },
+        { user_id: userId, created_at: MoreThan(since) },
+      ],
       order: { updated_at: 'ASC' },
     });
     // Convert weekdays from string[] to number[] (TypeORM simple-array stores as strings)

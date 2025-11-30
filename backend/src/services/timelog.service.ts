@@ -13,10 +13,10 @@ export class TimeLogService {
    */
   async getChangedTimeLogsSince(userId: string, since: Date): Promise<TimeLog[]> {
     return this.timeLogRepository.find({
-      where: {
-        user_id: userId,
-        updated_at: MoreThan(since),
-      },
+      where: [
+        { user_id: userId, updated_at: MoreThan(since) },
+        { user_id: userId, created_at: MoreThan(since) },
+      ],
       order: { updated_at: 'ASC' },
     });
   }
