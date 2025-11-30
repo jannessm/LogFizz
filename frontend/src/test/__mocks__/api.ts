@@ -6,7 +6,6 @@ export const mockUser: User = {
   id: '1',
   email: 'test@example.com',
   name: 'Test User',
-  state: 'Berlin',
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
@@ -18,10 +17,8 @@ export const mockButton: Button = {
   name: 'Work',
   emoji: '💼',
   color: '#3B82F6',
-  position: 0,
-  goal_time_minutes: 480,
   auto_subtract_breaks: true,
-  target_id: null,
+  target_id: undefined,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
@@ -33,34 +30,37 @@ export const mockTarget: DailyTarget = {
   name: 'Daily Work',
   duration_minutes: [480, 480, 480, 480, 480], // 8 hours for each weekday
   weekdays: [1, 2, 3, 4, 5], // Mon-Fri
+  exclude_holidays: false,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
 
-// Mock timelog data - Start event
+// Mock timelog data - with session structure
 export const mockTimeLog: TimeLog = {
   id: 'log-1',
   user_id: '1',
   button_id: 'button-1',
-  type: 'start',
-  timestamp: '2024-01-01T09:00:00Z',
+  start_timestamp: '2024-01-01T09:00:00Z',
+  end_timestamp: '2024-01-01T17:00:00Z',
+  duration_minutes: 480,
+  timezone: 'UTC',
   apply_break_calculation: false,
   is_manual: false,
   created_at: '2024-01-01T09:00:00Z',
-  updated_at: '2024-01-01T09:00:00Z',
+  updated_at: '2024-01-01T17:00:00Z',
 };
 
-// Mock timelog data - Stop event
-export const mockTimeLogStop: TimeLog = {
+// Mock timelog data - active timer (no end timestamp)
+export const mockActiveTimeLog: TimeLog = {
   id: 'log-2',
   user_id: '1',
   button_id: 'button-1',
-  type: 'stop',
-  timestamp: '2024-01-01T17:00:00Z',
+  start_timestamp: '2024-01-02T09:00:00Z',
+  timezone: 'UTC',
   apply_break_calculation: false,
   is_manual: false,
-  created_at: '2024-01-01T17:00:00Z',
-  updated_at: '2024-01-01T17:00:00Z',
+  created_at: '2024-01-02T09:00:00Z',
+  updated_at: '2024-01-02T09:00:00Z',
 };
 
 // Mock auth API
@@ -86,17 +86,17 @@ export const buttonApi = {
 
 // Mock timeLog API
 export const timeLogApi = {
-  start: vi.fn().mockResolvedValue(mockTimeLog),
-  stop: vi.fn().mockResolvedValue(mockTimeLogStop),
+  start: vi.fn().mockResolvedValue(mockActiveTimeLog),
+  stop: vi.fn().mockResolvedValue(mockTimeLog),
   getActive: vi.fn().mockResolvedValue(null),
-  getAll: vi.fn().mockResolvedValue([mockTimeLog, mockTimeLogStop]),
+  getAll: vi.fn().mockResolvedValue([mockTimeLog]),
   getTodayTime: vi.fn().mockResolvedValue({ total_minutes: 480 }),
   getYearlyStats: vi.fn().mockResolvedValue([]),
   getGoalProgress: vi.fn().mockResolvedValue({ achieved: true, percentage: 100 }),
   createManual: vi.fn().mockResolvedValue(mockTimeLog),
   update: vi.fn().mockResolvedValue(mockTimeLog),
   delete: vi.fn().mockResolvedValue(undefined),
-  getSyncChanges: vi.fn().mockResolvedValue({ timeLogs: [mockTimeLog, mockTimeLogStop], cursor: new Date().toISOString() }),
+  getSyncChanges: vi.fn().mockResolvedValue({ timeLogs: [mockTimeLog], cursor: new Date().toISOString() }),
   pushSyncChanges: vi.fn().mockResolvedValue({ saved: [mockTimeLog], conflicts: [], cursor: new Date().toISOString() }),
 };
 

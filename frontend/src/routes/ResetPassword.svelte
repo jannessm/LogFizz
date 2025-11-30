@@ -4,6 +4,7 @@
   import { onMount } from 'svelte';
 
   let token = '';
+  let email = '';
   let newPassword = '';
   let confirmPassword = '';
   let errorMessage = '';
@@ -11,11 +12,13 @@
   let isLoading = false;
 
   onMount(() => {
-    // Get token from URL query parameters
+    // Get token and email from URL query parameters
     const urlParams = new URLSearchParams(window.location.search);
     const tokenParam = urlParams.get('token');
+    const emailParam = urlParams.get('email');
     if (tokenParam) {
       token = tokenParam;
+      email = emailParam || ''; // Email is optional for backward compatibility
     } else {
       errorMessage = 'Invalid reset link. Please request a new password reset.';
     }
@@ -40,7 +43,7 @@
     isLoading = true;
 
     try {
-      const response = await authApi.resetPassword(token, newPassword);
+      const response = await authApi.resetPassword(token, newPassword, email);
       successMessage = response.message;
       
       // Redirect to login after 2 seconds

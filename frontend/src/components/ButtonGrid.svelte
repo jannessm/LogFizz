@@ -16,7 +16,7 @@
 
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 relative">
   {#each buttons as button (button.id)}
-    <div class:col-span-2={$timeLogsStore.activeTimer?.button_id === button.id}>
+    <div class:col-span-2={$timeLogsStore.activeTimers?.some(t => t.button_id === button.id)}>
       <TimerButton 
         {button}
         {editMode}

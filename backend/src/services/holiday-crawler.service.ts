@@ -42,7 +42,7 @@ export class HolidayCrawlerService {
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
-    return metadata.last_fetched_at < threeMonthsAgo;
+    return metadata.last_updated < threeMonthsAgo;
   }
 
   /**
@@ -161,16 +161,12 @@ export class HolidayCrawlerService {
       });
 
       if (metadata) {
-        metadata.last_fetched_at = new Date();
-        metadata.holiday_count = holidays.length;
-        metadata.source_url = `${this.API_BASE_URL}/PublicHolidays/${year}/${country}`;
+        metadata.last_updated = new Date();
       } else {
         metadata = this.metadataRepository.create({
           country,
           year,
-          last_fetched_at: new Date(),
-          holiday_count: holidays.length,
-          source_url: `${this.API_BASE_URL}/PublicHolidays/${year}/${country}`,
+          last_updated: new Date(),
         });
       }
 
@@ -239,12 +235,12 @@ export class HolidayCrawlerService {
     // Find all metadata entries older than 3 months
     const outdatedMetadata = await this.metadataRepository.find({
       where: {
-        last_fetched_at: MoreThan(new Date(0)), // All records
+        last_updated: MoreThan(new Date(0)), // All records
       },
     });
 
     const toRefresh = outdatedMetadata.filter(m => 
-      m.last_fetched_at < threeMonthsAgo
+      m.last_updated < threeMonthsAgo
     );
 
     console.log(`Found ${toRefresh.length} country/year combinations to refresh`);

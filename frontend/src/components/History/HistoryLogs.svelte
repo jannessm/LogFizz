@@ -1,5 +1,8 @@
 <script lang="ts">
   import dayjs from 'dayjs';
+  import { onMount, onDestroy } from 'svelte';
+  import SessionBox from './SessionBox.svelte';
+  import { computeIndentation } from '../../lib/utils/computeIndentation';
 
   export let selectedDate: dayjs.Dayjs;
   export let timeLogs: any[];
@@ -15,69 +18,39 @@
   let timelineStart: dayjs.Dayjs | null = null;
   let timelineEnd: dayjs.Dayjs | null = null;
   let timelineHours: number = 0;
-
-  function formatMinutes(minutes: number): string {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours === 0) return `${mins}m`;
-    if (mins === 0) return `${hours}h`;
-    return `${hours}h ${mins}m`;
-  }
+  let timelineHeight: number = 400; // px - computed to ensure minimum session box height
+  let refreshTick = 0; // Used to trigger reactivity for running sessions
+  let intervalId: number | undefined;
+  let hourLabels: string[] = [];
 
   function isToday(date: dayjs.Dayjs): boolean {
     return date.isSame(dayjs(), 'day');
   }
 
-  // Get time logs for selected date and pair them into sessions
+  // Get time logs for selected date - each log is already a session
   function getSessionsForSelectedDate() {
     const dateStr = selectedDate.format('YYYY-MM-DD');
-    const logs = timeLogs
-      .filter(tl => tl.timestamp && tl.timestamp.startsWith(dateStr))
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    const now = dayjs();
     
-    // Pair start/stop events into sessions
-    const sessions: Array<{
-      button_id: string;
-      startTime: string;
-      endTime?: string;
-      startLog: typeof logs[0];
-      stopLog?: typeof logs[0];
-    }> = [];
-    
-    const startsByButton = new Map<string, typeof logs[0]>();
-    
-    for (const log of logs) {
-      if (log.type === 'start') {
-        // New start event - save it
-        startsByButton.set(log.button_id, log);
-      } else if (log.type === 'stop') {
-        // Stop event - pair with most recent start for this button
-        const start = startsByButton.get(log.button_id);
-        if (start) {
-          sessions.push({
-            button_id: log.button_id,
-            startTime: start.timestamp,
-            endTime: log.timestamp,
-            startLog: start,
-            stopLog: log,
-          });
-          startsByButton.delete(log.button_id);
+    return timeLogs
+      .filter(tl => tl.start_timestamp && tl.start_timestamp.startsWith(dateStr))
+      .map(log => {
+        // For running sessions (no end_timestamp), calculate duration to current time
+        let duration = log.duration_minutes;
+        if (!log.end_timestamp && log.start_timestamp) {
+          const start = dayjs(log.start_timestamp);
+          duration = now.diff(start, 'minute');
         }
-      }
-    }
-    
-    // Add any remaining unpaired starts as active sessions
-    for (const [button_id, start] of startsByButton.entries()) {
-      sessions.push({
-        button_id,
-        startTime: start.timestamp,
-        startLog: start,
-      });
-    }
-    
-    return sessions.sort((a, b) => 
-      new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-    );
+        
+        return {
+          button_id: log.button_id,
+          startTime: log.start_timestamp,
+          endTime: log.end_timestamp,
+          duration: duration,
+          log: log,
+        };
+      })
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }
 
   // Calculate timeline bounds and position for each session
@@ -105,30 +78,37 @@
     timelineStart = earliest.startOf('hour');
     timelineEnd = latest.add(1, 'hour').startOf('hour');
     timelineHours = timelineEnd.diff(timelineStart, 'hour');
-  }
 
-  // Calculate position and height for a session in the timeline
-  function getSessionStyle(session: any) {
-    if (!timelineStart || !timelineEnd) return '';
-
-    const start = dayjs(session.startTime);
-    const end = session.endTime ? dayjs(session.endTime) : dayjs();
-    
+    // Compute required timeline height (px) so that the minimum session box height is 60px
     const totalMinutes = timelineEnd.diff(timelineStart, 'minute');
-    const startOffset = start.diff(timelineStart, 'minute');
-    const duration = end.diff(start, 'minute');
+    const MIN_BOX_PX = 60;
+    const MIN_HEIGHT_PX = 100; // baseline minimum timeline height
+    const MIN_LABEL_SPACING_PX = 60; // ensure at least 60px between hour labels
 
-    const topPercent = (startOffset / totalMinutes) * 90;
-    const heightPercent = (duration / totalMinutes) * 90;
-    
-    // Ensure minimum height of 40px for very short entries
-    const minHeightPercent = (40 / 400) * 90; // 40px min height relative to 400px min timeline
-    const finalHeightPercent = Math.max(heightPercent, minHeightPercent);
+    let requiredHeight = MIN_HEIGHT_PX;
+    if (totalMinutes > 0) {
+      for (const session of sessions) {
+        const start = dayjs(session.startTime);
+        const end = session.endTime ? dayjs(session.endTime) : dayjs();
+        const duration = end.diff(start, 'minute');
+        if (!duration || duration <= 0) continue;
 
-    const button = buttons.find(b => b.id === session.button_id);
-    const color = button?.color || '#3B82F6';
+        // For a given session, we need H such that (duration / totalMinutes) * 0.9 * H >= MIN_BOX_PX
+        // => H >= (MIN_BOX_PX * totalMinutes) / (duration * 0.9)
+        const needed = Math.ceil((MIN_BOX_PX * totalMinutes) / (duration * 0.9));
+        if (needed > requiredHeight) requiredHeight = needed;
+      }
+    }
 
-    return `top: ${topPercent}%; height: ${finalHeightPercent}%; min-height: 40px; background-color: ${color};`;
+    // Also ensure hour labels are spaced at least MIN_LABEL_SPACING_PX apart
+    let minHeightForLabels = MIN_HEIGHT_PX;
+    if (timelineHours > 0) {
+      // label spacing in px = (timelineHeight * 0.9) / timelineHours
+      // so required timelineHeight >= (MIN_LABEL_SPACING_PX * timelineHours) / 0.9
+      minHeightForLabels = Math.ceil((MIN_LABEL_SPACING_PX * timelineHours) / 0.9);
+    }
+
+    timelineHeight = Math.max(MIN_HEIGHT_PX, requiredHeight, minHeightForLabels);
   }
 
   // Generate hour labels for timeline
@@ -142,9 +122,11 @@
     return labels;
   }
 
-  $: if (selectedDate || timeLogs) {
+  $: if (selectedDate || timeLogs || refreshTick) {
     sessions = getSessionsForSelectedDate();
     calculateTimeline(sessions);
+
+    hourLabels = getHourLabels();
 
     filteredSessions = selectedButtonFilter 
       ? sessions.filter(s => s.button_id === selectedButtonFilter)
@@ -154,6 +136,31 @@
       .map(id => buttons.find(b => b.id === id))
       .filter(b => b !== undefined);
   }
+
+  $: displaySessions = computeIndentation(filteredSessions || []);
+
+  // Check if there are any running sessions
+  function hasRunningSessions(): boolean {
+    return timeLogs.some(tl => tl.start_timestamp && !tl.end_timestamp);
+  }
+
+  // Set up interval to refresh running sessions every 30 seconds
+  onMount(() => {
+    intervalId = window.setInterval(() => {
+      if (hasRunningSessions()) {
+        refreshTick++;
+      } else if (intervalId) {
+        window.clearInterval(intervalId);
+        intervalId = undefined;
+      }
+    }, 30000); // Update every 30 seconds
+  });
+
+  onDestroy(() => {
+    if (intervalId) {
+      window.clearInterval(intervalId);
+    }
+  });
 </script>
 
 <div class="bg-white rounded-lg shadow-md p-6">
@@ -173,32 +180,30 @@
   </div>
 
   <!-- Filter Dropdown -->
-  {#if uniqueButtons.length > 1}
-    <div class="mb-4">
-      <label for="button-filter" class="block text-sm font-medium text-gray-700 mb-2">
-        Filter by button:
-      </label>
-      <select
-        id="button-filter"
-        bind:value={selectedButtonFilter}
-        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value={null}>All Buttons</option>
-        {#each uniqueButtons as button}
-          <option value={button.id}>
-            {button.emoji ? `${button.emoji} ` : ''}{button.name}
-          </option>
-        {/each}
-      </select>
-    </div>
-  {/if}
+  <div class="mb-4">
+    <label for="button-filter" class="block text-sm font-medium text-gray-700 mb-2">
+      Filter by button:
+    </label>
+    <select
+      id="button-filter"
+      bind:value={selectedButtonFilter}
+      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
+      <option value={null}>All Buttons</option>
+      {#each uniqueButtons as button}
+        <option value={button.id}>
+          {button.emoji ? `${button.emoji} ` : ''}{button.name}
+        </option>
+      {/each}
+    </select>
+  </div>
   
   {#if filteredSessions.length > 0}
     <!-- Timeline View -->
     <div class="flex gap-4">
       <!-- Time Labels (Y-Axis) -->
       <div class="flex-1 grow-0 text-gray-500 relative" style="min-width: 50px;">
-        {#each getHourLabels() as label, index}
+        {#each hourLabels as label, index}
           <div class="absolute right-0 text-right"
             style="top: {(index / timelineHours) * 90}%;"
           >{label}</div>
@@ -206,65 +211,20 @@
       </div>
 
       <!-- Timeline Container -->
-      <div class="flex-1 relative border-l-2 border-gray-200" style="min-height: 1000px;">
+  <div class="flex-1 relative border-l-2 border-gray-200" style="min-height: {timelineHeight}px;">
         <!-- Hour grid lines -->
-        {#each getHourLabels() as _, index}
+        {#each hourLabels as _, index}
           <div 
-            class="absolute left-0 right-0 border-t border-gray-100"
+            class="absolute left-0 right-0 border-t border-gray-300 mt-[12px]"
             style="top: {(index / timelineHours) * 90}%;"
           ></div>
         {/each}
 
         <!-- Session boxes -->
-        {#each filteredSessions as session}
+        {#each displaySessions as session}
           {@const button = buttons.find(b => b.id === session.button_id)}
           {#if button}
-            {@const duration = session.endTime 
-              ? Math.floor((new Date(session.endTime).getTime() - new Date(session.startTime).getTime()) / 60000)
-              : null}
-            <div
-              class="absolute left-2 right-2 rounded-lg p-2 cursor-pointer transition-all hover:shadow-lg group"
-              style={getSessionStyle(session)}
-              on:click={() => onEditTimelog(session)}
-              on:keydown={(e) => e.key === 'Enter' && onEditTimelog(session)}
-              role="button"
-              tabindex="0"
-            >
-              <div class="flex items-start justify-between gap-2 h-full">
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-1 text-white font-medium text-sm">
-                    {#if button.emoji}
-                      <span>{button.emoji}</span>
-                    {/if}
-                    <span class="truncate">{button.name}
-                    {#if duration}
-                      <span class="font-semibold">
-                        ({formatMinutes(duration)})
-                      </span>
-                    {/if}
-                    </span>
-                  </div>
-                  <div class="text-xs text-white opacity-90 mt-1">
-                    {dayjs(session.startTime).format('HH:mm')}
-                    {#if session.endTime}
-                      - {dayjs(session.endTime).format('HH:mm')}
-                    {:else}
-                      - Running
-                    {/if}
-                  </div>
-                </div>
-                
-                <!-- Action buttons (visible on hover) -->
-                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    on:click|stopPropagation={() => onEditTimelog(session)}
-                    class="p-1 bg-white rounded icon-[si--edit-detailed-duotone] text-white"
-                    style="width: 20px; height: 20px;"
-                    aria-label="Edit entry"
-                  ></button>
-                </div>
-              </div>
-            </div>
+            <SessionBox {session} {button} {timelineStart} {timelineEnd} {timelineHeight} indentLevel={session.indentLevel} onEdit={onEditTimelog} />
           {/if}
         {/each}
       </div>

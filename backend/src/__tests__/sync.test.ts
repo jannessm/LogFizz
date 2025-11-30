@@ -441,8 +441,7 @@ describe('Sync API - Offline-First', () => {
           timeLogs: [{
             id: clientUUID,
             button_id: buttonId1,
-            type: 'start',
-            timestamp: new Date().toISOString(),
+            start_timestamp: new Date().toISOString(),
             timezone: 'Europe/Berlin',
           }],
         },
@@ -453,7 +452,7 @@ describe('Sync API - Offline-First', () => {
       
       expect(data.saved).toHaveLength(1);
       expect(data.saved[0].id).toBe(clientUUID);
-      expect(data.saved[0].type).toBe('start');
+      expect(data.saved[0].start_timestamp).toBeDefined();
       expect(data.cursor).toBeDefined();
     });
   });
@@ -476,9 +475,8 @@ describe('Sync API - Offline-First', () => {
         },
       });
 
-      // Create timelog via sync
+      // Create timelog via sync (single log with start and end)
       timeLogId1 = '660e8400-e29b-41d4-a716-446655440001';
-      const timeLogId2 = '660e8400-e29b-41d4-a716-446655440002';
       await app.inject({
         method: 'POST',
         url: '/api/timelogs/sync',
@@ -488,18 +486,10 @@ describe('Sync API - Offline-First', () => {
             {
               id: timeLogId1,
               button_id: buttonId1,
-              type: 'start',
-              timestamp: new Date(Date.now() - 3600000).toISOString(),
+              start_timestamp: new Date(Date.now() - 3600000).toISOString(),
+              end_timestamp: new Date().toISOString(),
               timezone: 'Europe/Berlin',
-              description: 'Initial log',
-            },
-            {
-              id: timeLogId2,
-              button_id: buttonId1,
-              type: 'stop',
-              timestamp: new Date().toISOString(),
-              timezone: 'Europe/Berlin',
-              description: 'Initial log',
+              notes: 'Initial log',
             },
           ],
         },
@@ -527,10 +517,10 @@ describe('Sync API - Offline-First', () => {
           timeLogs: [{
             id: timeLogId1,
             button_id: buttonId1,
-            type: currentLog.type,
-            timestamp: currentLog.timestamp,
+            start_timestamp: currentLog.start_timestamp,
+            end_timestamp: currentLog.end_timestamp,
             timezone: currentLog.timezone,
-            description: 'Server updated notes',
+            notes: 'Server updated notes',
           }],
         },
       });
@@ -546,10 +536,10 @@ describe('Sync API - Offline-First', () => {
           timeLogs: [{
             id: timeLogId1,
             button_id: buttonId1,
-            type: currentLog.type,
-            timestamp: currentLog.timestamp,
+            start_timestamp: currentLog.start_timestamp,
+            end_timestamp: currentLog.end_timestamp,
             timezone: currentLog.timezone,
-            description: 'Client updated notes',
+            notes: 'Client updated notes',
             updated_at: currentLog.updated_at, // Old timestamp
           }],
         },
@@ -561,8 +551,8 @@ describe('Sync API - Offline-First', () => {
       expect(data.conflicts).toHaveLength(1);
       expect(data.conflicts[0].clientVersion.id).toBe(timeLogId1);
       expect(data.conflicts[0].serverVersion.id).toBe(timeLogId1);
-      expect(data.conflicts[0].clientVersion.description).toBe('Client updated notes');
-      expect(data.conflicts[0].serverVersion.description).toBe('Server updated notes');
+      expect(data.conflicts[0].clientVersion.notes).toBe('Client updated notes');
+      expect(data.conflicts[0].serverVersion.notes).toBe('Server updated notes');
     });
 
     it('should save when client timelog is newer', async () => {
@@ -587,10 +577,10 @@ describe('Sync API - Offline-First', () => {
           timeLogs: [{
             id: timeLogId1,
             button_id: buttonId1,
-            type: currentLog.type,
-            timestamp: currentLog.timestamp,
+            start_timestamp: currentLog.start_timestamp,
+            end_timestamp: currentLog.end_timestamp,
             timezone: currentLog.timezone,
-            description: 'Client wins',
+            notes: 'Client wins',
             updated_at: futureDate,
           }],
         },
@@ -600,7 +590,7 @@ describe('Sync API - Offline-First', () => {
       const data = JSON.parse(syncResponse.payload);
       
       expect(data.saved).toHaveLength(1);
-      expect(data.saved[0].description).toBe('Client wins');
+      expect(data.saved[0].notes).toBe('Client wins');
       expect(data.conflicts).toBeUndefined();
     });
   });
@@ -639,9 +629,8 @@ describe('Sync API - Offline-First', () => {
     });
 
     it('should return only changed timelogs since cursor', async () => {
-      // Create log 1 via sync
-      const log1StartId = '660e8400-e29b-41d4-a716-446655440011';
-      const log1EndId = '660e8400-e29b-41d4-a716-446655440012';
+      // Create log 1 via sync (single log with start and end)
+      const log1Id = '660e8400-e29b-41d4-a716-446655440011';
       await app.inject({
         method: 'POST',
         url: '/api/timelogs/sync',
@@ -649,17 +638,10 @@ describe('Sync API - Offline-First', () => {
         payload: {
           timeLogs: [
             {
-              id: log1StartId,
+              id: log1Id,
               button_id: buttonId1,
-              type: 'start',
-              timestamp: new Date(Date.now() - 7200000).toISOString(),
-              timezone: 'Europe/Berlin',
-            },
-            {
-              id: log1EndId,
-              button_id: buttonId1,
-              type: 'stop',
-              timestamp: new Date(Date.now() - 3600000).toISOString(),
+              start_timestamp: new Date(Date.now() - 7200000).toISOString(),
+              end_timestamp: new Date(Date.now() - 3600000).toISOString(),
               timezone: 'Europe/Berlin',
             },
           ],
@@ -678,8 +660,7 @@ describe('Sync API - Offline-First', () => {
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // Create log 2 after cursor via sync
-      const log2StartId = '660e8400-e29b-41d4-a716-446655440013';
-      const log2EndId = '660e8400-e29b-41d4-a716-446655440014';
+      const log2Id = '660e8400-e29b-41d4-a716-446655440013';
       await app.inject({
         method: 'POST',
         url: '/api/timelogs/sync',
@@ -687,20 +668,12 @@ describe('Sync API - Offline-First', () => {
         payload: {
           timeLogs: [
             {
-              id: log2StartId,
+              id: log2Id,
               button_id: buttonId1,
-              type: 'start',
-              timestamp: new Date(Date.now() - 1800000).toISOString(),
+              start_timestamp: new Date(Date.now() - 1800000).toISOString(),
+              end_timestamp: new Date().toISOString(),
               timezone: 'Europe/Berlin',
-              description: 'Recent log',
-            },
-            {
-              id: log2EndId,
-              button_id: buttonId1,
-              type: 'stop',
-              timestamp: new Date().toISOString(),
-              timezone: 'Europe/Berlin',
-              description: 'Recent log',
+              notes: 'Recent log',
             },
           ],
         },
@@ -716,10 +689,10 @@ describe('Sync API - Offline-First', () => {
       expect(sync2.statusCode).toBe(200);
       const data = JSON.parse(sync2.payload);
       
-      // Should have start and stop for log 2
+      // Should have log 2
       expect(data.timeLogs.length).toBeGreaterThan(0);
       const log2Records = data.timeLogs.filter((l: any) => 
-        l.description === 'Recent log' || l.id === log2StartId || l.id === log2EndId
+        l.notes === 'Recent log' || l.id === log2Id
       );
       expect(log2Records.length).toBeGreaterThan(0);
     });

@@ -13,21 +13,25 @@
   let startTime = existingLog?.startTime ? dayjs(existingLog.startTime).format('HH:mm') : '';
   let endDate = existingLog?.endTime ? dayjs(existingLog.endTime).format('YYYY-MM-DD') : selectedDate.format('YYYY-MM-DD');
   let endTime = existingLog?.endTime ? dayjs(existingLog.endTime).format('HH:mm') : '';
-  let isSingleEntry = !existingLog?.endTime;
+  let isRunning = !existingLog?.endTime;
+  let errorMessage: string = '';
   let showDeleteConfirm = false;
 
   $: buttons = $buttonsStore.buttons;
+  $: hasDateError = errorMessage === 'End time must be after start time';
 
   function handleSubmit() {
+    errorMessage = '';
+
     if (!buttonId || !startDate || !startTime) {
       alert('Please fill all required fields');
       return;
     }
 
     const startTimestamp = `${startDate}T${startTime}:00`;
-    let endTimestamp = null;
+    let endTimestamp: string | null = null;
 
-    if (!isSingleEntry) {
+    if (!isRunning) {
       if (!endDate || !endTime) {
         alert('Please provide end date and time for paired entry');
         return;
@@ -36,9 +40,12 @@
 
       // Validate end is after start
       if (new Date(endTimestamp) <= new Date(startTimestamp)) {
-        alert('End time must be after start time');
+        errorMessage = 'End time must be after start time';
         return;
       }
+    } else {
+      // ensure paired value is removed when running
+      endTimestamp = null;
     }
 
     dispatch('save', {
@@ -123,11 +130,19 @@
       <div>
         <label class="flex items-center gap-2">
           <input
+            id="running"
             type="checkbox"
-            bind:checked={isSingleEntry}
+            bind:checked={isRunning}
+            on:change={() => {
+              if (isRunning) {
+                endDate = '';
+                endTime = '';
+                errorMessage = '';
+              }
+            }}
             class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           />
-          <span class="text-sm font-medium text-gray-700">Single entry (no end time)</span>
+          <span class="text-sm font-medium text-gray-700">Running</span>
         </label>
       </div>
 
@@ -160,7 +175,7 @@
       </div>
 
       <!-- End Date and Time -->
-      {#if !isSingleEntry}
+      {#if !isRunning}
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">
@@ -170,7 +185,9 @@
               id="endDate"
               type="date"
               bind:value={endDate}
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class:border-gray-300={!hasDateError}
+              class:border-red-500={hasDateError}
               required
             />
           </div>
@@ -182,7 +199,9 @@
               id="endTime"
               type="time"
               bind:value={endTime}
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class:border-gray-300={!hasDateError}
+              class:border-red-500={hasDateError}
               required
             />
           </div>
@@ -190,6 +209,9 @@
       {/if}
 
       <!-- Actions -->
+      {#if errorMessage}
+        <div class="text-sm text-red-600">{errorMessage}</div>
+      {/if}
       <div class="space-y-3 pt-4">
         <div class="flex gap-3">
           <button

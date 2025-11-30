@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { ButtonService } from '../services/button.service.js';
+import dayjs from '../utils/dayjs.js';
 
 const buttonService = new ButtonService();
 
@@ -47,16 +48,16 @@ export async function buttonRoutes(fastify: FastifyInstance) {
     const { since } = request.query as any;
 
     try {
-      const sinceDate = new Date(since);
-      if (isNaN(sinceDate.getTime())) {
+      const sinceDate = dayjs(since);
+      if (!sinceDate.isValid()) {
         return reply.code(400).send({ error: 'Invalid timestamp format' });
       }
 
-      const buttons = await buttonService.getChangedButtonsSince(userId, sinceDate);
+      const buttons = await buttonService.getChangedButtonsSince(userId, sinceDate.toDate());
       
       // Cursor represents the current server state - all changes up to this moment have been returned
       // Next sync should request changes after this timestamp
-      const cursor = new Date().toISOString();
+      const cursor = dayjs().toISOString();
       
       return reply.send({
         buttons,
@@ -130,14 +131,14 @@ export async function buttonRoutes(fastify: FastifyInstance) {
     // Convert timestamp strings to Date objects
     const processedButtons = buttons.map((btn: any) => ({
       ...btn,
-      updated_at: btn.updated_at ? new Date(btn.updated_at) : undefined,
-      deleted_at: btn.deleted_at ? new Date(btn.deleted_at) : undefined,
+      updated_at: btn.updated_at ? dayjs(btn.updated_at).toDate() : undefined,
+      deleted_at: btn.deleted_at ? dayjs(btn.deleted_at).toDate() : undefined,
     }));
 
     const result = await buttonService.pushButtonChanges(userId, processedButtons);
     
     // Cursor represents the current server state after this operation
-    const cursor = new Date().toISOString();
+    const cursor = dayjs().toISOString();
     
     // If conflicts exist, only return conflicts (client needs to resolve)
     // Otherwise return saved buttons

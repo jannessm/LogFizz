@@ -19,9 +19,9 @@ vi.mock('../lib/navigation', () => ({
 describe('ResetPassword Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock URL search params
+    // Mock URL search params with token and email
     delete (window as any).location;
-    (window as any).location = { search: '?token=test-token-123' };
+    (window as any).location = { search: '?token=test-token-123&email=test@example.com' };
   });
 
   it('renders reset password form', () => {
@@ -65,5 +65,14 @@ describe('ResetPassword Component', () => {
     render(ResetPassword);
     
     expect(screen.getByText(/Invalid reset link/i)).toBeInTheDocument();
+  });
+
+  it('works with token only (no email) for backward compatibility', () => {
+    (window as any).location = { search: '?token=test-token-123' };
+    render(ResetPassword);
+    
+    // Should render the form, not show an error
+    expect(screen.getByRole('heading', { name: /Reset Password/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/New Password/i)).toBeInTheDocument();
   });
 });

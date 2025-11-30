@@ -77,12 +77,10 @@ function createButtonsStore() {
           name: buttonData.name || '',
           emoji: buttonData.emoji,
           color: buttonData.color,
-          position: buttonData.position || 0,
-          icon: buttonData.icon,
-          goal_time_minutes: buttonData.goal_time_minutes,
-          goal_days: buttonData.goal_days,
           auto_subtract_breaks: buttonData.auto_subtract_breaks ?? false,
+          target_id: buttonData.target_id,
           created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         };
 
         if (isOnline()) {
@@ -91,7 +89,7 @@ function createButtonsStore() {
             await saveButtonDB(created);
             update(state => ({ 
               ...state, 
-              buttons: [...state.buttons, created].sort((a, b) => a.position - b.position),
+              buttons: [...state.buttons, created].sort((a, b) => a.name.localeCompare(b.name)),
               isLoading: false 
             }));
             return created;
@@ -100,7 +98,7 @@ function createButtonsStore() {
             await syncService.queueButtonCreate(button);
             update(state => ({ 
               ...state, 
-              buttons: [...state.buttons, button].sort((a, b) => a.position - b.position),
+              buttons: [...state.buttons, button].sort((a, b) => a.name.localeCompare(b.name)),
               isLoading: false 
             }));
             return button;
@@ -110,7 +108,7 @@ function createButtonsStore() {
           await syncService.queueButtonCreate(button);
           update(state => ({ 
             ...state, 
-            buttons: [...state.buttons, button].sort((a, b) => a.position - b.position),
+            buttons: [...state.buttons, button].sort((a, b) => a.name.localeCompare(b.name)),
             isLoading: false 
           }));
           return button;
@@ -152,7 +150,7 @@ function createButtonsStore() {
           
           return { 
             ...state, 
-            buttons: newButtons.sort((a, b) => a.position - b.position),
+            buttons: newButtons.sort((a, b) => a.name.localeCompare(b.name)),
             isLoading: false 
           };
         });

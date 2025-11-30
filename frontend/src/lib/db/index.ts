@@ -1,6 +1,6 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
-import type { Button, TimeLog, User, SyncQueueItem, DailyTarget } from '../../types';
+import type { Button, TimeLog, User, SyncQueueItem, DailyTarget, MonthlyBalance } from '../../types';
 
 interface ClockDB extends DBSchema {
   buttons: {
@@ -18,6 +18,13 @@ interface ClockDB extends DBSchema {
   targets: {
     key: string;
     value: DailyTarget;
+  };
+  monthlyBalances: {
+    key: string;
+    value: MonthlyBalance;
+    indexes: {
+      'by-year-month': [number, number];
+    };
   };
   syncQueue: {
     key: string;
@@ -38,7 +45,7 @@ interface ClockDB extends DBSchema {
 }
 
 const DB_NAME = 'tapshift-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbInstance: IDBPDatabase<ClockDB> | null = null;
 
@@ -48,7 +55,7 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
   }
 
   dbInstance = await openDB<ClockDB>(DB_NAME, DB_VERSION, {
-    upgrade(db) {
+    upgrade(db, oldVersion) {
       // Buttons store
       if (!db.objectStoreNames.contains('buttons')) {
         const buttonStore = db.createObjectStore('buttons', { keyPath: 'id' });
@@ -84,6 +91,12 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
       // States store
       if (!db.objectStoreNames.contains('states')) {
         db.createObjectStore('states', { keyPath: 'id' });
+      }
+
+      // Monthly Balances store (added in version 2)
+      if (!db.objectStoreNames.contains('monthlyBalances')) {
+        const monthlyBalanceStore = db.createObjectStore('monthlyBalances', { keyPath: 'id' });
+        monthlyBalanceStore.createIndex('by-year-month', ['year', 'month']);
       }
     },
   });
@@ -193,11 +206,11 @@ export async function getSetting(key: string): Promise<any> {
 }
 
 // Sync cursor operations
-export async function saveSyncCursor(type: 'buttons' | 'timelogs' | 'targets', cursor: string): Promise<void> {
+export async function saveSyncCursor(type: 'buttons' | 'timelogs' | 'targets' | 'monthlyBalances', cursor: string): Promise<void> {
   await saveSetting(`sync_cursor_${type}`, cursor);
 }
 
-export async function getSyncCursor(type: 'buttons' | 'timelogs' | 'targets'): Promise<string | undefined> {
+export async function getSyncCursor(type: 'buttons' | 'timelogs' | 'targets' | 'monthlyBalances'): Promise<string | undefined> {
   return await getSetting(`sync_cursor_${type}`);
 }
 
@@ -240,7 +253,34 @@ export async function clearAllData(): Promise<void> {
   await db.clear('buttons');
   await db.clear('timelogs');
   await db.clear('targets');
+  await db.clear('monthlyBalances');
   await db.clear('syncQueue');
   await db.clear('user');
   await db.clear('settings');
+}
+
+// Monthly Balance operations
+export async function saveMonthlyBalance(balance: MonthlyBalance): Promise<void> {
+  const db = await getDB();
+  await db.put('monthlyBalances', balance);
+}
+
+export async function getMonthlyBalance(id: string): Promise<MonthlyBalance | undefined> {
+  const db = await getDB();
+  return db.get('monthlyBalances', id);
+}
+
+export async function getAllMonthlyBalances(): Promise<MonthlyBalance[]> {
+  const db = await getDB();
+  return db.getAll('monthlyBalances');
+}
+
+export async function getMonthlyBalancesByYearMonth(year: number, month: number): Promise<MonthlyBalance[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('monthlyBalances', 'by-year-month', [year, month]);
+}
+
+export async function deleteMonthlyBalance(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('monthlyBalances', id);
 }
