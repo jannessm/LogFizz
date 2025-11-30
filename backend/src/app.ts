@@ -17,6 +17,7 @@ import { holidayRoutes } from './routes/holiday.routes.js';
 import { dailyTargetRoutes } from './routes/daily-target.routes.js';
 import { websocketRoutes } from './routes/websocket.routes.js';
 import { stateRoutes } from './routes/state.routes.js';
+import { monthlyBalanceRoutes } from './routes/monthly-balance.routes.js';
 import { registerRateLimit } from './config/rateLimit.js';
 import { debugRoutes } from './routes/debug.routes.js';
 import './types/session.js';
@@ -162,6 +163,7 @@ export async function buildApp() {
         { name: 'TimeLogs', description: 'Time logging endpoints' },
         { name: 'Holidays', description: 'Holiday management endpoints' },
         { name: 'DailyTargets', description: 'Daily target management endpoints' },
+        { name: 'MonthlyBalance', description: 'Monthly balance calculation endpoints' },
         { name: 'States', description: 'German states reference endpoints' },
       ],
     },
@@ -181,6 +183,7 @@ export async function buildApp() {
   await fastify.register(timeLogRoutes, { prefix: '/api/timelogs' });
   await fastify.register(holidayRoutes, { prefix: '/api/holidays' });
   await fastify.register(dailyTargetRoutes, { prefix: '/api/targets' });
+  await fastify.register(monthlyBalanceRoutes, { prefix: '/api/monthly-balances' });
   await fastify.register(stateRoutes, { prefix: '/api' });
   await fastify.register(websocketRoutes, { prefix: '/api' });
 

@@ -3,6 +3,7 @@
   import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
   import { numberToHoursMinutes } from '../../lib/chart_utils';
   import { createEventDispatcher } from 'svelte';
+  import dayjs from 'dayjs';
   
   export let buttons: any[];
   export let currentMonth: any;
@@ -16,9 +17,12 @@
 
   let canvas: HTMLCanvasElement;
   let chart: Chart | null = null;
+  let refreshTick = 0; // Used to trigger reactivity for running sessions
+  let intervalId: number | undefined;
+  let chartCreated = false;
 
   // Update chart when data changes
-  $: if (canvas && timeLogs.length > 0 && buttons.length > 0) {
+  $: if (canvas && (timeLogs.length > 0 || refreshTick) && buttons.length > 0) {
     const daysInMonth = currentMonth.daysInMonth();
     labels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
     updateChart();
@@ -27,6 +31,7 @@
   // Calculate daily stats per button for stacked bar chart
   function getDailyStatsPerButton() {
     const daysInMonth = currentMonth.daysInMonth();
+    const now = dayjs();
     
     // Create a map to store daily durations per button
     const buttonDailyData = new Map<string, number[]>();
@@ -40,28 +45,30 @@
       const date = currentMonth.date(day);
       const dateStr = date.format('YYYY-MM-DD');
       
+      // Filter logs for this day
       const dayLogs = timeLogs.filter(tl => 
-        tl.timestamp && tl.timestamp.startsWith(dateStr)
-      ).sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        tl.start_timestamp && tl.start_timestamp.startsWith(dateStr)
       );
       
-      const startsByButton = new Map<string, typeof dayLogs[0]>();
-      
+      // Sum durations for each button
       for (const log of dayLogs) {
-        if (log.type === 'start') {
-          startsByButton.set(log.button_id, log);
-        } else if (log.type === 'stop') {
-          const start = startsByButton.get(log.button_id);
-          if (start) {
-            const duration = Math.floor(
-              (new Date(log.timestamp).getTime() - new Date(start.timestamp).getTime()) / 60000
-            );
-            const buttonData = buttonDailyData.get(log.button_id);
-            if (buttonData) {
-              buttonData[day - 1] += duration / 60; // Convert to hours
-            }
-            startsByButton.delete(log.button_id);
+        let duration = log.duration_minutes;
+        
+        // For running sessions (no end_timestamp), calculate duration to current time
+        if (!log.end_timestamp && log.start_timestamp) {
+          const start = dayjs(log.start_timestamp);
+          duration = now.diff(start, 'minute');
+        } else if (log.end_timestamp && (duration === undefined || duration === null)) {
+          // Calculate if not stored
+          duration = Math.floor(
+            (new Date(log.end_timestamp).getTime() - new Date(log.start_timestamp).getTime()) / 60000
+          );
+        }
+        
+        if (duration !== undefined && duration !== null) {
+          const buttonData = buttonDailyData.get(log.button_id);
+          if (buttonData) {
+            buttonData[day - 1] += duration / 60; // Convert to hours
           }
         }
       }
@@ -72,16 +79,10 @@
   
   function updateChart() {
     if (!canvas) return;
-    
-    // Destroy existing chart
-    if (chart) {
-      chart.destroy();
-      chart = null;
-    }
-    
+
     // Get stacked data per button
     const buttonDailyData = getDailyStatsPerButton();
-    
+
     // Create datasets for each button
     const datasets = buttons.map(button => {
       const buttonData = buttonDailyData.get(button.id) || [];
@@ -93,8 +94,18 @@
         borderWidth: 1
       };
     });
-    
-    // Create new stacked chart
+
+    // If chart exists, update data without animation
+    if (chart) {
+  chart.data.labels = labels;
+  chart.data.datasets = datasets as any;
+  (chart.options as any).animation = false;
+  chart.update();
+      chartCreated = true;
+      return;
+    }
+
+    // Create new stacked chart (animate on first creation only)
     chart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -104,6 +115,7 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: chartCreated ? false : undefined,
         onClick: (event, elements) => {
           if (elements.length > 0) {
             const index = elements[0].index;
@@ -155,15 +167,36 @@
         }
       }
     });
+    chartCreated = true;
+  }
+
+  // Check if there are any running sessions
+  function hasRunningSessions(): boolean {
+    return timeLogs.some(tl => tl.start_timestamp && !tl.end_timestamp);
   }
 
   onMount(() => {
     Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+    
+    // Set up interval to refresh running sessions every 30 seconds
+    if (hasRunningSessions()) {
+      intervalId = window.setInterval(() => {
+        if (hasRunningSessions()) {
+          refreshTick++;
+        } else if (intervalId) {
+          window.clearInterval(intervalId);
+          intervalId = undefined;
+        }
+      }, 30000); // Update every 30 seconds
+    }
   });
 
   onDestroy(() => {
     if (chart) {
       chart.destroy();
+    }
+    if (intervalId) {
+      window.clearInterval(intervalId);
     }
   });
 </script>

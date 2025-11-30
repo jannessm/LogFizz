@@ -5,6 +5,7 @@
   import HistoryCharts from '../components/History/HistoryCharts.svelte';
   import HistoryCalendar from '../components/History/HistoryCalendar.svelte';
   import HistoryLogs from '../components/History/HistoryLogs.svelte';
+  import MonthlyBalance from '../components/History/MonthlyBalance.svelte';
   import { timeLogsStore } from '../stores/timelogs';
   import { buttonsStore } from '../stores/buttons';
   import dayjs from 'dayjs';
@@ -57,8 +58,8 @@
   }
 
   $: timeLogs = $timeLogsStore.timeLogs.filter(tl => 
-    dayjs(tl.timestamp).month() === currentMonth.month() && 
-    dayjs(tl.timestamp).year() === currentMonth.year()
+    dayjs(tl.start_timestamp).month() === currentMonth.month() && 
+    dayjs(tl.start_timestamp).year() === currentMonth.year()
   );
   $: buttons = $buttonsStore.buttons;
 
@@ -148,11 +149,20 @@
   async function handleSaveTimelog(event: CustomEvent) {
     const { button_id, startTimestamp, endTimestamp, existingLog } = event.detail;
     
-    // For now, just add new entries
-    // In a full implementation, you'd call the API to create/update timelogs
-    await timeLogsStore.create(button_id, startTimestamp, 'start');
-    if (endTimestamp) {
-      await timeLogsStore.create(button_id, endTimestamp, 'stop');
+    if (existingLog && existingLog.log) {
+      // Editing existing timelog session - update it
+      await timeLogsStore.update(existingLog.log.id, {
+        button_id,
+        start_timestamp: startTimestamp,
+        end_timestamp: endTimestamp || undefined,
+      });
+    } else {
+      // Creating new timelog session
+      await timeLogsStore.createManual({
+        button_id,
+        start_timestamp: startTimestamp,
+        end_timestamp: endTimestamp || undefined,
+      });
     }
     
     showTimelogForm = false;
@@ -172,12 +182,9 @@
   async function handleDelete() {
     if (!deleteTarget) return;
     
-    // Delete the timelog entries
-    if (deleteTarget.startLog?.id) {
-      await timeLogsStore.delete(deleteTarget.startLog.id);
-    }
-    if (deleteTarget.stopLog?.id) {
-      await timeLogsStore.delete(deleteTarget.stopLog.id);
+    // Delete the timelog session
+    if (deleteTarget.log?.id) {
+      await timeLogsStore.delete(deleteTarget.log.id);
     }
     
     showDeleteConfirm = false;
@@ -191,9 +198,26 @@
 </script>
 
 <div class="flex flex-col h-screen bg-gray-50">
-  <div class="w-full max-w-lg mx-auto px-4 py-6 grow-1 overflow-x-auto">
-    <!-- Header -->
-    <h1 class="text-2xl font-bold text-gray-800 mb-1">History</h1>
+  <!-- Make content take full width and be scrollable horizontally and vertically -->
+  <div class="w-full px-4 py-6 flex-1 overflow-auto">
+    <!-- Inner centered container to preserve original max-width layout -->
+    <div class="w-full max-w-lg mx-auto">
+      <!-- Header -->
+      <h1 class="text-2xl font-bold text-gray-800 mb-1">History</h1>
+    <!-- Monthly Balance Component -->
+    <MonthlyBalance
+      year={currentMonth.year()}
+      month={currentMonth.month() + 1}
+    />
+
+    <!-- Charts Component -->
+    <HistoryCharts
+      {buttons}
+      {timeLogs}
+      {currentMonth}
+      onDateSelect={selectDate}
+    />
+
     <div class="flex justify-between items-center mt-6 mb-6">
       <div class="flex items-center gap-2">
         <!-- Month Navigation -->
@@ -256,23 +280,16 @@
       onSelectDate={selectDate}
     />
 
-    <!-- Charts Component -->
-    <HistoryCharts
-      {buttons}
-      {timeLogs}
-      {currentMonth}
-      onDateSelect={selectDate}
-    />
-
-    <!-- Logs Component with Filter -->
-    <HistoryLogs
-      {selectedDate}
-      {timeLogs}
-      {buttons}
-      onAddTimelog={handleAddTimelog}
-      onEditTimelog={handleEditTimelog}
-      onDeleteTimelog={confirmDelete}
-    />
+      <!-- Logs Component with Filter -->
+      <HistoryLogs
+        {selectedDate}
+        {timeLogs}
+        {buttons}
+        onAddTimelog={handleAddTimelog}
+        onEditTimelog={handleEditTimelog}
+        onDeleteTimelog={confirmDelete}
+      />
+    </div>
   </div>
 
   <BottomNav currentTab="history" />

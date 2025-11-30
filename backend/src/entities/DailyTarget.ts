@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import type { DailyTargetEntity } from '../../../lib/types/index.js';
 
 @Entity('daily_targets')
-export class DailyTarget {
+export class DailyTarget implements DailyTargetEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
@@ -17,8 +18,11 @@ export class DailyTarget {
   @Column('simple-array')
   weekdays!: number[]; // 0-6 for Sunday-Saturday
 
-  @Column('uuid', { nullable: true })
-  state_id?: string;
+  @Column('boolean', { default: false })
+  exclude_holidays!: boolean; // Whether to exclude public holidays from target calculation
+
+  @Column('varchar', { nullable: true })
+  state_code?: string;
 
   @Column('timestamptz', { nullable: true })
   starting_from?: Date;
@@ -37,6 +41,9 @@ export class DailyTarget {
   user!: any;
 
   @ManyToOne('State', { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'state_id' })
+  @JoinColumn({ name: 'state_code', referencedColumnName: 'code' })
   state?: any;
+
+  @OneToMany('MonthlyBalance', 'target')
+  monthly_balances?: any[];
 }

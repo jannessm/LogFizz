@@ -4,6 +4,7 @@ import { timeLogApi, isOnline } from '../services/api';
 import { 
   getAllButtons,
   getAllTimeLogs, 
+  getButton,
   saveTimeLog as saveTimeLogDB,
   getTimeLogsByButton,
   getSyncCursor,
@@ -11,12 +12,52 @@ import {
   deleteTimeLog as deleteTimeLogDB
 } from '../lib/db';
 import { syncService } from '../services/sync';
+import { monthlyBalanceService } from '../services/monthly-balance.service';
 
 interface TimeLogsStore {
   timeLogs: TimeLog[];
   activeTimers: TimeLog[];
   isLoading: boolean;
   error: string | null;
+}
+
+/**
+ * Helper function to recalculate monthly balances after timelog changes
+ */
+async function recalculateBalancesForTimeLogs(timeLogs: TimeLog[]): Promise<void> {
+  if (timeLogs.length === 0) {
+    return;
+  }
+
+  try {
+    const timeLogsForRecalc = timeLogs.map(tl => ({
+      start_timestamp: tl.start_timestamp,
+      button_id: tl.button_id,
+    }));
+    await monthlyBalanceService.recalculateAffectedMonthlyBalances(timeLogsForRecalc);
+  } catch (error) {
+    console.error('Failed to recalculate monthly balances:', error);
+  }
+}
+
+/**
+ * Compute difference in minutes between two timestamps and optionally apply
+ * the German break rules (30 min after 6h, 45 min after 9h).
+ */
+function computeDurationMinutes(startTs: string | Date, endTs: string | Date, applyBreaks: boolean | undefined): number {
+  const start = new Date(startTs);
+  const end = new Date(endTs);
+  let minutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+
+  if (applyBreaks) {
+    if (minutes >= 9 * 60) {
+      minutes -= 45;
+    } else if (minutes >= 6 * 60) {
+      minutes -= 30;
+    }
+  }
+
+  return Math.max(0, minutes);
 }
 
 function createTimeLogsStore() {
@@ -93,19 +134,13 @@ function createTimeLogsStore() {
         for (const button of buttons) {
           const localTimeLogs = await getTimeLogsByButton(button.id);
           localTimeLogs.sort((a, b) => 
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            new Date(b.start_timestamp).getTime() - new Date(a.start_timestamp).getTime()
           );
           
-          // filter last start events per button
-          const recentStart = localTimeLogs.filter(tl => tl.type === 'start')[0];
-          // filter last stop events per button
-          const recentStop = localTimeLogs.filter(tl => tl.type === 'stop')[0];
-          
-          // Check if there's a corresponding start event and no stop event after it
-          const startAfterStop = recentStop && recentStart && new Date(recentStop.timestamp).getTime() < new Date(recentStart.timestamp).getTime() || false;
-
-          if (startAfterStop) {
-            activeTimers.push(recentStart);
+          // Find the most recent log that has no end_timestamp (still running)
+          const activeLog = localTimeLogs.find(tl => !tl.end_timestamp);
+          if (activeLog) {
+            activeTimers.push(activeLog);
           }
         }
 
@@ -124,8 +159,9 @@ function createTimeLogsStore() {
           id: crypto.randomUUID(),
           user_id: '', // Will be set by backend
           button_id: buttonId,
-          type: 'start',
-          timestamp: new Date().toISOString(),
+          start_timestamp: new Date().toISOString(),
+          // No end_timestamp - timer is running
+          timezone: 'UTC',
           apply_break_calculation: false,
           is_manual: false,
           created_at: new Date().toISOString(),
@@ -134,6 +170,9 @@ function createTimeLogsStore() {
 
         // Offline: queue for sync
         await syncService.queueTimeLogCreate(timeLog);
+
+        // Recalculate monthly balances
+        await recalculateBalancesForTimeLogs([timeLog]);
 
         update(state => {
           const activeTimers = [...(state.activeTimers || []), timeLog];
@@ -159,31 +198,34 @@ function createTimeLogsStore() {
     async stopTimer(id: string) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        // create stop event locally and queue for sync
-        const startEvent = await getAllTimeLogs().then(logs => logs.find(tl => tl.id === id));
-        if (!startEvent) throw new Error('Start event not found');
+        // Find the running timer and update it with end_timestamp
+        const allTimeLogs = await getAllTimeLogs();
+        const runningTimer = allTimeLogs.find(tl => tl.id === id);
+        if (!runningTimer) throw new Error('Timer not found');
         
-        const stopEvent: TimeLog = {
-          id: crypto.randomUUID(),
-          user_id: startEvent.user_id,
-          button_id: startEvent.button_id,
-          type: 'stop',
-          timestamp: new Date().toISOString(),
-          apply_break_calculation: startEvent.apply_break_calculation,
-          is_manual: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+  const now = new Date();
+  const durationMinutes = computeDurationMinutes(runningTimer.start_timestamp, now.toISOString(), runningTimer.apply_break_calculation);
+        
+        // Update the timer with end timestamp and duration
+        const updatedTimeLog: TimeLog = {
+          ...runningTimer,
+          end_timestamp: now.toISOString(),
+          duration_minutes: durationMinutes,
+          updated_at: now.toISOString(),
         };
         
-        await syncService.queueTimeLogCreate(stopEvent);
+        await syncService.queueTimeLogUpdate(updatedTimeLog);
+        
+        // Recalculate monthly balances
+        await recalculateBalancesForTimeLogs([updatedTimeLog]);
         
         update(state => ({
           ...state,
           activeTimers: state.activeTimers.filter(t => t.id !== id),
-          timeLogs: [...state.timeLogs, stopEvent],
+          timeLogs: state.timeLogs.map(tl => tl.id === id ? updatedTimeLog : tl),
           isLoading: false
         }));
-        return stopEvent;
+        return updatedTimeLog;
       } catch (error: any) {
         update(state => ({ 
           ...state, 
@@ -194,24 +236,101 @@ function createTimeLogsStore() {
       }
     },
 
-    async create(buttonId: string, timestamp: string, type: 'start' | 'stop') {
+    async update(id: string, updates: Partial<TimeLog>) {
+      update(state => ({ ...state, isLoading: true, error: null }));
+      try {
+        // Get existing timelog
+        const allTimeLogs = await getAllTimeLogs();
+        const existingTimeLog = allTimeLogs.find(tl => tl.id === id);
+        if (!existingTimeLog) {
+          throw new Error('TimeLog not found');
+        }
+
+        // Calculate duration if timestamps are provided
+        let durationMinutes = updates.duration_minutes;
+        const startTimestamp = updates.start_timestamp || existingTimeLog.start_timestamp;
+        const endTimestamp = updates.end_timestamp !== undefined ? updates.end_timestamp : existingTimeLog.end_timestamp;
+        
+        if (startTimestamp && endTimestamp && durationMinutes === undefined) {
+          // Determine whether to apply break calculations - prefer explicit flag in updates, fallback to existing value
+          const applyBreaks = updates.apply_break_calculation ?? existingTimeLog.apply_break_calculation;
+          durationMinutes = computeDurationMinutes(startTimestamp, endTimestamp, applyBreaks);
+        } else if (endTimestamp === null || endTimestamp === undefined) {
+          // If end timestamp is removed (running), clear duration
+          durationMinutes = undefined;
+        }
+
+        const updatedTimeLog: TimeLog = {
+          ...existingTimeLog,
+          ...updates,
+          duration_minutes: durationMinutes,
+          updated_at: new Date().toISOString(),
+        };
+
+        // Queue for sync
+        await syncService.queueTimeLogUpdate(updatedTimeLog);
+
+        // Recalculate monthly balances
+        await recalculateBalancesForTimeLogs([updatedTimeLog]);
+
+        update(state => ({
+          ...state,
+          timeLogs: state.timeLogs.map(tl => tl.id === id ? updatedTimeLog : tl),
+          isLoading: false
+        }));
+
+        return updatedTimeLog;
+      } catch (error: any) {
+        update(state => ({ 
+          ...state, 
+          error: error.message,
+          isLoading: false 
+        }));
+        throw error;
+      }
+    },
+
+    async create(buttonId: string, startTimestamp: string, endTimestamp?: string) {
       return this.createManual({
         button_id: buttonId,
-        timestamp,
-        type,
+        start_timestamp: startTimestamp,
+        end_timestamp: endTimestamp,
       });
     },
 
     async createManual(timeLogData: Partial<TimeLog>) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
+        // Determine applyBreaks from button settings (button.auto_subtract_breaks)
+        let durationMinutes: number | undefined;
+        let applyBreaksFromButton = false;
+        if (timeLogData.button_id) {
+          try {
+            const btn = await getButton(timeLogData.button_id);
+            applyBreaksFromButton = !!btn?.auto_subtract_breaks;
+          } catch (err) {
+            // If reading the button fails, fall back to provided flag or false
+            console.warn('Failed to read button for auto_subtract_breaks, falling back:', err);
+            applyBreaksFromButton = false;
+          }
+        }
+
+        // Calculate duration if end_timestamp is provided
+        if (timeLogData.start_timestamp && timeLogData.end_timestamp) {
+          const applyBreaks = timeLogData.apply_break_calculation ?? applyBreaksFromButton ?? false;
+          durationMinutes = computeDurationMinutes(timeLogData.start_timestamp, timeLogData.end_timestamp, applyBreaks);
+        }
+        
         const timeLog: TimeLog = {
           id: crypto.randomUUID(),
           user_id: timeLogData.user_id || '',
           button_id: timeLogData.button_id || '',
-          type: timeLogData.type || 'start',
-          timestamp: timeLogData.timestamp || new Date().toISOString(),
-          apply_break_calculation: timeLogData.apply_break_calculation ?? false,
+          start_timestamp: timeLogData.start_timestamp || new Date().toISOString(),
+          end_timestamp: timeLogData.end_timestamp,
+          duration_minutes: durationMinutes,
+          timezone: timeLogData.timezone || 'UTC',
+          // Prefer explicit flag in payload, otherwise use the button's auto_subtract_breaks setting
+          apply_break_calculation: timeLogData.apply_break_calculation ?? applyBreaksFromButton ?? false,
           notes: timeLogData.notes,
           is_manual: true,
           created_at: new Date().toISOString(),
@@ -222,6 +341,8 @@ function createTimeLogsStore() {
           try {
             const created = await timeLogApi.createManual(timeLog);
             await saveTimeLogDB(created);
+            // Recalculate monthly balances
+            await recalculateBalancesForTimeLogs([created]);
             update(state => ({ 
               ...state, 
               timeLogs: [...state.timeLogs, created],
@@ -230,6 +351,8 @@ function createTimeLogsStore() {
             return created;
           } catch (error) {
             await syncService.queueTimeLogCreate(timeLog);
+            // Recalculate monthly balances
+            await recalculateBalancesForTimeLogs([timeLog]);
             update(state => ({ 
               ...state, 
               timeLogs: [...state.timeLogs, timeLog],
@@ -239,6 +362,8 @@ function createTimeLogsStore() {
           }
         } else {
           await syncService.queueTimeLogCreate(timeLog);
+          // Recalculate monthly balances
+          await recalculateBalancesForTimeLogs([timeLog]);
           update(state => ({ 
             ...state, 
             timeLogs: [...state.timeLogs, timeLog],
@@ -259,11 +384,19 @@ function createTimeLogsStore() {
     async delete(id: string) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
+        // Get the timelog before deleting to recalculate balances
+        const timeLog = await getAllTimeLogs().then(logs => logs.find(tl => tl.id === id));
+        
         // Delete from local DB first
         await deleteTimeLogDB(id);
         
         // Queue delete for sync
         await syncService.queueTimeLogDelete(id);
+
+        // Recalculate monthly balances if timelog was found
+        if (timeLog) {
+          await recalculateBalancesForTimeLogs([timeLog]);
+        }
 
         update(state => ({
           ...state,
@@ -294,7 +427,7 @@ export const todayTimeLogs = derived(
   $timeLogsStore => {
     const today = new Date().toISOString().split('T')[0];
     return $timeLogsStore.timeLogs.filter(tl => 
-      tl.timestamp && tl.timestamp.startsWith(today)
+      tl.start_timestamp && tl.start_timestamp.startsWith(today)
     );
   }
 );

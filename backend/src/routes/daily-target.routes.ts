@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { DailyTargetService } from '../services/daily-target.service.js';
+import dayjs from '../utils/dayjs.js';
 
 const targetService = new DailyTargetService();
 
@@ -26,7 +27,8 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
             name: Type.String(),
             duration_minutes: Type.Array(Type.Number()),
             weekdays: Type.Array(Type.Number()),
-            state_id: Type.Optional(Type.String()),
+            exclude_holidays: Type.Optional(Type.Boolean()),
+            state_code: Type.Optional(Type.String()),
             starting_from: Type.Optional(Type.String()),
             created_at: Type.String(),
             updated_at: Type.String(),
@@ -47,14 +49,14 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
     const { since } = request.query as any;
     
     try {
-      const sinceDate = new Date(since);
-      if (isNaN(sinceDate.getTime())) {
+      const sinceDate = dayjs(since);
+      if (!sinceDate.isValid()) {
         return reply.code(400).send({ error: 'Invalid timestamp format' });
       }
       
-      const targets = await targetService.getChangedTargetsSince(userId, sinceDate);
+      const targets = await targetService.getChangedTargetsSince(userId, sinceDate.toDate());
 
-      const cursor = new Date().toISOString();
+      const cursor = dayjs().toISOString();
 
       return reply.send({
         targets,
@@ -74,7 +76,8 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
         name: string;
         duration_minutes: number[];
         weekdays: number[];
-        state_id?: string;
+        exclude_holidays?: boolean;
+        state_code?: string;
         starting_from?: string;
         updated_at?: string;
         deleted_at?: string;
@@ -89,7 +92,8 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
           name: Type.String(),
           duration_minutes: Type.Array(Type.Integer()),
           weekdays: Type.Array(Type.Integer()),
-          state_id: Type.Optional(Type.String()),
+          exclude_holidays: Type.Optional(Type.Boolean()),
+          state_code: Type.Optional(Type.String()),
           starting_from: Type.Optional(Type.String()),
           updated_at: Type.Optional(Type.String()),
           deleted_at: Type.Optional(Type.String()),
@@ -102,7 +106,8 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
             name: Type.String(),
             duration_minutes: Type.Array(Type.Number()),
             weekdays: Type.Array(Type.Number()),
-            state_id: Type.Optional(Type.String()),
+            exclude_holidays: Type.Optional(Type.Boolean()),
+            state_code: Type.Optional(Type.String()),
             starting_from: Type.Optional(Type.String()),
             created_at: Type.String(),
             updated_at: Type.String(),
@@ -114,7 +119,8 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
               name: Type.String(),
               duration_minutes: Type.Array(Type.Integer()),
               weekdays: Type.Array(Type.Integer()),
-              state_id: Type.Optional(Type.String()),
+              exclude_holidays: Type.Optional(Type.Boolean()),
+              state_code: Type.Optional(Type.String()),
               starting_from: Type.Optional(Type.String()),
               updated_at: Type.Optional(Type.String()),
               deleted_at: Type.Optional(Type.String()),
@@ -124,7 +130,8 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
               name: Type.String(),
               duration_minutes: Type.Array(Type.Number()),
               weekdays: Type.Array(Type.Number()),
-              state_id: Type.Optional(Type.String()),
+              exclude_holidays: Type.Optional(Type.Boolean()),
+              state_code: Type.Optional(Type.String()),
               starting_from: Type.Optional(Type.String()),
               created_at: Type.String(),
               updated_at: Type.String(),
@@ -142,15 +149,15 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
     // Convert string dates to Date objects
     const processedTargets = targets.map(t => ({
       ...t,
-      starting_from: t.starting_from ? new Date(t.starting_from) : undefined,
-      updated_at: t.updated_at ? new Date(t.updated_at) : undefined,
-      deleted_at: t.deleted_at ? new Date(t.deleted_at) : undefined,
+      starting_from: t.starting_from ? dayjs(t.starting_from).toDate() : undefined,
+      updated_at: t.updated_at ? dayjs(t.updated_at).toDate() : undefined,
+      deleted_at: t.deleted_at ? dayjs(t.deleted_at).toDate() : undefined,
     }));
     
     const result = await targetService.pushTargetChanges(userId, processedTargets);
 
     // Cursor represents the current server state after this operation
-    const cursor = new Date().toISOString();
+    const cursor = dayjs().toISOString();
     
     // If conflicts exist, only return conflicts (client needs to resolve)
     // Otherwise return saved buttons
