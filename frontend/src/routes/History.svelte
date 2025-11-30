@@ -198,9 +198,26 @@
 </script>
 
 <div class="flex flex-col h-screen bg-gray-50">
-  <div class="w-full max-w-lg mx-auto px-4 py-6 grow-1 overflow-x-auto">
-    <!-- Header -->
-    <h1 class="text-2xl font-bold text-gray-800 mb-1">History</h1>
+  <!-- Make content take full width and be scrollable horizontally and vertically -->
+  <div class="w-full px-4 py-6 flex-1 overflow-auto">
+    <!-- Inner centered container to preserve original max-width layout -->
+    <div class="w-full max-w-lg mx-auto">
+      <!-- Header -->
+      <h1 class="text-2xl font-bold text-gray-800 mb-1">History</h1>
+    <!-- Monthly Balance Component -->
+    <MonthlyBalance
+      year={currentMonth.year()}
+      month={currentMonth.month() + 1}
+    />
+
+    <!-- Charts Component -->
+    <HistoryCharts
+      {buttons}
+      {timeLogs}
+      {currentMonth}
+      onDateSelect={selectDate}
+    />
+
     <div class="flex justify-between items-center mt-6 mb-6">
       <div class="flex items-center gap-2">
         <!-- Month Navigation -->
@@ -263,29 +280,16 @@
       onSelectDate={selectDate}
     />
 
-    <!-- Monthly Balance Component -->
-    <MonthlyBalance
-      year={currentMonth.year()}
-      month={currentMonth.month() + 1}
-    />
-
-    <!-- Charts Component -->
-    <HistoryCharts
-      {buttons}
-      {timeLogs}
-      {currentMonth}
-      onDateSelect={selectDate}
-    />
-
-    <!-- Logs Component with Filter -->
-    <HistoryLogs
-      {selectedDate}
-      {timeLogs}
-      {buttons}
-      onAddTimelog={handleAddTimelog}
-      onEditTimelog={handleEditTimelog}
-      onDeleteTimelog={confirmDelete}
-    />
+      <!-- Logs Component with Filter -->
+      <HistoryLogs
+        {selectedDate}
+        {timeLogs}
+        {buttons}
+        onAddTimelog={handleAddTimelog}
+        onEditTimelog={handleEditTimelog}
+        onDeleteTimelog={confirmDelete}
+      />
+    </div>
   </div>
 
   <BottomNav currentTab="history" />

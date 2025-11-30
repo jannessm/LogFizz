@@ -16,6 +16,7 @@
   let colors: string[] = [];
   let refreshTick = 0; // Used to trigger reactivity for running sessions
   let intervalId: number | undefined;
+  let chartCreated = false;
 
   // Update chart when data changes
   $: if (canvas && (timeLogs.length > 0 || refreshTick)) {
@@ -78,14 +79,19 @@
 
   function updateChart() {
     if (!canvas) return;
-    
-    // Destroy existing chart
-    if (chart) {
-      chart.destroy();
-      chart = null;
+
+    // If chart exists, update its data without animation
+    if (chart && labels.length > 0) {
+  chart.data.labels = labels.map(l => l + ': ' + numberToHoursMinutes(data[labels.indexOf(l)]));
+  (chart.data.datasets as any)[0].data = data;
+  (chart.data.datasets as any)[0].backgroundColor = colors;
+  (chart.options as any).animation = false;
+  chart.update();
+      chartCreated = true;
+      return;
     }
-    
-    // Create new chart if we have data
+
+    // Create new chart (animate on first creation only)
     if (labels.length > 0) {
       chart = new Chart(canvas, {
         type: 'pie',
@@ -99,6 +105,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: chartCreated ? false : undefined,
           plugins: {
             legend: {
               position: 'right',
@@ -112,6 +119,7 @@
           }
         }
       });
+      chartCreated = true;
     }
   }
 

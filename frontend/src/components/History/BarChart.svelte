@@ -19,6 +19,7 @@
   let chart: Chart | null = null;
   let refreshTick = 0; // Used to trigger reactivity for running sessions
   let intervalId: number | undefined;
+  let chartCreated = false;
 
   // Update chart when data changes
   $: if (canvas && (timeLogs.length > 0 || refreshTick) && buttons.length > 0) {
@@ -78,16 +79,10 @@
   
   function updateChart() {
     if (!canvas) return;
-    
-    // Destroy existing chart
-    if (chart) {
-      chart.destroy();
-      chart = null;
-    }
-    
+
     // Get stacked data per button
     const buttonDailyData = getDailyStatsPerButton();
-    
+
     // Create datasets for each button
     const datasets = buttons.map(button => {
       const buttonData = buttonDailyData.get(button.id) || [];
@@ -99,8 +94,18 @@
         borderWidth: 1
       };
     });
-    
-    // Create new stacked chart
+
+    // If chart exists, update data without animation
+    if (chart) {
+  chart.data.labels = labels;
+  chart.data.datasets = datasets as any;
+  (chart.options as any).animation = false;
+  chart.update();
+      chartCreated = true;
+      return;
+    }
+
+    // Create new stacked chart (animate on first creation only)
     chart = new Chart(canvas, {
       type: 'bar',
       data: {
@@ -110,6 +115,7 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: chartCreated ? false : undefined,
         onClick: (event, elements) => {
           if (elements.length > 0) {
             const index = elements[0].index;
@@ -161,6 +167,7 @@
         }
       }
     });
+    chartCreated = true;
   }
 
   // Check if there are any running sessions
