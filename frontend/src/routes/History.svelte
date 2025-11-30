@@ -287,7 +287,6 @@
         {buttons}
         onAddTimelog={handleAddTimelog}
         onEditTimelog={handleEditTimelog}
-        onDeleteTimelog={confirmDelete}
       />
     </div>
   </div>
