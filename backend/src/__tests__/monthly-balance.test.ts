@@ -603,6 +603,289 @@ describe('Monthly Balance Calculations', () => {
     });
   });
 
+  describe('Ending At Date Handling', () => {
+    it('should not count due time after ending_at date', async () => {
+      // Create target ending mid-month (Jan 15, 2025)
+      const targetResponse = await app.inject({
+        method: 'POST',
+        url: '/api/targets/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          targets: [{
+            id: '550e8400-e29b-41d4-a716-446655440200',
+            name: 'End Mid-Month Target',
+            duration_minutes: [480], // 8 hours
+            weekdays: [1], // Monday only
+            exclude_holidays: false,
+            starting_from: '2025-01-01T00:00:00.000Z',
+            ending_at: '2025-01-15T00:00:00.000Z', // Mid-January
+          }],
+        },
+      });
+
+      expect(targetResponse.statusCode).toBe(200);
+      targetId = '550e8400-e29b-41d4-a716-446655440200';
+
+      // Create button
+      await app.inject({
+        method: 'POST',
+        url: '/api/buttons/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          buttons: [{
+            id: '550e8400-e29b-41d4-a716-446655440201',
+            name: 'Test Button',
+            auto_subtract_breaks: false,
+            target_id: targetId,
+          }],
+        },
+      });
+
+      buttonId = '550e8400-e29b-41d4-a716-446655440201';
+
+      // Create time log on Jan 6 (Monday within ending_at range)
+      await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          timeLogs: [
+            {
+              id: '550e8400-e29b-41d4-a716-446655440202',
+              button_id: buttonId,
+              start_timestamp: '2025-01-06T09:00:00.000Z',
+              end_timestamp: '2025-01-06T17:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      });
+
+      // Manually trigger monthly balance recalculation
+      await monthlyBalanceService.recalculateAffectedMonthlyBalances(
+        userId,
+        [{ start_timestamp: new Date('2025-01-06T09:00:00.000Z'), button_id: buttonId }]
+      );
+
+      // Get monthly balance
+      const syncResponse = await app.inject({
+        method: 'GET',
+        url: '/api/monthly-balances/sync?since=1970-01-01T00:00:00.000Z',
+        headers: { cookie: sessionCookie },
+      });
+
+      expect(syncResponse.statusCode).toBe(200);
+      const data = JSON.parse(syncResponse.payload);
+
+      const janBalance = data.monthlyBalances.find(
+        (b: any) => b.year === 2025 && b.month === 1 && b.target_id === targetId
+      );
+
+      expect(janBalance).toBeDefined();
+      // Only Mondays on or before Jan 15: 6, 13 = 2 Mondays
+      // Due = 2 * 480 = 960 minutes
+      expect(janBalance.due_minutes).toBe(960);
+      expect(janBalance.worked_minutes).toBe(480);
+      // Balance = 480 - 960 = -480
+      expect(janBalance.balance_minutes).toBe(-480);
+    });
+
+    it('should not calculate balance for months entirely after ending_at', async () => {
+      // Create target ending in January 2025
+      const targetResponse = await app.inject({
+        method: 'POST',
+        url: '/api/targets/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          targets: [{
+            id: '550e8400-e29b-41d4-a716-446655440210',
+            name: 'Jan End Target',
+            duration_minutes: [480],
+            weekdays: [1],
+            exclude_holidays: false,
+            starting_from: '2025-01-01T00:00:00.000Z',
+            ending_at: '2025-01-31T00:00:00.000Z', // End of January
+          }],
+        },
+      });
+
+      expect(targetResponse.statusCode).toBe(200);
+      targetId = '550e8400-e29b-41d4-a716-446655440210';
+
+      // Create button
+      await app.inject({
+        method: 'POST',
+        url: '/api/buttons/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          buttons: [{
+            id: '550e8400-e29b-41d4-a716-446655440211',
+            name: 'Test Button',
+            auto_subtract_breaks: false,
+            target_id: targetId,
+          }],
+        },
+      });
+
+      buttonId = '550e8400-e29b-41d4-a716-446655440211';
+
+      // Create time logs in January and February
+      await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          timeLogs: [
+            {
+              id: '550e8400-e29b-41d4-a716-446655440212',
+              button_id: buttonId,
+              start_timestamp: '2025-01-06T09:00:00.000Z',
+              end_timestamp: '2025-01-06T17:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: '550e8400-e29b-41d4-a716-446655440213',
+              button_id: buttonId,
+              start_timestamp: '2025-02-03T09:00:00.000Z', // After ending_at
+              end_timestamp: '2025-02-03T17:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      });
+
+      // Manually trigger monthly balance recalculation
+      await monthlyBalanceService.recalculateAffectedMonthlyBalances(
+        userId,
+        [{ start_timestamp: new Date('2025-01-06T09:00:00.000Z'), button_id: buttonId }]
+      );
+
+      // Get monthly balances
+      const syncResponse = await app.inject({
+        method: 'GET',
+        url: '/api/monthly-balances/sync?since=1970-01-01T00:00:00.000Z',
+        headers: { cookie: sessionCookie },
+      });
+
+      expect(syncResponse.statusCode).toBe(200);
+      const data = JSON.parse(syncResponse.payload);
+
+      const janBalance = data.monthlyBalances.find(
+        (b: any) => b.year === 2025 && b.month === 1 && b.target_id === targetId
+      );
+
+      const febBalance = data.monthlyBalances.find(
+        (b: any) => b.year === 2025 && b.month === 2 && b.target_id === targetId
+      );
+
+      expect(janBalance).toBeDefined();
+      // January should have balance calculated
+      expect(janBalance.worked_minutes).toBe(480);
+
+      // February should NOT have any balance because ending_at is in January
+      expect(febBalance).toBeUndefined();
+    });
+
+    it('should not include time logs after ending_at in worked minutes', async () => {
+      // Create target ending mid-month
+      const targetResponse = await app.inject({
+        method: 'POST',
+        url: '/api/targets/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          targets: [{
+            id: '550e8400-e29b-41d4-a716-446655440220',
+            name: 'Time Log Filter Target',
+            duration_minutes: [480], // 8 hours
+            weekdays: [1], // Monday only
+            exclude_holidays: false,
+            starting_from: '2025-01-01T00:00:00.000Z',
+            ending_at: '2025-01-13T00:00:00.000Z', // Ends on Jan 13 (before Jan 20)
+          }],
+        },
+      });
+
+      expect(targetResponse.statusCode).toBe(200);
+      targetId = '550e8400-e29b-41d4-a716-446655440220';
+
+      // Create button
+      await app.inject({
+        method: 'POST',
+        url: '/api/buttons/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          buttons: [{
+            id: '550e8400-e29b-41d4-a716-446655440221',
+            name: 'Test Button',
+            auto_subtract_breaks: false,
+            target_id: targetId,
+          }],
+        },
+      });
+
+      buttonId = '550e8400-e29b-41d4-a716-446655440221';
+
+      // Create time logs - one before ending_at, one after
+      await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          timeLogs: [
+            {
+              id: '550e8400-e29b-41d4-a716-446655440222',
+              button_id: buttonId,
+              start_timestamp: '2025-01-06T09:00:00.000Z', // Before ending_at
+              end_timestamp: '2025-01-06T17:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+            {
+              id: '550e8400-e29b-41d4-a716-446655440223',
+              button_id: buttonId,
+              start_timestamp: '2025-01-20T09:00:00.000Z', // After ending_at
+              end_timestamp: '2025-01-20T17:00:00.000Z',
+              timezone: 'UTC',
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      });
+
+      // Manually trigger monthly balance recalculation
+      await monthlyBalanceService.recalculateAffectedMonthlyBalances(
+        userId,
+        [{ start_timestamp: new Date('2025-01-06T09:00:00.000Z'), button_id: buttonId }]
+      );
+
+      // Get monthly balance
+      const syncResponse = await app.inject({
+        method: 'GET',
+        url: '/api/monthly-balances/sync?since=1970-01-01T00:00:00.000Z',
+        headers: { cookie: sessionCookie },
+      });
+
+      expect(syncResponse.statusCode).toBe(200);
+      const data = JSON.parse(syncResponse.payload);
+
+      const janBalance = data.monthlyBalances.find(
+        (b: any) => b.year === 2025 && b.month === 1 && b.target_id === targetId
+      );
+
+      expect(janBalance).toBeDefined();
+      // Should only count the time log from Jan 6, not Jan 20
+      // Because ending_at is Jan 13
+      expect(janBalance.worked_minutes).toBe(480); // Only the Jan 6 log
+
+      // Due minutes should be for Mondays up to Jan 13: only Jan 6 and Jan 13
+      // Jan 6 is Monday, Jan 13 is Monday = 2 Mondays
+      expect(janBalance.due_minutes).toBe(960);
+    });
+  });
+
   describe('Break Subtraction', () => {
     it('should subtract breaks when auto_subtract_breaks is enabled', async () => {
       // Create target
