@@ -6,8 +6,11 @@
   import HistoryCalendar from '../components/History/HistoryCalendar.svelte';
   import HistoryLogs from '../components/History/HistoryLogs.svelte';
   import MonthlyBalance from '../components/History/MonthlyBalance.svelte';
+  import ImportTimelogsMenu from '../components/History/ImportTimelogsMenu.svelte';
+  import ImportTimelogsModal from '../components/History/ImportTimelogsModal.svelte';
   import { timeLogsStore } from '../stores/timelogs';
   import { buttonsStore } from '../stores/buttons';
+  import { snackbar } from '../stores/snackbar';
   import dayjs from 'dayjs';
 
   // Initialize from URL query parameters if available
@@ -46,6 +49,8 @@
   let editingTimelog: any = null;
   let showDeleteConfirm = false;
   let deleteTarget: any = null;
+  let showImportModal = false;
+  let importFileType: 'csv' | 'pdf' = 'csv';
 
   // Update URL when dates change
   function updateURL() {
@@ -195,6 +200,36 @@
     showDeleteConfirm = false;
     deleteTarget = null;
   }
+
+  function handleImportMenuSelect(event: CustomEvent<{ type: 'csv' | 'pdf' }>) {
+    importFileType = event.detail.type;
+    showImportModal = true;
+  }
+
+  function handleImportClose() {
+    showImportModal = false;
+  }
+
+  async function handleImportConfirm(event: CustomEvent<{ buttonId: string; timelogs: { start_timestamp: string; end_timestamp: string }[]; skippedCount: number }>) {
+    const { buttonId, timelogs, skippedCount } = event.detail;
+    
+    // Create all timelogs
+    for (const log of timelogs) {
+      await timeLogsStore.createManual({
+        button_id: buttonId,
+        start_timestamp: log.start_timestamp,
+        end_timestamp: log.end_timestamp,
+      });
+    }
+    
+    showImportModal = false;
+    
+    // Show success message
+    const successMessage = skippedCount > 0 
+      ? `Successfully imported ${timelogs.length} timelogs. ${skippedCount} rows were skipped.`
+      : `Successfully imported ${timelogs.length} timelogs.`;
+    snackbar.success(successMessage);
+  }
 </script>
 
 <div class="flex flex-col h-screen bg-gray-50">
@@ -203,7 +238,10 @@
     <!-- Inner centered container to preserve original max-width layout -->
     <div class="w-full max-w-lg mx-auto">
       <!-- Header -->
-      <h1 class="text-2xl font-bold text-gray-800 mb-1">History</h1>
+      <div class="flex justify-between items-center mb-1">
+        <h1 class="text-2xl font-bold text-gray-800">History</h1>
+        <ImportTimelogsMenu on:import={handleImportMenuSelect} />
+      </div>
     <!-- Monthly Balance Component -->
     <MonthlyBalance
       year={currentMonth.year()}
@@ -358,6 +396,15 @@
         </div>
       </div>
     </div>
+  {/if}
+
+  <!-- Import Timelogs Modal -->
+  {#if showImportModal}
+    <ImportTimelogsModal
+      fileType={importFileType}
+      on:close={handleImportClose}
+      on:import={handleImportConfirm}
+    />
   {/if}
 </div>
 
