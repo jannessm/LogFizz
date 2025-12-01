@@ -78,8 +78,9 @@ self.addEventListener('fetch', (event) => {
         // Return cached response and update cache in background
         fetch(request)
           .then((response) => {
+            const responseClone = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, response);
+              cache.put(request, responseClone);
             });
           })
           .catch(() => {
