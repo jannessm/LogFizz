@@ -6,7 +6,6 @@
   import HistoryCalendar from '../components/History/HistoryCalendar.svelte';
   import HistoryLogs from '../components/History/HistoryLogs.svelte';
   import MonthlyBalance from '../components/History/MonthlyBalance.svelte';
-  import ImportTimelogsMenu from '../components/History/ImportTimelogsMenu.svelte';
   import ImportTimelogsModal from '../components/History/ImportTimelogsModal.svelte';
   import { timeLogsStore } from '../stores/timelogs';
   import { buttonsStore } from '../stores/buttons';
@@ -50,7 +49,6 @@
   let showDeleteConfirm = false;
   let deleteTarget: any = null;
   let showImportModal = false;
-  let importFileType: 'csv' | 'pdf' = 'csv';
 
   // Update URL when dates change
   function updateURL() {
@@ -201,8 +199,7 @@
     deleteTarget = null;
   }
 
-  function handleImportMenuSelect(event: CustomEvent<{ type: 'csv' | 'pdf' }>) {
-    importFileType = event.detail.type;
+  function handleImportClick() {
     showImportModal = true;
   }
 
@@ -242,7 +239,12 @@
       <!-- Header -->
       <div class="flex justify-between items-center mb-1">
         <h1 class="text-2xl font-bold text-gray-800">History</h1>
-        <ImportTimelogsMenu on:import={handleImportMenuSelect} />
+        <button
+          on:click={handleImportClick}
+          class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--file-upload-duotone]"
+          style="width: 28px; height: 28px;"
+          aria-label="Import timelogs"
+        ></button>
       </div>
     <!-- Monthly Balance Component -->
     <MonthlyBalance
@@ -403,7 +405,6 @@
   <!-- Import Timelogs Modal -->
   {#if showImportModal}
     <ImportTimelogsModal
-      fileType={importFileType}
       on:close={handleImportClose}
       on:import={handleImportConfirm}
     />

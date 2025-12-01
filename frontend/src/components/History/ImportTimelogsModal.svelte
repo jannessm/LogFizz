@@ -3,8 +3,6 @@
   import dayjs from 'dayjs';
   import { buttonsStore } from '../../stores/buttons';
 
-  export let fileType: 'csv' | 'pdf';
-
   const dispatch = createEventDispatcher();
 
   // Constants
@@ -23,6 +21,7 @@
   const MAX_DISPLAYED_ERRORS = 5;
 
   let file: File | null = null;
+  let fileType: 'csv' | 'pdf' | null = null;
   let fileInput: HTMLInputElement;
   let step: 'upload' | 'mapping' | 'confirm' = 'upload';
   let parsedData: string[][] = [];
@@ -33,6 +32,13 @@
   let previewLogs: { start: string; end: string; isValid: boolean }[] = [];
   let errorMessage: string = '';
 
+  function detectFileType(fileName: string): 'csv' | 'pdf' | null {
+    const extension = fileName.toLowerCase().split('.').pop();
+    if (extension === 'csv') return 'csv';
+    if (extension === 'pdf') return 'pdf';
+    return null;
+  }
+
   $: buttons = $buttonsStore.buttons;
 
   function handleClose() {
@@ -42,7 +48,18 @@
   function handleFileSelect(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      file = input.files[0];
+      const selectedFile = input.files[0];
+      const detectedType = detectFileType(selectedFile.name);
+      
+      if (!detectedType) {
+        errorMessage = 'Please upload a CSV or PDF file';
+        file = null;
+        fileType = null;
+        return;
+      }
+      
+      file = selectedFile;
+      fileType = detectedType;
       errorMessage = '';
     }
   }
@@ -51,19 +68,18 @@
     event.preventDefault();
     if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
       const droppedFile = event.dataTransfer.files[0];
-      const validTypes = fileType === 'csv' 
-        ? ['text/csv', 'application/vnd.ms-excel', '.csv']
-        : ['application/pdf'];
+      const detectedType = detectFileType(droppedFile.name);
       
-      if (fileType === 'csv' && (droppedFile.type === 'text/csv' || droppedFile.name.endsWith('.csv'))) {
-        file = droppedFile;
-        errorMessage = '';
-      } else if (fileType === 'pdf' && droppedFile.type === 'application/pdf') {
-        file = droppedFile;
-        errorMessage = '';
-      } else {
-        errorMessage = `Please upload a ${fileType.toUpperCase()} file`;
+      if (!detectedType) {
+        errorMessage = 'Please upload a CSV or PDF file';
+        file = null;
+        fileType = null;
+        return;
       }
+      
+      file = droppedFile;
+      fileType = detectedType;
+      errorMessage = '';
     }
   }
 
@@ -361,7 +377,7 @@
     <!-- Header -->
     <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
       <h2 class="text-xl font-semibold text-gray-800">
-        Import Timelogs from {fileType.toUpperCase()}
+        Import Timelogs{#if fileType} from {fileType.toUpperCase()}{/if}
       </h2>
       <button
         on:click={handleClose}
@@ -424,7 +440,7 @@
           <input
             bind:this={fileInput}
             type="file"
-            accept={fileType === 'csv' ? '.csv,text/csv' : '.pdf,application/pdf'}
+            accept=".csv,text/csv,.pdf,application/pdf"
             on:change={handleFileSelect}
             class="hidden"
           />
@@ -433,7 +449,7 @@
             {#if file}
               Selected: <span class="font-medium">{file.name}</span>
             {:else}
-              Drag and drop your {fileType.toUpperCase()} file here
+              Drag and drop your CSV or PDF file here
             {/if}
           </p>
           <p class="text-sm text-gray-500">or click to browse</p>
