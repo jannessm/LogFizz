@@ -16,6 +16,8 @@
   let elapsedTime = 0;
   let todayTime = 0;
   let interval: number | null = null;
+  let longPressTimer: number | null = null;
+  let isLongPressTriggered = false;
 
   $: activeTimer = $timeLogsStore.activeTimers.filter(t => t.button_id === button.id)[0];
   $: isActive = activeTimer !== undefined;
@@ -65,17 +67,39 @@
 
   onDestroy(() => {
     if (interval) clearInterval(interval);
+    if (longPressTimer) clearTimeout(longPressTimer);
   });
 
+  function handlePointerDown() {
+    isLongPressTriggered = false;
+    longPressTimer = setTimeout(() => {
+      isLongPressTriggered = true;
+      dispatch('longpress', { button, isActive });
+    }, 500) as unknown as number;
+  }
+
+  function handlePointerUp() {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
   async function handleClick() {
+    // Don't trigger click if long press was triggered
+    if (isLongPressTriggered) {
+      isLongPressTriggered = false;
+      return;
+    }
+
     if (editMode) {
       dispatch('edit');
       return;
     }
 
     if (isActive && activeTimer) {
-      // Stop timer
-      await timeLogsStore.stopTimer(activeTimer.id);
+      // Stop timer - dispatch event before stopping to allow parent to intercept
+      dispatch('timerstopped', { timer: activeTimer, button });
     } else {
       if (toggleMode) {
         // Stop any other active timers first
@@ -124,6 +148,9 @@
   
   <button
     on:click={handleClick}
+    on:pointerdown={handlePointerDown}
+    on:pointerup={handlePointerUp}
+    on:pointerleave={handlePointerUp}
     class="relative aspect-square p-4 transition-all duration-300 flex flex-col items-center justify-center text-white w-full overflow-visible min-w-[150px] min-h-[150px] rounded-full"
     class:has-pulse={isActive}
     style="--button-color: {button.color || '#3B82F6'}; background-color: {button.color || '#3B82F6'}"

@@ -8,6 +8,7 @@
   import { authStore } from '../stores/auth';
   import { syncService } from '../services/sync';
   import { navigate } from '../lib/navigation';
+  import { getSetting, saveSetting } from '../lib/db';
   // Import version from frontend package.json
   // Vite allows importing JSON files directly
   import pkg from '../../package.json';
@@ -17,6 +18,7 @@
   let hasPendingSync = false;
   let errorMessage = '';
   let successMessage = '';
+  let editOnStopEnabled = true;
 
   $: user = $authStore.user;
   $: isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
@@ -27,6 +29,8 @@
       originalName = user.name;
     }
     hasPendingSync = await syncService.hasPendingSync();
+    const setting = await getSetting('editOnStop');
+    editOnStopEnabled = setting !== false; // default true
   });
 
   async function handleProfileUpdate(event: CustomEvent) {
@@ -76,6 +80,10 @@
     errorMessage = event.detail;
     successMessage = '';
   }
+
+  async function handleToggleEditOnStop() {
+    await saveSetting('editOnStop', editOnStopEnabled);
+  }
 </script>
 
 <div class="h-screen bg-gray-50 flex flex-col">
@@ -107,6 +115,23 @@
         {isOnline}
         on:sync={handleSync}
       />
+
+      <!-- Timer Behavior -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Timer Behavior</h3>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            bind:checked={editOnStopEnabled}
+            on:change={handleToggleEditOnStop}
+            class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+          />
+          <span class="text-gray-700">Open edit form when stopping timers</span>
+        </label>
+        <p class="text-sm text-gray-500 mt-2 ml-6">
+          When enabled, stopping a timer will open the edit form so you can add notes immediately.
+        </p>
+      </div>
 
       <!-- Logout -->
       <div class="bg-white rounded-lg shadow-md p-6">
