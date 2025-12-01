@@ -199,7 +199,7 @@
   
   {#if filteredSessions.length > 0}
     <!-- Timeline View -->
-    <div class="flex gap-4">
+    <div class="flex gap-4 mb-[60px]">
       <!-- Time Labels (Y-Axis) -->
       <div class="flex-1 grow-0 text-gray-500 relative" style="min-width: 50px;">
         {#each hourLabels as label, index}
@@ -210,7 +210,7 @@
       </div>
 
       <!-- Timeline Container -->
-  <div class="flex-1 relative border-l-2 border-gray-200" style="min-height: {timelineHeight}px;">
+      <div class="flex-1 relative border-l-2 border-gray-200" style="min-height: {timelineHeight}px;">
         <!-- Hour grid lines -->
         {#each hourLabels as _, index}
           <div 

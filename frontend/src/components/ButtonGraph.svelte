@@ -24,6 +24,14 @@
     dispatch('edit', button);
   }
 
+  function handleLongPress(event: CustomEvent) {
+    dispatch('longpress', event.detail);
+  }
+
+  function handleTimerStopped(event: CustomEvent) {
+    dispatch('timerstopped', event.detail);
+  }
+
   onMount(() => {
     if (containerEl) {
       const rect = containerEl.getBoundingClientRect();
@@ -76,6 +84,8 @@
             {editMode}
             {toggleMode}
             on:edit={() => handleEdit(button)}
+            on:longpress={handleLongPress}
+            on:timerstopped={handleTimerStopped}
           />
         </div>
       {/if}
