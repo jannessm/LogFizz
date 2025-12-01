@@ -12,10 +12,9 @@ export interface User {
     deleted_at?: string;
 }
 export interface State {
-    id: string;
+    code: string;
     country: string;
     state: string;
-    code: string;
 }
 export interface Button {
     id: string;
@@ -36,8 +35,9 @@ export interface DailyTarget {
     duration_minutes: number[];
     weekdays: number[];
     exclude_holidays: boolean;
-    state_id?: string;
+    state_code?: string;
     starting_from?: string;
+    ending_at?: string;
     created_at: string;
     updated_at: string;
     deleted_at?: string;
@@ -118,8 +118,9 @@ export interface ButtonEntity extends Omit<Button, 'created_at' | 'updated_at' |
     updated_at: Date;
     deleted_at?: Date;
 }
-export interface DailyTargetEntity extends Omit<DailyTarget, 'starting_from' | 'created_at' | 'updated_at' | 'deleted_at'> {
+export interface DailyTargetEntity extends Omit<DailyTarget, 'starting_from' | 'ending_at' | 'created_at' | 'updated_at' | 'deleted_at'> {
     starting_from?: Date;
+    ending_at?: Date;
     created_at: Date;
     updated_at: Date;
     deleted_at?: Date;
@@ -154,9 +155,8 @@ export interface HolidayMetadataEntity extends Omit<HolidayMetadata, 'last_updat
     last_updated: Date;
 }
 export interface StateEntity {
-    id: string;
+    code: string;
     country: string;
     state: string;
-    code: string;
 }
 //# sourceMappingURL=index.d.ts.map

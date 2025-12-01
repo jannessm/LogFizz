@@ -27,6 +27,9 @@ export class DailyTarget implements DailyTargetEntity {
   @Column('timestamptz', { nullable: true })
   starting_from?: Date;
 
+  @Column('timestamptz', { nullable: true })
+  ending_at?: Date;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 

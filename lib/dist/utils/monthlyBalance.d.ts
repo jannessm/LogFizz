@@ -11,6 +11,7 @@ export interface DailyTarget {
     weekdays: number[];
     duration_minutes: number[];
     starting_from?: Date | null;
+    ending_at?: Date | null;
 }
 /**
  * Calculate total worked minutes from time logs
@@ -28,8 +29,9 @@ export declare function calculateWorkedMinutes(timeLogs: TimeLog[], rawData?: Ar
 /**
  * Calculate due minutes based on target and month
  * Respects starting_from date - only counts days on or after starting_from
+ * Respects ending_at date - only counts days on or before ending_at
  *
- * @param target - Daily target with weekdays, duration_minutes, and starting_from
+ * @param target - Daily target with weekdays, duration_minutes, starting_from, and ending_at
  * @param year - Year (e.g., 2025)
  * @param month - Month (1-12)
  * @param holidays - Set of holiday dates in YYYY-MM-DD format to exclude

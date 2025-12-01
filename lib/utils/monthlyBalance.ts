@@ -23,6 +23,7 @@ export interface DailyTarget {
   weekdays: number[]; // 0=Sunday, 6=Saturday
   duration_minutes: number[]; // Duration for each weekday
   starting_from?: Date | null;
+  ending_at?: Date | null; // Date at which tracking ends (balance calculated only up to this date)
 }
 
 /**
@@ -75,8 +76,9 @@ export function calculateWorkedMinutes(
 /**
  * Calculate due minutes based on target and month
  * Respects starting_from date - only counts days on or after starting_from
+ * Respects ending_at date - only counts days on or before ending_at
  * 
- * @param target - Daily target with weekdays, duration_minutes, and starting_from
+ * @param target - Daily target with weekdays, duration_minutes, starting_from, and ending_at
  * @param year - Year (e.g., 2025)
  * @param month - Month (1-12)
  * @param holidays - Set of holiday dates in YYYY-MM-DD format to exclude
@@ -92,6 +94,9 @@ export function calculateDueMinutes(
 
   // Get starting_from date if set
   const startingFrom = target.starting_from ? dayjs(target.starting_from).utc() : null;
+  
+  // Get ending_at date if set
+  const endingAt = target.ending_at ? dayjs(target.ending_at).utc() : null;
 
   // Iterate through each day of the month using dayjs
   const monthStart = dayjs.utc(`${year}-${month.toString().padStart(2, '0')}-01`);
@@ -100,7 +105,20 @@ export function calculateDueMinutes(
   // Get today's date to avoid counting future days in the current month
   const today = dayjs().utc();
   const isCurrentMonth = today.year() === year && today.month() + 1 === month;
-  const lastDayToCount = isCurrentMonth ? Math.min(today.date(), daysInMonth) : daysInMonth;
+  let lastDayToCount = isCurrentMonth ? Math.min(today.date(), daysInMonth) : daysInMonth;
+  
+  // If ending_at is set and is in this month, limit lastDayToCount to ending_at
+  if (endingAt) {
+    const endingAtYear = endingAt.year();
+    const endingAtMonth = endingAt.month() + 1;
+    if (endingAtYear === year && endingAtMonth === month) {
+      // ending_at is in this month, limit to ending_at date
+      lastDayToCount = Math.min(lastDayToCount, endingAt.date());
+    } else if (endingAt.isBefore(monthStart)) {
+      // The entire month is after ending_at, no due minutes
+      return 0;
+    }
+  }
   
   for (let day = 1; day <= lastDayToCount; day++) {
     const date = monthStart.date(day);
@@ -109,6 +127,11 @@ export function calculateDueMinutes(
 
     // Skip days before starting_from
     if (startingFrom && date.isBefore(startingFrom, 'day')) {
+      continue;
+    }
+    
+    // Skip days after ending_at
+    if (endingAt && date.isAfter(endingAt, 'day')) {
       continue;
     }
 
