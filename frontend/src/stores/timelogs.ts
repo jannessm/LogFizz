@@ -195,7 +195,7 @@ function createTimeLogsStore() {
       }
     },
 
-    async stopTimer(id: string) {
+    async stopTimer(id: string, notes?: string) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
         // Find the running timer and update it with end_timestamp
@@ -212,6 +212,7 @@ function createTimeLogsStore() {
           end_timestamp: now.toISOString(),
           duration_minutes: durationMinutes,
           updated_at: now.toISOString(),
+          ...(notes !== undefined && { notes }),
         };
         
         await syncService.queueTimeLogUpdate(updatedTimeLog);

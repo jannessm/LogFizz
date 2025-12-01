@@ -150,7 +150,7 @@
   }
 
   async function handleSaveTimelog(event: CustomEvent) {
-    const { button_id, startTimestamp, endTimestamp, existingLog } = event.detail;
+    const { button_id, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
     
     if (existingLog && existingLog.log) {
       // Editing existing timelog session - update it
@@ -158,6 +158,7 @@
         button_id,
         start_timestamp: startTimestamp,
         end_timestamp: endTimestamp || undefined,
+        notes: notes || undefined,
       });
     } else {
       // Creating new timelog session
@@ -165,6 +166,7 @@
         button_id,
         start_timestamp: startTimestamp,
         end_timestamp: endTimestamp || undefined,
+        notes: notes || undefined,
       });
     }
     
