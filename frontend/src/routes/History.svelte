@@ -162,7 +162,7 @@
       });
     } else {
       // Creating new timelog session
-      await timeLogsStore.createManual({
+      await timeLogsStore.create({
         button_id,
         start_timestamp: startTimestamp,
         end_timestamp: endTimestamp || undefined,

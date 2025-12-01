@@ -93,7 +93,6 @@ export const timeLogApi = {
   getTodayTime: vi.fn().mockResolvedValue({ total_minutes: 480 }),
   getYearlyStats: vi.fn().mockResolvedValue([]),
   getGoalProgress: vi.fn().mockResolvedValue({ achieved: true, percentage: 100 }),
-  createManual: vi.fn().mockResolvedValue(mockTimeLog),
   update: vi.fn().mockResolvedValue(mockTimeLog),
   delete: vi.fn().mockResolvedValue(undefined),
   getSyncChanges: vi.fn().mockResolvedValue({ timeLogs: [mockTimeLog], cursor: new Date().toISOString() }),
