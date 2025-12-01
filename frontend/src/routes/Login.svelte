@@ -2,6 +2,7 @@
   import { authStore } from '../stores/auth';
   import { navigate } from '../lib/navigation';
   import HCaptcha from '../components/HCaptcha.svelte';
+  import { onMount, onDestroy } from 'svelte';
 
   let email = '';
   let password = '';
@@ -11,8 +12,27 @@
   let isLoading = false;
   let hcaptchaToken = '';
   let hcaptchaComponent: { reset: () => void } | undefined = undefined;
+  let isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
   const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || '';
+
+  function updateOnlineStatus() {
+    if (typeof navigator !== 'undefined') {
+      isOnline = navigator.onLine;
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+  });
+
+  onDestroy(() => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+    }
+  });
 
   function handleHCaptchaVerify(token: string) {
     hcaptchaToken = token;
@@ -139,7 +159,8 @@
             <button
               type="button"
               on:click={() => navigate('/forgot-password')}
-              class="text-xs text-blue-600 hover:underline"
+              disabled={!isOnline}
+              class="text-xs text-blue-600 hover:underline disabled:text-gray-400 disabled:cursor-not-allowed disabled:no-underline"
             >
               Forgot password?
             </button>
@@ -159,17 +180,22 @@
 
       <button
         type="submit"
-        disabled={isLoading || (!hcaptchaToken && !!HCAPTCHA_SITE_KEY)}
+        disabled={isLoading || !isOnline || (!hcaptchaToken && !!HCAPTCHA_SITE_KEY)}
         class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
       >
-        {isLoading ? 'Please wait...' : isRegisterMode ? 'Register' : 'Login'}
+        {#if !isOnline}
+          Offline
+        {:else}
+          {isLoading ? 'Please wait...' : isRegisterMode ? 'Register' : 'Login'}
+        {/if}
       </button>
     </form>
 
     <div class="mt-6 text-center">
       <button
         on:click={toggleMode}
-        class="text-blue-600 hover:underline text-sm"
+        disabled={!isOnline}
+        class="text-blue-600 hover:underline text-sm disabled:text-gray-400 disabled:cursor-not-allowed disabled:no-underline"
       >
         {isRegisterMode 
           ? 'Already have an account? Login' 
