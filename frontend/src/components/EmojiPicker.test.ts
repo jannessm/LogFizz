@@ -13,10 +13,10 @@ describe('EmojiPicker Component', () => {
     expect(button).toBeInTheDocument();
   });
 
-  it('shows placeholder emoji when no value is set', () => {
+  it('shows placeholder text when no value is set', () => {
     render(EmojiPicker, { props: { value: '' } });
     const button = screen.getByRole('button', { name: /select emoji/i });
-    expect(button).toHaveTextContent('😀');
+    expect(button).toHaveTextContent('Emoji (optional)');
   });
 
   it('shows the selected emoji when value is set', () => {
