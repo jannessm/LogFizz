@@ -130,7 +130,11 @@ function createButtonsStore() {
           const index = state.buttons.findIndex(b => b.id === id);
           if (index === -1) throw new Error('Button not found');
           
-          const updatedButton = { ...state.buttons[index], ...updates };
+          const updatedButton = { 
+            ...state.buttons[index], 
+            ...updates,
+            updated_at: new Date().toISOString()
+          };
           
           if (isOnline()) {
             buttonApi.update(id, updates)

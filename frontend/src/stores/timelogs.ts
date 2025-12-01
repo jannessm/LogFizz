@@ -291,15 +291,7 @@ function createTimeLogsStore() {
       }
     },
 
-    async create(buttonId: string, startTimestamp: string, endTimestamp?: string) {
-      return this.createManual({
-        button_id: buttonId,
-        start_timestamp: startTimestamp,
-        end_timestamp: endTimestamp,
-      });
-    },
-
-    async createManual(timeLogData: Partial<TimeLog>) {
+    async create(timeLogData: Partial<TimeLog>) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
         // Determine applyBreaks from button settings (button.auto_subtract_breaks)
@@ -338,40 +330,19 @@ function createTimeLogsStore() {
           updated_at: new Date().toISOString(),
         };
 
-        if (isOnline()) {
-          try {
-            const created = await timeLogApi.createManual(timeLog);
-            await saveTimeLogDB(created);
-            // Recalculate monthly balances
-            await recalculateBalancesForTimeLogs([created]);
-            update(state => ({ 
-              ...state, 
-              timeLogs: [...state.timeLogs, created],
-              isLoading: false 
-            }));
-            return created;
-          } catch (error) {
-            await syncService.queueTimeLogCreate(timeLog);
-            // Recalculate monthly balances
-            await recalculateBalancesForTimeLogs([timeLog]);
-            update(state => ({ 
-              ...state, 
-              timeLogs: [...state.timeLogs, timeLog],
-              isLoading: false 
-            }));
-            return timeLog;
-          }
-        } else {
-          await syncService.queueTimeLogCreate(timeLog);
-          // Recalculate monthly balances
-          await recalculateBalancesForTimeLogs([timeLog]);
-          update(state => ({ 
-            ...state, 
-            timeLogs: [...state.timeLogs, timeLog],
-            isLoading: false 
-          }));
-          return timeLog;
-        }
+        // Queue for sync (works both online and offline)
+        await syncService.queueTimeLogCreate(timeLog);
+
+        // Recalculate monthly balances
+        await recalculateBalancesForTimeLogs([timeLog]);
+
+        update(state => ({ 
+          ...state, 
+          timeLogs: [...state.timeLogs, timeLog],
+          isLoading: false 
+        }));
+        
+        return timeLog;
       } catch (error: any) {
         update(state => ({ 
           ...state, 
