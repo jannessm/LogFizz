@@ -20,7 +20,6 @@
 
   function handleEmojiSelect(event: CustomEvent<string>) {
     emoji = event.detail;
-    showEmojiPicker = false;
   }
 
   function toggleEmojiPicker() {

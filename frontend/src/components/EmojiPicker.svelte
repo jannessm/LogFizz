@@ -16,18 +16,23 @@
   }
   
   function handleClickOutside(event: MouseEvent) {
-    if (containerRef && !containerRef.contains(event.target as Node)) {
+    if (containerRef && event.target && !containerRef.contains(event.target as Node)) {
       show = false;
     }
   }
   
+  // Use reactive statement to attach event listener when picker is shown
+  $: if (show && pickerRef) {
+    pickerRef.addEventListener('emoji-click', handleEmojiClick as EventListener);
+  }
+  
+  // Clean up listener when picker is hidden
+  $: if (!show && pickerRef) {
+    pickerRef.removeEventListener('emoji-click', handleEmojiClick as EventListener);
+  }
+  
   onMount(() => {
     document.addEventListener('click', handleClickOutside);
-    
-    // Add event listener for emoji selection
-    if (pickerRef) {
-      pickerRef.addEventListener('emoji-click', handleEmojiClick as EventListener);
-    }
   });
   
   onDestroy(() => {
