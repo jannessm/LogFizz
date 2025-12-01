@@ -68,4 +68,16 @@ describe('ButtonForm Component', () => {
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveAttribute('aria-modal', 'true');
   });
+
+  it('shows emoji picker button', () => {
+    render(ButtonForm, { props: { button: null } });
+    const emojiPickerButton = screen.getByRole('button', { name: /open emoji picker/i });
+    expect(emojiPickerButton).toBeInTheDocument();
+  });
+
+  it('emoji picker button has correct aria-expanded attribute', () => {
+    render(ButtonForm, { props: { button: null } });
+    const emojiPickerButton = screen.getByRole('button', { name: /open emoji picker/i });
+    expect(emojiPickerButton).toHaveAttribute('aria-expanded', 'false');
+  });
 });
