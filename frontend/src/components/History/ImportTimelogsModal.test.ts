@@ -81,10 +81,11 @@ describe('ImportTimelogsModal Component', () => {
   it('parses CSV with separate date and time columns', async () => {
     const { component } = render(ImportTimelogsModal);
     
-    const csvContent = `Date;Start time;End time;abs. Duration;Project;Description
-03.11.2025;08:00;14:36;06:36;HU;
-04.11.2025;08:00;14:36;06:36;HU;
-05.11.2025;08:00;14:36;06:36;HU;`;
+    // Use CSV without Project column to avoid project mapping flow
+    const csvContent = `Date;Start time;End time;Duration
+03.11.2025;08:00;14:36;06:36
+04.11.2025;08:00;14:36;06:36
+05.11.2025;08:00;14:36;06:36`;
     
     const file = new File([csvContent], 'timesheet_2025-12-01.csv', { type: 'text/csv' });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -100,26 +101,26 @@ describe('ImportTimelogsModal Component', () => {
     const continueBtn = screen.getByText('Continue');
     await fireEvent.click(continueBtn);
     
-    // Should now be in mapping step
+    // Should now be in mapping step (step text is just "Columns")
     await waitFor(() => {
-      expect(screen.getByText('Map Columns')).toBeInTheDocument();
+      expect(screen.getByText('Columns')).toBeInTheDocument();
       expect(screen.getByLabelText(/Start Time Column/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/End Time Column/i)).toBeInTheDocument();
     });
   });
 
-  it('imports timesheet_2025-12-01 CSV with date + time columns and maps projects to buttons', async () => {
+  it('imports timesheet_2025-12-01 CSV with date + time columns and button selection', async () => {
     const importHandler = vi.fn();
     const { component, container } = render(ImportTimelogsModal);
     
     // Listen for import event
     container.addEventListener('import', importHandler as any);
     
-    // Create CSV with separate date and time columns (matching the real timesheet format)
-    const csvContent = `Date;Start time;End time;abs. Duration;Project;Description
-03.11.2025;08:00;14:36;06:36;HU;
-04.11.2025;08:00;14:36;06:36;HU - Home;
-05.11.2025;08:00;14:36;06:36;kindkrank;`;
+    // Create CSV without Project column to test button selection flow
+    const csvContent = `Date;Start time;End time;Duration
+03.11.2025;08:00;14:36;06:36
+04.11.2025;08:00;14:36;06:36
+05.11.2025;08:00;14:36;06:36`;
     
     const file = new File([csvContent], 'timesheet_2025-12-01.csv', { type: 'text/csv' });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -173,8 +174,9 @@ describe('ImportTimelogsModal Component', () => {
   it('handles CSV with semicolon delimiter', async () => {
     render(ImportTimelogsModal);
     
-    const csvContent = `Date;Start time;End time;Project
-03.11.2025;08:00;14:36;HU`;
+    // Use CSV without Project column to avoid project mapping flow
+    const csvContent = `Date;Start time;End time;Duration
+03.11.2025;08:00;14:36;06:36`;
     
     const file = new File([csvContent], 'timesheet.csv', { type: 'text/csv' });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -190,7 +192,7 @@ describe('ImportTimelogsModal Component', () => {
     await fireEvent.click(continueBtn);
     
     await waitFor(() => {
-      expect(screen.getByText('Map Columns')).toBeInTheDocument();
+      expect(screen.getByText('Columns')).toBeInTheDocument();
     });
   });
 
@@ -198,9 +200,10 @@ describe('ImportTimelogsModal Component', () => {
     const { component } = render(ImportTimelogsModal);
     
     // This CSV has date in DD.MM.YYYY format and times in HH:mm format
-    const csvContent = `Date;Start time;End time;Project
-03.11.2025;08:00;14:36;HU
-04.11.2025;08:00;14:36;HU`;
+    // Use CSV without Project column to avoid project mapping flow
+    const csvContent = `Date;Start time;End time;Duration
+03.11.2025;08:00;14:36;06:36
+04.11.2025;08:00;14:36;06:36`;
     
     const file = new File([csvContent], 'timesheet.csv', { type: 'text/csv' });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -251,8 +254,9 @@ describe('ImportTimelogsModal Component', () => {
   it('auto-detects start and end time columns', async () => {
     render(ImportTimelogsModal);
     
-    const csvContent = `Date;Start time;End time;Project
-03.11.2025;08:00;14:36;HU`;
+    // Use CSV without Project column for simplicity
+    const csvContent = `Date;Start time;End time;Duration
+03.11.2025;08:00;14:36;06:36`;
     
     const file = new File([csvContent], 'timesheet.csv', { type: 'text/csv' });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -284,10 +288,10 @@ describe('ImportTimelogsModal Component', () => {
   it('validates combined date and time values correctly', async () => {
     render(ImportTimelogsModal);
     
-    // CSV with German date format and time format
-    const csvContent = `Date;Start time;End time;Project
-03.11.2025;08:00;14:36;HU
-04.11.2025;08:00;14:36;HU`;
+    // CSV with German date format and time format (without Project column to show Assign to Button)
+    const csvContent = `Date;Start time;End time;Duration
+03.11.2025;08:00;14:36;06:36
+04.11.2025;08:00;14:36;06:36`;
     
     const file = new File([csvContent], 'timesheet.csv', { type: 'text/csv' });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -321,7 +325,7 @@ describe('ImportTimelogsModal Component', () => {
   it('processes the actual timesheet_2025-12-01 CSV format', async () => {
     render(ImportTimelogsModal);
     
-    // This is the actual format from the file
+    // This is the actual format from the file (contains Project column, which triggers project mapping)
     const csvContent = `Date;Start time;End time;abs. Duration;Project;Description
 03.11.2025;08:00;14:36;06:36;HU;
 04.11.2025;08:00;14:36;06:36;HU;
@@ -400,8 +404,9 @@ describe('ImportTimelogsModal Component', () => {
   it('allows manually deselecting auto-detected date column', async () => {
     render(ImportTimelogsModal);
     
-    const csvContent = `Date;Start time;End time;Project
-03.11.2025;08:00;14:36;HU`;
+    // Use CSV without Project column to show Assign to Button dropdown
+    const csvContent = `Date;Start time;End time;Duration
+03.11.2025;08:00;14:36;06:36`;
     
     const file = new File([csvContent], 'timesheet.csv', { type: 'text/csv' });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
@@ -503,9 +508,9 @@ describe('ImportTimelogsModal Component', () => {
       // The basic PDF parser may show an error or proceed to mapping
       // Either outcome is acceptable for this test - we're checking the flow
       await waitFor(() => {
-        // Either we get an error message OR we proceed to mapping
+        // Either we get an error message OR we proceed to mapping (step text is just "Columns")
         const hasError = screen.queryByText(/Failed to parse PDF|PDF import is currently|Could not extract/i);
-        const hasMapping = screen.queryByText('Map Columns');
+        const hasMapping = screen.queryByText('Columns');
         expect(hasError || hasMapping).toBeTruthy();
       });
     });
