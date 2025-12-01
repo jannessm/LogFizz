@@ -49,24 +49,39 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For navigation requests, use network-first strategy
+  // For navigation requests, use cache-first strategy
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Clone and cache the response
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
+      caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          // Return cached response and update cache in background
+          fetch(request)
+            .then((response) => {
+              const responseClone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, responseClone);
+              });
+            })
+            .catch(() => {
+              // Ignore network errors for background updates
+            });
+          return cachedResponse;
+        }
+
+        // Not in cache, fetch from network
+        return fetch(request)
+          .then((response) => {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
+            return response;
+          })
+          .catch(() => {
+            // Fallback to root
+            return caches.match('/');
           });
-          return response;
-        })
-        .catch(() => {
-          // Fallback to cache
-          return caches.match(request).then((cachedResponse) => {
-            return cachedResponse || caches.match('/');
-          });
-        })
+      })
     );
     return;
   }
