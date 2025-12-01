@@ -1,0 +1,54 @@
+name: Lib Tests
+
+on:
+  push:
+    branches: [ main, develop, copilot/** ]
+    paths:
+      - 'lib/**'
+      - '.github/workflows/lib-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'lib/**'
+
+jobs:
+  test:
+    name: Run Lib Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: lib/package-lock.json
+
+      - name: Install dependencies
+        working-directory: lib
+        run: npm ci
+
+      - name: Run tests
+        working-directory: lib
+        run: npm run test:run
+
+      - name: Build package
+        working-directory: lib
+        run: npm run build
+
+      - name: Generate test coverage
+        working-directory: lib
+        run: npm run test:coverage
+        continue-on-error: true
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          directory: lib/coverage
+          flags: lib
+          fail_ci_if_error: false
+        continue-on-error: true

@@ -209,15 +209,21 @@
     showImportModal = false;
   }
 
-  async function handleImportConfirm(event: CustomEvent<{ buttonId: string; timelogs: { start_timestamp: string; end_timestamp: string }[]; skippedCount: number }>) {
-    const { buttonId, timelogs, skippedCount } = event.detail;
+  async function handleImportConfirm(event: CustomEvent<{ 
+    buttonId: string; 
+    timelogs: Array<{ start_timestamp: string; end_timestamp: string; notes?: string; button_id?: string }>; 
+    skippedCount: number;
+    hasProjectMappings?: boolean;
+  }>) {
+    const { buttonId, timelogs, skippedCount, hasProjectMappings } = event.detail;
     
     // Create all timelogs concurrently for better performance
     const createPromises = timelogs.map(log => 
       timeLogsStore.create({
-        button_id: buttonId,
+        button_id: log.button_id || buttonId, // Use button_id from timelog if present (project mapping), otherwise use shared buttonId
         start_timestamp: log.start_timestamp,
         end_timestamp: log.end_timestamp,
+        notes: log.notes,
       })
     );
     

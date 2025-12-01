@@ -25,6 +25,7 @@ export const COLUMN_PATTERNS = {
   date: ['date', 'datum', 'day', 'tag'],
   startTime: ['start', 'begin', 'from', 'anfang'],
   endTime: ['end', 'stop', 'to', 'ende', 'bis'],
+  notes: ['note', 'notes', 'notiz', 'notizen', 'description', 'beschreibung', 'comment', 'kommentar'],
 } as const;
 
 /**
@@ -43,6 +44,7 @@ export interface AutoDetectedColumns {
   dateColumn?: string;
   startTimeColumn?: string;
   endTimeColumn?: string;
+  notesColumn?: string;
 }
 
 /**
@@ -113,6 +115,9 @@ export function autoDetectColumns(headers: string[]): AutoDetectedColumns {
     if (!result.endTimeColumn && COLUMN_PATTERNS.endTime.some(p => lowerHeader.includes(p))) {
       result.endTimeColumn = header;
     }
+    if (!result.notesColumn && COLUMN_PATTERNS.notes.some(p => lowerHeader.includes(p))) {
+      result.notesColumn = header;
+    }
   }
 
   return result;
@@ -135,13 +140,11 @@ export function combineDateAndTime(date: string, time: string): string {
  * Validates if a string is a valid date/time
  */
 export function isValidDateTime(value: string): boolean {
-  console.log('Validating date/time:', value, !value);
   if (!value) return false;
   
   // Try all known formats
   for (const format of DATE_TIME_FORMATS) {
     const parsed = dayjs(value, format, true);
-    console.log(`Trying format ${format}:`, parsed);
     if (parsed.isValid()) return true;
   }
 
@@ -178,6 +181,7 @@ export function parseDateTime(value: string): dayjs.Dayjs | null {
 export interface TimelogRow {
   startValue: string;
   endValue: string;
+  notes?: string;
   rowIndex: number;
 }
 
@@ -187,14 +191,16 @@ export interface ProcessRowsOptions {
   dateColumn?: string;
   startTimeColumn: string;
   endTimeColumn: string;
+  notesColumn?: string;
 }
 
 export function processTimelogRows(options: ProcessRowsOptions): TimelogRow[] {
-  const { data, headers, dateColumn, startTimeColumn, endTimeColumn } = options;
+  const { data, headers, dateColumn, startTimeColumn, endTimeColumn, notesColumn } = options;
   
   const dateIndex = dateColumn ? headers.indexOf(dateColumn) : -1;
   const startIndex = headers.indexOf(startTimeColumn);
   const endIndex = headers.indexOf(endTimeColumn);
+  const notesIndex = notesColumn ? headers.indexOf(notesColumn) : -1;
 
   if (startIndex === -1 || endIndex === -1) {
     throw new Error('Start time and end time columns must be valid');
@@ -204,10 +210,12 @@ export function processTimelogRows(options: ProcessRowsOptions): TimelogRow[] {
     const dateValue = dateIndex >= 0 ? row[dateIndex] || '' : '';
     const startTime = row[startIndex] || '';
     const endTime = row[endIndex] || '';
+    const notes = notesIndex >= 0 ? row[notesIndex]?.trim() : undefined;
     
     return {
       startValue: combineDateAndTime(dateValue, startTime),
       endValue: combineDateAndTime(dateValue, endTime),
+      notes: notes || undefined,
       rowIndex: index,
     };
   });
@@ -219,6 +227,7 @@ export function processTimelogRows(options: ProcessRowsOptions): TimelogRow[] {
 export interface ValidatedTimelog {
   start_timestamp: string;
   end_timestamp: string;
+  notes?: string;
 }
 
 export interface ValidationResult {
@@ -236,10 +245,16 @@ export function validateAndConvertTimelogs(rows: TimelogRow[]): ValidationResult
 
     if (startDate && endDate) {
       if (endDate.isAfter(startDate)) {
-        valid.push({
+        const timelog: ValidatedTimelog = {
           start_timestamp: startDate.toISOString(),
           end_timestamp: endDate.toISOString(),
-        });
+        };
+        
+        if (row.notes) {
+          timelog.notes = row.notes;
+        }
+        
+        valid.push(timelog);
       } else {
         errors.push(`Row ${row.rowIndex + 2}: End time is before start time`);
       }
@@ -257,6 +272,69 @@ export function validateAndConvertTimelogs(rows: TimelogRow[]): ValidationResult
 }
 
 /**
+ * Column detection patterns for project
+ */
+export const PROJECT_PATTERNS = ['project', 'projekt', 'category', 'kategorie', 'task', 'aufgabe'];
+
+/**
+ * Detects the project column in CSV headers
+ */
+export function detectProjectColumn(headers: string[]): string | undefined {
+  for (const header of headers) {
+    const lowerHeader = header.toLowerCase();
+    if (PROJECT_PATTERNS.some(p => lowerHeader.includes(p))) {
+      return header;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Detected project with metadata
+ */
+export interface DetectedProject {
+  name: string;
+  count: number;
+  rowIndices: number[];
+}
+
+/**
+ * Extracts unique projects from CSV data with their row counts
+ */
+export function detectProjectsInCSV(
+  data: string[][],
+  headers: string[],
+  projectColumn: string
+): DetectedProject[] {
+  const projectIndex = headers.indexOf(projectColumn);
+  
+  if (projectIndex === -1) {
+    return [];
+  }
+
+  const projectMap = new Map<string, DetectedProject>();
+
+  data.forEach((row, index) => {
+    const projectName = row[projectIndex]?.trim() || '(empty)';
+    
+    if (projectMap.has(projectName)) {
+      const project = projectMap.get(projectName)!;
+      project.count++;
+      project.rowIndices.push(index);
+    } else {
+      projectMap.set(projectName, {
+        name: projectName,
+        count: 1,
+        rowIndices: [index],
+      });
+    }
+  });
+
+  // Sort by count (most common first)
+  return Array.from(projectMap.values()).sort((a, b) => b.count - a.count);
+}
+
+/**
  * Complete CSV import pipeline
  */
 export interface ImportCSVOptions {
@@ -264,6 +342,7 @@ export interface ImportCSVOptions {
   dateColumn?: string;
   startTimeColumn: string;
   endTimeColumn: string;
+  notesColumn?: string;
 }
 
 export interface ImportCSVResult {
@@ -274,7 +353,7 @@ export interface ImportCSVResult {
 }
 
 export function importTimelogsFromCSV(options: ImportCSVOptions): ImportCSVResult {
-  const { csvText, dateColumn, startTimeColumn, endTimeColumn } = options;
+  const { csvText, dateColumn, startTimeColumn, endTimeColumn, notesColumn } = options;
   
   // Parse CSV
   const parsed = parseCSV(csvText);
@@ -286,6 +365,7 @@ export function importTimelogsFromCSV(options: ImportCSVOptions): ImportCSVResul
     dateColumn,
     startTimeColumn,
     endTimeColumn,
+    notesColumn,
   });
   
   // Validate and convert
