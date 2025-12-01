@@ -1,23 +1,21 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import dayjs from 'dayjs';
   import { buttonsStore } from '../../stores/buttons';
+  import {
+    parseCSV,
+    autoDetectColumns,
+    combineDateAndTime,
+    isValidDateTime,
+    parseDateTime,
+    processTimelogRows,
+    validateAndConvertTimelogs,
+    type ParsedCSV,
+    type AutoDetectedColumns,
+  } from '../../../../lib/utils/csvImport.js';
 
   const dispatch = createEventDispatcher();
 
   // Constants
-  const DATE_TIME_FORMATS = [
-    'YYYY-MM-DD HH:mm:ss',
-    'YYYY-MM-DD HH:mm',
-    'DD.MM.YYYY HH:mm:ss',
-    'DD.MM.YYYY HH:mm',
-    'DD/MM/YYYY HH:mm:ss',
-    'DD/MM/YYYY HH:mm',
-    'MM/DD/YYYY HH:mm:ss',
-    'MM/DD/YYYY HH:mm',
-    'YYYY-MM-DDTHH:mm:ss',
-    'YYYY-MM-DDTHH:mm',
-  ];
   const MAX_DISPLAYED_ERRORS = 5;
 
   let file: File | null = null;
@@ -32,6 +30,9 @@
   let selectedButtonId: string = '';
   let previewLogs: { start: string; end: string; isValid: boolean }[] = [];
   let errorMessage: string = '';
+  let warningMessage: string = '';
+  let validationErrors: string[] = [];
+  let showErrorDetails = false;
 
   function detectFileType(fileName: string): 'csv' | 'pdf' | null {
     const extension = fileName.toLowerCase().split('.').pop();
@@ -53,7 +54,7 @@
       const detectedType = detectFileType(selectedFile.name);
       
       if (!detectedType) {
-        errorMessage = 'Please upload a CSV or PDF file';
+        errorMessage = '❌ Invalid file type. Please upload a CSV or PDF file.\n\nSupported formats:\n• .csv (Comma or semicolon separated)\n• .pdf (Text-based PDFs only)';
         file = null;
         fileType = null;
         return;
@@ -62,6 +63,8 @@
       file = selectedFile;
       fileType = detectedType;
       errorMessage = '';
+      warningMessage = '';
+      validationErrors = [];
     }
   }
 
@@ -72,7 +75,7 @@
       const detectedType = detectFileType(droppedFile.name);
       
       if (!detectedType) {
-        errorMessage = 'Please upload a CSV or PDF file';
+        errorMessage = '❌ Invalid file type. Please upload a CSV or PDF file.\n\nSupported formats:\n• .csv (Comma or semicolon separated)\n• .pdf (Text-based PDFs only)';
         file = null;
         fileType = null;
         return;
@@ -81,6 +84,8 @@
       file = droppedFile;
       fileType = detectedType;
       errorMessage = '';
+      warningMessage = '';
+      validationErrors = [];
     }
   }
 
@@ -89,78 +94,63 @@
   }
 
   async function parseFile() {
-    if (!file) return;
+    if (!file) {
+      errorMessage = '❌ No file selected. Please select a file to import.';
+      return;
+    }
 
     errorMessage = '';
+    warningMessage = '';
+    validationErrors = [];
     
     if (fileType === 'csv') {
-      await parseCSV();
+      await parseCSVFile();
     } else {
       await parsePDF();
     }
   }
 
-  async function parseCSV() {
+  async function parseCSVFile() {
     try {
       const text = await file!.text();
-      const lines = text.split('\n').filter(line => line.trim());
       
-      if (lines.length < 2) {
-        errorMessage = 'CSV file must have at least a header row and one data row';
+      if (!text.trim()) {
+        errorMessage = '❌ The CSV file is empty. Please provide a file with data.';
         return;
       }
 
-      // Detect delimiter from header row (prefer comma, fallback to semicolon)
-      const headerLine = lines[0];
-      const commaCount = (headerLine.match(/,/g) || []).length;
-      const semicolonCount = (headerLine.match(/;/g) || []).length;
-      const delimiter = semicolonCount > commaCount ? ';' : ',';
-
-      // Parse CSV considering quoted fields with detected delimiter
-      const parseCSVLine = (line: string): string[] => {
-        const result: string[] = [];
-        let current = '';
-        let inQuotes = false;
-        
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === delimiter && !inQuotes) {
-            result.push(current.trim());
-            current = '';
-          } else {
-            current += char;
-          }
-        }
-        result.push(current.trim());
-        return result;
-      };
-
-      headers = parseCSVLine(lines[0]);
-      parsedData = lines.slice(1).map(line => parseCSVLine(line));
-
-      // Try to auto-detect date and time columns
-      const datePatterns = ['date', 'datum', 'day', 'tag'];
-      const timePatterns = ['start', 'begin', 'from', 'anfang'];
-      const endPatterns = ['end', 'stop', 'to', 'ende', 'bis'];
+      const parsed = parseCSV(text);
       
-      for (const header of headers) {
-        const lowerHeader = header.toLowerCase();
-        if (!dateColumn && datePatterns.some(p => lowerHeader.includes(p))) {
-          dateColumn = header;
-        }
-        if (!startTimeColumn && timePatterns.some(p => lowerHeader.includes(p))) {
-          startTimeColumn = header;
-        }
-        if (!endTimeColumn && endPatterns.some(p => lowerHeader.includes(p))) {
-          endTimeColumn = header;
-        }
+      headers = parsed.headers;
+      parsedData = parsed.data;
+
+      // Show info about detected delimiter
+      if (parsed.delimiter === ';') {
+        warningMessage = `ℹ️ Detected semicolon-separated CSV (common in European formats)`;
+      }
+
+      // Auto-detect date and time columns
+      const detected = autoDetectColumns(parsed.headers);
+      if (detected.dateColumn) dateColumn = detected.dateColumn;
+      if (detected.startTimeColumn) startTimeColumn = detected.startTimeColumn;
+      if (detected.endTimeColumn) endTimeColumn = detected.endTimeColumn;
+
+      // Warn if columns weren't auto-detected
+      if (!detected.startTimeColumn || !detected.endTimeColumn) {
+        warningMessage = '⚠️ Could not auto-detect time columns. Please select them manually.';
       }
 
       step = 'mapping';
     } catch (error) {
-      errorMessage = 'Failed to parse CSV file';
+      if (error instanceof Error) {
+        if (error.message.includes('at least a header row')) {
+          errorMessage = '❌ Invalid CSV format.\n\nThe file must contain:\n• A header row with column names\n• At least one data row';
+        } else {
+          errorMessage = `❌ Failed to parse CSV file.\n\nError: ${error.message}`;
+        }
+      } else {
+        errorMessage = '❌ An unexpected error occurred while parsing the CSV file.';
+      }
       console.error('CSV parse error:', error);
     }
   }
@@ -169,7 +159,7 @@
     try {
       // For PDF parsing, we'll use a simple text extraction approach
       // In a real implementation, you'd want to use pdf.js or similar library
-      errorMessage = 'PDF import is currently only supported for CSV-like structured PDFs. Please export your data as CSV first, or contact support for PDF import assistance.';
+      warningMessage = '⚠️ PDF import has limited support.\n\nFor best results:\n• Export your timesheet as CSV\n• Ensure the PDF contains text (not scanned images)';
       
       // Basic implementation: Try to extract text from PDF
       // This is a placeholder - in production, you'd use a proper PDF library
@@ -183,28 +173,20 @@
         parsedData = textContent.slice(1);
         
         // Auto-detect columns same as CSV
-        const datePatterns = ['date', 'datum', 'day', 'tag'];
-        const timePatterns = ['start', 'begin', 'from', 'anfang'];
-        const endPatterns = ['end', 'stop', 'to', 'ende', 'bis'];
+        const detected = autoDetectColumns(textContent[0]);
+        if (detected.dateColumn) dateColumn = detected.dateColumn;
+        if (detected.startTimeColumn) startTimeColumn = detected.startTimeColumn;
+        if (detected.endTimeColumn) endTimeColumn = detected.endTimeColumn;
         
-        for (const header of headers) {
-          const lowerHeader = header.toLowerCase();
-          if (!dateColumn && datePatterns.some(p => lowerHeader.includes(p))) {
-            dateColumn = header;
-          }
-          if (!startTimeColumn && timePatterns.some(p => lowerHeader.includes(p))) {
-            startTimeColumn = header;
-          }
-          if (!endTimeColumn && endPatterns.some(p => lowerHeader.includes(p))) {
-            endTimeColumn = header;
-          }
-        }
-        
-        errorMessage = '';
         step = 'mapping';
+      } else {
+        errorMessage = '❌ Could not extract data from PDF.\n\nPossible reasons:\n• The PDF is scanned (image-based)\n• The PDF does not contain table data\n• The PDF format is not supported\n\n💡 Try exporting as CSV instead.';
       }
     } catch (error) {
-      errorMessage = 'Failed to parse PDF file. Please try exporting as CSV instead.';
+      errorMessage = '❌ Failed to parse PDF file.\n\n💡 Please try exporting your timesheet as CSV for better compatibility.';
+      if (error instanceof Error) {
+        errorMessage += `\n\nTechnical details: ${error.message}`;
+      }
       console.error('PDF parse error:', error);
     }
   }
@@ -242,15 +224,6 @@
     return result.filter(row => row.length > 0);
   }
 
-  function combineDateAndTime(date: string, time: string): string {
-    if (!date && !time) return '';
-    if (!date) return time; // If no date column, treat as full datetime
-    if (!time) return '';
-    
-    // Combine date and time: "03.11.2025" + "08:00" -> "03.11.2025 08:00"
-    return `${date.trim()} ${time.trim()}`;
-  }
-
   function updatePreview() {
     if (!startTimeColumn || !endTimeColumn || !parsedData.length) {
       previewLogs = [];
@@ -273,50 +246,35 @@
     });
   }
 
-  function isValidDateTime(value: string): boolean {
-    if (!value) return false;
-    
-    for (const format of DATE_TIME_FORMATS) {
-      const parsed = dayjs(value, format, true);
-      if (parsed.isValid()) return true;
-    }
-
-    // Also try native Date parsing
-    const date = new Date(value);
-    return !isNaN(date.getTime());
-  }
-
-  function parseDateTime(value: string): dayjs.Dayjs | null {
-    if (!value) return null;
-
-    for (const format of DATE_TIME_FORMATS) {
-      const parsed = dayjs(value, format, true);
-      if (parsed.isValid()) return parsed;
-    }
-
-    // Try native Date parsing
-    const date = new Date(value);
-    if (!isNaN(date.getTime())) {
-      return dayjs(date);
-    }
-
-    return null;
-  }
-
   $: if (startTimeColumn || endTimeColumn || dateColumn) {
     updatePreview();
   }
 
   function goToConfirm() {
+    errorMessage = '';
+    warningMessage = '';
+    validationErrors = [];
+
     if (!startTimeColumn || !endTimeColumn) {
-      errorMessage = 'Please select both start and end time columns';
+      errorMessage = '❌ Missing required columns.\n\nPlease select:\n• Start Time Column\n• End Time Column';
       return;
     }
     if (!selectedButtonId) {
-      errorMessage = 'Please select a button to assign the timelogs to';
+      errorMessage = '❌ No button selected.\n\nPlease select which button/category to assign these timelogs to.';
       return;
     }
-    errorMessage = '';
+
+    // Validate preview data
+    const invalidCount = previewLogs.filter(log => !log.isValid).length;
+    if (invalidCount > 0 && invalidCount === previewLogs.length) {
+      errorMessage = '❌ All preview rows have invalid date/time values.\n\nPlease check:\n• Date column selection (if using separate date column)\n• Date/time format in your CSV\n• That dates and times are complete';
+      return;
+    }
+
+    if (invalidCount > 0) {
+      warningMessage = `⚠️ ${invalidCount} of ${previewLogs.length} preview rows have invalid date/time values.\n\nThese rows will be skipped during import.`;
+    }
+
     step = 'confirm';
   }
 
@@ -325,68 +283,82 @@
   }
 
   async function handleImport() {
-    const dateIndex = dateColumn ? headers.indexOf(dateColumn) : -1;
-    const startIndex = headers.indexOf(startTimeColumn);
-    const endIndex = headers.indexOf(endTimeColumn);
-    
-    const logsToImport: { start_timestamp: string; end_timestamp: string }[] = [];
-    const errors: string[] = [];
+    try {
+      errorMessage = '';
+      warningMessage = '';
+      validationErrors = [];
 
-    for (let i = 0; i < parsedData.length; i++) {
-      const row = parsedData[i];
-      const dateValue = dateIndex >= 0 ? row[dateIndex] || '' : '';
-      const startTime = row[startIndex];
-      const endTime = row[endIndex];
-      
-      const startValue = combineDateAndTime(dateValue, startTime);
-      const endValue = combineDateAndTime(dateValue, endTime);
+      // Process rows using the lib utility
+      const rows = processTimelogRows({
+        data: parsedData,
+        headers,
+        dateColumn,
+        startTimeColumn,
+        endTimeColumn,
+      });
 
-      const startDate = parseDateTime(startValue);
-      const endDate = parseDateTime(endValue);
+      // Validate and convert using the lib utility
+      const result = validateAndConvertTimelogs(rows);
 
-      if (startDate && endDate) {
-        if (endDate.isAfter(startDate)) {
-          logsToImport.push({
-            start_timestamp: startDate.toISOString(),
-            end_timestamp: endDate.toISOString(),
-          });
+      // Store all validation errors
+      validationErrors = result.errors;
+
+      if (result.valid.length === 0) {
+        const totalErrors = result.errors.length;
+        errorMessage = `❌ No valid timelogs found to import.\n\nFound ${totalErrors} error${totalErrors !== 1 ? 's' : ''}:\n\n` + 
+          result.errors.slice(0, MAX_DISPLAYED_ERRORS).join('\n');
+        
+        if (totalErrors > MAX_DISPLAYED_ERRORS) {
+          errorMessage += `\n\n... and ${totalErrors - MAX_DISPLAYED_ERRORS} more error${totalErrors - MAX_DISPLAYED_ERRORS !== 1 ? 's' : ''}`;
+        }
+
+        errorMessage += '\n\n💡 Common issues:\n• Invalid date/time formats\n• End time before start time\n• Missing date column (if times don\'t include dates)\n• Empty cells in time columns';
+        return;
+      }
+
+      // Show warning if some rows were skipped
+      if (result.errors.length > 0) {
+        warningMessage = `⚠️ ${result.errors.length} row${result.errors.length !== 1 ? 's' : ''} will be skipped due to errors.\n\nImporting ${result.valid.length} valid timelog${result.valid.length !== 1 ? 's' : ''}.`;
+      }
+
+      dispatch('import', {
+        buttonId: selectedButtonId,
+        timelogs: result.valid,
+        skippedCount: parsedData.length - result.valid.length,
+        errors: result.errors,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('Start time and end time columns must be valid')) {
+          errorMessage = '❌ Invalid column configuration.\n\nThe selected start or end time column does not exist in your CSV.';
         } else {
-          errors.push(`Row ${i + 2}: End time is before start time`);
+          errorMessage = `❌ Failed to process timelogs.\n\nError: ${error.message}`;
         }
       } else {
-        if (!startDate) errors.push(`Row ${i + 2}: Invalid start time "${startValue}"`);
-        if (!endDate) errors.push(`Row ${i + 2}: Invalid end time "${endValue}"`);
+        errorMessage = '❌ An unexpected error occurred while processing timelogs.';
       }
+      console.error('Import error:', error);
     }
-
-    if (logsToImport.length === 0) {
-      errorMessage = 'No valid timelogs found to import.\n' + errors.slice(0, MAX_DISPLAYED_ERRORS).join('\n');
-      return;
-    }
-
-    dispatch('import', {
-      buttonId: selectedButtonId,
-      timelogs: logsToImport,
-      skippedCount: parsedData.length - logsToImport.length,
-    });
   }
 
   function getValidLogCount(): number {
     if (!startTimeColumn || !endTimeColumn) return 0;
     
-    const dateIndex = dateColumn ? headers.indexOf(dateColumn) : -1;
-    const startIndex = headers.indexOf(startTimeColumn);
-    const endIndex = headers.indexOf(endTimeColumn);
-    
-    return parsedData.filter(row => {
-      const dateValue = dateIndex >= 0 ? row[dateIndex] || '' : '';
-      const startValue = combineDateAndTime(dateValue, row[startIndex]);
-      const endValue = combineDateAndTime(dateValue, row[endIndex]);
-      
-      const startDate = parseDateTime(startValue);
-      const endDate = parseDateTime(endValue);
-      return startDate && endDate && endDate.isAfter(startDate);
-    }).length;
+    try {
+      const rows = processTimelogRows({
+        data: parsedData,
+        headers,
+        dateColumn,
+        startTimeColumn,
+        endTimeColumn,
+      });
+
+      const result = validateAndConvertTimelogs(rows);
+      return result.valid.length;
+    } catch (error) {
+      console.error('Error counting valid logs:', error);
+      return 0;
+    }
   }
 </script>
 
@@ -489,8 +461,14 @@
         </div>
 
         {#if errorMessage}
-          <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm whitespace-pre-line">
             {errorMessage}
+          </div>
+        {/if}
+
+        {#if warningMessage}
+          <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm whitespace-pre-line">
+            {warningMessage}
           </div>
         {/if}
 
@@ -584,19 +562,31 @@
 
           {#if previewLogs.length > 0}
             <div class="mt-4">
-              <h3 class="text-sm font-medium text-gray-700 mb-2">Preview (first 5 rows):</h3>
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-medium text-gray-700">Preview (first 5 rows):</h3>
+                <span class="text-xs text-gray-500">
+                  {previewLogs.filter(l => l.isValid).length} / {previewLogs.length} valid
+                </span>
+              </div>
               <div class="bg-gray-50 rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
                 {#each previewLogs as log, index}
                   <div 
-                    class="flex items-center gap-2 text-sm"
+                    class="flex items-start gap-2 text-sm p-2 rounded"
+                    class:bg-green-50={log.isValid}
                     class:text-green-700={log.isValid}
+                    class:bg-red-50={!log.isValid}
                     class:text-red-600={!log.isValid}
                   >
-                    <span class="w-4 h-4" 
-                      class:icon-[si--check-line]={log.isValid}
-                      class:icon-[si--close-line]={!log.isValid}
+                    <span class="w-4 h-4 mt-0.5 flex-shrink-0" 
+                      class:icon-[si--check-circle-line]={log.isValid}
+                      class:icon-[si--close-circle-line]={!log.isValid}
                     ></span>
-                    <span>{log.start} → {log.end}</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium truncate">{log.start} → {log.end}</div>
+                      {#if !log.isValid}
+                        <div class="text-xs mt-0.5 opacity-80">Invalid date/time format</div>
+                      {/if}
+                    </div>
                   </div>
                 {/each}
               </div>
@@ -604,8 +594,14 @@
           {/if}
 
           {#if errorMessage}
-            <div class="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm whitespace-pre-line">
+            <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm whitespace-pre-line">
               {errorMessage}
+            </div>
+          {/if}
+
+          {#if warningMessage}
+            <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm whitespace-pre-line">
+              {warningMessage}
             </div>
           {/if}
 
@@ -658,9 +654,31 @@
           </div>
 
           {#if errorMessage}
-            <div class="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm whitespace-pre-line">
+            <div class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm whitespace-pre-line">
               {errorMessage}
             </div>
+          {/if}
+
+          {#if warningMessage}
+            <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm whitespace-pre-line">
+              {warningMessage}
+            </div>
+          {/if}
+
+          {#if validationErrors.length > 0}
+            <details class="bg-gray-50 rounded-lg border border-gray-200">
+              <summary class="p-3 cursor-pointer hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 flex items-center gap-2">
+                <span class="icon-[si--warning-triangle-line] text-amber-600" style="width: 16px; height: 16px;"></span>
+                View {validationErrors.length} validation error{validationErrors.length !== 1 ? 's' : ''}
+              </summary>
+              <div class="p-3 pt-0 max-h-48 overflow-y-auto">
+                <ul class="space-y-1 text-xs text-gray-600">
+                  {#each validationErrors as error}
+                    <li class="py-1 border-b border-gray-200 last:border-0">{error}</li>
+                  {/each}
+                </ul>
+              </div>
+            </details>
           {/if}
 
           <div class="mt-6 flex justify-end gap-3">

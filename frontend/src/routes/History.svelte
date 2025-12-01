@@ -214,7 +214,7 @@
     
     // Create all timelogs concurrently for better performance
     const createPromises = timelogs.map(log => 
-      timeLogsStore.createManual({
+      timeLogsStore.create({
         button_id: buttonId,
         start_timestamp: log.start_timestamp,
         end_timestamp: log.end_timestamp,

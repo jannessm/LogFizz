@@ -11,7 +11,8 @@
       "default": "./utils/passwordHash.browser.js"
     },
     "./utils/monthlyBalance": "./utils/monthlyBalance.js",
-    "./utils/timeFormat": "./utils/timeFormat.js"
+    "./utils/timeFormat": "./utils/timeFormat.js",
+    "./utils/csvImport": "./utils/csvImport.js"
   },
   "engines": {
     "node": ">=20.12.0"
