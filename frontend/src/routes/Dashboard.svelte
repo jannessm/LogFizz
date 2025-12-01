@@ -8,22 +8,29 @@
   import { authApi } from '../services/api';
   import ButtonGraph from '../components/ButtonGraph.svelte';
   import ButtonForm from '../components/ButtonForm.svelte';
+  import TimelogForm from '../components/TimelogForm.svelte';
   import DailyTargets from '../components/DailyTargets.svelte';
   import TargetForm from '../components/TargetForm.svelte';
   import BottomNav from '../components/BottomNav.svelte';
   import EditOverview from '../components/EditOverview.svelte';
   import AddSelector from '../components/AddSelector.svelte';
+  import dayjs from 'dayjs';
   import type { Button, DailyTarget } from '../types';
+  import { getSetting } from '../lib/db';
 
   let showButtonForm = false;
+  let showTimelogForm = false;
   let showTargetForm = false;
   let showEditOverview = false;
   let showAddSelector = false;
   let editMode = false;
   let editingButton: Button | null = null;
+  let editingTimelog: any = null;
   let editingTarget: DailyTarget | null = null;
   let toggleMode = true;
   let verificationReminderShown = false;
+  let editOnStopEnabled = true;
+  let timerToStop: any = null;
 
   $: user = $authStore.user;
 
@@ -32,6 +39,10 @@
     await timeLogsStore.load();
     await timeLogsStore.loadActive();
     await targetsStore.load();
+
+    // Load edit-on-stop setting
+    const setting = await getSetting('editOnStop');
+    editOnStopEnabled = setting !== false; // default to true if not set
 
     // Check if email is verified and show reminder
     checkEmailVerification();
@@ -128,6 +139,101 @@
     toggleMode = !toggleMode;
   }
 
+  function handleLongPress(event: CustomEvent<{ button: Button; isActive: boolean }>) {
+    const { button, isActive } = event.detail;
+    
+    if (isActive) {
+      // Find the active timelog for this button
+      const activeTimer = $timeLogsStore.activeTimers.find(t => t.button_id === button.id);
+      if (activeTimer) {
+        // Open TimelogForm to edit active timelog
+        editingTimelog = {
+          button_id: button.id,
+          startTime: activeTimer.start_timestamp,
+          endTime: null,
+          log: activeTimer
+        };
+        showTimelogForm = true;
+      }
+    } else {
+      // Open ButtonForm to edit button
+      handleEditButton(button);
+    }
+  }
+
+  function handleCloseTimelogForm() {
+    showTimelogForm = false;
+    editingTimelog = null;
+  }
+
+  async function handleSaveTimelog(event: CustomEvent) {
+    const { button_id, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
+    
+    // If this is a timer being stopped (timerToStop is set), stop it with the notes
+    if (timerToStop && existingLog?.log?.id === timerToStop.id) {
+      await timeLogsStore.stopTimer(timerToStop.id, notes || undefined);
+      timerToStop = null;
+    } else if (existingLog && existingLog.log) {
+      // Editing existing timelog
+      await timeLogsStore.update(existingLog.log.id, {
+        button_id,
+        start_timestamp: startTimestamp,
+        end_timestamp: endTimestamp || undefined,
+        notes: notes || undefined,
+      });
+    } else {
+      // Creating new timelog
+      await timeLogsStore.createManual({
+        button_id,
+        start_timestamp: startTimestamp,
+        end_timestamp: endTimestamp || undefined,
+        notes: notes || undefined,
+      });
+    }
+    
+    showTimelogForm = false;
+    editingTimelog = null;
+  }
+
+  function handleDeleteTimelog(event: CustomEvent) {
+    const { session } = event.detail;
+    if (session?.log?.id) {
+      timeLogsStore.delete(session.log.id);
+    }
+    showTimelogForm = false;
+    editingTimelog = null;
+  }
+
+  async function handleTimerStopped(event: CustomEvent) {
+    const { timer, button } = event.detail;
+    timerToStop = timer;
+
+    if (editOnStopEnabled) {
+      // Open TimelogForm to allow adding notes before stopping
+      editingTimelog = {
+        button_id: button.id,
+        startTime: timer.start_timestamp,
+        endTime: null,
+        log: timer
+      };
+      showTimelogForm = true;
+    } else {
+      // Stop timer immediately without opening form
+      await timeLogsStore.stopTimer(timer.id);
+      timerToStop = null;
+    }
+  }
+
+  async function handleCloseTimelogFormWithStop() {
+    // If there's a pending timer to stop, stop it now without saving changes
+    if (timerToStop) {
+      await timeLogsStore.stopTimer(timerToStop.id);
+      timerToStop = null;
+    }
+    showTimelogForm = false;
+    editingTimelog = null;
+  }
+
 </script>
 
 <div class="h-screen flex flex-col bg-gray-50">
@@ -177,6 +283,8 @@
         {editMode}
         {toggleMode}
         on:edit={handleEditButton}
+        on:longpress={handleLongPress}
+        on:timerstopped={handleTimerStopped}
       />
     </div>
   </div>
@@ -228,6 +336,18 @@
     <AddSelector 
       on:close={handleAddSelectorClose}
       on:select={handleAddSelectorSelect}
+    />
+  {/if}
+
+  <!-- Timelog Form Modal -->
+  {#if showTimelogForm}
+    <TimelogForm
+      selectedDate={dayjs()}
+      existingLog={editingTimelog}
+      isTimerStop={!!timerToStop}
+      on:save={handleSaveTimelog}
+      on:close={timerToStop ? handleCloseTimelogFormWithStop : handleCloseTimelogForm}
+      on:delete={handleDeleteTimelog}
     />
   {/if}
 </div>

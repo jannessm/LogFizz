@@ -54,7 +54,7 @@
       {#if value}
         <span>{value}</span>
       {:else}
-        <span class="text-gray-400">😀</span>
+        <span class="text-gray-400">Emoji (optional)</span>
       {/if}
     </button>
     {#if value}
