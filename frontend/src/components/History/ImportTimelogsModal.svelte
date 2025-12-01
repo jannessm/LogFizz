@@ -7,6 +7,21 @@
 
   const dispatch = createEventDispatcher();
 
+  // Constants
+  const DATE_TIME_FORMATS = [
+    'YYYY-MM-DD HH:mm:ss',
+    'YYYY-MM-DD HH:mm',
+    'DD.MM.YYYY HH:mm:ss',
+    'DD.MM.YYYY HH:mm',
+    'DD/MM/YYYY HH:mm:ss',
+    'DD/MM/YYYY HH:mm',
+    'MM/DD/YYYY HH:mm:ss',
+    'MM/DD/YYYY HH:mm',
+    'YYYY-MM-DDTHH:mm:ss',
+    'YYYY-MM-DDTHH:mm',
+  ];
+  const MAX_DISPLAYED_ERRORS = 5;
+
   let file: File | null = null;
   let fileInput: HTMLInputElement;
   let step: 'upload' | 'mapping' | 'confirm' = 'upload';
@@ -78,7 +93,13 @@
         return;
       }
 
-      // Parse CSV considering quoted fields
+      // Detect delimiter from header row (prefer comma, fallback to semicolon)
+      const headerLine = lines[0];
+      const commaCount = (headerLine.match(/,/g) || []).length;
+      const semicolonCount = (headerLine.match(/;/g) || []).length;
+      const delimiter = semicolonCount > commaCount ? ';' : ',';
+
+      // Parse CSV considering quoted fields with detected delimiter
       const parseCSVLine = (line: string): string[] => {
         const result: string[] = [];
         let current = '';
@@ -88,7 +109,7 @@
           const char = line[i];
           if (char === '"') {
             inQuotes = !inQuotes;
-          } else if ((char === ',' || char === ';') && !inQuotes) {
+          } else if (char === delimiter && !inQuotes) {
             result.push(current.trim());
             current = '';
           } else {
@@ -216,21 +237,7 @@
   function isValidDateTime(value: string): boolean {
     if (!value) return false;
     
-    // Try various date/time formats
-    const formats = [
-      'YYYY-MM-DD HH:mm:ss',
-      'YYYY-MM-DD HH:mm',
-      'DD.MM.YYYY HH:mm:ss',
-      'DD.MM.YYYY HH:mm',
-      'DD/MM/YYYY HH:mm:ss',
-      'DD/MM/YYYY HH:mm',
-      'MM/DD/YYYY HH:mm:ss',
-      'MM/DD/YYYY HH:mm',
-      'YYYY-MM-DDTHH:mm:ss',
-      'YYYY-MM-DDTHH:mm',
-    ];
-
-    for (const format of formats) {
+    for (const format of DATE_TIME_FORMATS) {
       const parsed = dayjs(value, format, true);
       if (parsed.isValid()) return true;
     }
@@ -243,20 +250,7 @@
   function parseDateTime(value: string): dayjs.Dayjs | null {
     if (!value) return null;
 
-    const formats = [
-      'YYYY-MM-DD HH:mm:ss',
-      'YYYY-MM-DD HH:mm',
-      'DD.MM.YYYY HH:mm:ss',
-      'DD.MM.YYYY HH:mm',
-      'DD/MM/YYYY HH:mm:ss',
-      'DD/MM/YYYY HH:mm',
-      'MM/DD/YYYY HH:mm:ss',
-      'MM/DD/YYYY HH:mm',
-      'YYYY-MM-DDTHH:mm:ss',
-      'YYYY-MM-DDTHH:mm',
-    ];
-
-    for (const format of formats) {
+    for (const format of DATE_TIME_FORMATS) {
       const parsed = dayjs(value, format, true);
       if (parsed.isValid()) return parsed;
     }
@@ -322,7 +316,7 @@
     }
 
     if (logsToImport.length === 0) {
-      errorMessage = 'No valid timelogs found to import.\n' + errors.slice(0, 5).join('\n');
+      errorMessage = 'No valid timelogs found to import.\n' + errors.slice(0, MAX_DISPLAYED_ERRORS).join('\n');
       return;
     }
 
@@ -349,7 +343,7 @@
 
 <!-- Modal Overlay -->
 <div 
-  class="fixed inset-0 z-50 flex items-center justify-center p-4"
+  class="import-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
   on:click={handleClose}
   on:keydown={(e) => e.key === 'Escape' && handleClose()}
   role="button"
@@ -620,8 +614,8 @@
 </div>
 
 <style>
-  /* Add backdrop blur effect */
-  div[role="button"]:first-child {
+  /* Add backdrop blur effect to modal overlay */
+  .import-modal-backdrop {
     background-color: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
   }

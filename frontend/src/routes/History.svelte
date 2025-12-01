@@ -213,14 +213,16 @@
   async function handleImportConfirm(event: CustomEvent<{ buttonId: string; timelogs: { start_timestamp: string; end_timestamp: string }[]; skippedCount: number }>) {
     const { buttonId, timelogs, skippedCount } = event.detail;
     
-    // Create all timelogs
-    for (const log of timelogs) {
-      await timeLogsStore.createManual({
+    // Create all timelogs concurrently for better performance
+    const createPromises = timelogs.map(log => 
+      timeLogsStore.createManual({
         button_id: buttonId,
         start_timestamp: log.start_timestamp,
         end_timestamp: log.end_timestamp,
-      });
-    }
+      })
+    );
+    
+    await Promise.all(createPromises);
     
     showImportModal = false;
     
