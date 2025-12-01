@@ -97,7 +97,12 @@ export function calculateDueMinutes(
   const monthStart = dayjs.utc(`${year}-${month.toString().padStart(2, '0')}-01`);
   const daysInMonth = monthStart.daysInMonth();
   
-  for (let day = 1; day <= daysInMonth; day++) {
+  // Get today's date to avoid counting future days in the current month
+  const today = dayjs().utc();
+  const isCurrentMonth = today.year() === year && today.month() + 1 === month;
+  const lastDayToCount = isCurrentMonth ? Math.min(today.date(), daysInMonth) : daysInMonth;
+  
+  for (let day = 1; day <= lastDayToCount; day++) {
     const date = monthStart.date(day);
     const dayOfWeek = date.day(); // 0=Sunday, 6=Saturday
     const dateString = date.format('YYYY-MM-DD');
