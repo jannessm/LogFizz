@@ -5,6 +5,7 @@
 
   export let selectedDate: dayjs.Dayjs;
   export let existingLog: any = null;
+  export let isTimerStop: boolean = false;
 
   const dispatch = createEventDispatcher();
 
@@ -13,6 +14,7 @@
   let startTime = existingLog?.startTime ? dayjs(existingLog.startTime).format('HH:mm') : '';
   let endDate = existingLog?.endTime ? dayjs(existingLog.endTime).format('YYYY-MM-DD') : selectedDate.format('YYYY-MM-DD');
   let endTime = existingLog?.endTime ? dayjs(existingLog.endTime).format('HH:mm') : '';
+  let notes = existingLog?.log?.notes || '';
   let isRunning = !existingLog?.endTime;
   let errorMessage: string = '';
   let showDeleteConfirm = false;
@@ -52,6 +54,7 @@
       button_id: buttonId,
       startTimestamp,
       endTimestamp,
+      notes,
       existingLog
     });
   }
@@ -208,6 +211,20 @@
         </div>
       {/if}
 
+      <!-- Notes Field -->
+      <div>
+        <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
+          Notes
+        </label>
+        <textarea
+          id="notes"
+          bind:value={notes}
+          rows="3"
+          placeholder="Add any notes about this time entry..."
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+        ></textarea>
+      </div>
+
       <!-- Actions -->
       {#if errorMessage}
         <div class="text-sm text-red-600">{errorMessage}</div>
@@ -225,7 +242,7 @@
             type="submit"
             class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            {existingLog ? 'Update' : 'Add'} Entry
+            {isTimerStop ? 'Save' : (existingLog ? 'Update' : 'Add')} Entry
           </button>
         </div>
         
