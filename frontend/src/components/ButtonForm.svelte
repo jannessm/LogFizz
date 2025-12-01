@@ -114,11 +114,7 @@
           <span id="emoji-label" class="block text-sm font-medium text-gray-700 mb-1">
             Emoji (optional)
           </span>
-          <EmojiPicker
-            bind:value={emoji}
-            on:select={(e) => emoji = e.detail.emoji}
-            on:clear={() => emoji = ''}
-          />
+          <EmojiPicker bind:value={emoji} />
         </div>
 
         <!-- Color -->

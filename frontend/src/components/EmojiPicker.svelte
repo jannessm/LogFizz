@@ -10,7 +10,6 @@
   }>();
 
   let showPicker = false;
-  let pickerRef: HTMLElement | null = null;
   let containerRef: HTMLElement | null = null;
 
   function handleEmojiClick(event: CustomEvent) {
@@ -71,7 +70,7 @@
   </div>
   
   {#if showPicker}
-    <div class="absolute z-50 mt-2 shadow-lg rounded-lg" bind:this={pickerRef}>
+    <div class="absolute z-50 mt-2 shadow-lg rounded-lg">
       <emoji-picker on:emoji-click={handleEmojiClick}></emoji-picker>
     </div>
   {/if}
