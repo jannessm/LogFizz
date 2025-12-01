@@ -6,10 +6,6 @@ on:
     paths:
       - 'lib/**'
       - '.github/workflows/lib-tests.yml'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'lib/**'
 
 jobs:
   test:
