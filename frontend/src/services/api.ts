@@ -176,10 +176,6 @@ export const timeLogApi = {
     return api.get(`api/timelogs/goal-progress/${buttonId}`, { searchParams }).json();
   },
 
-  async createManual(timeLog: Partial<TimeLog>): Promise<TimeLog> {
-    return api.post('api/timelogs/manual', { json: timeLog }).json();
-  },
-
   async update(id: string, timeLog: Partial<TimeLog>): Promise<TimeLog> {
     return api.put(`api/timelogs/${id}`, { json: timeLog }).json();
   },
