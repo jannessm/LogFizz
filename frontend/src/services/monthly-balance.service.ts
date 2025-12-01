@@ -184,7 +184,7 @@ export class MonthlyBalanceService {
     
     // Calculate the effective end date for time logs (min of month end or ending_at + 1 day)
     let effectiveEndDate = endDate;
-    if (endingAt && endingAt.add(1, 'day').isBefore(endDate)) {
+    if (endingAt && endingAt.isBefore(endDate.subtract(1, 'day'))) {
       // ending_at is within this month, limit to day after ending_at
       effectiveEndDate = endingAt.add(1, 'day').startOf('day');
     }

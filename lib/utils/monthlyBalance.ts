@@ -78,7 +78,11 @@ export function calculateWorkedMinutes(
  * Respects starting_from date - only counts days on or after starting_from
  * Respects ending_at date - only counts days on or before ending_at
  * 
+<<<<<<< HEAD
  * @param target - Daily target with weekdays, duration_minutes, and optional starting_from/ending_at dates
+=======
+ * @param target - Daily target with weekdays, duration_minutes, starting_from, and ending_at
+>>>>>>> 37e2d80 (Add ending_at field to DailyTarget type and implement end date handling)
  * @param year - Year (e.g., 2025)
  * @param month - Month (1-12)
  * @param holidays - Set of holiday dates in YYYY-MM-DD format to exclude
