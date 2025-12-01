@@ -3,6 +3,7 @@
   import type { Button } from '../types';
   import { buttonsStore } from '../stores/buttons';
   import { targetsStore } from '../stores/targets';
+  import EmojiPicker from './EmojiPicker.svelte';
 
   export let button: Button | null = null;
 
@@ -110,16 +111,13 @@
 
         <!-- Emoji -->
         <div>
-          <label for="emoji" class="block text-sm font-medium text-gray-700 mb-1">
+          <span id="emoji-label" class="block text-sm font-medium text-gray-700 mb-1">
             Emoji (optional)
-          </label>
-          <input
-            id="emoji"
-            type="text"
+          </span>
+          <EmojiPicker
             bind:value={emoji}
-            maxlength="2"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="📝"
+            on:select={(e) => emoji = e.detail.emoji}
+            on:clear={() => emoji = ''}
           />
         </div>
 
