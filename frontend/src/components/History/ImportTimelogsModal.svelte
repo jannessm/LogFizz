@@ -26,6 +26,7 @@
   let step: 'upload' | 'mapping' | 'confirm' = 'upload';
   let parsedData: string[][] = [];
   let headers: string[] = [];
+  let dateColumn: string = '';
   let startTimeColumn: string = '';
   let endTimeColumn: string = '';
   let selectedButtonId: string = '';
@@ -139,12 +140,16 @@
       headers = parseCSVLine(lines[0]);
       parsedData = lines.slice(1).map(line => parseCSVLine(line));
 
-      // Try to auto-detect time columns
+      // Try to auto-detect date and time columns
+      const datePatterns = ['date', 'datum', 'day', 'tag'];
       const timePatterns = ['start', 'begin', 'from', 'anfang'];
       const endPatterns = ['end', 'stop', 'to', 'ende', 'bis'];
       
       for (const header of headers) {
         const lowerHeader = header.toLowerCase();
+        if (!dateColumn && datePatterns.some(p => lowerHeader.includes(p))) {
+          dateColumn = header;
+        }
         if (!startTimeColumn && timePatterns.some(p => lowerHeader.includes(p))) {
           startTimeColumn = header;
         }
@@ -178,11 +183,15 @@
         parsedData = textContent.slice(1);
         
         // Auto-detect columns same as CSV
+        const datePatterns = ['date', 'datum', 'day', 'tag'];
         const timePatterns = ['start', 'begin', 'from', 'anfang'];
         const endPatterns = ['end', 'stop', 'to', 'ende', 'bis'];
         
         for (const header of headers) {
           const lowerHeader = header.toLowerCase();
+          if (!dateColumn && datePatterns.some(p => lowerHeader.includes(p))) {
+            dateColumn = header;
+          }
           if (!startTimeColumn && timePatterns.some(p => lowerHeader.includes(p))) {
             startTimeColumn = header;
           }
@@ -233,18 +242,32 @@
     return result.filter(row => row.length > 0);
   }
 
+  function combineDateAndTime(date: string, time: string): string {
+    if (!date && !time) return '';
+    if (!date) return time; // If no date column, treat as full datetime
+    if (!time) return '';
+    
+    // Combine date and time: "03.11.2025" + "08:00" -> "03.11.2025 08:00"
+    return `${date.trim()} ${time.trim()}`;
+  }
+
   function updatePreview() {
     if (!startTimeColumn || !endTimeColumn || !parsedData.length) {
       previewLogs = [];
       return;
     }
 
+    const dateIndex = dateColumn ? headers.indexOf(dateColumn) : -1;
     const startIndex = headers.indexOf(startTimeColumn);
     const endIndex = headers.indexOf(endTimeColumn);
 
     previewLogs = parsedData.slice(0, 5).map(row => {
-      const start = row[startIndex] || '';
-      const end = row[endIndex] || '';
+      const dateValue = dateIndex >= 0 ? row[dateIndex] || '' : '';
+      const startTime = row[startIndex] || '';
+      const endTime = row[endIndex] || '';
+      
+      const start = combineDateAndTime(dateValue, startTime);
+      const end = combineDateAndTime(dateValue, endTime);
       const isValid = isValidDateTime(start) && isValidDateTime(end);
       return { start, end, isValid };
     });
@@ -280,7 +303,7 @@
     return null;
   }
 
-  $: if (startTimeColumn && endTimeColumn) {
+  $: if (startTimeColumn || endTimeColumn || dateColumn) {
     updatePreview();
   }
 
@@ -302,6 +325,7 @@
   }
 
   async function handleImport() {
+    const dateIndex = dateColumn ? headers.indexOf(dateColumn) : -1;
     const startIndex = headers.indexOf(startTimeColumn);
     const endIndex = headers.indexOf(endTimeColumn);
     
@@ -310,8 +334,12 @@
 
     for (let i = 0; i < parsedData.length; i++) {
       const row = parsedData[i];
-      const startValue = row[startIndex];
-      const endValue = row[endIndex];
+      const dateValue = dateIndex >= 0 ? row[dateIndex] || '' : '';
+      const startTime = row[startIndex];
+      const endTime = row[endIndex];
+      
+      const startValue = combineDateAndTime(dateValue, startTime);
+      const endValue = combineDateAndTime(dateValue, endTime);
 
       const startDate = parseDateTime(startValue);
       const endDate = parseDateTime(endValue);
@@ -346,12 +374,17 @@
   function getValidLogCount(): number {
     if (!startTimeColumn || !endTimeColumn) return 0;
     
+    const dateIndex = dateColumn ? headers.indexOf(dateColumn) : -1;
     const startIndex = headers.indexOf(startTimeColumn);
     const endIndex = headers.indexOf(endTimeColumn);
     
     return parsedData.filter(row => {
-      const startDate = parseDateTime(row[startIndex]);
-      const endDate = parseDateTime(row[endIndex]);
+      const dateValue = dateIndex >= 0 ? row[dateIndex] || '' : '';
+      const startValue = combineDateAndTime(dateValue, row[startIndex]);
+      const endValue = combineDateAndTime(dateValue, row[endIndex]);
+      
+      const startDate = parseDateTime(startValue);
+      const endDate = parseDateTime(endValue);
       return startDate && endDate && endDate.isAfter(startDate);
     }).length;
   }
@@ -481,6 +514,25 @@
         <!-- Column Mapping Step -->
         <div class="space-y-4">
           <div>
+            <label for="date-column" class="block text-sm font-medium text-gray-700 mb-1">
+              Date Column (optional)
+            </label>
+            <select
+              id="date-column"
+              bind:value={dateColumn}
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">None (times include dates)</option>
+              {#each headers as header}
+                <option value={header}>{header}</option>
+              {/each}
+            </select>
+            <p class="text-xs text-gray-500 mt-1">
+              Select if your start/end times don't include the date
+            </p>
+          </div>
+
+          <div>
             <label for="start-column" class="block text-sm font-medium text-gray-700 mb-1">
               Start Time Column *
             </label>
@@ -597,6 +649,9 @@
           <div class="bg-gray-50 rounded-lg p-4">
             <h4 class="text-sm font-medium text-gray-700 mb-2">Column Mapping:</h4>
             <ul class="text-sm text-gray-600 space-y-1">
+              {#if dateColumn}
+                <li>Date: <span class="font-medium">{dateColumn}</span></li>
+              {/if}
               <li>Start Time: <span class="font-medium">{startTimeColumn}</span></li>
               <li>End Time: <span class="font-medium">{endTimeColumn}</span></li>
             </ul>
