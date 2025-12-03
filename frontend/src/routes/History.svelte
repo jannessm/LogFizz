@@ -6,8 +6,10 @@
   import HistoryCalendar from '../components/History/HistoryCalendar.svelte';
   import HistoryLogs from '../components/History/HistoryLogs.svelte';
   import MonthlyBalance from '../components/History/MonthlyBalance.svelte';
+  import ImportTimelogsModal from '../components/History/ImportTimelogsModal.svelte';
   import { timeLogsStore } from '../stores/timelogs';
   import { buttonsStore } from '../stores/buttons';
+  import { snackbar } from '../stores/snackbar';
   import dayjs from 'dayjs';
 
   // Initialize from URL query parameters if available
@@ -46,6 +48,7 @@
   let editingTimelog: any = null;
   let showDeleteConfirm = false;
   let deleteTarget: any = null;
+  let showImportModal = false;
 
   // Update URL when dates change
   function updateURL() {
@@ -197,6 +200,43 @@
     showDeleteConfirm = false;
     deleteTarget = null;
   }
+
+  function handleImportClick() {
+    showImportModal = true;
+  }
+
+  function handleImportClose() {
+    showImportModal = false;
+  }
+
+  async function handleImportConfirm(event: CustomEvent<{ 
+    buttonId: string; 
+    timelogs: Array<{ start_timestamp: string; end_timestamp: string; notes?: string; button_id?: string }>; 
+    skippedCount: number;
+    hasProjectMappings?: boolean;
+  }>) {
+    const { buttonId, timelogs, skippedCount, hasProjectMappings } = event.detail;
+    
+    // Create all timelogs concurrently for better performance
+    const createPromises = timelogs.map(log => 
+      timeLogsStore.create({
+        button_id: log.button_id || buttonId, // Use button_id from timelog if present (project mapping), otherwise use shared buttonId
+        start_timestamp: log.start_timestamp,
+        end_timestamp: log.end_timestamp,
+        notes: log.notes,
+      })
+    );
+    
+    await Promise.all(createPromises);
+    
+    showImportModal = false;
+    
+    // Show success message
+    const successMessage = skippedCount > 0 
+      ? `Successfully imported ${timelogs.length} timelogs. ${skippedCount} rows were skipped.`
+      : `Successfully imported ${timelogs.length} timelogs.`;
+    snackbar.success(successMessage);
+  }
 </script>
 
 <div class="flex flex-col h-screen bg-gray-50">
@@ -205,7 +245,15 @@
     <!-- Inner centered container to preserve original max-width layout -->
     <div class="w-full max-w-lg mx-auto">
       <!-- Header -->
-      <h1 class="text-2xl font-bold text-gray-800 mb-1">History</h1>
+      <div class="flex justify-between items-center mb-1">
+        <h1 class="text-2xl font-bold text-gray-800">History</h1>
+        <button
+          on:click={handleImportClick}
+          class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--file-upload-duotone]"
+          style="width: 28px; height: 28px;"
+          aria-label="Import timelogs"
+        ></button>
+      </div>
     <!-- Monthly Balance Component -->
     <MonthlyBalance
       year={currentMonth.year()}
@@ -360,6 +408,14 @@
         </div>
       </div>
     </div>
+  {/if}
+
+  <!-- Import Timelogs Modal -->
+  {#if showImportModal}
+    <ImportTimelogsModal
+      on:close={handleImportClose}
+      on:import={handleImportConfirm}
+    />
   {/if}
 </div>
 
