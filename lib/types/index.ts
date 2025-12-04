@@ -28,6 +28,7 @@ export interface Button {
   emoji?: string;
   color?: string;
   auto_subtract_breaks: boolean;
+  archived: boolean;
   target_id?: string; // Optional assignment to a daily target
   created_at: string;
   updated_at: string;

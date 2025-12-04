@@ -168,6 +168,38 @@ async function testMigrations() {
     await buttonRepo.save(button);
     console.log('✅ Foreign key constraints working correctly');
 
+    // Step 6: Test ending_at column in daily targets
+    console.log('\n📅 Testing ending_at column in daily targets...');
+    
+    const targetRepo = testConnection.getRepository(DailyTarget);
+    const startDate = new Date('2025-01-01T00:00:00.000Z');
+    const endDate = new Date('2025-12-31T23:59:59.999Z');
+    
+    const targetWithEnd = targetRepo.create({
+      user_id: savedUser.id,
+      name: 'Test Target with End Date',
+      duration_minutes: [480],
+      weekdays: [1, 2, 3, 4, 5],
+      starting_from: startDate,
+      ending_at: endDate,
+    });
+    
+    await targetRepo.save(targetWithEnd);
+    
+    const savedTarget = await targetRepo.findOne({ 
+      where: { id: targetWithEnd.id } 
+    });
+    
+    if (!savedTarget?.ending_at) {
+      throw new Error('ending_at column not saved correctly');
+    }
+    
+    if (savedTarget.ending_at.getTime() !== endDate.getTime()) {
+      throw new Error(`ending_at value mismatch: expected ${endDate.toISOString()}, got ${savedTarget.ending_at.toISOString()}`);
+    }
+    
+    console.log('✅ ending_at column working correctly');
+
     // Success!
     console.log('\n✅ All migration and schema tests passed! ✅\n');
 

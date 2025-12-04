@@ -253,6 +253,25 @@ describe('Migrations and Seeding', () => {
       console.log(`✓ Found ${targets.length} seeded daily target(s)`);
     });
 
+    it('should support ending_at column in daily targets', async () => {
+      const targetRepo = testDataSource.getRepository(DailyTarget);
+      const targets = await targetRepo.find();
+      
+      // Find a target with ending_at set (from seed data)
+      const endedTarget = targets.find(t => t.ending_at !== null && t.ending_at !== undefined);
+      
+      expect(endedTarget).toBeDefined();
+      expect(endedTarget?.ending_at).toBeInstanceOf(Date);
+      expect(endedTarget?.starting_from).toBeInstanceOf(Date);
+      
+      // Verify ending_at is after starting_from
+      if (endedTarget?.starting_from && endedTarget?.ending_at) {
+        expect(endedTarget.ending_at.getTime()).toBeGreaterThan(endedTarget.starting_from.getTime());
+      }
+      
+      console.log(`✓ Found target with ending_at: ${endedTarget?.name} (ends ${endedTarget?.ending_at?.toISOString().split('T')[0]})`);
+    });
+
     it('should have created sample time logs', async () => {
       const timeLogRepo = testDataSource.getRepository(TimeLog);
       const timeLogs = await timeLogRepo.find();

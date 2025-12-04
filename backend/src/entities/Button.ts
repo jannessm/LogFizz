@@ -24,6 +24,9 @@ export class Button implements ButtonEntity {
   @Column('boolean', { default: false })
   auto_subtract_breaks!: boolean;
 
+  @Column('boolean', { default: false })
+  archived!: boolean;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 

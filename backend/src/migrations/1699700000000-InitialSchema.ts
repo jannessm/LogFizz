@@ -60,6 +60,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "color" character varying,
                 "target_id" uuid,
                 "auto_subtract_breaks" boolean NOT NULL DEFAULT false,
+                "archived" boolean NOT NULL DEFAULT false,
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "deleted_at" TIMESTAMP WITH TIME ZONE,
