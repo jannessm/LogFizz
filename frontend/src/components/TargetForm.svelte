@@ -28,6 +28,35 @@
   let availableCountries: string[] = [];
   let availableButtons: Button[] = [];
   let selectedButtonIds: string[] = [];
+  
+  // References to hidden date inputs
+  let startingFromDateInput: HTMLInputElement;
+  let endingAtDateInput: HTMLInputElement;
+  
+  // Format date for display
+  function formatDateForDisplay(dateString: string): string {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  
+  // Handle clicking the visible input to open date picker
+  function openStartingFromPicker() {
+    startingFromDateInput?.showPicker();
+  }
+  
+  function openEndingAtPicker() {
+    endingAtDateInput?.showPicker();
+  }
+  
+  // Handle clearing dates
+  function clearStartingFrom() {
+    startingFrom = '';
+  }
+  
+  function clearEndingAt() {
+    endingAt = '';
+  }
 
   $: if ($buttonsStore.buttons) {
     availableButtons = $buttonsStore.buttons;
@@ -413,12 +442,40 @@
               <label for="startingFrom" class="block text-sm text-gray-600 mb-1">
                 Tracking Starts From
               </label>
-              <input
-                id="startingFrom"
-                type="date"
-                bind:value={startingFrom}
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
+              <div class="flex gap-2">
+                <div class="flex-1 relative">
+                  <!-- Hidden date input -->
+                  <input
+                    bind:this={startingFromDateInput}
+                    type="date"
+                    bind:value={startingFrom}
+                    class="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                    tabindex="-1"
+                  />
+                  <!-- Visible display input -->
+                  <input
+                    id="startingFrom"
+                    type="text"
+                    value={startingFrom ? formatDateForDisplay(startingFrom) : ''}
+                    on:click={openStartingFromPicker}
+                    readonly
+                    placeholder="Click to select start date"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer"
+                    class:text-gray-400={!startingFrom}
+                  />
+                </div>
+                {#if startingFrom}
+                  <button
+                    type="button"
+                    on:click={clearStartingFrom}
+                    class="px-3 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 hover:text-red-600 transition-colors"
+                    title="Clear date"
+                    aria-label="Clear starting date"
+                  >
+                    <span class="icon-[si--close-line] w-4 h-4"></span>
+                  </button>
+                {/if}
+              </div>
               <p class="text-xs text-gray-500 mt-1">
                 Optional: Date from which tracking starts (important for balance computations)
               </p>
@@ -429,12 +486,40 @@
               <label for="endingAt" class="block text-sm text-gray-600 mb-1">
                 Tracking Ends At
               </label>
-              <input
-                id="endingAt"
-                type="date"
-                bind:value={endingAt}
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
+              <div class="flex gap-2">
+                <div class="flex-1 relative">
+                  <!-- Hidden date input -->
+                  <input
+                    bind:this={endingAtDateInput}
+                    type="date"
+                    bind:value={endingAt}
+                    class="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                    tabindex="-1"
+                  />
+                  <!-- Visible display input -->
+                  <input
+                    id="endingAt"
+                    type="text"
+                    value={endingAt ? formatDateForDisplay(endingAt) : ''}
+                    on:click={openEndingAtPicker}
+                    readonly
+                    placeholder="Click to select end date"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer"
+                    class:text-gray-400={!endingAt}
+                  />
+                </div>
+                {#if endingAt}
+                  <button
+                    type="button"
+                    on:click={clearEndingAt}
+                    class="px-3 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 hover:text-red-600 transition-colors"
+                    title="Clear date"
+                    aria-label="Clear ending date"
+                  >
+                    <span class="icon-[si--close-line] w-4 h-4"></span>
+                  </button>
+                {/if}
+              </div>
               <p class="text-xs text-gray-500 mt-1">
                 Optional: Date at which tracking ends (balance calculated only up to this date)
               </p>
