@@ -176,8 +176,18 @@ export function computeButtonLayout(
  * when a new session starts for the same button
  */
 export function validateAndFixTimelogs(timelogs: TimeLog[]): TimeLog[] {
+  // Filter out timelogs with invalid start_timestamp
+  const validTimelogs = timelogs.filter(log => {
+    const startDate = new Date(log.start_timestamp);
+    if (isNaN(startDate.getTime())) {
+      console.warn('Invalid start_timestamp in timelog:', log);
+      return false;
+    }
+    return true;
+  });
+
   // Sort by start_timestamp
-  const sorted = [...timelogs].sort((a, b) => 
+  const sorted = [...validTimelogs].sort((a, b) => 
     new Date(a.start_timestamp).getTime() - new Date(b.start_timestamp).getTime()
   );
 

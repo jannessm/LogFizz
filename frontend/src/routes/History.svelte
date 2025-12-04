@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import BottomNav from '../components/BottomNav.svelte';
+  import DailyBalance from '../components/DailyBalance.svelte';
   import TimelogForm from '../components/TimelogForm.svelte';
   import HistoryCharts from '../components/History/HistoryCharts.svelte';
   import HistoryCalendar from '../components/History/HistoryCalendar.svelte';
@@ -254,6 +255,10 @@
           aria-label="Import timelogs"
         ></button>
       </div>
+    
+    <DailyBalance />
+
+    
     <!-- Monthly Balance Component -->
     <MonthlyBalance
       year={currentMonth.year()}
