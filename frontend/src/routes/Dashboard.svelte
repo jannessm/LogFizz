@@ -35,10 +35,13 @@
   $: user = $authStore.user;
 
   onMount(async () => {
-    await buttonsStore.load();
-    await timeLogsStore.load();
-    await timeLogsStore.loadActive();
-    await targetsStore.load();
+    
+    Promise.all([
+      timeLogsStore.load(),
+      buttonsStore.load(),
+      timeLogsStore.loadActive(),
+      targetsStore.load(),
+    ]);
 
     // Load edit-on-stop setting
     const setting = await getSetting('editOnStop');

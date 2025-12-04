@@ -10,6 +10,7 @@
   import ImportTimelogsModal from '../components/History/ImportTimelogsModal.svelte';
   import { timeLogsStore } from '../stores/timelogs';
   import { buttonsStore } from '../stores/buttons';
+  import { targetsStore } from '../stores/targets';
   import { snackbar } from '../stores/snackbar';
   import dayjs from 'dayjs';
 
@@ -71,7 +72,9 @@
     // Load data in parallel for faster initial render
     Promise.all([
       timeLogsStore.load(),
-      buttonsStore.load()
+      buttonsStore.load(),
+      timeLogsStore.loadActive(),
+      targetsStore.load(),
     ]);
   });
 
