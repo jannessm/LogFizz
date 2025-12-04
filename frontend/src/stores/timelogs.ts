@@ -254,7 +254,10 @@ function createTimeLogsStore() {
         if (buttonId && updates.apply_break_calculation === undefined) {
           try {
             const btn = await getButton(buttonId);
-            applyBreaksFromButton = btn?.auto_subtract_breaks ?? false;
+            // Only use button's setting if button exists, otherwise leave undefined to fall back
+            if (btn) {
+              applyBreaksFromButton = btn.auto_subtract_breaks;
+            }
           } catch (err) {
             console.warn('Failed to read button for auto_subtract_breaks, falling back:', err);
             applyBreaksFromButton = undefined;
