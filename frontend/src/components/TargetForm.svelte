@@ -18,8 +18,8 @@
   let weekdays = target?.weekdays || [1, 2, 3, 4, 5]; // Mon-Fri by default
   let excludeHolidays = target?.exclude_holidays || false;
   let stateCode = target?.state_code || '';
-  let startingFrom = target?.starting_from ? target.starting_from.split('T')[0] : '';
-  let endingAt = target?.ending_at ? target.ending_at.split('T')[0] : '';
+  let startingFrom = target?.starting_from ? target.starting_from.split('T')[0] : undefined;
+  let endingAt = target?.ending_at ? target.ending_at.split('T')[0] : undefined;
   let isLoading = false;
   let errorMessage = '';
   let availableStates: State[] = [];
@@ -28,35 +28,6 @@
   let availableCountries: string[] = [];
   let availableButtons: Button[] = [];
   let selectedButtonIds: string[] = [];
-  
-  // References to hidden date inputs
-  let startingFromDateInput: HTMLInputElement;
-  let endingAtDateInput: HTMLInputElement;
-  
-  // Format date for display
-  function formatDateForDisplay(dateString: string): string {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-  }
-  
-  // Handle clicking the visible input to open date picker
-  function openStartingFromPicker() {
-    startingFromDateInput?.showPicker();
-  }
-  
-  function openEndingAtPicker() {
-    endingAtDateInput?.showPicker();
-  }
-  
-  // Handle clearing dates
-  function clearStartingFrom() {
-    startingFrom = '';
-  }
-  
-  function clearEndingAt() {
-    endingAt = '';
-  }
 
   $: if ($buttonsStore.buttons) {
     availableButtons = $buttonsStore.buttons;
@@ -443,31 +414,21 @@
                 Tracking Starts From
               </label>
               <div class="flex gap-2">
-                <div class="flex-1 relative">
-                  <!-- Hidden date input -->
-                  <input
-                    bind:this={startingFromDateInput}
-                    type="date"
-                    bind:value={startingFrom}
-                    class="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                    tabindex="-1"
-                  />
-                  <!-- Visible display input -->
-                  <input
-                    id="startingFrom"
-                    type="text"
-                    value={startingFrom ? formatDateForDisplay(startingFrom) : ''}
-                    on:click={openStartingFromPicker}
-                    readonly
-                    placeholder="Click to select start date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer"
-                    class:text-gray-400={!startingFrom}
-                  />
-                </div>
+                <input
+                  id="startingFrom"
+                  type="date"
+                  bind:value={startingFrom}
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  class:text-gray-300={!startingFrom}
+                />
                 {#if startingFrom}
                   <button
                     type="button"
-                    on:click={clearStartingFrom}
+                    on:click={(e) => {
+                      e.preventDefault();
+                      startingFrom = undefined;
+                      e.currentTarget.blur();
+                    }}
                     class="px-3 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 hover:text-red-600 transition-colors"
                     title="Clear date"
                     aria-label="Clear starting date"
@@ -487,31 +448,21 @@
                 Tracking Ends At
               </label>
               <div class="flex gap-2">
-                <div class="flex-1 relative">
-                  <!-- Hidden date input -->
-                  <input
-                    bind:this={endingAtDateInput}
-                    type="date"
-                    bind:value={endingAt}
-                    class="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                    tabindex="-1"
-                  />
-                  <!-- Visible display input -->
-                  <input
-                    id="endingAt"
-                    type="text"
-                    value={endingAt ? formatDateForDisplay(endingAt) : ''}
-                    on:click={openEndingAtPicker}
-                    readonly
-                    placeholder="Click to select end date"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer"
-                    class:text-gray-400={!endingAt}
-                  />
-                </div>
+                <input
+                  id="endingAt"
+                  type="date"
+                  bind:value={endingAt}
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  class:text-gray-300={!endingAt}
+                />
                 {#if endingAt}
                   <button
                     type="button"
-                    on:click={clearEndingAt}
+                    on:click={(e) => {
+                      e.preventDefault();
+                      endingAt = undefined;
+                      e.currentTarget.blur();
+                    }}
                     class="px-3 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 hover:text-red-600 transition-colors"
                     title="Clear date"
                     aria-label="Clear ending date"

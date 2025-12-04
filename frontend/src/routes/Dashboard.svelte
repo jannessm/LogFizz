@@ -282,7 +282,7 @@
 
       <!-- Button Graph -->
       <ButtonGraph 
-        buttons={$buttonsStore.buttons}
+        buttons={$buttonsStore.buttons.filter(b => !b.archived)}
         {editMode}
         {toggleMode}
         on:edit={handleEditButton}
