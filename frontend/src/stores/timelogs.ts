@@ -248,23 +248,46 @@ function createTimeLogsStore() {
           throw new Error('TimeLog not found');
         }
 
+        // Get button's auto_subtract_breaks setting if apply_break_calculation not explicitly provided
+        let applyBreaksFromButton: boolean | undefined;
+        const buttonId = updates.button_id || existingTimeLog.button_id;
+        if (buttonId && updates.apply_break_calculation === undefined) {
+          try {
+            const btn = await getButton(buttonId);
+            applyBreaksFromButton = btn?.auto_subtract_breaks ?? false;
+          } catch (err) {
+            console.warn('Failed to read button for auto_subtract_breaks, falling back:', err);
+            applyBreaksFromButton = undefined;
+          }
+        }
+
         // Calculate duration if timestamps are provided
         let durationMinutes = updates.duration_minutes;
         const startTimestamp = updates.start_timestamp || existingTimeLog.start_timestamp;
         const endTimestamp = updates.end_timestamp !== undefined ? updates.end_timestamp : existingTimeLog.end_timestamp;
         
-        if (startTimestamp && endTimestamp && durationMinutes === undefined) {
-          // Determine whether to apply break calculations - prefer explicit flag in updates, fallback to existing value
-          const applyBreaks = updates.apply_break_calculation ?? existingTimeLog.apply_break_calculation;
+        if (startTimestamp && endTimestamp) {
+          // Determine whether to apply break calculations:
+          // 1. Prefer explicit flag in updates
+          // 2. Fall back to button's auto_subtract_breaks setting
+          // 3. Fall back to existing timelog value
+          const applyBreaks = updates.apply_break_calculation ?? applyBreaksFromButton ?? existingTimeLog.apply_break_calculation;
+          console.log(updates, applyBreaks);
           durationMinutes = computeDurationMinutes(startTimestamp, endTimestamp, applyBreaks);
         } else if (endTimestamp === null || endTimestamp === undefined) {
           // If end timestamp is removed (running), clear duration
           durationMinutes = undefined;
         }
 
+        console.log('calc duration', durationMinutes)
+
+        // Determine final apply_break_calculation value for the updated timelog
+        const finalApplyBreaks = updates.apply_break_calculation ?? applyBreaksFromButton ?? existingTimeLog.apply_break_calculation;
+
         const updatedTimeLog: TimeLog = {
           ...existingTimeLog,
           ...updates,
+          apply_break_calculation: finalApplyBreaks,
           duration_minutes: durationMinutes,
           updated_at: new Date().toISOString(),
         };
