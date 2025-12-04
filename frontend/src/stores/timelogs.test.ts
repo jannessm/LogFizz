@@ -7,6 +7,7 @@ vi.mock('../lib/db', () => ({
   saveTimeLog: vi.fn(),
   deleteTimeLog: vi.fn(),
   getButton: vi.fn(),
+  addToSyncQueue: vi.fn(),
 }));
 
 // Mock the sync service
