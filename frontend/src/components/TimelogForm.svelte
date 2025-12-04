@@ -12,10 +12,18 @@
   let buttonId = existingLog?.button_id || '';
   let startDate = existingLog?.startTime ? dayjs(existingLog.startTime).format('YYYY-MM-DD') : selectedDate.format('YYYY-MM-DD');
   let startTime = existingLog?.startTime ? dayjs(existingLog.startTime).format('HH:mm') : '';
-  let endDate = existingLog?.endTime ? dayjs(existingLog.endTime).format('YYYY-MM-DD') : selectedDate.format('YYYY-MM-DD');
-  let endTime = existingLog?.endTime ? dayjs(existingLog.endTime).format('HH:mm') : '';
+  
+  // When stopping a timer, pre-populate end time with current time
+  const now = dayjs();
+  let endDate = existingLog?.endTime 
+    ? dayjs(existingLog.endTime).format('YYYY-MM-DD') 
+    : (isTimerStop ? now.format('YYYY-MM-DD') : selectedDate.format('YYYY-MM-DD'));
+  let endTime = existingLog?.endTime 
+    ? dayjs(existingLog.endTime).format('HH:mm') 
+    : (isTimerStop ? now.format('HH:mm') : '');
+  
   let notes = existingLog?.log?.notes || '';
-  let isRunning = !existingLog?.endTime;
+  let isRunning = !existingLog?.endTime && !isTimerStop; // When stopping timer, it should not be running
   let errorMessage: string = '';
   let showDeleteConfirm = false;
 
@@ -129,25 +137,27 @@
         </select>
       </div>
 
-      <!-- Entry Type -->
-      <div>
-        <label class="flex items-center gap-2">
-          <input
-            id="running"
-            type="checkbox"
-            bind:checked={isRunning}
-            on:change={() => {
-              if (isRunning) {
-                endDate = '';
-                endTime = '';
-                errorMessage = '';
-              }
-            }}
-            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-          />
-          <span class="text-sm font-medium text-gray-700">Running</span>
-        </label>
-      </div>
+      <!-- Entry Type (hide when stopping timer) -->
+      {#if !isTimerStop}
+        <div>
+          <label class="flex items-center gap-2">
+            <input
+              id="running"
+              type="checkbox"
+              bind:checked={isRunning}
+              on:change={() => {
+                if (isRunning) {
+                  endDate = '';
+                  endTime = '';
+                  errorMessage = '';
+                }
+              }}
+              class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span class="text-sm font-medium text-gray-700">Running</span>
+          </label>
+        </div>
+      {/if}
 
       <!-- Start Date and Time -->
       <div class="grid grid-cols-2 gap-4">
@@ -177,8 +187,8 @@
         </div>
       </div>
 
-      <!-- End Date and Time -->
-      {#if !isRunning}
+      <!-- End Date and Time (shown when not running OR when stopping timer) -->
+      {#if !isRunning || isTimerStop}
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">

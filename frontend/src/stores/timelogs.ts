@@ -195,7 +195,7 @@ function createTimeLogsStore() {
       }
     },
 
-    async stopTimer(id: string, notes?: string) {
+    async stopTimer(id: string, notes?: string, endTimestamp?: string) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
         // Find the running timer and update it with end_timestamp
@@ -204,12 +204,13 @@ function createTimeLogsStore() {
         if (!runningTimer) throw new Error('Timer not found');
         
   const now = new Date();
-  const durationMinutes = computeDurationMinutes(runningTimer.start_timestamp, now.toISOString(), runningTimer.apply_break_calculation);
+  const endTime = endTimestamp || now.toISOString();
+  const durationMinutes = computeDurationMinutes(runningTimer.start_timestamp, endTime, runningTimer.apply_break_calculation);
         
         // Update the timer with end timestamp and duration
         const updatedTimeLog: TimeLog = {
           ...runningTimer,
-          end_timestamp: now.toISOString(),
+          end_timestamp: endTime,
           duration_minutes: durationMinutes,
           updated_at: now.toISOString(),
           ...(notes !== undefined && { notes }),

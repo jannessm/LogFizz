@@ -169,9 +169,9 @@
   async function handleSaveTimelog(event: CustomEvent) {
     const { button_id, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
     
-    // If this is a timer being stopped (timerToStop is set), stop it with the notes
+    // If this is a timer being stopped (timerToStop is set), stop it with the notes and custom end time
     if (timerToStop && existingLog?.log?.id === timerToStop.id) {
-      await timeLogsStore.stopTimer(timerToStop.id, notes || undefined);
+      await timeLogsStore.stopTimer(timerToStop.id, notes || undefined, endTimestamp || undefined);
       timerToStop = null;
     } else if (existingLog && existingLog.log) {
       // Editing existing timelog
@@ -274,7 +274,7 @@
 
   <!-- Scrollable Button Area -->
   <div class="flex grow-1 overflow-y-auto">
-    <div class="mx-auto px-4 py-6 min-w-full w-full">
+    <div class="mx-auto px-4 py-6 min-w-full w-full h-full">
       <!-- Daily Targets Overview -->
 
       <!-- Button Graph -->
