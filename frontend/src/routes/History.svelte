@@ -261,20 +261,6 @@
     
     <DailyBalance />
 
-    
-    <!-- Monthly Balance Component -->
-    <MonthlyBalance
-      year={currentMonth.year()}
-      month={currentMonth.month() + 1}
-    />
-
-    <!-- Charts Component -->
-    <HistoryCharts
-      {buttons}
-      {timeLogs}
-      {currentMonth}
-      onDateSelect={selectDate}
-    />
 
     <div class="flex justify-between items-center mt-6 mb-6">
       <div class="flex items-center gap-2">
@@ -328,6 +314,21 @@
         </button>
       </div>
     </div>
+    
+    <!-- Monthly Balance Component -->
+    <MonthlyBalance
+      year={currentMonth.year()}
+      month={currentMonth.month() + 1}
+    />
+
+    <!-- Charts Component -->
+    <HistoryCharts
+      {buttons}
+      {timeLogs}
+      {currentMonth}
+      onDateSelect={selectDate}
+    />
+
 
     <!-- Calendar Component -->
     <HistoryCalendar
