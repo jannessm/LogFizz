@@ -129,9 +129,12 @@ export async function deleteButton(id: string): Promise<void> {
 export async function saveTimeLog(timelog: TimeLog): Promise<void> {
   const db = await getDB();
   
-  // Calculate duration if it's 0 or undefined and we have both timestamps
+  // For special types (non-normal), preserve duration from backend
+  // For normal type, calculate duration if it's 0 or undefined and we have both timestamps
   let finalTimelog = timelog;
-  if (timelog.start_timestamp && timelog.end_timestamp) {
+  const type = timelog.type || 'normal';
+  
+  if (type === 'normal' && timelog.start_timestamp && timelog.end_timestamp) {
     
     // Determine whether to apply break calculation
     // Priority: timelog's explicit setting > button's auto_subtract_breaks > false
@@ -172,6 +175,7 @@ export async function saveTimeLog(timelog: TimeLog): Promise<void> {
       apply_break_calculation: applyBreaks,
     };
   }
+  // For special types, keep the duration as-is (calculated by backend from daily target)
 
   await db.put('timelogs', finalTimelog);
 }
