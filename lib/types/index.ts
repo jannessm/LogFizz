@@ -28,6 +28,7 @@ export interface Button {
   emoji?: string;
   color?: string;
   auto_subtract_breaks: boolean;
+  archived: boolean;
   target_id?: string; // Optional assignment to a daily target
   created_at: string;
   updated_at: string;
@@ -44,6 +45,7 @@ export interface DailyTarget {
   exclude_holidays: boolean; // Whether to exclude public holidays from target calculation
   state_code?: string;
   starting_from?: string; // Date from which tracking starts (important for saldo computations)
+  ending_at?: string; // Date at which tracking ends (balance calculated only up to this date)
   created_at: string;
   updated_at: string;
   deleted_at?: string;
@@ -145,8 +147,9 @@ export interface ButtonEntity extends Omit<Button, 'created_at' | 'updated_at' |
   deleted_at?: Date;
 }
 
-export interface DailyTargetEntity extends Omit<DailyTarget, 'starting_from' | 'created_at' | 'updated_at' | 'deleted_at'> {
+export interface DailyTargetEntity extends Omit<DailyTarget, 'starting_from' | 'ending_at' | 'created_at' | 'updated_at' | 'deleted_at'> {
   starting_from?: Date;
+  ending_at?: Date;
   created_at: Date;
   updated_at: Date;
   deleted_at?: Date;

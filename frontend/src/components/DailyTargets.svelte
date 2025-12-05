@@ -8,13 +8,42 @@
 
   let activeTargets: DailyTarget[] = [];
   let inactiveTargets: DailyTarget[] = [];
+  let displayedTargets: DailyTarget[] = [];
   let progressMap = new Map<string, { totalMinutes: number; targetDuration: number; percentage: number; completed: boolean }>();
   let interval: number | null = null;
 
   $: if ($todayTargets.length > 0 && $buttonsStore.buttons && $timeLogsStore.timeLogs) {
-    activeTargets = $todayTargets.filter(t => isTargetActive(t)).sort((a, b) => a.name.localeCompare(b.name));
-    inactiveTargets = $todayTargets.filter(t => !isTargetActive(t)).sort((a, b) => a.name.localeCompare(b.name));
     updateProgressMap();
+    
+    // Separate active and inactive targets
+    activeTargets = $todayTargets.filter(t => isTargetActive(t));
+    inactiveTargets = $todayTargets.filter(t => !isTargetActive(t));
+    
+    // Sort active targets by progress (descending)
+    activeTargets.sort((a, b) => {
+      const progressA = progressMap.get(a.id)?.percentage || 0;
+      const progressB = progressMap.get(b.id)?.percentage || 0;
+      return progressB - progressA;
+    });
+    
+    // Sort inactive targets by progress (descending)
+    inactiveTargets.sort((a, b) => {
+      const progressA = progressMap.get(a.id)?.percentage || 0;
+      const progressB = progressMap.get(b.id)?.percentage || 0;
+      return progressB - progressA;
+    });
+    
+    // Determine which targets to display
+    // Show all active targets, or 2 targets (whichever is more)
+    const minTargetsToShow = 2;
+    if (activeTargets.length >= minTargetsToShow) {
+      // Show all active targets
+      displayedTargets = [...activeTargets];
+    } else {
+      // Show first 2 targets (active first, then inactive)
+      const allSortedTargets = [...activeTargets, ...inactiveTargets];
+      displayedTargets = allSortedTargets.slice(0, minTargetsToShow);
+    }
   }
 
   function updateProgressMap() {
@@ -123,16 +152,21 @@
 
 </script>
 
-{#if $todayTargets.length > 0}
+{#if displayedTargets.length > 0}
   <div class="px-4 mb-4 z-0">
-    {#each activeTargets as target}
+    {#each displayedTargets as target}
       {@const progress = progressMap.get(target.id)}
+      {@const isActive = isTargetActive(target)}
       {#if progress}
         <div 
-          class="flex justify-between items-start gap-4 transition-opacity duration-300 opacity-100"
+          class="flex justify-between items-start gap-4 transition-opacity duration-300"
+          class:opacity-100={isActive}
+          class:opacity-40={!isActive}
         >
           <p 
-            class="shrink-0 transition-colors duration-300 text-gray-800"
+            class="shrink-0 transition-colors duration-300"
+            class:text-gray-800={isActive}
+            class:text-gray-500={!isActive}
           >
             {target.name}
           </p>
@@ -140,43 +174,16 @@
             <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden mt-2 mb-1">
               <div
                 class="h-full rounded-full transition-all duration-500"
-                class:bg-green-500={progress.completed}
-                class:bg-blue-500={!progress.completed}
+                class:bg-green-500={isActive && progress.completed}
+                class:bg-blue-500={isActive && !progress.completed}
+                class:bg-gray-400={!isActive}
                 style="width: {progress.percentage}%"
               ></div>
             </div>
             <div 
               class="text-xs transition-colors duration-300 text-gray-500"
             >
-              {Math.ceil(progress.percentage)}% ({formatDuration(progress.totalMinutes)} / {formatDuration(progress.targetDuration)})
-            </div>
-          </div>
-        </div>
-      {/if}
-    {/each}
-
-    {#each inactiveTargets as target}
-      {@const progress = progressMap.get(target.id)}
-      {#if progress}
-        <div 
-          class="flex justify-between items-start gap-4 transition-opacity duration-300 opacity-40"
-        >
-          <p 
-            class="shrink-0 transition-colors duration-300 text-gray-500"
-          >
-            {target.name}
-          </p>
-          <div class="w-full flex flex-col items-end">
-            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden mt-2 mb-1">
-              <div
-                class="h-full rounded-full transition-all duration-500 bg-gray-400"
-                style="width: {progress.percentage}%"
-              ></div>
-            </div>
-            <div 
-              class="text-xs transition-colors duration-300 text-gray-500"
-            >
-              {progress.percentage}% ({formatDuration(progress.totalMinutes)} / {formatDuration(progress.targetDuration)})
+              {isActive ? Math.ceil(progress.percentage) : progress.percentage}% ({formatDuration(progress.totalMinutes)} / {formatDuration(progress.targetDuration)})
             </div>
           </div>
         </div>

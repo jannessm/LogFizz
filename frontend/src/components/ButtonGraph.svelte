@@ -45,15 +45,15 @@
       const rect = containerEl.getBoundingClientRect();
       containerWidth = rect.width;
       // Dynamic height based on number of buttons
-      containerHeight = Math.max(600, Math.min(1000, 400 + buttons.length * 30));
+      containerHeight = Math.max(rect.height, Math.min(1000, 400 + buttons.length * 30));
     }
   });
 </script>
 
 <div 
   bind:this={containerEl}
-  class="relative w-full"
-  style="height: {containerHeight}px;"
+  class="relative w-full h-full"
+  style="min-height: 600px; height: 100%;"
 >
   {#if buttons.length === 0}
     <div class="absolute inset-0 flex items-center justify-center text-center py-12 text-gray-500">

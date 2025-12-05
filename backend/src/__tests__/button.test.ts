@@ -54,6 +54,7 @@ describe('Button Sync Routes', () => {
           emoji: '💼',
           color: '#3B82F6',
           auto_subtract_breaks: true,
+          archived: false,
         }],
       },
     });
@@ -66,6 +67,7 @@ describe('Button Sync Routes', () => {
     expect(body.saved[0].emoji).toBe('💼');
     expect(body.saved[0].color).toBe('#3B82F6');
     expect(body.saved[0].auto_subtract_breaks).toBe(true);
+    expect(body.saved[0].archived).toBe(false);
   });
 
   it('should get all user buttons via sync', async () => {
@@ -84,6 +86,7 @@ describe('Button Sync Routes', () => {
           emoji: '📚',
           color: '#10B981',
           auto_subtract_breaks: false,
+          archived: false,
         }],
       },
     });
@@ -198,6 +201,98 @@ describe('Button Sync Routes', () => {
     const deletedButton = syncBody.buttons.find((b: any) => b.id === buttonId);
     expect(deletedButton).toBeDefined();
     expect(deletedButton.deleted_at).toBeDefined();
+  });
+
+  it('should archive and unarchive a button via sync', async () => {
+    // Create a button
+    const buttonId = '990e8400-e29b-41d4-a716-446655440004';
+    await app.inject({
+      method: 'POST',
+      url: '/api/buttons/sync',
+      headers: {
+        cookie: authCookie,
+      },
+      payload: {
+        buttons: [{
+          id: buttonId,
+          name: 'Old Project',
+          emoji: '📦',
+          auto_subtract_breaks: false,
+          archived: false,
+        }],
+      },
+    });
+
+    // Archive the button
+    const archiveResponse = await app.inject({
+      method: 'POST',
+      url: '/api/buttons/sync',
+      headers: {
+        cookie: authCookie,
+      },
+      payload: {
+        buttons: [{
+          id: buttonId,
+          name: 'Old Project',
+          emoji: '📦',
+          auto_subtract_breaks: false,
+          archived: true,
+        }],
+      },
+    });
+
+    expect(archiveResponse.statusCode).toBe(200);
+    const archiveBody = JSON.parse(archiveResponse.body);
+    expect(archiveBody.saved).toHaveLength(1);
+    expect(archiveBody.saved[0].archived).toBe(true);
+
+    // Unarchive the button
+    const unarchiveResponse = await app.inject({
+      method: 'POST',
+      url: '/api/buttons/sync',
+      headers: {
+        cookie: authCookie,
+      },
+      payload: {
+        buttons: [{
+          id: buttonId,
+          name: 'Old Project',
+          emoji: '📦',
+          auto_subtract_breaks: false,
+          archived: false,
+        }],
+      },
+    });
+
+    expect(unarchiveResponse.statusCode).toBe(200);
+    const unarchiveBody = JSON.parse(unarchiveResponse.body);
+    expect(unarchiveBody.saved).toHaveLength(1);
+    expect(unarchiveBody.saved[0].archived).toBe(false);
+  });
+
+  it('should create a button with archived flag set to true', async () => {
+    const buttonId = 'aa0e8400-e29b-41d4-a716-446655440005';
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/buttons/sync',
+      headers: {
+        cookie: authCookie,
+      },
+      payload: {
+        buttons: [{
+          id: buttonId,
+          name: 'Archived Button',
+          archived: true,
+          auto_subtract_breaks: false,
+        }],
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.saved).toHaveLength(1);
+    expect(body.saved[0].archived).toBe(true);
+    expect(body.saved[0].name).toBe('Archived Button');
   });
 
   it('should not allow unauthenticated requests', async () => {

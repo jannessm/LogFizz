@@ -18,7 +18,8 @@
   let weekdays = target?.weekdays || [1, 2, 3, 4, 5]; // Mon-Fri by default
   let excludeHolidays = target?.exclude_holidays || false;
   let stateCode = target?.state_code || '';
-  let startingFrom = target?.starting_from ? target.starting_from.split('T')[0] : '';
+  let startingFrom = target?.starting_from ? target.starting_from.split('T')[0] : undefined;
+  let endingAt = target?.ending_at ? target.ending_at.split('T')[0] : undefined;
   let isLoading = false;
   let errorMessage = '';
   let availableStates: State[] = [];
@@ -153,6 +154,7 @@
         exclude_holidays: excludeHolidays,
         state_code: stateCode || undefined,
         starting_from: startingFrom ? new Date(startingFrom).toISOString() : undefined,
+        ending_at: endingAt ? new Date(endingAt).toISOString() : undefined,
       };
 
       let savedTargetId: string;
@@ -411,14 +413,66 @@
               <label for="startingFrom" class="block text-sm text-gray-600 mb-1">
                 Tracking Starts From
               </label>
-              <input
-                id="startingFrom"
-                type="date"
-                bind:value={startingFrom}
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
+              <div class="flex gap-2">
+                <input
+                  id="startingFrom"
+                  type="date"
+                  bind:value={startingFrom}
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  class:text-gray-300={!startingFrom}
+                />
+                {#if startingFrom}
+                  <button
+                    type="button"
+                    on:click={(e) => {
+                      e.preventDefault();
+                      startingFrom = undefined;
+                      e.currentTarget.blur();
+                    }}
+                    class="px-3 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 hover:text-red-600 transition-colors"
+                    title="Clear date"
+                    aria-label="Clear starting date"
+                  >
+                    <span class="icon-[si--close-line] w-4 h-4"></span>
+                  </button>
+                {/if}
+              </div>
               <p class="text-xs text-gray-500 mt-1">
                 Optional: Date from which tracking starts (important for balance computations)
+              </p>
+            </div>
+
+            <!-- Ending At -->
+            <div>
+              <label for="endingAt" class="block text-sm text-gray-600 mb-1">
+                Tracking Ends At
+              </label>
+              <div class="flex gap-2">
+                <input
+                  id="endingAt"
+                  type="date"
+                  bind:value={endingAt}
+                  class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  class:text-gray-300={!endingAt}
+                />
+                {#if endingAt}
+                  <button
+                    type="button"
+                    on:click={(e) => {
+                      e.preventDefault();
+                      endingAt = undefined;
+                      e.currentTarget.blur();
+                    }}
+                    class="px-3 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 hover:text-red-600 transition-colors"
+                    title="Clear date"
+                    aria-label="Clear ending date"
+                  >
+                    <span class="icon-[si--close-line] w-4 h-4"></span>
+                  </button>
+                {/if}
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                Optional: Date at which tracking ends (balance calculated only up to this date)
               </p>
             </div>
           </div>

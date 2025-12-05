@@ -13,6 +13,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
+    "test:migrations": "tsx src/scripts/test-migrations.ts",
     "seed": "tsx src/scripts/seed.ts",
     "migration:generate": "tsx src/migrations/runner.ts generate",
     "migration:run": "tsx src/migrations/runner.ts run",

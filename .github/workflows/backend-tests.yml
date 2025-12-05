@@ -85,6 +85,10 @@ jobs:
         run: |
           PGPASSWORD=clock_password psql -h localhost -U clock_user -d clock_test_db -c '\l'
           echo "Database connection verified!"
+      
+      - name: Test Migrations
+        working-directory: backend
+        run: npm run test:migrations
 
       - name: Run tests
         working-directory: backend
