@@ -40,26 +40,6 @@ async function recalculateBalancesForTimeLogs(timeLogs: TimeLog[]): Promise<void
   }
 }
 
-/**
- * Compute difference in minutes between two timestamps and optionally apply
- * the German break rules (30 min after 6h, 45 min after 9h).
- */
-function computeDurationMinutes(startTs: string | Date, endTs: string | Date, applyBreaks: boolean | undefined): number {
-  const start = new Date(startTs);
-  const end = new Date(endTs);
-  let minutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
-
-  if (applyBreaks) {
-    if (minutes >= 9 * 60) {
-      minutes -= 45;
-    } else if (minutes >= 6 * 60) {
-      minutes -= 30;
-    }
-  }
-
-  return Math.max(0, minutes);
-}
-
 function createTimeLogsStore() {
   const { subscribe, set, update } = writable<TimeLogsStore>({
     timeLogs: [],
@@ -203,15 +183,14 @@ function createTimeLogsStore() {
         const runningTimer = allTimeLogs.find(tl => tl.id === id);
         if (!runningTimer) throw new Error('Timer not found');
         
-  const now = new Date();
-  const endTime = endTimestamp || now.toISOString();
-  const durationMinutes = computeDurationMinutes(runningTimer.start_timestamp, endTime, runningTimer.apply_break_calculation);
+        const now = new Date();
+        const endTime = endTimestamp || now.toISOString();
         
-        // Update the timer with end timestamp and duration
+        // Update the timer with end timestamp (duration will be calculated by saveTimeLog)
         const updatedTimeLog: TimeLog = {
           ...runningTimer,
           end_timestamp: endTime,
-          duration_minutes: durationMinutes,
+          duration_minutes: undefined, // Let saveTimeLog calculate this
           updated_at: now.toISOString(),
           ...(notes !== undefined && { notes }),
         };
@@ -248,50 +227,11 @@ function createTimeLogsStore() {
           throw new Error('TimeLog not found');
         }
 
-        // Get button's auto_subtract_breaks setting if apply_break_calculation not explicitly provided
-        let applyBreaksFromButton: boolean | undefined;
-        const buttonId = updates.button_id || existingTimeLog.button_id;
-        if (buttonId && updates.apply_break_calculation === undefined) {
-          try {
-            const btn = await getButton(buttonId);
-            // Only use button's setting if button exists, otherwise leave undefined to fall back
-            if (btn) {
-              applyBreaksFromButton = btn.auto_subtract_breaks;
-            }
-          } catch (err) {
-            console.warn('Failed to read button for auto_subtract_breaks, falling back:', err);
-            applyBreaksFromButton = undefined;
-          }
-        }
-
-        // Calculate duration if timestamps are provided
-        let durationMinutes = updates.duration_minutes;
-        const startTimestamp = updates.start_timestamp || existingTimeLog.start_timestamp;
-        const endTimestamp = updates.end_timestamp !== undefined ? updates.end_timestamp : existingTimeLog.end_timestamp;
-        
-        if (startTimestamp && endTimestamp) {
-          // Determine whether to apply break calculations:
-          // 1. Prefer explicit flag in updates
-          // 2. Fall back to button's auto_subtract_breaks setting
-          // 3. Fall back to existing timelog value
-          const applyBreaks = updates.apply_break_calculation ?? applyBreaksFromButton ?? existingTimeLog.apply_break_calculation;
-          console.log(updates, applyBreaks);
-          durationMinutes = computeDurationMinutes(startTimestamp, endTimestamp, applyBreaks);
-        } else if (endTimestamp === null || endTimestamp === undefined) {
-          // If end timestamp is removed (running), clear duration
-          durationMinutes = undefined;
-        }
-
-        console.log('calc duration', durationMinutes)
-
-        // Determine final apply_break_calculation value for the updated timelog
-        const finalApplyBreaks = updates.apply_break_calculation ?? applyBreaksFromButton ?? existingTimeLog.apply_break_calculation;
-
+        // Duration will be calculated by saveTimeLog when the timelog is persisted
         const updatedTimeLog: TimeLog = {
           ...existingTimeLog,
           ...updates,
-          apply_break_calculation: finalApplyBreaks,
-          duration_minutes: durationMinutes,
+          duration_minutes: undefined, // Let saveTimeLog calculate this
           updated_at: new Date().toISOString(),
         };
 
@@ -321,36 +261,16 @@ function createTimeLogsStore() {
     async create(timeLogData: Partial<TimeLog>) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        // Determine applyBreaks from button settings (button.auto_subtract_breaks)
-        let durationMinutes: number | undefined;
-        let applyBreaksFromButton = false;
-        if (timeLogData.button_id) {
-          try {
-            const btn = await getButton(timeLogData.button_id);
-            applyBreaksFromButton = !!btn?.auto_subtract_breaks;
-          } catch (err) {
-            // If reading the button fails, fall back to provided flag or false
-            console.warn('Failed to read button for auto_subtract_breaks, falling back:', err);
-            applyBreaksFromButton = false;
-          }
-        }
-
-        // Calculate duration if end_timestamp is provided
-        if (timeLogData.start_timestamp && timeLogData.end_timestamp) {
-          const applyBreaks = timeLogData.apply_break_calculation ?? applyBreaksFromButton ?? false;
-          durationMinutes = computeDurationMinutes(timeLogData.start_timestamp, timeLogData.end_timestamp, applyBreaks);
-        }
-        
+        // Duration will be calculated by saveTimeLog when the timelog is persisted
         const timeLog: TimeLog = {
           id: crypto.randomUUID(),
           user_id: timeLogData.user_id || '',
           button_id: timeLogData.button_id || '',
           start_timestamp: timeLogData.start_timestamp || new Date().toISOString(),
           end_timestamp: timeLogData.end_timestamp,
-          duration_minutes: durationMinutes,
+          duration_minutes: undefined, // Let saveTimeLog calculate this
           timezone: timeLogData.timezone || 'UTC',
-          // Prefer explicit flag in payload, otherwise use the button's auto_subtract_breaks setting
-          apply_break_calculation: timeLogData.apply_break_calculation ?? applyBreaksFromButton ?? false,
+          apply_break_calculation: timeLogData.apply_break_calculation ?? false,
           notes: timeLogData.notes,
           is_manual: true,
           created_at: new Date().toISOString(),

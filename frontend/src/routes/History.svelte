@@ -69,12 +69,14 @@
   $: buttons = $buttonsStore.buttons;
 
   onMount(async () => {
-    // Load data in parallel for faster initial render
-    Promise.all([
-      timeLogsStore.load(),
+    await Promise.all([
       buttonsStore.load(),
-      timeLogsStore.loadActive(),
       targetsStore.load(),
+    ]);
+
+    await Promise.all([
+      timeLogsStore.load(),
+      timeLogsStore.loadActive(),
     ]);
   });
 

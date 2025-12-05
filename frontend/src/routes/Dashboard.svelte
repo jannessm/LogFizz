@@ -36,11 +36,14 @@
 
   onMount(async () => {
     
-    Promise.all([
-      timeLogsStore.load(),
+    await Promise.all([
       buttonsStore.load(),
-      timeLogsStore.loadActive(),
       targetsStore.load(),
+    ]);
+
+    await Promise.all([
+      timeLogsStore.load(),
+      timeLogsStore.loadActive(),
     ]);
 
     // Load edit-on-stop setting

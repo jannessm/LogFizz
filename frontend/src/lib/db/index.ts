@@ -128,7 +128,46 @@ export async function deleteButton(id: string): Promise<void> {
 // TimeLog operations
 export async function saveTimeLog(timelog: TimeLog): Promise<void> {
   const db = await getDB();
-  await db.put('timelogs', timelog);
+  
+  // Calculate duration if it's 0 or undefined and we have both timestamps
+  let finalTimelog = timelog;
+  if (timelog.start_timestamp && timelog.end_timestamp) {
+    
+    // Get button to check if we should apply break calculation
+    let applyBreaks = timelog.apply_break_calculation ?? false;
+    if (timelog.button_id) {
+      try {
+        const button = await getButton(timelog.button_id);
+        if (button && button.auto_subtract_breaks !== undefined) {
+          applyBreaks = button.auto_subtract_breaks;
+        }
+      } catch (err) {
+        console.warn('Failed to read button for break calculation:', err);
+      }
+    }
+    
+    // Calculate duration in minutes
+    const start = new Date(timelog.start_timestamp).getTime();
+    const end = new Date(timelog.end_timestamp).getTime();
+    let minutes = Math.round((end - start) / (1000 * 60));
+    
+    // Apply German break rules if enabled
+    if (applyBreaks) {
+      if (minutes >= 9 * 60) {
+        minutes -= 45; // 45 minutes break for 9+ hours
+      } else if (minutes >= 6 * 60) {
+        minutes -= 30; // 30 minutes break for 6-9 hours
+      }
+    }
+    
+    finalTimelog = {
+      ...timelog,
+      duration_minutes: Math.max(0, minutes),
+      apply_break_calculation: applyBreaks,
+    };
+  }
+  
+  await db.put('timelogs', finalTimelog);
 }
 
 export async function getTimeLog(id: string): Promise<TimeLog | undefined> {
