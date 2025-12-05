@@ -166,7 +166,7 @@ export async function saveTimeLog(timelog: TimeLog): Promise<void> {
       apply_break_calculation: applyBreaks,
     };
   }
-  
+
   await db.put('timelogs', finalTimelog);
 }
 

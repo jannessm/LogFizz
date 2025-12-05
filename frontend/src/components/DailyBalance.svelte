@@ -85,7 +85,6 @@
     }
 
     balances = newBalances;
-    console.log('Daily balances updated:', balances);
   }
 
   $: if ($targetsStore.targets && $buttonsStore.buttons && $timeLogsStore.timeLogs || refreshTick) {
