@@ -10,6 +10,7 @@
   const dispatch = createEventDispatcher();
 
   let buttonId = existingLog?.button_id || '';
+  let type = existingLog?.log?.type || 'normal';
   let startDate = existingLog?.startTime ? dayjs(existingLog.startTime).format('YYYY-MM-DD') : selectedDate.format('YYYY-MM-DD');
   let startTime = existingLog?.startTime ? dayjs(existingLog.startTime).format('HH:mm') : '';
   
@@ -33,7 +34,30 @@
   function handleSubmit() {
     errorMessage = '';
 
-    if (!buttonId || !startDate || !startTime) {
+    if (!buttonId || !startDate) {
+      alert('Please fill all required fields');
+      return;
+    }
+
+    // For special types (non-normal), we don't need start/end times
+    if (type !== 'normal') {
+      // Use the start date as the reference date
+      const startTimestamp = `${startDate}T00:00:00`;
+      const endTimestamp = `${startDate}T23:59:59`;
+      
+      dispatch('save', {
+        button_id: buttonId,
+        type,
+        startTimestamp,
+        endTimestamp,
+        notes,
+        existingLog
+      });
+      return;
+    }
+
+    // For normal type, validate time fields
+    if (!startTime) {
       alert('Please fill all required fields');
       return;
     }
@@ -60,6 +84,7 @@
 
     dispatch('save', {
       button_id: buttonId,
+      type,
       startTimestamp,
       endTimestamp,
       notes,
@@ -137,8 +162,27 @@
         </select>
       </div>
 
-      <!-- Entry Type (hide when stopping timer) -->
-      {#if !isTimerStop}
+      <!-- Type Selection -->
+      <div>
+        <label for="type" class="block text-sm font-medium text-gray-700 mb-1">
+          Type *
+        </label>
+        <select
+          id="type"
+          bind:value={type}
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          required
+        >
+          <option value="normal">Normal</option>
+          <option value="sick">Sick</option>
+          <option value="holiday">Holiday</option>
+          <option value="business-trip">Business Trip</option>
+          <option value="child-sick">Child Sick</option>
+        </select>
+      </div>
+
+      <!-- Entry Type (hide when stopping timer or for non-normal types) -->
+      {#if !isTimerStop && type === 'normal'}
         <div>
           <label class="flex items-center gap-2">
             <input
@@ -159,11 +203,11 @@
         </div>
       {/if}
 
-      <!-- Start Date and Time -->
-      <div class="grid grid-cols-2 gap-4">
+      <!-- For special types, only show date -->
+      {#if type !== 'normal'}
         <div>
           <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">
-            Start Date *
+            Date *
           </label>
           <input
             id="startDate"
@@ -172,53 +216,72 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
           />
+          <p class="mt-1 text-sm text-gray-500">
+            Duration will be calculated based on your daily target for this day
+          </p>
         </div>
-        <div>
-          <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">
-            Start Time *
-          </label>
-          <input
-            id="startTime"
-            type="time"
-            bind:value={startTime}
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required
-          />
-        </div>
-      </div>
-
-      <!-- End Date and Time (shown when not running OR when stopping timer) -->
-      {#if !isRunning || isTimerStop}
+      {:else}
+        <!-- Start Date and Time (for normal type) -->
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">
-              End Date *
+            <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">
+              Start Date *
             </label>
             <input
-              id="endDate"
+              id="startDate"
               type="date"
-              bind:value={endDate}
-              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              class:border-gray-300={!hasDateError}
-              class:border-red-500={hasDateError}
+              bind:value={startDate}
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
           <div>
-            <label for="endTime" class="block text-sm font-medium text-gray-700 mb-1">
-              End Time *
+            <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">
+              Start Time *
             </label>
             <input
-              id="endTime"
+              id="startTime"
               type="time"
-              bind:value={endTime}
-              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              class:border-gray-300={!hasDateError}
-              class:border-red-500={hasDateError}
+              bind:value={startTime}
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
           </div>
         </div>
+
+        <!-- End Date and Time (shown when not running OR when stopping timer) -->
+        {#if !isRunning || isTimerStop}
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">
+                End Date *
+              </label>
+              <input
+                id="endDate"
+                type="date"
+                bind:value={endDate}
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class:border-gray-300={!hasDateError}
+                class:border-red-500={hasDateError}
+                required
+              />
+            </div>
+            <div>
+              <label for="endTime" class="block text-sm font-medium text-gray-700 mb-1">
+                End Time *
+              </label>
+              <input
+                id="endTime"
+                type="time"
+                bind:value={endTime}
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class:border-gray-300={!hasDateError}
+                class:border-red-500={hasDateError}
+                required
+              />
+            </div>
+          </div>
+        {/if}
       {/if}
 
       <!-- Notes Field -->

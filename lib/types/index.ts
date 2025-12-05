@@ -67,12 +67,16 @@ export interface MonthlyBalance {
   target?: DailyTarget;
 }
 
+// TimeLog type enum
+export type TimeLogType = 'normal' | 'sick' | 'holiday' | 'business-trip' | 'child-sick';
+
 // TimeLog types - Time range based system
 // Each TimeLog represents a time tracking session with start/end timestamps
 export interface TimeLog {
   id: string;
   user_id: string;
   button_id: string;
+  type: TimeLogType; // Type of timelog entry
   start_timestamp: string; // When the session started
   end_timestamp?: string; // When the session ended (null if still running)
   duration_minutes?: number; // Auto-calculated when end_timestamp is set
