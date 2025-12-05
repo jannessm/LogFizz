@@ -133,18 +133,24 @@ export async function saveTimeLog(timelog: TimeLog): Promise<void> {
   let finalTimelog = timelog;
   if (timelog.start_timestamp && timelog.end_timestamp) {
     
-    // Get button to check if we should apply break calculation
-    let applyBreaks = timelog.apply_break_calculation ?? false;
-    if (timelog.button_id) {
+    // Determine whether to apply break calculation
+    // Priority: timelog's explicit setting > button's auto_subtract_breaks > false
+    let applyBreaks = timelog.apply_break_calculation;
+    
+    // Only check button setting if apply_break_calculation is not explicitly set
+    if (applyBreaks === undefined && timelog.button_id) {
       try {
         const button = await getButton(timelog.button_id);
-        if (button && button.auto_subtract_breaks !== undefined) {
+        if (button) {
           applyBreaks = button.auto_subtract_breaks;
         }
       } catch (err) {
         console.warn('Failed to read button for break calculation:', err);
       }
     }
+    
+    // Default to false if still undefined
+    applyBreaks = applyBreaks ?? false;
     
     // Calculate duration in minutes
     const start = new Date(timelog.start_timestamp).getTime();
