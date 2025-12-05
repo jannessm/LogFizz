@@ -9,6 +9,7 @@ import { Holiday } from '../entities/Holiday.js';
 import { State } from '../entities/State.js';
 import { MonthlyBalance } from '../entities/MonthlyBalance.js';
 import { HolidayMetadata } from '../entities/HolidayMetadata.js';
+import { InitialSchema1699700000000 } from '../migrations/1699700000000-InitialSchema.js';
 
 /**
  * CLI script to test migrations and seeding
@@ -59,7 +60,7 @@ async function testMigrations() {
       synchronize: false,
       logging: false,
       entities: [User, Button, DailyTarget, TimeLog, Holiday, State, MonthlyBalance, HolidayMetadata],
-      migrations: ['src/migrations/*.ts'],
+      migrations: [InitialSchema1699700000000],
     });
 
     await testConnection.initialize();

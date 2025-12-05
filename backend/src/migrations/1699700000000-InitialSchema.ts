@@ -27,6 +27,40 @@ export class InitialSchema1699700000000 implements MigrationInterface {
             )
         `);
 
+        // Create states table (needed before daily_targets due to FK constraint)
+        await queryRunner.query(`
+            CREATE TABLE IF NOT EXISTS "states" (
+                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                "country" character varying NOT NULL,
+                "state" character varying NOT NULL,
+                "code" character varying NOT NULL,
+                CONSTRAINT "PK_states_id" PRIMARY KEY ("id"),
+                CONSTRAINT "UQ_states_code" UNIQUE ("code")
+            )
+        `);
+
+        // Insert German states
+        await queryRunner.query(`
+            INSERT INTO "states" ("country", "state", "code") VALUES
+            ('Germany', 'Baden-Württemberg', 'DE-BW'),
+            ('Germany', 'Bayern', 'DE-BY'),
+            ('Germany', 'Berlin', 'DE-BE'),
+            ('Germany', 'Brandenburg', 'DE-BB'),
+            ('Germany', 'Bremen', 'DE-HB'),
+            ('Germany', 'Hamburg', 'DE-HH'),
+            ('Germany', 'Hessen', 'DE-HE'),
+            ('Germany', 'Mecklenburg-Vorpommern', 'DE-MV'),
+            ('Germany', 'Niedersachsen', 'DE-NI'),
+            ('Germany', 'Nordrhein-Westfalen', 'DE-NW'),
+            ('Germany', 'Rheinland-Pfalz', 'DE-RP'),
+            ('Germany', 'Saarland', 'DE-SL'),
+            ('Germany', 'Sachsen', 'DE-SN'),
+            ('Germany', 'Sachsen-Anhalt', 'DE-ST'),
+            ('Germany', 'Schleswig-Holstein', 'DE-SH'),
+            ('Germany', 'Thüringen', 'DE-TH')
+            ON CONFLICT (code) DO NOTHING
+        `);
+
         // Create daily_targets table
         await queryRunner.query(`
             CREATE TABLE IF NOT EXISTS "daily_targets" (
@@ -119,40 +153,6 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
                 CONSTRAINT "PK_holiday_metadata_id" PRIMARY KEY ("id")
             )
-        `);
-
-        // Create states table
-        await queryRunner.query(`
-            CREATE TABLE IF NOT EXISTS "states" (
-                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
-                "country" character varying NOT NULL,
-                "state" character varying NOT NULL,
-                "code" character varying NOT NULL,
-                CONSTRAINT "PK_states_id" PRIMARY KEY ("id"),
-                CONSTRAINT "UQ_states_code" UNIQUE ("code")
-            )
-        `);
-
-        // Insert German states
-        await queryRunner.query(`
-            INSERT INTO "states" ("country", "state", "code") VALUES
-            ('Germany', 'Baden-Württemberg', 'DE-BW'),
-            ('Germany', 'Bayern', 'DE-BY'),
-            ('Germany', 'Berlin', 'DE-BE'),
-            ('Germany', 'Brandenburg', 'DE-BB'),
-            ('Germany', 'Bremen', 'DE-HB'),
-            ('Germany', 'Hamburg', 'DE-HH'),
-            ('Germany', 'Hessen', 'DE-HE'),
-            ('Germany', 'Mecklenburg-Vorpommern', 'DE-MV'),
-            ('Germany', 'Niedersachsen', 'DE-NI'),
-            ('Germany', 'Nordrhein-Westfalen', 'DE-NW'),
-            ('Germany', 'Rheinland-Pfalz', 'DE-RP'),
-            ('Germany', 'Saarland', 'DE-SL'),
-            ('Germany', 'Sachsen', 'DE-SN'),
-            ('Germany', 'Sachsen-Anhalt', 'DE-ST'),
-            ('Germany', 'Schleswig-Holstein', 'DE-SH'),
-            ('Germany', 'Thüringen', 'DE-TH')
-            ON CONFLICT (code) DO NOTHING
         `);
 
         // Create monthly_balances table
