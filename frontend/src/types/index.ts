@@ -10,6 +10,7 @@ export type {
   DailyTarget,
   MonthlyBalance,
   TimeLog,
+  TimeLogType,
   Holiday,
   HolidayMetadata,
   ApiResponse,
