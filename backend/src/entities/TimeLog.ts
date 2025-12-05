@@ -50,17 +50,5 @@ export class TimeLog implements TimeLogEntity {
   @JoinColumn({ name: 'button_id' })
   button!: any;
 
-  /**
-   * Automatically calculate duration_minutes when end_timestamp is set
-   * Only calculates if duration_minutes is not already set (to allow frontend to provide it)
-   */
-  @BeforeInsert()
-  @BeforeUpdate()
-  calculateDuration() {
-    if (this.end_timestamp && this.start_timestamp && !this.duration_minutes) {
-      const start = new Date(this.start_timestamp).getTime();
-      const end = new Date(this.end_timestamp).getTime();
-      this.duration_minutes = Math.round((end - start) / (1000 * 60));
-    }
-  }
+
 }

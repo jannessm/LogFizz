@@ -252,6 +252,7 @@ describe('TimeLog Sync Routes', () => {
             button_id: buttonId,
             start_timestamp: startTime,
             end_timestamp: endTime,
+            duration_minutes: 60, // Frontend calculates this
             timezone: 'Europe/Berlin',
             notes: 'Work session',
           },
