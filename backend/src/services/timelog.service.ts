@@ -27,18 +27,28 @@ export class TimeLogService {
   /**
    * Calculate duration for a time log based on its type
    * For special types (sick, holiday, etc.), calculate based on daily target
-   * For normal type, calculate from start/end timestamps
+   * For normal type, preserve provided duration or calculate from start/end timestamps
    */
   private async calculateDuration(timeLog: Partial<TimeLog>): Promise<number | undefined> {
-    // For normal type with end timestamp, calculate from timestamps
-    if (timeLog.type === 'normal' && timeLog.end_timestamp && timeLog.start_timestamp) {
-      const startTime = dayjs(timeLog.start_timestamp);
-      const endTime = dayjs(timeLog.end_timestamp);
-      return endTime.diff(startTime, 'minute');
+    const type = timeLog.type || 'normal'; // Default to 'normal' if not specified
+
+    // For normal type, use provided duration_minutes if available
+    if (type === 'normal') {
+      // If duration is already provided, use it
+      if (timeLog.duration_minutes !== undefined && timeLog.duration_minutes !== null) {
+        return timeLog.duration_minutes;
+      }
+      // Otherwise, calculate from timestamps if both are available
+      if (timeLog.end_timestamp && timeLog.start_timestamp) {
+        const startTime = dayjs(timeLog.start_timestamp);
+        const endTime = dayjs(timeLog.end_timestamp);
+        return endTime.diff(startTime, 'minute');
+      }
+      return undefined;
     }
 
     // For special types, get the daily target duration for this day
-    if (timeLog.type !== 'normal' && timeLog.button_id && timeLog.start_timestamp) {
+    if (timeLog.button_id && timeLog.start_timestamp) {
       // Get the button to find its target_id
       const button = await this.buttonRepository.findOne({
         where: { id: timeLog.button_id },
@@ -102,10 +112,14 @@ export class TimeLogService {
     }> = [];
 
     for (const change of changes) {
-      // Calculate duration for the timelog
-      const duration = await this.calculateDuration(change);
-      if (duration !== undefined) {
-        change.duration_minutes = duration;
+      // Calculate duration for the timelog only for special types
+      // For normal type, preserve the provided duration_minutes
+      const type = change.type || 'normal';
+      if (type !== 'normal') {
+        const duration = await this.calculateDuration(change);
+        if (duration !== undefined) {
+          change.duration_minutes = duration;
+        }
       }
 
       if (change.id) {
