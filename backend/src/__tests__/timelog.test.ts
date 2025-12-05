@@ -359,4 +359,264 @@ describe('TimeLog Sync Routes', () => {
     expect(body.saved).toHaveLength(1);
     expect(body.saved[0].timezone).toBe('America/New_York');
   });
+
+  describe('TimeLog Type Field', () => {
+    let targetId: string;
+    let buttonWithTarget: string;
+
+    beforeAll(async () => {
+      // Create a daily target
+      targetId = '650e8400-e29b-41d4-a716-446655440010';
+      await app.inject({
+        method: 'POST',
+        url: '/api/targets/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          targets: [{
+            id: targetId,
+            name: 'Work Week',
+            weekdays: [1, 2, 3, 4, 5], // Monday to Friday
+            duration_minutes: [480, 480, 480, 480, 480], // 8 hours per day
+            exclude_holidays: false,
+            starting_from: '2024-01-01T00:00:00Z',
+          }],
+        },
+      });
+
+      // Create a button with the target
+      buttonWithTarget = '650e8400-e29b-41d4-a716-446655440011';
+      await app.inject({
+        method: 'POST',
+        url: '/api/buttons/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          buttons: [{
+            id: buttonWithTarget,
+            name: 'Work Button',
+            target_id: targetId,
+            auto_subtract_breaks: false,
+          }],
+        },
+      });
+    });
+
+    it('should create a normal type timelog with provided duration', async () => {
+      const timeLogId = '760e8400-e29b-41d4-a716-446655440012';
+      const startTime = new Date('2024-06-03T09:00:00Z').toISOString(); // Monday
+      const endTime = new Date('2024-06-03T17:00:00Z').toISOString();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            button_id: buttonWithTarget,
+            type: 'normal',
+            start_timestamp: startTime,
+            end_timestamp: endTime,
+            duration_minutes: 480, // 8 hours
+            timezone: 'Europe/Berlin',
+            notes: 'Normal work day',
+          }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('normal');
+      expect(body.saved[0].duration_minutes).toBe(480);
+    });
+
+    it('should create a sick day timelog with duration based on daily target', async () => {
+      const timeLogId = '770e8400-e29b-41d4-a716-446655440013';
+      const date = new Date('2024-06-04T00:00:00Z').toISOString(); // Tuesday
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            button_id: buttonWithTarget,
+            type: 'sick',
+            start_timestamp: date,
+            end_timestamp: date,
+            timezone: 'Europe/Berlin',
+            notes: 'Sick day',
+          }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('sick');
+      // Duration should be 480 minutes (8 hours) based on daily target for Tuesday
+      expect(body.saved[0].duration_minutes).toBe(480);
+    });
+
+    it('should create a holiday timelog with duration based on daily target', async () => {
+      const timeLogId = '780e8400-e29b-41d4-a716-446655440014';
+      const date = new Date('2024-06-05T00:00:00Z').toISOString(); // Wednesday
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            button_id: buttonWithTarget,
+            type: 'holiday',
+            start_timestamp: date,
+            end_timestamp: date,
+            timezone: 'Europe/Berlin',
+            notes: 'Vacation day',
+          }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('holiday');
+      expect(body.saved[0].duration_minutes).toBe(480);
+    });
+
+    it('should create a business-trip timelog with duration based on daily target', async () => {
+      const timeLogId = '790e8400-e29b-41d4-a716-446655440015';
+      const date = new Date('2024-06-06T00:00:00Z').toISOString(); // Thursday
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            button_id: buttonWithTarget,
+            type: 'business-trip',
+            start_timestamp: date,
+            end_timestamp: date,
+            timezone: 'Europe/Berlin',
+            notes: 'Business trip',
+          }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('business-trip');
+      expect(body.saved[0].duration_minutes).toBe(480);
+    });
+
+    it('should create a child-sick timelog with duration based on daily target', async () => {
+      const timeLogId = '7a0e8400-e29b-41d4-a716-446655440016';
+      const date = new Date('2024-06-07T00:00:00Z').toISOString(); // Friday
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            button_id: buttonWithTarget,
+            type: 'child-sick',
+            start_timestamp: date,
+            end_timestamp: date,
+            timezone: 'Europe/Berlin',
+            notes: 'Child sick day',
+          }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('child-sick');
+      expect(body.saved[0].duration_minutes).toBe(480);
+    });
+
+    it('should return 0 duration for special type on weekend (non-target day)', async () => {
+      const timeLogId = '7b0e8400-e29b-41d4-a716-446655440017';
+      const date = new Date('2024-06-08T00:00:00Z').toISOString(); // Saturday
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            button_id: buttonWithTarget,
+            type: 'sick',
+            start_timestamp: date,
+            end_timestamp: date,
+            timezone: 'Europe/Berlin',
+            notes: 'Weekend sick day',
+          }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('sick');
+      // Duration should be 0 because Saturday is not in the target weekdays
+      expect(body.saved[0].duration_minutes).toBe(0);
+    });
+
+    it('should return 0 duration for special type when button has no target', async () => {
+      const timeLogId = '7c0e8400-e29b-41d4-a716-446655440018';
+      const date = new Date('2024-06-03T00:00:00Z').toISOString();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            button_id: buttonId, // This button has no target
+            type: 'sick',
+            start_timestamp: date,
+            end_timestamp: date,
+            timezone: 'Europe/Berlin',
+            notes: 'Sick day without target',
+          }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('sick');
+      // Duration should be 0 because button has no target
+      expect(body.saved[0].duration_minutes).toBe(0);
+    });
+  });
 });

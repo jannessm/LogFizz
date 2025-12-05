@@ -457,4 +457,156 @@ describe('TimelogForm Component', () => {
     expect(endDateInput.value).toBeTruthy();
     expect(endTimeInput.value).toBeTruthy();
   });
+
+  describe('Type Field', () => {
+    it('displays type dropdown with all options', () => {
+      render(TimelogForm, { 
+        props: { 
+          selectedDate,
+          existingLog: null,
+          isTimerStop: false,
+        } 
+      });
+
+      const typeSelect = screen.getByLabelText(/Type/i) as HTMLSelectElement;
+      expect(typeSelect).toBeInTheDocument();
+      
+      // Check that all type options exist
+      const options = Array.from(typeSelect.options).map(opt => opt.value);
+      expect(options).toContain('normal');
+      expect(options).toContain('sick');
+      expect(options).toContain('holiday');
+      expect(options).toContain('business-trip');
+      expect(options).toContain('child-sick');
+    });
+
+    it('shows time fields for normal type', () => {
+      render(TimelogForm, { 
+        props: { 
+          selectedDate,
+          existingLog: null,
+          isTimerStop: false,
+        } 
+      });
+
+      const typeSelect = screen.getByLabelText(/Type/i) as HTMLSelectElement;
+      expect(typeSelect.value).toBe('normal');
+      
+      // Should show start time field for normal type
+      const startTimeInput = screen.getByLabelText(/Start Time/i);
+      expect(startTimeInput).toBeInTheDocument();
+    });
+
+    it('hides time fields for sick type', async () => {
+      render(TimelogForm, { 
+        props: { 
+          selectedDate,
+          existingLog: null,
+          isTimerStop: false,
+        } 
+      });
+
+      const typeSelect = screen.getByLabelText(/Type/i) as HTMLSelectElement;
+      await fireEvent.change(typeSelect, { target: { value: 'sick' } });
+
+      await waitFor(() => {
+        // Should not show start/end time fields for sick type
+        expect(screen.queryByLabelText(/Start Time/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/End Time/i)).not.toBeInTheDocument();
+        // Should show date field
+        expect(screen.getByLabelText(/Date/i)).toBeInTheDocument();
+      });
+    });
+
+    it('hides time fields for holiday type', async () => {
+      render(TimelogForm, { 
+        props: { 
+          selectedDate,
+          existingLog: null,
+          isTimerStop: false,
+        } 
+      });
+
+      const typeSelect = screen.getByLabelText(/Type/i) as HTMLSelectElement;
+      await fireEvent.change(typeSelect, { target: { value: 'holiday' } });
+
+      await waitFor(() => {
+        expect(screen.queryByLabelText(/Start Time/i)).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(/End Time/i)).not.toBeInTheDocument();
+        expect(screen.getByLabelText(/Date/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows helper text for special types', async () => {
+      render(TimelogForm, { 
+        props: { 
+          selectedDate,
+          existingLog: null,
+          isTimerStop: false,
+        } 
+      });
+
+      const typeSelect = screen.getByLabelText(/Type/i) as HTMLSelectElement;
+      await fireEvent.change(typeSelect, { target: { value: 'sick' } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Duration will be calculated based on your daily target/i)).toBeInTheDocument();
+      });
+    });
+
+    it('hides running checkbox for special types', async () => {
+      render(TimelogForm, { 
+        props: { 
+          selectedDate,
+          existingLog: null,
+          isTimerStop: false,
+        } 
+      });
+
+      // Running checkbox should be visible for normal type
+      expect(screen.getByLabelText(/Running/i)).toBeInTheDocument();
+
+      const typeSelect = screen.getByLabelText(/Type/i) as HTMLSelectElement;
+      await fireEvent.change(typeSelect, { target: { value: 'business-trip' } });
+
+      await waitFor(() => {
+        // Running checkbox should be hidden for business-trip type
+        expect(screen.queryByLabelText(/Running/i)).not.toBeInTheDocument();
+      });
+    });
+
+    it('pre-populates type from existing log', () => {
+      const existingLog = {
+        button_id: 'button-1',
+        startTime: '2024-12-04T09:00:00',
+        endTime: '2024-12-04T17:00:00',
+        log: {
+          id: 'log-1',
+          user_id: 'user-1',
+          button_id: 'button-1',
+          type: 'sick',
+          start_timestamp: '2024-12-04T09:00:00Z',
+          end_timestamp: '2024-12-04T17:00:00Z',
+          duration_minutes: 480,
+          timezone: 'UTC',
+          apply_break_calculation: false,
+          notes: 'Sick day',
+          is_manual: true,
+          created_at: '2024-12-04T09:00:00Z',
+          updated_at: '2024-12-04T17:00:00Z',
+        },
+      };
+
+      render(TimelogForm, { 
+        props: { 
+          selectedDate,
+          existingLog,
+          isTimerStop: false,
+        } 
+      });
+
+      const typeSelect = screen.getByLabelText(/Type/i) as HTMLSelectElement;
+      expect(typeSelect.value).toBe('sick');
+    });
+  });
 });
