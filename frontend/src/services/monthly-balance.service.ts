@@ -116,6 +116,7 @@ export class MonthlyBalanceService {
    * Calculate and save monthly balance for a target
    * Includes cumulative balance from previous months (since starting_from)
    * Returns null if target has no starting_from date
+   * Returns null if the entire month is after ending_at date
    */
   async calculateMonthlyBalance(
     targetId: string,
@@ -149,6 +150,11 @@ export class MonthlyBalanceService {
       return null;
     }
 
+    // Get ending_at date if set
+    const endingAt = target.ending_at
+      ? dayjs(target.ending_at).utc()
+      : null;
+
     // Calculate date range for the month
     const startDate = dayjs
       .utc(`${year}-${month.toString().padStart(2, '0')}-01`)
@@ -163,10 +169,25 @@ export class MonthlyBalanceService {
       return null;
     }
 
+    // Check if this month is entirely after the ending_at date
+    if (endingAt && startDate.isAfter(endingAt)) {
+      // This month is entirely after ending_at, no balance should be calculated
+      const balanceId = `${targetId}-${year}-${month}`;
+      await deleteMonthlyBalance(balanceId);
+      return null;
+    }
+
     // Calculate the effective start date for time logs
     const effectiveStartDate = startingFrom.isAfter(startDate)
       ? startingFrom
       : startDate;
+    
+    // Calculate the effective end date for time logs (min of month end or ending_at + 1 day)
+    let effectiveEndDate = endDate;
+    if (endingAt && endingAt.isBefore(endDate.subtract(1, 'day'))) {
+      // ending_at is within this month, limit to day after ending_at
+      effectiveEndDate = endingAt.add(1, 'day').startOf('day');
+    }
 
     // Get all buttons linked to this target
     const buttons = await getAllButtons();
@@ -179,7 +200,7 @@ export class MonthlyBalanceService {
       buttonBreakMap.set(b.id, b.auto_subtract_breaks ?? false);
     });
 
-    // Get all time logs for buttons linked to this target in this month
+    // Get all time logs for buttons linked to this target in this month (respecting ending_at)
     const allTimeLogs = await getAllTimeLogs();
     const relevantTimeLogs = allTimeLogs.filter(
       tl =>
@@ -187,7 +208,7 @@ export class MonthlyBalanceService {
         !tl.deleted_at &&
         tl.start_timestamp &&
         dayjs(tl.start_timestamp).isAfter(effectiveStartDate.subtract(1, 'day')) &&
-        dayjs(tl.start_timestamp).isBefore(endDate)
+        dayjs(tl.start_timestamp).isBefore(effectiveEndDate)
     );
 
     // Sort by start_timestamp
@@ -293,6 +314,7 @@ export class MonthlyBalanceService {
   /**
    * Calculate due minutes based on target and month
    * Respects starting_from date - only counts days on or after starting_from
+   * Respects ending_at date - only counts days on or before ending_at
    */
   private async calculateDueMinutes(
     target: DailyTarget,
@@ -315,6 +337,7 @@ export class MonthlyBalanceService {
       weekdays: target.weekdays,
       duration_minutes: target.duration_minutes,
       starting_from: target.starting_from ? new Date(target.starting_from) : null,
+      ending_at: target.ending_at ? new Date(target.ending_at) : null,
     };
 
     return calculateDueMinutesShared(targetForCalc, year, month, holidays);

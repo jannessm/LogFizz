@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import BottomNav from '../components/BottomNav.svelte';
+  import DailyBalance from '../components/DailyBalance.svelte';
   import TimelogForm from '../components/TimelogForm.svelte';
   import HistoryCharts from '../components/History/HistoryCharts.svelte';
   import HistoryCalendar from '../components/History/HistoryCalendar.svelte';
@@ -9,6 +10,7 @@
   import ImportTimelogsModal from '../components/History/ImportTimelogsModal.svelte';
   import { timeLogsStore } from '../stores/timelogs';
   import { buttonsStore } from '../stores/buttons';
+  import { targetsStore } from '../stores/targets';
   import { snackbar } from '../stores/snackbar';
   import dayjs from 'dayjs';
 
@@ -67,10 +69,14 @@
   $: buttons = $buttonsStore.buttons;
 
   onMount(async () => {
-    // Load data in parallel for faster initial render
-    Promise.all([
+    await Promise.all([
+      buttonsStore.load(),
+      targetsStore.load(),
+    ]);
+
+    await Promise.all([
       timeLogsStore.load(),
-      buttonsStore.load()
+      timeLogsStore.loadActive(),
     ]);
   });
 
@@ -254,19 +260,9 @@
           aria-label="Import timelogs"
         ></button>
       </div>
-    <!-- Monthly Balance Component -->
-    <MonthlyBalance
-      year={currentMonth.year()}
-      month={currentMonth.month() + 1}
-    />
+    
+    <DailyBalance />
 
-    <!-- Charts Component -->
-    <HistoryCharts
-      {buttons}
-      {timeLogs}
-      {currentMonth}
-      onDateSelect={selectDate}
-    />
 
     <div class="flex justify-between items-center mt-6 mb-6">
       <div class="flex items-center gap-2">
@@ -320,6 +316,21 @@
         </button>
       </div>
     </div>
+    
+    <!-- Monthly Balance Component -->
+    <MonthlyBalance
+      year={currentMonth.year()}
+      month={currentMonth.month() + 1}
+    />
+
+    <!-- Charts Component -->
+    <HistoryCharts
+      {buttons}
+      {timeLogs}
+      {currentMonth}
+      onDateSelect={selectDate}
+    />
+
 
     <!-- Calendar Component -->
     <HistoryCalendar

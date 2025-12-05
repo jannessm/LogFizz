@@ -91,9 +91,23 @@ async function seed() {
     });
     await targetRepo.save(studyTarget);
 
-    console.log('✅ Created 2 sample daily targets');
+    // Create exercise target with ending_at date (to test targets that end)
+    const exerciseStartingFrom = new Date(Date.UTC(2025, 8, 1)); // September 1, 2025
+    const exerciseEndingAt = new Date(Date.UTC(2025, 9, 31)); // October 31, 2025
+    const exerciseTarget = targetRepo.create({
+      user_id: demoUser.id,
+      name: 'Exercise Target (Ended)',
+      duration_minutes: [60, 60, 60], // 1 hour per day
+      weekdays: [1, 3, 5], // Monday, Wednesday, Friday
+      starting_from: exerciseStartingFrom,
+      ending_at: exerciseEndingAt,
+    });
+    await targetRepo.save(exerciseTarget);
+
+    console.log('✅ Created 3 sample daily targets');
     console.log('   - Work Target: starting from Oct 2025, Mon-Fri 8h');
     console.log('   - Study Target: starting from Nov 2025, Tue/Thu 2h');
+    console.log('   - Exercise Target (Ended): Sep-Oct 2025, Mon/Wed/Fri 1h');
 
     // Create sample buttons for demo user
     console.log('🔘 Creating sample buttons...');
@@ -106,6 +120,7 @@ async function seed() {
       color: '#3B82F6',
       target_id: workTarget.id,
       auto_subtract_breaks: true,
+      archived: false,
     });
     await buttonRepo.save(workButton);
 
@@ -116,6 +131,7 @@ async function seed() {
       color: '#10B981',
       target_id: studyTarget.id,
       auto_subtract_breaks: false,
+      archived: false,
     });
     await buttonRepo.save(studyButton);
 
@@ -125,6 +141,7 @@ async function seed() {
       emoji: '🏃',
       color: '#EF4444',
       auto_subtract_breaks: false,
+      archived: false,
     });
     await buttonRepo.save(exerciseButton);
 
@@ -134,6 +151,7 @@ async function seed() {
       emoji: '🚀',
       color: '#8B5CF6',
       auto_subtract_breaks: false,
+      archived: false,
     });
     await buttonRepo.save(projectButton);
 
@@ -144,18 +162,54 @@ async function seed() {
       emoji: '📞',
       color: '#F59E0B',
       auto_subtract_breaks: false,
+      archived: false,
     });
     await buttonRepo.save(meetingButton);
 
-    console.log('✅ Created 5 sample buttons (2 linked to daily targets)');
+    // Create button linked to the ended exercise target (to test ended target behavior)
+    const exerciseButtonOld = buttonRepo.create({
+      user_id: demoUser.id,
+      name: 'Old Exercise',
+      emoji: '🏋️',
+      color: '#EC4899',
+      target_id: exerciseTarget.id,
+      auto_subtract_breaks: false,
+      archived: true, // Mark as archived for testing
+    });
+    await buttonRepo.save(exerciseButtonOld);
+
+    console.log('✅ Created 6 sample buttons (3 linked to daily targets)');
 
     // Create sample time logs for demo user
     // Now using the new structure with start_timestamp, end_timestamp, and duration_minutes
     console.log('⏱️  Creating sample time logs...');
     const timeLogRepo = AppDataSource.getRepository(TimeLog);
 
+    // Create historical time logs for September 2025 (for the exercise target)
+    console.log('   - Creating September 2025 exercise logs...');
+    for (let day = 1; day <= 30; day++) {
+      const date = new Date(Date.UTC(2025, 8, day)); // September 2025
+      const dayOfWeek = date.getUTCDay();
+      
+      // Exercise on Mon, Wed, Fri (matching the target)
+      if (dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5) {
+        const exerciseStart = new Date(Date.UTC(2025, 8, day, 7, 0, 0));
+        const exerciseEnd = new Date(Date.UTC(2025, 8, day, 8, 0, 0)); // 1 hour
+
+        await timeLogRepo.save(timeLogRepo.create({
+          user_id: demoUser.id,
+          button_id: exerciseButtonOld.id,
+          start_timestamp: exerciseStart,
+          end_timestamp: exerciseEnd,
+          timezone: 'Europe/Berlin',
+          notes: 'Morning exercise',
+          apply_break_calculation: exerciseButtonOld.auto_subtract_breaks,
+        }));
+      }
+    }
+
     // Create historical time logs for October 2025 (to test cumulative balance)
-    console.log('   - Creating October 2025 work logs...');
+    console.log('   - Creating October 2025 work and exercise logs...');
     for (let day = 1; day <= 31; day++) {
       const date = new Date(Date.UTC(2025, 9, day)); // October 2025
       const dayOfWeek = date.getUTCDay();
@@ -174,6 +228,22 @@ async function seed() {
           timezone: 'Europe/Berlin',
           notes: 'October work session',
           apply_break_calculation: workButton.auto_subtract_breaks,
+        }));
+      }
+
+      // Exercise on Mon, Wed, Fri (matching the target, ends Oct 31)
+      if (dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5) {
+        const exerciseStart = new Date(Date.UTC(2025, 9, day, 7, 0, 0));
+        const exerciseEnd = new Date(Date.UTC(2025, 9, day, 8, 0, 0)); // 1 hour
+
+        await timeLogRepo.save(timeLogRepo.create({
+          user_id: demoUser.id,
+          button_id: exerciseButtonOld.id,
+          start_timestamp: exerciseStart,
+          end_timestamp: exerciseEnd,
+          timezone: 'Europe/Berlin',
+          notes: 'Morning exercise (last month)',
+          apply_break_calculation: exerciseButtonOld.auto_subtract_breaks,
         }));
       }
     }
@@ -319,7 +389,8 @@ async function seed() {
     }));
 
     console.log('✅ Created sample time logs');
-    console.log('   - October 2025: Full work days (8h each weekday)');
+    console.log('   - September 2025: Exercise sessions (1h Mon/Wed/Fri)');
+    console.log('   - October 2025: Full work days (8h each weekday) + Exercise (ended Oct 31)');
     console.log('   - November 2025: Work + overtime (8.5h/day) and study sessions');
     console.log('   - Current week: Regular time logs');
     console.log('   - Including an active timer for demo user');
@@ -329,11 +400,12 @@ async function seed() {
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\n📝 Summary:');
     console.log('   - 2 users created (demo@example.com, test@example.com)');
-    console.log('   - 2 daily targets created:');
+    console.log('   - 3 daily targets created:');
     console.log('     * Work: Mon-Fri 8h, starting Oct 2025');
     console.log('     * Study: Tue/Thu 2h, starting Nov 2025');
-    console.log('   - 5 buttons created (2 linked to targets)');
-    console.log('   - Historical time logs for Oct-Nov 2025 (for testing cumulative balance)');
+    console.log('     * Exercise (Ended): Mon/Wed/Fri 1h, Sep-Oct 2025 (with ending_at date)');
+    console.log('   - 6 buttons created (3 linked to targets)');
+    console.log('   - Historical time logs for Sep-Nov 2025 (for testing cumulative balance & ended targets)');
     console.log('   - Current week time logs');
     console.log('   - 1 active timer');
     console.log('\n💡 You can now login with:');
