@@ -255,6 +255,113 @@ describe('MonthlyBalanceService', () => {
       // 600 - 45 = 555 minutes
       expect(result?.worked_minutes).toBe(555);
     });
+
+    it('should respect ending_at date for due minutes calculation', async () => {
+      const targetId = 'target-1';
+      const buttonId = 'button-1';
+
+      // Target ends mid-month (Jan 15, 2025)
+      const target: DailyTarget = {
+        id: targetId,
+        user_id: 'user-1',
+        name: 'End Mid-Month Target',
+        duration_minutes: [480],
+        weekdays: [1], // Monday only
+        exclude_holidays: false,
+        starting_from: '2025-01-01T00:00:00.000Z',
+        ending_at: '2025-01-15T00:00:00.000Z',
+        created_at: '2025-01-01T00:00:00.000Z',
+        updated_at: '2025-01-01T00:00:00.000Z',
+      };
+
+      const button = createMockButton(buttonId, targetId);
+
+      const timeLogs: TimeLog[] = [
+        createMockTimeLog('log-1', buttonId, '2025-01-06T09:00:00.000Z', '2025-01-06T17:00:00.000Z', 480),
+      ];
+
+      vi.mocked(db.getAllTargets).mockResolvedValue([target]);
+      vi.mocked(db.getAllButtons).mockResolvedValue([button]);
+      vi.mocked(db.getAllTimeLogs).mockResolvedValue(timeLogs);
+      vi.mocked(db.getMonthlyBalance).mockResolvedValue(undefined);
+      vi.mocked(db.saveMonthlyBalance).mockResolvedValue(undefined);
+
+      const result = await service.calculateMonthlyBalance(targetId, 2025, 1);
+
+      expect(result).toBeDefined();
+      expect(result?.worked_minutes).toBe(480);
+      // Only Mondays on or before Jan 15: 6, 13 = 2 Mondays
+      expect(result?.due_minutes).toBe(960); // 2 * 480
+      expect(result?.balance_minutes).toBe(-480); // 480 - 960
+    });
+
+    it('should return null for months entirely after ending_at', async () => {
+      const targetId = 'target-1';
+
+      // Target ends in January 2025
+      const target: DailyTarget = {
+        id: targetId,
+        user_id: 'user-1',
+        name: 'End January Target',
+        duration_minutes: [480],
+        weekdays: [1],
+        exclude_holidays: false,
+        starting_from: '2025-01-01T00:00:00.000Z',
+        ending_at: '2025-01-31T00:00:00.000Z',
+        created_at: '2025-01-01T00:00:00.000Z',
+        updated_at: '2025-01-01T00:00:00.000Z',
+      };
+
+      vi.mocked(db.getAllTargets).mockResolvedValue([target]);
+      vi.mocked(db.deleteMonthlyBalance).mockResolvedValue(undefined);
+
+      // Try to calculate for February 2025 (entirely after ending_at)
+      const result = await service.calculateMonthlyBalance(targetId, 2025, 2);
+
+      expect(result).toBeNull();
+      expect(db.deleteMonthlyBalance).toHaveBeenCalledWith('target-1-2025-2');
+    });
+
+    it('should not include time logs after ending_at in worked minutes', async () => {
+      const targetId = 'target-1';
+      const buttonId = 'button-1';
+
+      // Target ends mid-month (Jan 13, 2025)
+      const target: DailyTarget = {
+        id: targetId,
+        user_id: 'user-1',
+        name: 'Time Log Filter Target',
+        duration_minutes: [480],
+        weekdays: [1], // Monday only
+        exclude_holidays: false,
+        starting_from: '2025-01-01T00:00:00.000Z',
+        ending_at: '2025-01-13T00:00:00.000Z',
+        created_at: '2025-01-01T00:00:00.000Z',
+        updated_at: '2025-01-01T00:00:00.000Z',
+      };
+
+      const button = createMockButton(buttonId, targetId);
+
+      // Two time logs - one before ending_at, one after
+      const timeLogs: TimeLog[] = [
+        createMockTimeLog('log-1', buttonId, '2025-01-06T09:00:00.000Z', '2025-01-06T17:00:00.000Z', 480), // Before ending_at
+        createMockTimeLog('log-2', buttonId, '2025-01-20T09:00:00.000Z', '2025-01-20T17:00:00.000Z', 480), // After ending_at
+      ];
+
+      vi.mocked(db.getAllTargets).mockResolvedValue([target]);
+      vi.mocked(db.getAllButtons).mockResolvedValue([button]);
+      vi.mocked(db.getAllTimeLogs).mockResolvedValue(timeLogs);
+      vi.mocked(db.getMonthlyBalance).mockResolvedValue(undefined);
+      vi.mocked(db.saveMonthlyBalance).mockResolvedValue(undefined);
+
+      const result = await service.calculateMonthlyBalance(targetId, 2025, 1);
+
+      expect(result).toBeDefined();
+      // Should only count the time log from Jan 6 (480), not Jan 20
+      expect(result?.worked_minutes).toBe(480);
+      // Due minutes should be for Mondays up to Jan 13: only Jan 6 and Jan 13
+      expect(result?.due_minutes).toBe(960); // 2 * 480
+    });
   });
 
   describe('checkAndRecalculateMissingBalances', () => {

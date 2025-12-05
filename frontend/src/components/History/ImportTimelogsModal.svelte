@@ -1027,7 +1027,7 @@
           {#if validationErrors.length > 0}
             <details class="bg-gray-50 rounded-lg border border-gray-200">
               <summary class="p-3 cursor-pointer hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 flex items-center gap-2">
-                <span class="icon-[si--warning-triangle-line] text-amber-600" style="width: 16px; height: 16px;"></span>
+                <span class="icon-[si--warning-duotone] text-amber-600" style="width: 16px; height: 16px;"></span>
                 View {validationErrors.length} validation error{validationErrors.length !== 1 ? 's' : ''}
               </summary>
               <div class="p-3 pt-0 max-h-48 overflow-y-auto">

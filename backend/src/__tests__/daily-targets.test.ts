@@ -265,4 +265,89 @@ describe('Daily Target Sync Routes', () => {
     const cursorDate = new Date(body.cursor);
     expect(cursorDate.getTime()).toBeGreaterThan(0);
   });
+
+  it('should create a target with ending_at date via sync', async () => {
+    const targetId = 'aaae8400-e29b-41d4-a716-446655440100';
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/targets/sync',
+      headers: {
+        cookie: authCookie,
+      },
+      payload: {
+        targets: [{
+          id: targetId,
+          name: 'Ending Target',
+          duration_minutes: [480],
+          weekdays: [1, 2, 3, 4, 5],
+          starting_from: '2025-01-01T00:00:00.000Z',
+          ending_at: '2025-06-30T00:00:00.000Z',
+        }],
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.saved).toHaveLength(1);
+    expect(body.saved[0].id).toBe(targetId);
+    expect(body.saved[0].name).toBe('Ending Target');
+    expect(body.saved[0].starting_from).toBeDefined();
+    expect(body.saved[0].ending_at).toBeDefined();
+    
+    // Verify ending_at is correctly parsed
+    const endingAtDate = new Date(body.saved[0].ending_at);
+    expect(endingAtDate.getFullYear()).toBe(2025);
+    expect(endingAtDate.getMonth()).toBe(5); // June (0-indexed)
+  });
+
+  it('should update a target ending_at date via sync', async () => {
+    const targetId = 'bbae8400-e29b-41d4-a716-446655440101';
+    
+    // Create target first
+    await app.inject({
+      method: 'POST',
+      url: '/api/targets/sync',
+      headers: {
+        cookie: authCookie,
+      },
+      payload: {
+        targets: [{
+          id: targetId,
+          name: 'Update Ending Target',
+          duration_minutes: [480],
+          weekdays: [1, 2, 3, 4, 5],
+          starting_from: '2025-01-01T00:00:00.000Z',
+        }],
+      },
+    });
+
+    // Update with ending_at
+    const updateResponse = await app.inject({
+      method: 'POST',
+      url: '/api/targets/sync',
+      headers: {
+        cookie: authCookie,
+      },
+      payload: {
+        targets: [{
+          id: targetId,
+          name: 'Update Ending Target',
+          duration_minutes: [480],
+          weekdays: [1, 2, 3, 4, 5],
+          starting_from: '2025-01-01T00:00:00.000Z',
+          ending_at: '2025-12-31T00:00:00.000Z',
+        }],
+      },
+    });
+
+    expect(updateResponse.statusCode).toBe(200);
+    const body = JSON.parse(updateResponse.body);
+    expect(body.saved).toHaveLength(1);
+    expect(body.saved[0].ending_at).toBeDefined();
+    
+    // Verify the date is correctly stored
+    const endingAtDate = new Date(body.saved[0].ending_at);
+    expect(endingAtDate.getFullYear()).toBe(2025);
+    expect(endingAtDate.getMonth()).toBe(11); // December (0-indexed)
+  });
 });

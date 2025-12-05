@@ -79,6 +79,7 @@ export class MonthlyBalanceService {
    * Calculate and save monthly balance for a target
    * Includes cumulative balance from previous months (since starting_from)
    * Returns null if target has no starting_from date (no balance calculation possible)
+   * Returns null if the entire month is after ending_at date
    */
   async calculateMonthlyBalance(
     userId: string,
@@ -115,6 +116,9 @@ export class MonthlyBalanceService {
       return null;
     }
 
+    // Get ending_at date if set
+    const endingAt = target.ending_at ? dayjs(target.ending_at).utc() : null;
+
     // Calculate date range for the month (month is 1-12)
     const startDate = dayjs.utc(`${year}-${month.toString().padStart(2, '0')}-01`).startOf('day');
     const endDate = startDate.add(1, 'month');
@@ -132,10 +136,30 @@ export class MonthlyBalanceService {
       return null;
     }
 
+    // Check if this month is entirely after the ending_at date
+    if (endingAt && startDate.isAfter(endingAt)) {
+      // This month is entirely after ending_at, no balance should be calculated
+      // Delete any existing balance
+      await this.monthlyBalanceRepository.delete({
+        user_id: userId,
+        target_id: targetId,
+        year,
+        month,
+      });
+      return null;
+    }
+
     // Calculate the effective start date for time logs (max of month start or starting_from)
     const effectiveStartDate = startingFrom.isAfter(startDate) ? startingFrom : startDate;
+    
+    // Calculate the effective end date for time logs (min of month end or ending_at + 1 day)
+    let effectiveEndDate = endDate;
+    if (endingAt && endingAt.isBefore(endDate.subtract(1, 'day'))) {
+      // ending_at is within this month, limit to day after ending_at
+      effectiveEndDate = endingAt.add(1, 'day').startOf('day');
+    }
 
-    // Get all time logs for buttons linked to this target in this month (from effective start date)
+    // Get all time logs for buttons linked to this target in this month (from effective start date to effective end date)
     // Include button info for auto_subtract_breaks flag
     const timeLogs = await this.timeLogRepository
       .createQueryBuilder('tl')
@@ -144,7 +168,7 @@ export class MonthlyBalanceService {
       .where('tl.user_id = :userId', { userId })
       .andWhere('b.target_id = :targetId', { targetId })
       .andWhere('tl.start_timestamp >= :effectiveStartDate', { effectiveStartDate: effectiveStartDate.toDate() })
-      .andWhere('tl.start_timestamp < :endDate', { endDate: endDate.toDate() })
+      .andWhere('tl.start_timestamp < :effectiveEndDate', { effectiveEndDate: effectiveEndDate.toDate() })
       .andWhere('tl.deleted_at IS NULL')
       .orderBy('tl.start_timestamp', 'ASC')
       .getRawAndEntities();
@@ -152,7 +176,7 @@ export class MonthlyBalanceService {
     // Calculate worked minutes from time logs (including break subtraction if applicable)
     const workedMinutes = this.calculateWorkedMinutes(timeLogs.entities, timeLogs.raw);
 
-    // Calculate due minutes based on target (respecting starting_from)
+    // Calculate due minutes based on target (respecting starting_from and ending_at)
     const dueMinutes = await this.calculateDueMinutes(
       target,
       year,

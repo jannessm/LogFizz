@@ -30,6 +30,7 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
             exclude_holidays: Type.Optional(Type.Boolean()),
             state_code: Type.Optional(Type.String()),
             starting_from: Type.Optional(Type.String()),
+            ending_at: Type.Optional(Type.String()),
             created_at: Type.String(),
             updated_at: Type.String(),
             deleted_at: Type.Optional(Type.String()),
@@ -79,6 +80,7 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
         exclude_holidays?: boolean;
         state_code?: string;
         starting_from?: string;
+        ending_at?: string;
         updated_at?: string;
         deleted_at?: string;
       }>
@@ -95,6 +97,7 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
           exclude_holidays: Type.Optional(Type.Boolean()),
           state_code: Type.Optional(Type.String()),
           starting_from: Type.Optional(Type.String()),
+          ending_at: Type.Optional(Type.String()),
           updated_at: Type.Optional(Type.String()),
           deleted_at: Type.Optional(Type.String()),
         })),
@@ -109,6 +112,7 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
             exclude_holidays: Type.Optional(Type.Boolean()),
             state_code: Type.Optional(Type.String()),
             starting_from: Type.Optional(Type.String()),
+            ending_at: Type.Optional(Type.String()),
             created_at: Type.String(),
             updated_at: Type.String(),
             deleted_at: Type.Optional(Type.String()),
@@ -122,6 +126,7 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
               exclude_holidays: Type.Optional(Type.Boolean()),
               state_code: Type.Optional(Type.String()),
               starting_from: Type.Optional(Type.String()),
+              ending_at: Type.Optional(Type.String()),
               updated_at: Type.Optional(Type.String()),
               deleted_at: Type.Optional(Type.String()),
             }),
@@ -133,6 +138,7 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
               exclude_holidays: Type.Optional(Type.Boolean()),
               state_code: Type.Optional(Type.String()),
               starting_from: Type.Optional(Type.String()),
+              ending_at: Type.Optional(Type.String()),
               created_at: Type.String(),
               updated_at: Type.String(),
               deleted_at: Type.Optional(Type.String()),
@@ -150,6 +156,7 @@ export async function dailyTargetRoutes(fastify: FastifyInstance) {
     const processedTargets = targets.map(t => ({
       ...t,
       starting_from: t.starting_from ? dayjs(t.starting_from).toDate() : undefined,
+      ending_at: t.ending_at ? dayjs(t.ending_at).toDate() : undefined,
       updated_at: t.updated_at ? dayjs(t.updated_at).toDate() : undefined,
       deleted_at: t.deleted_at ? dayjs(t.deleted_at).toDate() : undefined,
     }));

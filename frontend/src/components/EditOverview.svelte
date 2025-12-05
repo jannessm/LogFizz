@@ -100,6 +100,24 @@
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return weekdays.map(d => dayNames[d]).join(', ');
   }
+
+  // Check if a target has ended (ending_at date is in the past)
+  function isTargetEnded(target: DailyTarget): boolean {
+    if (!target.ending_at) return false;
+    return dayjs(target.ending_at).isBefore(dayjs(), 'day');
+  }
+
+  // Get active targets (not ended)
+  $: activeTargets = $targetsStore.targets.filter(t => !isTargetEnded(t));
+  
+  // Get ended/archived targets
+  $: archivedTargets = $targetsStore.targets.filter(t => isTargetEnded(t));
+
+  // Get active buttons (not linked to ended targets)
+  $: activeButtons = $buttonsStore.buttons.filter(b => !b.archived);
+
+  // Get archived buttons (linked to ended targets)
+  $: archivedButtons = $buttonsStore.buttons.filter(b => b.archived);
 </script>
 
 <!-- Modal Overlay -->
@@ -149,11 +167,11 @@
             ></button>
         </div>
         
-        {#if $targetsStore.targets.length === 0}
-          <p class="text-gray-500 text-sm italic">No targets yet</p>
+        {#if activeTargets.length === 0}
+          <p class="text-gray-500 text-sm italic">No active targets yet</p>
         {:else}
           <div class="space-y-2">
-            {#each $targetsStore.targets.slice().sort((a, b) => a.name.localeCompare(b.name)) as target}
+            {#each activeTargets.slice().sort((a, b) => a.name.localeCompare(b.name)) as target}
               {@const progress = calculateTargetProgress(target)}
               <div class="border border-gray-200 rounded-lg p-3 hover:border-gray-300 transition-colors">
                 <div class="flex justify-between items-center mb-2">
@@ -209,11 +227,11 @@
             ></button>
         </div>
         
-        {#if $buttonsStore.buttons.length === 0}
-          <p class="text-gray-500 text-sm italic">No buttons yet</p>
+        {#if activeButtons.length === 0}
+          <p class="text-gray-500 text-sm italic">No active buttons yet</p>
         {:else}
           <div class="space-y-2">
-            {#each $buttonsStore.buttons as button}
+            {#each activeButtons as button}
               <div class="border border-gray-200 rounded-lg p-3 hover:border-gray-300 transition-colors">
                 <div class="flex justify-between items-center">
                   <div class="flex items-center gap-3 flex-1">
@@ -264,6 +282,110 @@
           </div>
         {/if}
       </div>
+
+      <!-- Archived Section (Ended Targets and Buttons) -->
+      {#if archivedTargets.length > 0 || archivedButtons.length > 0}
+        <div class="border-t-2 border-gray-300 pt-6 mt-6">
+          <h3 class="text-lg font-semibold text-gray-500 mb-3 flex items-center gap-2">
+            <span class="bg-gray-400 icon-[si--archive-duotone]" style="width: 24px; height: 24px;"></span>
+            Archived (Ended)
+          </h3>
+          
+          <!-- Archived Targets -->
+          {#if archivedTargets.length > 0}
+            <div class="mb-4">
+              <h4 class="text-sm font-medium text-gray-600 mb-2">Ended Targets</h4>
+              <div class="space-y-2 opacity-70">
+                {#each archivedTargets.slice().sort((a, b) => a.name.localeCompare(b.name)) as target}
+                  <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                    <div class="flex justify-between items-center mb-2">
+                      <h4 class="font-medium text-gray-700">{target.name}</h4>
+                      <div class="flex gap-1">
+                        <button
+                          on:click={() => onEditTarget(target)}
+                          class="p-1 text-blue-600 hover:text-blue-700 icon-[si--edit-detailed-duotone]"
+                          style="width: 20px; height: 20px;"
+                          aria-label="Edit Target"
+                        ></button>
+                        <button
+                          on:click={() => handleDeleteTarget(target)}
+                          class="p-1 text-red-600 hover:text-red-700 icon-[si--bin-duotone]"
+                          style="width: 20px; height: 20px;"
+                          aria-label="Delete Target"
+                        ></button>
+                      </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center text-xs text-gray-500">
+                      <span>{getWeekdayNames(target.weekdays)}</span>
+                      {#if target.ending_at}
+                        <span class="text-red-600 font-medium">Ended: {dayjs(target.ending_at).format('MMM D, YYYY')}</span>
+                      {/if}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+
+          <!-- Archived Buttons -->
+          {#if archivedButtons.length > 0}
+            <div>
+              <h4 class="text-sm font-medium text-gray-600 mb-2">Buttons Linked to Ended Targets</h4>
+              <div class="space-y-2 opacity-70">
+                {#each archivedButtons as button}
+                  <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                    <div class="flex justify-between items-center">
+                      <div class="flex items-center gap-3 flex-1">
+                        <div 
+                          class="w-10 h-10 rounded-full flex items-center justify-center text-xl"
+                          style="background-color: {button.color || '#3B82F6'};"
+                        >
+                          {button.emoji || '⏱️'}
+                        </div>
+                        <div>
+                          <h4 class="font-medium text-gray-700">{button.name}</h4>
+                          <div class="text-xs text-gray-500 flex gap-2">
+                            {#if button.auto_subtract_breaks}
+                              <span class="flex items-center gap-1">
+                                <span class="icon-[proicons--coffee-hot]" style="width: 12px; height: 12px;"></span>
+                                Auto breaks
+                              </span>
+                            {/if}
+                            {#if button.target_id}
+                              {@const linkedTarget = $targetsStore.targets.find(t => t.id === button.target_id)}
+                              {#if linkedTarget}
+                                <span class="flex items-center gap-1 text-red-600">
+                                  <span class="icon-[proicons--link]" style="width: 12px; height: 12px;"></span>
+                                  {linkedTarget.name} (Ended)
+                                </span>
+                              {/if}
+                            {/if}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="flex gap-1">
+                        <button
+                          on:click={() => onEditButton(button)}
+                          class="p-1 text-blue-600 hover:text-blue-700 icon-[si--edit-detailed-duotone]"
+                          style="width: 20px; height: 20px;"
+                          aria-label="Edit Button"
+                        ></button>
+                        <button
+                          on:click={() => handleDeleteButton(button)}
+                          class="p-1 text-red-600 hover:text-red-700 icon-[si--bin-duotone]"
+                          style="width: 20px; height: 20px;"
+                          aria-label="Delete Button"
+                        ></button>
+                      </div>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+        </div>
+      {/if}
     </div>
   </div>
 </div>

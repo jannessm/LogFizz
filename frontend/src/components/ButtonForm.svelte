@@ -14,6 +14,7 @@
   let color = button?.color || '#3B82F6';
   let targetId = button?.target_id || '';
   let autoSubtractBreaks = button?.auto_subtract_breaks ?? false;
+  let archived = button?.archived ?? false;
   let isLoading = false;
   let errorMessage = '';
 
@@ -38,6 +39,7 @@
         color,
         target_id: targetId || undefined,
         auto_subtract_breaks: autoSubtractBreaks,
+        archived,
       };
 
       if (button) {
@@ -177,6 +179,22 @@
         <div class="text-xs text-gray-500 pl-6">
           <p>• 6-9 hours: 30 min break</p>
           <p>• 9+ hours: 45 min break</p>
+        </div>
+
+        <!-- Archived -->
+        <div class="flex items-center">
+          <input
+            id="archived"
+            type="checkbox"
+            bind:checked={archived}
+            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          />
+          <label for="archived" class="ml-2 text-sm text-gray-700">
+            Archive this button
+          </label>
+        </div>
+        <div class="text-xs text-gray-500 pl-6">
+          <p>Archived buttons are hidden from the main view but can still be accessed in reports</p>
         </div>
 
         <!-- Actions -->

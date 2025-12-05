@@ -27,6 +27,40 @@ export class InitialSchema1699700000000 implements MigrationInterface {
             )
         `);
 
+        // Create states table (needed before daily_targets due to FK constraint)
+        await queryRunner.query(`
+            CREATE TABLE IF NOT EXISTS "states" (
+                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                "country" character varying NOT NULL,
+                "state" character varying NOT NULL,
+                "code" character varying NOT NULL,
+                CONSTRAINT "PK_states_id" PRIMARY KEY ("id"),
+                CONSTRAINT "UQ_states_code" UNIQUE ("code")
+            )
+        `);
+
+        // Insert German states
+        await queryRunner.query(`
+            INSERT INTO "states" ("country", "state", "code") VALUES
+            ('Germany', 'Baden-Württemberg', 'DE-BW'),
+            ('Germany', 'Bayern', 'DE-BY'),
+            ('Germany', 'Berlin', 'DE-BE'),
+            ('Germany', 'Brandenburg', 'DE-BB'),
+            ('Germany', 'Bremen', 'DE-HB'),
+            ('Germany', 'Hamburg', 'DE-HH'),
+            ('Germany', 'Hessen', 'DE-HE'),
+            ('Germany', 'Mecklenburg-Vorpommern', 'DE-MV'),
+            ('Germany', 'Niedersachsen', 'DE-NI'),
+            ('Germany', 'Nordrhein-Westfalen', 'DE-NW'),
+            ('Germany', 'Rheinland-Pfalz', 'DE-RP'),
+            ('Germany', 'Saarland', 'DE-SL'),
+            ('Germany', 'Sachsen', 'DE-SN'),
+            ('Germany', 'Sachsen-Anhalt', 'DE-ST'),
+            ('Germany', 'Schleswig-Holstein', 'DE-SH'),
+            ('Germany', 'Thüringen', 'DE-TH')
+            ON CONFLICT (code) DO NOTHING
+        `);
+
         // Create daily_targets table
         await queryRunner.query(`
             CREATE TABLE IF NOT EXISTS "daily_targets" (
@@ -35,8 +69,9 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "name" character varying NOT NULL,
                 "duration_minutes" text NOT NULL,
                 "weekdays" text NOT NULL,
-                "state_id" uuid,
+                "state_code" character varying,
                 "starting_from" TIMESTAMP WITH TIME ZONE,
+                "ending_at" TIMESTAMP WITH TIME ZONE,
                 "exclude_holidays" boolean NOT NULL DEFAULT false,
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
@@ -44,8 +79,8 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 CONSTRAINT "PK_daily_targets_id" PRIMARY KEY ("id"),
                 CONSTRAINT "FK_daily_targets_user_id" FOREIGN KEY ("user_id") 
                     REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
-                CONSTRAINT "FK_daily_targets_state_id" FOREIGN KEY ("state_id")
-                    REFERENCES "states"("id") ON DELETE SET NULL ON UPDATE NO ACTION
+                CONSTRAINT "FK_daily_targets_state_code" FOREIGN KEY ("state_code")
+                    REFERENCES "states"("code") ON DELETE SET NULL ON UPDATE NO ACTION
             )
         `);
 
@@ -59,6 +94,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "color" character varying,
                 "target_id" uuid,
                 "auto_subtract_breaks" boolean NOT NULL DEFAULT false,
+                "archived" boolean NOT NULL DEFAULT false,
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "deleted_at" TIMESTAMP WITH TIME ZONE,
@@ -119,40 +155,6 @@ export class InitialSchema1699700000000 implements MigrationInterface {
             )
         `);
 
-        // Create states table
-        await queryRunner.query(`
-            CREATE TABLE IF NOT EXISTS "states" (
-                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
-                "country" character varying NOT NULL,
-                "state" character varying NOT NULL,
-                "code" character varying NOT NULL,
-                CONSTRAINT "PK_states_id" PRIMARY KEY ("id"),
-                CONSTRAINT "UQ_states_code" UNIQUE ("code")
-            )
-        `);
-
-        // Insert German states
-        await queryRunner.query(`
-            INSERT INTO "states" ("country", "state", "code") VALUES
-            ('Germany', 'Baden-Württemberg', 'DE-BW'),
-            ('Germany', 'Bayern', 'DE-BY'),
-            ('Germany', 'Berlin', 'DE-BE'),
-            ('Germany', 'Brandenburg', 'DE-BB'),
-            ('Germany', 'Bremen', 'DE-HB'),
-            ('Germany', 'Hamburg', 'DE-HH'),
-            ('Germany', 'Hessen', 'DE-HE'),
-            ('Germany', 'Mecklenburg-Vorpommern', 'DE-MV'),
-            ('Germany', 'Niedersachsen', 'DE-NI'),
-            ('Germany', 'Nordrhein-Westfalen', 'DE-NW'),
-            ('Germany', 'Rheinland-Pfalz', 'DE-RP'),
-            ('Germany', 'Saarland', 'DE-SL'),
-            ('Germany', 'Sachsen', 'DE-SN'),
-            ('Germany', 'Sachsen-Anhalt', 'DE-ST'),
-            ('Germany', 'Schleswig-Holstein', 'DE-SH'),
-            ('Germany', 'Thüringen', 'DE-TH')
-            ON CONFLICT (code) DO NOTHING
-        `);
-
         // Create monthly_balances table
         await queryRunner.query(`
             CREATE TABLE IF NOT EXISTS "monthly_balances" (
@@ -177,7 +179,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
 
         // Create indexes for better performance
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_daily_targets_user_id" ON "daily_targets" ("user_id")`);
-        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_daily_targets_state_id" ON "daily_targets" ("state_id")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_daily_targets_state_code" ON "daily_targets" ("state_code")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_daily_targets_deleted_at" ON "daily_targets" ("deleted_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_daily_targets_updated_at" ON "daily_targets" ("updated_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_buttons_user_id" ON "buttons" ("user_id")`);
