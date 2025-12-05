@@ -31,19 +31,22 @@
   $: buttons = $buttonsStore.buttons;
   $: hasDateError = errorMessage === 'End time must be after start time';
 
+  const DAY_START_TIME = '00:00:00';
+  const DAY_END_TIME = '23:59:59';
+
   function handleSubmit() {
     errorMessage = '';
 
     if (!buttonId || !startDate) {
-      alert('Please fill all required fields');
+      errorMessage = 'Please fill all required fields';
       return;
     }
 
     // For special types (non-normal), we don't need start/end times
     if (type !== 'normal') {
       // Use the start date as the reference date
-      const startTimestamp = `${startDate}T00:00:00`;
-      const endTimestamp = `${startDate}T23:59:59`;
+      const startTimestamp = `${startDate}T${DAY_START_TIME}`;
+      const endTimestamp = `${startDate}T${DAY_END_TIME}`;
       
       dispatch('save', {
         button_id: buttonId,
@@ -58,7 +61,7 @@
 
     // For normal type, validate time fields
     if (!startTime) {
-      alert('Please fill all required fields');
+      errorMessage = 'Please fill all required fields';
       return;
     }
 
@@ -67,7 +70,7 @@
 
     if (!isRunning) {
       if (!endDate || !endTime) {
-        alert('Please provide end date and time for paired entry');
+        errorMessage = 'Please provide end date and time for paired entry';
         return;
       }
       endTimestamp = `${endDate}T${endTime}:00`;
