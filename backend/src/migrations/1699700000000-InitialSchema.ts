@@ -112,6 +112,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "user_id" uuid NOT NULL,
                 "button_id" uuid NOT NULL,
+                "type" character varying NOT NULL DEFAULT 'normal',
                 "start_timestamp" TIMESTAMP WITH TIME ZONE NOT NULL,
                 "end_timestamp" TIMESTAMP WITH TIME ZONE,
                 "duration_minutes" integer,

@@ -1,11 +1,14 @@
 import { AppDataSource } from '../config/database.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Button } from '../entities/Button.js';
+import { DailyTarget } from '../entities/DailyTarget.js';
 import { MoreThan } from 'typeorm';
+import dayjs from '../utils/dayjs.js';
 
 export class TimeLogService {
   private timeLogRepository = AppDataSource.getRepository(TimeLog);
   private buttonRepository = AppDataSource.getRepository(Button);
+  private dailyTargetRepository = AppDataSource.getRepository(DailyTarget);
 
   /**
    * Get all time logs (including soft-deleted) changed since a given timestamp
@@ -19,6 +22,63 @@ export class TimeLogService {
       ],
       order: { updated_at: 'ASC' },
     });
+  }
+
+  /**
+   * Calculate duration for a time log based on its type
+   * For special types (sick, holiday, etc.), calculate based on daily target
+   * For normal type, calculate from start/end timestamps
+   */
+  private async calculateDuration(timeLog: Partial<TimeLog>): Promise<number | undefined> {
+    // For normal type with end timestamp, calculate from timestamps
+    if (timeLog.type === 'normal' && timeLog.end_timestamp && timeLog.start_timestamp) {
+      const startTime = dayjs(timeLog.start_timestamp);
+      const endTime = dayjs(timeLog.end_timestamp);
+      return endTime.diff(startTime, 'minute');
+    }
+
+    // For special types, get the daily target duration for this day
+    if (timeLog.type !== 'normal' && timeLog.button_id && timeLog.start_timestamp) {
+      // Get the button to find its target_id
+      const button = await this.buttonRepository.findOne({
+        where: { id: timeLog.button_id },
+      });
+
+      if (!button || !button.target_id) {
+        // No target assigned, return 0
+        return 0;
+      }
+
+      // Get the daily target
+      const target = await this.dailyTargetRepository.findOne({
+        where: { id: button.target_id },
+      });
+
+      if (!target) {
+        return 0;
+      }
+
+      // Convert weekdays and duration_minutes from strings to numbers
+      const weekdays = target.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day);
+      const durationMinutes = target.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min);
+
+      // Get the weekday of the timelog (0=Sunday, 6=Saturday)
+      const date = dayjs(timeLog.start_timestamp);
+      const weekday = date.day();
+
+      // Find the index of this weekday in the target's weekdays array
+      const weekdayIndex = weekdays.indexOf(weekday);
+
+      if (weekdayIndex === -1) {
+        // This day is not a target workday, return 0
+        return 0;
+      }
+
+      // Return the duration for this weekday
+      return durationMinutes[weekdayIndex] || 0;
+    }
+
+    return undefined;
   }
 
   /**
@@ -42,6 +102,12 @@ export class TimeLogService {
     }> = [];
 
     for (const change of changes) {
+      // Calculate duration for the timelog
+      const duration = await this.calculateDuration(change);
+      if (duration !== undefined) {
+        change.duration_minutes = duration;
+      }
+
       if (change.id) {
         // Check if time log exists on server
         const existing = await this.timeLogRepository.findOne({

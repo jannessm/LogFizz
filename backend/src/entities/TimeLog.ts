@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
-import type { TimeLogEntity } from '../../../lib/types/index.js';
+import type { TimeLogEntity, TimeLogType } from '../../../lib/types/index.js';
 
 @Entity('time_logs')
 export class TimeLog implements TimeLogEntity {
@@ -11,6 +11,9 @@ export class TimeLog implements TimeLogEntity {
 
   @Column('uuid')
   button_id!: string;
+
+  @Column('varchar', { default: 'normal' })
+  type!: TimeLogType;
 
   @Column('timestamptz')
   start_timestamp!: Date;
