@@ -25,6 +25,7 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
           timeLogs: Type.Array(Type.Object({
             id: Type.String(),
             button_id: Type.String(),
+            type: Type.String(),
             start_timestamp: Type.String(),
             end_timestamp: Type.Optional(Type.String()),
             duration_minutes: Type.Optional(Type.Number()),
@@ -77,6 +78,7 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
         timeLogs: Type.Array(Type.Object({
           id: Type.String(), // Required for offline-first with client-generated UUIDs
           button_id: Type.String(),
+          type: Type.Optional(Type.String()),
           start_timestamp: Type.String(),
           end_timestamp: Type.Optional(Type.String()),
           duration_minutes: Type.Optional(Type.Number()),
@@ -91,6 +93,7 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
           saved: Type.Optional(Type.Array(Type.Object({
             id: Type.String(),
             button_id: Type.String(),
+            type: Type.String(),
             start_timestamp: Type.String(),
             end_timestamp: Type.Optional(Type.String()),
             duration_minutes: Type.Optional(Type.Number()),
@@ -104,6 +107,7 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
             clientVersion: Type.Object({
               id: Type.String(),
               button_id: Type.String(),
+              type: Type.Optional(Type.String()),
               start_timestamp: Type.String(),
               end_timestamp: Type.Optional(Type.String()),
               duration_minutes: Type.Optional(Type.Number()),
@@ -115,6 +119,7 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
             serverVersion: Type.Object({
               id: Type.String(),
               button_id: Type.String(),
+              type: Type.String(),
               start_timestamp: Type.String(),
               end_timestamp: Type.Optional(Type.String()),
               duration_minutes: Type.Optional(Type.Number()),
