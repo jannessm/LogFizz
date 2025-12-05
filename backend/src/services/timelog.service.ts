@@ -69,8 +69,9 @@ export class TimeLogService {
       }
 
       // Convert weekdays and duration_minutes from strings to numbers
-      const weekdays = target.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day);
-      const durationMinutes = target.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min);
+      // TypeORM's simple-array stores arrays as strings, so we need to convert them
+      const weekdays = target.weekdays.map((day) => typeof day === 'string' ? parseInt(day, 10) : Number(day));
+      const durationMinutes = target.duration_minutes.map((min) => typeof min === 'string' ? parseInt(min, 10) : Number(min));
 
       // Get the weekday of the timelog (0=Sunday, 6=Saturday)
       const date = dayjs(timeLog.start_timestamp);
