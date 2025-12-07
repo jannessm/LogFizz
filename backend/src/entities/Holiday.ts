@@ -9,6 +9,12 @@ export class Holiday implements HolidayEntity {
   @Column('varchar')
   country!: string;
 
+  @Column('varchar', { default: false })
+  global!: boolean;
+
+  @Column('varchar', { array: true })
+  counties!: string[];
+
   @Column('date')
   date!: Date;
 

@@ -83,7 +83,6 @@ export interface TimeLog {
   timezone: string;
   apply_break_calculation: boolean;
   notes?: string;
-  is_manual: boolean;
   created_at: string;
   updated_at: string;
   deleted_at?: string; // Soft delete support
@@ -93,6 +92,8 @@ export interface TimeLog {
 export interface Holiday {
   id: string;
   country: string;
+  global: boolean;
+  counties: string[];
   date: string;
   name: string;
   year: number;
@@ -188,6 +189,7 @@ export interface UserEntity extends Omit<User, 'created_at' | 'updated_at' | 'de
 export interface HolidayEntity extends Omit<Holiday, 'date'> {
   date: Date;
 }
+export interface HolidayData extends Omit<HolidayEntity, 'id'> {}
 
 export interface HolidayMetadataEntity extends Omit<HolidayMetadata, 'last_updated'> {
   last_updated: Date;

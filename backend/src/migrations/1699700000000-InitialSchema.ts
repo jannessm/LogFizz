@@ -30,12 +30,10 @@ export class InitialSchema1699700000000 implements MigrationInterface {
         // Create states table (needed before daily_targets due to FK constraint)
         await queryRunner.query(`
             CREATE TABLE IF NOT EXISTS "states" (
-                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                "code" character varying NOT NULL,
                 "country" character varying NOT NULL,
                 "state" character varying NOT NULL,
-                "code" character varying NOT NULL,
-                CONSTRAINT "PK_states_id" PRIMARY KEY ("id"),
-                CONSTRAINT "UQ_states_code" UNIQUE ("code")
+                CONSTRAINT "PK_states_code" PRIMARY KEY ("code")
             )
         `);
 
@@ -69,10 +67,10 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "name" character varying NOT NULL,
                 "duration_minutes" text NOT NULL,
                 "weekdays" text NOT NULL,
+                "exclude_holidays" boolean NOT NULL DEFAULT false,
                 "state_code" character varying,
                 "starting_from" TIMESTAMP WITH TIME ZONE,
                 "ending_at" TIMESTAMP WITH TIME ZONE,
-                "exclude_holidays" boolean NOT NULL DEFAULT false,
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "deleted_at" TIMESTAMP WITH TIME ZONE,
@@ -119,7 +117,6 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "timezone" character varying NOT NULL,
                 "apply_break_calculation" boolean NOT NULL DEFAULT false,
                 "notes" text,
-                "is_manual" boolean NOT NULL DEFAULT false,
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "deleted_at" TIMESTAMP WITH TIME ZONE,
@@ -136,10 +133,18 @@ export class InitialSchema1699700000000 implements MigrationInterface {
             CREATE TABLE IF NOT EXISTS "holidays" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "country" character varying NOT NULL,
+                "global" boolean NOT NULL DEFAULT false,
+                "counties" varchar[] NOT NULL,
                 "date" date NOT NULL,
                 "name" character varying NOT NULL,
                 "year" integer NOT NULL,
-                CONSTRAINT "PK_holidays_id" PRIMARY KEY ("id")
+                CONSTRAINT "PK_holidays_id" PRIMARY KEY ("id"),
+                CONSTRAINT "CHK_holidays_counties_state_codes" CHECK (
+                    "counties" IS NULL OR NOT EXISTS (
+                        SELECT 1 FROM unnest("counties") AS c(code)
+                        WHERE NOT EXISTS (SELECT 1 FROM "states" s WHERE s."code" = c.code)
+                    )
+                )
             )
         `);
 
