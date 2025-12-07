@@ -53,8 +53,7 @@ describe('Holiday Crawler Service', () => {
     expect(metadata).toBeDefined();
     expect(metadata?.country).toBe('FR');
     expect(metadata?.year).toBe(2025);
-    expect(metadata?.holiday_count).toBeGreaterThan(0);
-    expect(metadata?.last_fetched_at).toBeDefined();
+    expect(metadata?.last_updated).toBeDefined();
   }, 10000);
 
   it.skip('should not refresh if data is recent', async () => {
@@ -102,8 +101,7 @@ describe('Holiday Crawler Service', () => {
     const oldMetadata = metadataRepo.create({
       country: 'TEST',
       year: 2020,
-      last_fetched_at: oldDate,
-      holiday_count: 5,
+      last_updated: oldDate
     });
     
     await metadataRepo.save(oldMetadata);
