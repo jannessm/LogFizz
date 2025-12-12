@@ -1,6 +1,8 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import type { MonthlyBalance, DailyTarget, TimeLog, Button } from '../types';
 import {
   getAllTargets,
@@ -14,11 +16,18 @@ import {
   calculateWorkedMinutes as calculateWorkedMinutesShared,
   calculateDueMinutes as calculateDueMinutesShared,
   getEarliestAffectedMonth,
+  shouldCalculateBalance,
+  calculateEffectiveDateRange,
+  getPreviousMonthCumulativeBalance,
+  calculateMonthlyBalanceCore,
+  type TimeLogWithType,
 } from '../../../lib/utils/monthlyBalance.js';
 
 // Extend dayjs with plugins
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 
 /**
  * Monthly Balance Service for frontend
@@ -139,55 +148,39 @@ export class MonthlyBalanceService {
       typeof min === 'string' ? parseInt(min, 10) : min
     );
 
-    // Do not calculate balance if no starting_from is set
-    const startingFrom = target.starting_from
-      ? dayjs(target.starting_from).utc()
-      : null;
-    if (!startingFrom) {
+    // Validate if balance should be calculated
+    const validation = shouldCalculateBalance(
+      {
+        weekdays: target.weekdays,
+        duration_minutes: target.duration_minutes,
+        starting_from: target.starting_from ? new Date(target.starting_from) : null,
+        ending_at: target.ending_at ? new Date(target.ending_at) : null,
+      },
+      year,
+      month
+    );
+
+    if (!validation.shouldCalculate) {
       // Delete any existing balance for this target
       const balanceId = `${targetId}-${year}-${month}`;
-      await deleteMonthlyBalance(balanceId);
+      await deleteMonthlyBalance({ id: balanceId } as any);
       return null;
     }
 
-    // Get ending_at date if set
-    const endingAt = target.ending_at
-      ? dayjs(target.ending_at).utc()
-      : null;
+    // Get starting_from for later use
+    const startingFrom = target.starting_from ? dayjs(target.starting_from).utc() : null;
 
-    // Calculate date range for the month
-    const startDate = dayjs
-      .utc(`${year}-${month.toString().padStart(2, '0')}-01`)
-      .startOf('day');
-    const endDate = startDate.add(1, 'month');
-
-    // Check if this month is before the starting_from date
-    if (endDate.isBefore(startingFrom) || endDate.isSame(startingFrom)) {
-      // This month is entirely before starting_from, no balance should be calculated
-      const balanceId = `${targetId}-${year}-${month}`;
-      await deleteMonthlyBalance(balanceId);
-      return null;
-    }
-
-    // Check if this month is entirely after the ending_at date
-    if (endingAt && startDate.isAfter(endingAt)) {
-      // This month is entirely after ending_at, no balance should be calculated
-      const balanceId = `${targetId}-${year}-${month}`;
-      await deleteMonthlyBalance(balanceId);
-      return null;
-    }
-
-    // Calculate the effective start date for time logs
-    const effectiveStartDate = startingFrom.isAfter(startDate)
-      ? startingFrom
-      : startDate;
-    
-    // Calculate the effective end date for time logs (min of month end or ending_at + 1 day)
-    let effectiveEndDate = endDate;
-    if (endingAt && endingAt.isBefore(endDate.subtract(1, 'day'))) {
-      // ending_at is within this month, limit to day after ending_at
-      effectiveEndDate = endingAt.add(1, 'day').startOf('day');
-    }
+    // Calculate effective date range
+    const { effectiveStartDate, effectiveEndDate } = calculateEffectiveDateRange(
+      {
+        weekdays: target.weekdays,
+        duration_minutes: target.duration_minutes,
+        starting_from: target.starting_from ? new Date(target.starting_from) : null,
+        ending_at: target.ending_at ? new Date(target.ending_at) : null,
+      },
+      year,
+      month
+    );
 
     // Get all buttons linked to this target
     const buttons = await getAllButtons();
@@ -202,7 +195,7 @@ export class MonthlyBalanceService {
 
     // Get all time logs for buttons linked to this target in this month (respecting ending_at)
     const allTimeLogs = await getAllTimeLogs();
-    const relevantTimeLogs = allTimeLogs.filter(
+    const filteredLogs = allTimeLogs.filter(
       tl =>
         buttonIds.has(tl.button_id) &&
         !tl.deleted_at &&
@@ -211,47 +204,49 @@ export class MonthlyBalanceService {
         dayjs(tl.start_timestamp).isBefore(effectiveEndDate)
     );
 
-    // Sort by start_timestamp
-    relevantTimeLogs.sort((a, b) =>
-      new Date(a.start_timestamp).getTime() - new Date(b.start_timestamp).getTime()
-    );
+    // Sort by start_timestamp and convert to TimeLogWithType format
+    const relevantTimeLogs: TimeLogWithType[] = filteredLogs
+      .sort((a, b) =>
+        new Date(a.start_timestamp).getTime() - new Date(b.start_timestamp).getTime()
+      )
+      .map(tl => ({
+        start_timestamp: new Date(tl.start_timestamp),
+        end_timestamp: tl.end_timestamp ? new Date(tl.end_timestamp) : undefined,
+        duration_minutes: tl.duration_minutes,
+        type: tl.type,
+        button_id: tl.button_id,
+      }));
 
-    // Create raw data array with auto_subtract_breaks flag
-    const rawData = relevantTimeLogs.map(tl => ({
-      auto_subtract_breaks: buttonBreakMap.get(tl.button_id) ?? false,
-    }));
+    // Get holidays set (empty for frontend, could be enhanced later)
+    const holidays: Set<string> = new Set();
 
-    // Convert timeLogs to the format expected by the shared function
-    const timeLogsForCalc = relevantTimeLogs.map(tl => ({
-      start_timestamp: new Date(tl.start_timestamp),
-      end_timestamp: tl.end_timestamp ? new Date(tl.end_timestamp) : undefined,
-      duration_minutes: tl.duration_minutes,
-    }));
-
-    // Calculate worked minutes from time logs
-    const workedMinutes = calculateWorkedMinutesShared(timeLogsForCalc, rawData);
-
-    // Calculate due minutes based on target
-    const dueMinutes = await this.calculateDueMinutes(
-      target,
+    // Get previous month's cumulative balance
+    const previousMonthBalance = await getPreviousMonthCumulativeBalance(
       year,
       month,
-      target.exclude_holidays
+      startingFrom,
+      async (prevYear: number, prevMonth: number) => {
+        const balanceId = `${targetId}-${prevYear}-${prevMonth}`;
+        const previousBalance = await getMonthlyBalance(balanceId);
+        return previousBalance ? previousBalance.balance_minutes : 0;
+      }
     );
 
-    // Calculate this month's balance
-    const thisMonthBalance = workedMinutes - dueMinutes;
-
-    // Get cumulative balance from previous month
-    const previousMonthBalance = await this.getPreviousMonthCumulativeBalance(
-      targetId,
+    // Calculate balance using shared core function
+    const { worked_minutes, due_minutes, balance_minutes } = await calculateMonthlyBalanceCore({
+      target: {
+        weekdays: target.weekdays,
+        duration_minutes: target.duration_minutes,
+        starting_from: target.starting_from ? new Date(target.starting_from) : null,
+        ending_at: target.ending_at ? new Date(target.ending_at) : null,
+      },
       year,
       month,
-      startingFrom
-    );
-
-    // Total balance = previous cumulative + this month's balance
-    const balanceMinutes = previousMonthBalance + thisMonthBalance;
+      timeLogs: relevantTimeLogs,
+      buttonBreakMap,
+      holidays,
+      previousMonthBalance,
+    });
 
     // Create or update balance
     const balanceId = `${targetId}-${year}-${month}`;
@@ -263,9 +258,9 @@ export class MonthlyBalanceService {
       target_id: targetId,
       year,
       month,
-      worked_minutes: workedMinutes,
-      due_minutes: dueMinutes,
-      balance_minutes: balanceMinutes,
+      worked_minutes,
+      due_minutes,
+      balance_minutes,
       exclude_holidays: target.exclude_holidays,
       created_at: existingBalance?.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -274,73 +269,6 @@ export class MonthlyBalanceService {
 
     await saveMonthlyBalance(balance);
     return balance;
-  }
-
-  /**
-   * Get the cumulative balance from the previous month
-   * Returns 0 if there's no previous balance or if before starting_from
-   */
-  private async getPreviousMonthCumulativeBalance(
-    targetId: string,
-    year: number,
-    month: number,
-    startingFrom: dayjs.Dayjs | null
-  ): Promise<number> {
-    const currentMonth = dayjs.utc(
-      `${year}-${month.toString().padStart(2, '0')}-01`
-    );
-    const previousMonth = currentMonth.subtract(1, 'month');
-    const prevYear = previousMonth.year();
-    const prevMonth = previousMonth.month() + 1;
-
-    // Check if previous month is entirely before starting_from
-    if (startingFrom) {
-      const currentMonthStart = currentMonth.startOf('day');
-      if (
-        startingFrom.isAfter(currentMonthStart) ||
-        startingFrom.isSame(currentMonthStart)
-      ) {
-        return 0;
-      }
-    }
-
-    // Get previous month's balance
-    const balanceId = `${targetId}-${prevYear}-${prevMonth}`;
-    const previousBalance = await getMonthlyBalance(balanceId);
-
-    return previousBalance ? previousBalance.balance_minutes : 0;
-  }
-
-  /**
-   * Calculate due minutes based on target and month
-   * Respects starting_from date - only counts days on or after starting_from
-   * Respects ending_at date - only counts days on or before ending_at
-   */
-  private async calculateDueMinutes(
-    target: DailyTarget,
-    year: number,
-    month: number,
-    excludeHolidays: boolean
-  ): Promise<number> {
-    // For frontend, we don't have holiday data available locally
-    // In a production app, you might want to sync holidays from the backend
-    // For now, we'll pass an empty set
-    const holidays: Set<string> = new Set();
-
-    // If you want to support holidays in the frontend, you would need to:
-    // 1. Add a holidays table to the IndexedDB schema
-    // 2. Sync holidays from the backend
-    // 3. Query holidays here and pass them to calculateDueMinutesShared
-
-    // Convert target to the format expected by the shared function
-    const targetForCalc = {
-      weekdays: target.weekdays,
-      duration_minutes: target.duration_minutes,
-      starting_from: target.starting_from ? new Date(target.starting_from) : null,
-      ending_at: target.ending_at ? new Date(target.ending_at) : null,
-    };
-
-    return calculateDueMinutesShared(targetForCalc, year, month, holidays);
   }
 
   /**

@@ -1,7 +1,15 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import dayjs from 'dayjs';
+  import utc from 'dayjs/plugin/utc';
+  import timezone from 'dayjs/plugin/timezone';
   import { buttonsStore } from '../stores/buttons';
+
+  dayjs.extend(utc);
+  dayjs.extend(timezone);
+
+  // Get user's timezone
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   export let selectedDate: dayjs.Dayjs;
   export let existingLog: any = null;
@@ -11,22 +19,36 @@
 
   let buttonId = existingLog?.button_id || '';
   let type = existingLog?.log?.type || 'normal';
-  let startDate = existingLog?.startTime ? dayjs(existingLog.startTime).format('YYYY-MM-DD') : selectedDate.format('YYYY-MM-DD');
-  let startTime = existingLog?.startTime ? dayjs(existingLog.startTime).format('HH:mm') : '';
+  
+  // When editing, convert from stored timezone to user's local timezone
+  let startDate = existingLog?.startTime 
+    ? dayjs.utc(existingLog.startTime).tz(userTimezone).format('YYYY-MM-DD') 
+    : selectedDate.format('YYYY-MM-DD');
+  let startTime = existingLog?.startTime 
+    ? dayjs.utc(existingLog.startTime).tz(userTimezone).format('HH:mm') 
+    : '';
   
   // When stopping a timer, pre-populate end time with current time
   const now = dayjs();
   let endDate = existingLog?.endTime 
-    ? dayjs(existingLog.endTime).format('YYYY-MM-DD') 
+    ? dayjs.utc(existingLog.endTime).tz(userTimezone).format('YYYY-MM-DD') 
     : (isTimerStop ? now.format('YYYY-MM-DD') : selectedDate.format('YYYY-MM-DD'));
   let endTime = existingLog?.endTime 
-    ? dayjs(existingLog.endTime).format('HH:mm') 
+    ? dayjs.utc(existingLog.endTime).tz(userTimezone).format('HH:mm') 
     : (isTimerStop ? now.format('HH:mm') : '');
   
   let notes = existingLog?.log?.notes || '';
   let isRunning = !existingLog?.endTime && !isTimerStop; // When stopping timer, it should not be running
   let errorMessage: string = '';
   let showDeleteConfirm = false;
+
+  // When type changes, reset date range validation
+  $: if (type !== 'normal') {
+    // For non-normal types, ensure endDate is set to at least startDate
+    if (!endDate || endDate < startDate) {
+      endDate = startDate;
+    }
+  }
 
   $: buttons = $buttonsStore.buttons;
   $: hasDateError = errorMessage === 'End time must be after start time';
@@ -42,11 +64,22 @@
       return;
     }
 
-    // For special types (non-normal), we don't need start/end times
+    // For special types (non-normal), we don't need start/end times, but we need date range
     if (type !== 'normal') {
-      // Use the start date as the reference date
+      if (!endDate) {
+        errorMessage = 'Please provide an end date';
+        return;
+      }
+
+      // Validate end date is not before start date
+      if (endDate < startDate) {
+        errorMessage = 'End date must be on or after start date';
+        return;
+      }
+
+      // Use start of first day and end of last day for the range
       const startTimestamp = `${startDate}T${DAY_START_TIME}`;
-      const endTimestamp = `${startDate}T${DAY_END_TIME}`;
+      const endTimestamp = `${endDate}T${DAY_END_TIME}`;
       
       dispatch('save', {
         button_id: buttonId,
@@ -206,23 +239,38 @@
         </div>
       {/if}
 
-      <!-- For special types, only show date -->
+      <!-- For special types, show date range -->
       {#if type !== 'normal'}
-        <div>
-          <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">
-            Date *
-          </label>
-          <input
-            id="startDate"
-            type="date"
-            bind:value={startDate}
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required
-          />
-          <p class="mt-1 text-sm text-gray-500">
-            Duration will be calculated based on your daily target for this day
-          </p>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">
+              Start Date *
+            </label>
+            <input
+              id="startDate"
+              type="date"
+              bind:value={startDate}
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+          <div>
+            <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">
+              End Date *
+            </label>
+            <input
+              id="endDate"
+              type="date"
+              bind:value={endDate}
+              min={startDate}
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
         </div>
+        <p class="text-sm text-gray-500">
+          Duration will be calculated based on your daily targets for each day in this range
+        </p>
       {:else}
         <!-- Start Date and Time (for normal type) -->
         <div class="grid grid-cols-2 gap-4">

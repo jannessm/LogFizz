@@ -1,14 +1,23 @@
 <script lang="ts">
   import dayjs from 'dayjs';
   import weekOfYear from 'dayjs/plugin/weekOfYear';
+  import utc from 'dayjs/plugin/utc';
+  import timezone from 'dayjs/plugin/timezone';
+  import { holidaysStore } from '../../stores/holidays';
 
   dayjs.extend(weekOfYear);
+  dayjs.extend(utc);
+  dayjs.extend(timezone);
+
+  // Get user's timezone
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   export let currentMonth: dayjs.Dayjs;
   export let selectedDate: dayjs.Dayjs;
   export let buttons: any[];
   export let timeLogs: any[];
   export let onSelectDate: (date: dayjs.Dayjs) => void;
+  export let countries: string[] = []; // Countries to check for holidays
 
   let calendarDays: dayjs.Dayjs[];
   let weekNumbers: number[];
@@ -67,21 +76,135 @@
     return colorMap;
   }
 
-  // Get button activities for a specific date
-  function getButtonsForDate(date: dayjs.Dayjs) {
-    const dateStr = date.format('YYYY-MM-DD');
-    const buttonIds = new Set(
-      timeLogs
-        .filter(tl => tl.start_timestamp && tl.start_timestamp.startsWith(dateStr))
-        .map(tl => tl.button_id)
-    );
-    return buttons.filter(b => buttonIds.has(b.id));
+  // Get timelog type colors
+  function getTypeColor(type: string): string | null {
+    switch(type) {
+      case 'sick': return '#EF4444'; // Red
+      case 'holiday': return '#10B981'; // Green
+      case 'business-trip': return '#F59E0B'; // Orange/Amber
+      case 'child-sick': return '#EC4899'; // Pink
+      case 'normal':
+      default: return null; // null means use button color
+    }
   }
 
   // Get button colors for date (for dots display)
+  // Always use button colors for dots
   function getButtonColorsForDate(date: dayjs.Dayjs): string[] {
-    const dateButtons = getButtonsForDate(date);
-    return dateButtons.slice(0, 3).map(b => b.color || '#3B82F6');
+    const dateStr = date.format('YYYY-MM-DD');
+    const dateTimeLogs = timeLogs.filter(tl => {
+      if (!tl.start_timestamp) return false;
+      
+      // Convert UTC timestamp to user's timezone for comparison
+      const logTimezone = tl.timezone || userTimezone;
+      const logDate = dayjs.utc(tl.start_timestamp).tz(logTimezone);
+      return logDate.format('YYYY-MM-DD') === dateStr;
+    });
+    
+    // Group by button and use button colors
+    const colorMap = new Map<string, string>();
+    
+    for (const tl of dateTimeLogs) {
+      if (!colorMap.has(tl.button_id)) {
+        const button = buttons.find(b => b.id === tl.button_id);
+        colorMap.set(tl.button_id, button?.color || '#3B82F6');
+      }
+    }
+    
+    return Array.from(colorMap.values()).slice(0, 3);
+  }
+
+  // Check if date is within a multi-day timelog range
+  function getMultiDayRange(date: dayjs.Dayjs): { 
+    isInRange: boolean; 
+    isStart: boolean; 
+    isEnd: boolean; 
+    color: string | null;
+    isMiddle: boolean;
+  } {
+    const dateStr = date.format('YYYY-MM-DD');
+    
+    for (const tl of timeLogs) {
+      if (!tl.type || tl.type === 'normal') continue;
+      if (!tl.start_timestamp || !tl.end_timestamp) continue;
+      
+      // Convert timestamps to user's timezone
+      const logTimezone = tl.timezone || userTimezone;
+      const start = dayjs.utc(tl.start_timestamp).tz(logTimezone);
+      const end = dayjs.utc(tl.end_timestamp).tz(logTimezone);
+      
+      // Check if this is a multi-day log (more than 1 day)
+      const daysDiff = end.diff(start, 'day');
+      if (daysDiff >= 1) {
+        const current = date.startOf('day');
+        const rangeStart = start.startOf('day');
+        const rangeEnd = end.startOf('day');
+        
+        if (current.isSame(rangeStart, 'day')) {
+          return { 
+            isInRange: true, 
+            isStart: true, 
+            isEnd: false, 
+            isMiddle: false,
+            color: getTypeColor(tl.type) 
+          };
+        } else if (current.isSame(rangeEnd, 'day')) {
+          return { 
+            isInRange: true, 
+            isStart: false, 
+            isEnd: true,
+            isMiddle: false, 
+            color: getTypeColor(tl.type) 
+          };
+        } else if (current.isAfter(rangeStart) && current.isBefore(rangeEnd)) {
+          return { 
+            isInRange: true, 
+            isStart: false, 
+            isEnd: false,
+            isMiddle: true, 
+            color: getTypeColor(tl.type) 
+          };
+        }
+      }
+    }
+    
+    return { isInRange: false, isStart: false, isEnd: false, isMiddle: false, color: null };
+  }
+
+  // Check if date has any special type timelogs (non-normal) - single day only
+  function hasSpecialType(date: dayjs.Dayjs): { hasSpecial: boolean; color: string | null } {
+    // First check if it's part of a multi-day range
+    const multiDay = getMultiDayRange(date);
+    if (multiDay.isInRange) {
+      return { hasSpecial: false, color: null }; // Will be handled by range display
+    }
+    
+    const dateStr = date.format('YYYY-MM-DD');
+    const dateTimeLogs = timeLogs.filter(tl => {
+      if (!tl.start_timestamp) return false;
+      
+      // Convert UTC timestamp to user's timezone for comparison
+      const logTimezone = tl.timezone || userTimezone;
+      const logDate = dayjs.utc(tl.start_timestamp).tz(logTimezone);
+      return logDate.format('YYYY-MM-DD') === dateStr;
+    });
+    
+    for (const tl of dateTimeLogs) {
+      if (tl.type && tl.type !== 'normal') {
+        // Make sure it's not a multi-day log
+        if (tl.end_timestamp) {
+          const logTimezone = tl.timezone || userTimezone;
+          const start = dayjs.utc(tl.start_timestamp).tz(logTimezone);
+          const end = dayjs.utc(tl.end_timestamp).tz(logTimezone);
+          const daysDiff = end.diff(start, 'day');
+          if (daysDiff < 1) {
+            return { hasSpecial: true, color: getTypeColor(tl.type) };
+          }
+        }
+      }
+    }
+    
+    return { hasSpecial: false, color: null };
   }
 
   function isToday(date: dayjs.Dayjs): boolean {
@@ -94,6 +217,16 @@
 
   function isCurrentMonth(date: dayjs.Dayjs): boolean {
     return date.isSame(currentMonth, 'month');
+  }
+
+  function isPublicHoliday(date: dayjs.Dayjs): boolean {
+    if (countries.length === 0) return false;
+    const dateStr = date.format('YYYY-MM-DD');
+    // Check if it's a holiday in ANY of the configured countries
+    const holiday = $holidaysStore.holidays.find(
+      h => countries.includes(h.country) && h.date === dateStr
+    );
+    return !!holiday;
   }
 </script>
 
@@ -125,6 +258,9 @@
         {@const today = isToday(day)}
         {@const selected = isSelected(day)}
         {@const currentMonthDay = isCurrentMonth(day)}
+        {@const specialType = hasSpecialType(day)}
+        {@const multiDayRange = getMultiDayRange(day)}
+        {@const isHoliday = isPublicHoliday(day)}
         <button
           on:click={() => onSelectDate(day)}
           class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 py-1"
@@ -133,9 +269,51 @@
           class:text-white={selected}
           class:font-bold={today || selected}
         >
+          <!-- Multi-day range indicator (rounded rectangle connecting days) -->
+          {#if multiDayRange.isInRange && !today && !selected && multiDayRange.color}
+            {#if multiDayRange.isStart && multiDayRange.isEnd}
+              <!-- Single day range (shouldn't happen but handle it) -->
+              <div 
+                class="absolute inset-0 rounded-full border-2 opacity-30"
+                style="background-color: {multiDayRange.color}; border-color: {multiDayRange.color};"
+              ></div>
+            {:else if multiDayRange.isStart}
+              <!-- Start of range -->
+              <div 
+                class="absolute inset-y-0 left-0 right-0 border-2 opacity-30 rounded-l-full"
+                style="background-color: {multiDayRange.color}; border-color: {multiDayRange.color};"
+              ></div>
+            {:else if multiDayRange.isEnd}
+              <!-- End of range -->
+              <div 
+                class="absolute inset-y-0 left-0 right-0 border-2 opacity-30 rounded-r-full"
+                style="background-color: {multiDayRange.color}; border-color: {multiDayRange.color};"
+              ></div>
+            {:else if multiDayRange.isMiddle}
+              <!-- Middle of range -->
+              <div 
+                class="absolute inset-y-0 left-0 right-0 border-2 opacity-30"
+                style="background-color: {multiDayRange.color}; border-color: {multiDayRange.color}; border-radius: 0;"
+              ></div>
+            {/if}
+          {/if}
+          
+          <!-- Holiday indicator (subtle purple background) -->
+          {#if isHoliday && currentMonthDay && !selected}
+            <div class="absolute inset-0 rounded-full bg-purple-100 border border-purple-300 opacity-50"></div>
+          {/if}
+
           <!-- Today indicator (light blue circle behind) -->
           {#if today && !selected}
             <div class="absolute inset-0 rounded-full bg-blue-100 border-2 border-blue-300"></div>
+          {/if}
+          
+          <!-- Special type indicator (colored circle behind, not today and not selected) - single day only -->
+          {#if specialType.hasSpecial && !today && !selected && specialType.color}
+            <div 
+              class="absolute inset-0 rounded-full border-2 opacity-30"
+              style="background-color: {specialType.color}; border-color: {specialType.color};"
+            ></div>
           {/if}
           
           <!-- Selected indicator (solid blue circle) -->
@@ -162,6 +340,42 @@
         </button>
         {/each}
       {/each}
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="mt-4 pt-4 border-t border-gray-200">
+    <h4 class="text-xs font-semibold text-gray-600 mb-2">Legend</h4>
+    <div class="grid grid-cols-2 gap-2 text-xs">
+      <!-- Type indicators -->
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full bg-blue-100 border-2 border-blue-300 flex-shrink-0"></div>
+        <span class="text-gray-600">Today</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full bg-red-500 opacity-30 border-2 border-red-500 flex-shrink-0"></div>
+        <span class="text-gray-600">Sick</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full bg-green-500 opacity-30 border-2 border-green-500 flex-shrink-0"></div>
+        <span class="text-gray-600">Holiday</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full bg-amber-500 opacity-30 border-2 border-amber-500 flex-shrink-0"></div>
+        <span class="text-gray-600">Business Trip</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full bg-pink-500 opacity-30 border-2 border-pink-500 flex-shrink-0"></div>
+        <span class="text-gray-600">Child Sick</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="flex gap-0.5 w-4 justify-center items-center flex-shrink-0">
+          <div class="w-1 h-1 rounded-full bg-blue-600"></div>
+          <div class="w-1 h-1 rounded-full bg-green-600"></div>
+          <div class="w-1 h-1 rounded-full bg-purple-600"></div>
+        </div>
+        <span class="text-gray-600">Activity dots (buttons)</span>
+      </div>
     </div>
   </div>
 </div>
