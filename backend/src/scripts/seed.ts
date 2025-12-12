@@ -6,7 +6,7 @@ import { DailyTarget } from '../entities/DailyTarget.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { hashPassword } from '../utils/password.js';
-import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.node.js';
+import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.js';
 
 /**
  * Seed script for development environment
@@ -386,6 +386,145 @@ async function seed() {
       timezone: 'Europe/Berlin',
       notes: 'Currently working',
       apply_break_calculation: workButton.auto_subtract_breaks,
+      type: 'normal',
+    }));
+
+    // Add timelogs with different types for debugging
+    console.log('   - Creating timelogs with different types for debugging...');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Sick day (yesterday)
+    const sickDate = new Date(today);
+    sickDate.setDate(sickDate.getDate() - 1);
+    const sickStart = new Date(sickDate);
+    sickStart.setHours(0, 0, 0, 0);
+    const sickEnd = new Date(sickDate);
+    sickEnd.setHours(23, 59, 59, 999);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      button_id: workButton.id,
+      start_timestamp: sickStart,
+      end_timestamp: sickEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Sick day - stayed home',
+      apply_break_calculation: false,
+      type: 'sick',
+    }));
+
+    // Holiday (2 days ago)
+    const holidayDate = new Date(today);
+    holidayDate.setDate(holidayDate.getDate() - 2);
+    const holidayStart = new Date(holidayDate);
+    holidayStart.setHours(0, 0, 0, 0);
+    const holidayEnd = new Date(holidayDate);
+    holidayEnd.setHours(23, 59, 59, 999);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      button_id: workButton.id,
+      start_timestamp: holidayStart,
+      end_timestamp: holidayEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Vacation day',
+      apply_break_calculation: false,
+      type: 'holiday',
+    }));
+
+    // Business trip (3 days ago)
+    const businessTripDate = new Date(today);
+    businessTripDate.setDate(businessTripDate.getDate() - 3);
+    const businessTripStart = new Date(businessTripDate);
+    businessTripStart.setHours(8, 0, 0, 0);
+    const businessTripEnd = new Date(businessTripDate);
+    businessTripEnd.setHours(18, 0, 0, 0);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      button_id: workButton.id,
+      start_timestamp: businessTripStart,
+      end_timestamp: businessTripEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Business trip to Berlin office',
+      apply_break_calculation: true,
+      type: 'business-trip',
+    }));
+
+    // Child sick day (4 days ago)
+    const childSickDate = new Date(today);
+    childSickDate.setDate(childSickDate.getDate() - 4);
+    const childSickStart = new Date(childSickDate);
+    childSickStart.setHours(0, 0, 0, 0);
+    const childSickEnd = new Date(childSickDate);
+    childSickEnd.setHours(12, 0, 0, 0);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      button_id: workButton.id,
+      start_timestamp: childSickStart,
+      end_timestamp: childSickEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Taking care of sick child - half day',
+      apply_break_calculation: false,
+      type: 'child-sick',
+    }));
+
+    // Normal work day with explicit type (5 days ago)
+    const normalDate = new Date(today);
+    normalDate.setDate(normalDate.getDate() - 5);
+    const normalStart = new Date(normalDate);
+    normalStart.setHours(9, 0, 0, 0);
+    const normalEnd = new Date(normalDate);
+    normalEnd.setHours(17, 30, 0, 0);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      button_id: workButton.id,
+      start_timestamp: normalStart,
+      end_timestamp: normalEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Regular work day with explicit type',
+      apply_break_calculation: true,
+      type: 'normal',
+    }));
+
+    // Multi-day holiday (6-9 days ago - 4 consecutive days)
+    const holidayMultiStart = new Date(today);
+    holidayMultiStart.setDate(holidayMultiStart.getDate() - 9);
+    holidayMultiStart.setHours(0, 0, 0, 0);
+    const holidayMultiEnd = new Date(today);
+    holidayMultiEnd.setDate(holidayMultiEnd.getDate() - 6);
+    holidayMultiEnd.setHours(23, 59, 59, 999);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      button_id: workButton.id,
+      start_timestamp: holidayMultiStart,
+      end_timestamp: holidayMultiEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Multi-day vacation - 4 days off',
+      apply_break_calculation: false,
+      type: 'holiday',
+    }));
+
+    // Multi-day sick leave (10-11 days ago - 2 consecutive days)
+    const sickMultiStart = new Date(today);
+    sickMultiStart.setDate(sickMultiStart.getDate() - 11);
+    sickMultiStart.setHours(0, 0, 0, 0);
+    const sickMultiEnd = new Date(today);
+    sickMultiEnd.setDate(sickMultiEnd.getDate() - 10);
+    sickMultiEnd.setHours(23, 59, 59, 999);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      button_id: workButton.id,
+      start_timestamp: sickMultiStart,
+      end_timestamp: sickMultiEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Sick leave - 2 days',
+      apply_break_calculation: false,
+      type: 'sick',
     }));
 
     console.log('✅ Created sample time logs');
@@ -394,6 +533,8 @@ async function seed() {
     console.log('   - November 2025: Work + overtime (8.5h/day) and study sessions');
     console.log('   - Current week: Regular time logs');
     console.log('   - Including an active timer for demo user');
+    console.log('   - Different types: normal, sick, holiday, business-trip, child-sick (for debugging)');
+    console.log('   - Multi-day timelogs: 4-day vacation and 2-day sick leave');
 
     
 
@@ -406,7 +547,7 @@ async function seed() {
     console.log('     * Exercise (Ended): Mon/Wed/Fri 1h, Sep-Oct 2025 (with ending_at date)');
     console.log('   - 6 buttons created (3 linked to targets)');
     console.log('   - Historical time logs for Sep-Nov 2025 (for testing cumulative balance & ended targets)');
-    console.log('   - Current week time logs');
+    console.log('   - Current week time logs with various types (normal, sick, holiday, business-trip, child-sick)');
     console.log('   - 1 active timer');
     console.log('\n💡 You can now login with:');
     console.log('   Email: demo@example.com');

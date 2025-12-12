@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { buildApp } from '../app.js';
 import { FastifyInstance } from 'fastify';
-import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.node.js';
+import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.js';
 
 describe('Authentication Routes', () => {
   let app: FastifyInstance;
