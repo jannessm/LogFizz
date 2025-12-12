@@ -33,9 +33,6 @@ export class TimeLog implements TimeLogEntity {
   @Column('text', { nullable: true })
   notes?: string;
 
-  @Column('boolean', { default: false })
-  is_manual!: boolean;
-
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 

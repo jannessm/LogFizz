@@ -10,6 +10,23 @@ interface ButtonsStore {
   error: string | null;
 }
 
+
+async function upsertButton(button: Button) {
+  await saveButtonDB(button);
+  await syncService.queueUpsertButton(button);
+  if (isOnline()) {
+    syncService.sync('button');
+  }
+}
+
+async function deleteButton(button: Button) {
+  await deleteButtonDB(button);
+  await syncService.queueDeleteButton(button);
+  if (isOnline()) {
+    syncService.sync('button');
+  }
+}
+
 function createButtonsStore() {
   const { subscribe, set, update } = writable<ButtonsStore>({
     buttons: [],
@@ -29,35 +46,7 @@ function createButtonsStore() {
 
         // Try to pull incremental changes from server if online
         if (isOnline()) {
-          try {
-            // Get last sync cursor
-            let cursor = await getSyncCursor('buttons');
-            if (!cursor) {
-              // First sync - use epoch time to get all data
-              cursor = new Date(0).toISOString();
-            }
-            
-            const result = await buttonApi.getSyncChanges(cursor);
-            
-            // Apply changes to local DB
-            for (const button of result.buttons) {
-              if ((button as any).deleted_at) {
-                // Button was deleted on server
-                await deleteButtonDB(button.id);
-              } else {
-                await saveButtonDB(button);
-              }
-            }
-            
-            // Save new cursor
-            await saveSyncCursor('buttons', result.cursor);
-            
-            // Reload from DB to reflect changes
-            const updatedButtons = await getAllButtons();
-            update(state => ({ ...state, buttons: updatedButtons }));
-          } catch (error) {
-            console.error('Failed to sync buttons from server:', error);
-          }
+          await syncService.sync('button');
         }
       } catch (error: any) {
         update(state => ({ 
@@ -79,40 +68,20 @@ function createButtonsStore() {
           color: buttonData.color,
           auto_subtract_breaks: buttonData.auto_subtract_breaks ?? false,
           target_id: buttonData.target_id,
+          archived: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
 
-        if (isOnline()) {
-          try {
-            const created = await buttonApi.create(button);
-            await saveButtonDB(created);
-            update(state => ({ 
-              ...state, 
-              buttons: [...state.buttons, created].sort((a, b) => a.name.localeCompare(b.name)),
-              isLoading: false 
-            }));
-            return created;
-          } catch (error) {
-            // If API fails, queue for sync
-            await syncService.queueButtonCreate(button);
-            update(state => ({ 
-              ...state, 
-              buttons: [...state.buttons, button].sort((a, b) => a.name.localeCompare(b.name)),
-              isLoading: false 
-            }));
-            return button;
-          }
-        } else {
-          // Offline: queue for sync
-          await syncService.queueButtonCreate(button);
-          update(state => ({ 
-            ...state, 
-            buttons: [...state.buttons, button].sort((a, b) => a.name.localeCompare(b.name)),
-            isLoading: false 
-          }));
-          return button;
-        }
+        upsertButton(button);
+
+        update(state => ({ 
+          ...state, 
+          buttons: [...state.buttons, button].sort((a, b) => a.name.localeCompare(b.name)),
+          isLoading: false 
+        }));
+
+        return button;
       } catch (error: any) {
         update(state => ({ 
           ...state, 
@@ -136,18 +105,7 @@ function createButtonsStore() {
             updated_at: new Date().toISOString()
           };
           
-          if (isOnline()) {
-            buttonApi.update(id, updates)
-              .then(async (serverButton) => {
-                await saveButtonDB(serverButton);
-              })
-              .catch(() => {
-                // Queue for sync if API fails
-                syncService.queueButtonUpdate(updatedButton);
-              });
-          } else {
-            syncService.queueButtonUpdate(updatedButton);
-          }
+          upsertButton(updatedButton);
 
           const newButtons = [...state.buttons];
           newButtons[index] = updatedButton;
@@ -168,23 +126,13 @@ function createButtonsStore() {
       }
     },
 
-    async delete(id: string) {
+    async delete(button: Button) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        if (isOnline()) {
-          try {
-            await buttonApi.delete(id);
-          } catch (error) {
-            // Queue for sync if API fails
-            await syncService.queueButtonDelete(id);
-          }
-        } else {
-          await syncService.queueButtonDelete(id);
-        }
-
+        deleteButton(button);
         update(state => ({
           ...state,
-          buttons: state.buttons.filter(b => b.id !== id),
+          buttons: state.buttons.filter(b => b.id !== button.id),
           isLoading: false
         }));
       } catch (error: any) {

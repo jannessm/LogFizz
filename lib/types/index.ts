@@ -116,10 +116,8 @@ export interface ApiResponse<T> {
 // Sync types for offline-first
 export interface SyncQueueItem {
   id: string;
-  type: 'button' | 'timelog' | 'target';
-  operation: 'create' | 'update' | 'delete';
+  type: 'button' | 'timelog' | 'target' | 'monthlyBalance';
   data: any;
-  timestamp: number;
   synced: boolean;
   error?: string;
 }

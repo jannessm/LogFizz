@@ -30,22 +30,4 @@ export async function holidayRoutes(fastify: FastifyInstance) {
     const holidays = await holidayService.getHolidays(country, year);
     return reply.send(holidays);
   });
-
-
-
-
-  // Get working days summary
-  fastify.get('/workingdays/:country/:year', {
-    schema: {
-      tags: ['Holidays'],
-      params: Type.Object({
-        country: Type.String(),
-        year: Type.Number(),
-      }),
-    },
-  }, async (request, reply) => {
-    const { country, year } = request.params as any;
-    const summary = await holidayService.getWorkingDaysSummary(country, year);
-    return reply.send(summary);
-  });
 }

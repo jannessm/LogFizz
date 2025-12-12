@@ -5,11 +5,7 @@
   "type": "module",
   "exports": {
     "./types": "./types/index.js",
-    "./utils/passwordHash": {
-      "browser": "./utils/passwordHash.browser.js",
-      "node": "./utils/passwordHash.node.js",
-      "default": "./utils/passwordHash.browser.js"
-    },
+    "./utils/passwordHash": "./utils/passwordHash.js",
     "./utils/monthlyBalance": "./utils/monthlyBalance.js",
     "./utils/timeFormat": "./utils/timeFormat.js",
     "./utils/csvImport": "./utils/csvImport.js"
