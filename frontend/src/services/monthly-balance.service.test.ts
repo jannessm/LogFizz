@@ -118,7 +118,7 @@ describe('MonthlyBalanceService', () => {
       const result = await service.calculateMonthlyBalance(targetId, 2025, 1);
 
       expect(result).toBeNull();
-      expect(db.deleteMonthlyBalance).toHaveBeenCalledWith('target-1-2025-1');
+      expect(db.deleteMonthlyBalance).toHaveBeenCalledWith({ id: 'target-1-2025-1' });
     });
 
     it('should include cumulative balance from previous month', async () => {
@@ -319,7 +319,7 @@ describe('MonthlyBalanceService', () => {
       const result = await service.calculateMonthlyBalance(targetId, 2025, 2);
 
       expect(result).toBeNull();
-      expect(db.deleteMonthlyBalance).toHaveBeenCalledWith('target-1-2025-2');
+      expect(db.deleteMonthlyBalance).toHaveBeenCalledWith({ id: 'target-1-2025-2' });
     });
 
     it('should not include time logs after ending_at in worked minutes', async () => {

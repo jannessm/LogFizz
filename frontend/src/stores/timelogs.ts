@@ -14,6 +14,9 @@ import {
 import { syncService } from '../services/sync';
 import { monthlyBalanceService } from '../services/monthly-balance.service';
 
+// Get user's timezone
+const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 interface TimeLogsStore {
   timeLogs: TimeLog[];
   activeTimers: TimeLog[];
@@ -139,9 +142,10 @@ function createTimeLogsStore() {
           id: crypto.randomUUID(),
           user_id: '', // Will be set by backend
           button_id: buttonId,
+          type: 'normal',
           start_timestamp: new Date().toISOString(),
           // No end_timestamp - timer is running
-          timezone: 'UTC',
+          timezone: userTimezone,
           apply_break_calculation: false,
           is_manual: false,
           created_at: new Date().toISOString(),
@@ -266,10 +270,11 @@ function createTimeLogsStore() {
           id: crypto.randomUUID(),
           user_id: timeLogData.user_id || '',
           button_id: timeLogData.button_id || '',
+          type: timeLogData.type || 'normal',
           start_timestamp: timeLogData.start_timestamp || new Date().toISOString(),
           end_timestamp: timeLogData.end_timestamp,
           duration_minutes: undefined, // Let saveTimeLog calculate this
-          timezone: timeLogData.timezone || 'UTC',
+          timezone: timeLogData.timezone || userTimezone,
           apply_break_calculation: timeLogData.apply_break_calculation ?? false,
           notes: timeLogData.notes,
           is_manual: true,
