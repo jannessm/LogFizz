@@ -120,9 +120,9 @@ export async function getAllButtons(): Promise<Button[]> {
   return db.getAll('buttons');
 }
 
-export async function deleteButton(id: string): Promise<void> {
+export async function deleteButton(button: Button): Promise<void> {
   const db = await getDB();
-  await db.delete('buttons', id);
+  await db.delete('buttons', button.id);
 }
 
 // TimeLog operations
@@ -195,9 +195,9 @@ export async function getTimeLogsByButton(buttonId: string): Promise<TimeLog[]> 
   return db.getAllFromIndex('timelogs', 'by-button', buttonId);
 }
 
-export async function deleteTimeLog(id: string): Promise<void> {
+export async function deleteTimeLog(timelog: TimeLog): Promise<void> {
   const db = await getDB();
-  await db.delete('timelogs', id);
+  await db.delete('timelogs', timelog.id);
 }
 
 // Sync queue operations
@@ -279,9 +279,9 @@ export async function getAllTargets(): Promise<DailyTarget[]> {
   return db.getAll('targets');
 }
 
-export async function deleteTarget(id: string): Promise<void> {
+export async function deleteTarget(target: DailyTarget): Promise<void> {
   const db = await getDB();
-  await db.delete('targets', id);
+  await db.delete('targets', target.id);
 }
 
 export async function getAllStates(): Promise<any[]> {
@@ -329,7 +329,7 @@ export async function getMonthlyBalancesByYearMonth(year: number, month: number)
   return db.getAllFromIndex('monthlyBalances', 'by-year-month', [year, month]);
 }
 
-export async function deleteMonthlyBalance(id: string): Promise<void> {
+export async function deleteMonthlyBalance(balance: MonthlyBalance): Promise<void> {
   const db = await getDB();
-  await db.delete('monthlyBalances', id);
+  await db.delete('monthlyBalances', balance.id);
 }

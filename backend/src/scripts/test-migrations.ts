@@ -133,7 +133,7 @@ async function testMigrations() {
     
     const userRepo = testConnection.getRepository(User);
     const { hashPassword } = await import('../utils/password.js');
-    const { hashPasswordForTransport } = await import('../../../lib/utils/passwordHash.node.js');
+    const { hashPasswordForTransport } = await import('../../../lib/utils/passwordHash.js');
     
     const testEmail = 'migration-test@example.com';
     const testPassword = 'test123';

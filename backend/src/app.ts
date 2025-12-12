@@ -4,7 +4,6 @@ import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import session from '@fastify/session';
 import RedisStore from 'fastify-session-redis-store';
-import websocket from '@fastify/websocket';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
@@ -15,7 +14,6 @@ import { buttonRoutes } from './routes/button.routes.js';
 import { timeLogRoutes } from './routes/timelog.routes.js';
 import { holidayRoutes } from './routes/holiday.routes.js';
 import { dailyTargetRoutes } from './routes/daily-target.routes.js';
-import { websocketRoutes } from './routes/websocket.routes.js';
 import { stateRoutes } from './routes/state.routes.js';
 import { monthlyBalanceRoutes } from './routes/monthly-balance.routes.js';
 import { registerRateLimit } from './config/rateLimit.js';
@@ -74,17 +72,6 @@ export async function buildApp() {
 
   // Register cookie support
   await fastify.register(cookie);
-
-  // Register WebSocket support
-  await fastify.register(websocket, {
-    options: {
-      maxPayload: 1048576, // 1MB
-      verifyClient: ({ req }: { req: any }, next: (result: boolean) => void) => {
-        // Additional verification can be added here if needed
-        next(true);
-      }
-    }
-  });
 
   // Initialize Redis client for session storage
   const redis = createRedisClient();
@@ -185,7 +172,6 @@ export async function buildApp() {
   await fastify.register(dailyTargetRoutes, { prefix: '/api/targets' });
   await fastify.register(monthlyBalanceRoutes, { prefix: '/api/monthly-balances' });
   await fastify.register(stateRoutes, { prefix: '/api' });
-  await fastify.register(websocketRoutes, { prefix: '/api' });
 
   if (process.env.NODE_ENV !== 'production') {
     await fastify.register(debugRoutes, { prefix: '/api/debug' });

@@ -42,7 +42,6 @@ The following technologies have been chosen for this project:
 - Non-blocking I/O suitable for real-time features
 - Large community and abundant resources
 - Easy to find developers
-- Good for WebSocket support if needed
 
 **Disadvantages:**
 - Single-threaded (though clusterable)
