@@ -173,7 +173,7 @@
   }
 
   async function handleSaveTimelog(event: CustomEvent) {
-    const { button_id, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
+    const { button_id, type, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
     
     // If this is a timer being stopped (timerToStop is set), stop it with the notes and custom end time
     if (timerToStop && existingLog?.log?.id === timerToStop.id) {
@@ -183,6 +183,7 @@
       // Editing existing timelog
       await timeLogsStore.update(existingLog.log.id, {
         button_id,
+        type,
         start_timestamp: startTimestamp,
         end_timestamp: endTimestamp || undefined,
         notes: notes || undefined,
@@ -191,6 +192,7 @@
       // Creating new timelog
       await timeLogsStore.create({
         button_id,
+        type,
         start_timestamp: startTimestamp,
         end_timestamp: endTimestamp || undefined,
         notes: notes || undefined,

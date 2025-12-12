@@ -1,18 +1,36 @@
 <script lang="ts">
   import dayjs from 'dayjs';
+  import utc from 'dayjs/plugin/utc';
+  import timezone from 'dayjs/plugin/timezone';
+  import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+  import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
   import { onMount, onDestroy } from 'svelte';
   import SessionBox from './SessionBox.svelte';
   import { computeIndentation } from '../../lib/utils/computeIndentation';
+  import { holidaysStore } from '../../stores/holidays';
+  import type { Holiday } from '../../../../lib/types';
+
+  dayjs.extend(utc);
+  dayjs.extend(timezone);
+  dayjs.extend(isSameOrAfter);
+  dayjs.extend(isSameOrBefore);
+
+  // Get user's timezone
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   export let selectedDate: dayjs.Dayjs;
   export let timeLogs: any[];
   export let buttons: any[];
   export let onAddTimelog: () => void;
   export let onEditTimelog: (session: any) => void;
+  export let countries: string[] = []; // Countries to check for holidays
 
   let sessions: any[] = [];
+  let specialTypeSessions: any[] = [];
+  let normalSessions: any[] = [];
   let selectedButtonFilter: string | null = null;
   let filteredSessions: any[] = [];
+  let filteredSpecialTypeSessions: any[] = [];
   let uniqueButtons: any[] = [];
   let timelineStart: dayjs.Dayjs | null = null;
   let timelineEnd: dayjs.Dayjs | null = null;
@@ -21,9 +39,33 @@
   let refreshTick = 0; // Used to trigger reactivity for running sessions
   let intervalId: number | undefined;
   let hourLabels: string[] = [];
+  let currentHolidays: Holiday[] = [];
+
+  const TYPE_LABELS: Record<string, string> = {
+    'sick': 'Sick Leave',
+    'holiday': 'Holiday',
+    'business-trip': 'Business Trip',
+    'child-sick': 'Child Sick Leave'
+  };
+
+  const TYPE_COLORS: Record<string, string> = {
+    'sick': '#EF4444',
+    'holiday': '#10B981',
+    'business-trip': '#F59E0B',
+    'child-sick': '#EC4899'
+  };
 
   function isToday(date: dayjs.Dayjs): boolean {
     return date.isSame(dayjs(), 'day');
+  }
+
+  // Get all holidays for the selected date across all configured countries
+  function getHolidaysForDate(date: dayjs.Dayjs): Holiday[] {
+    if (countries.length === 0) return [];
+    const dateStr = date.format('YYYY-MM-DD');
+    return $holidaysStore.holidays.filter(
+      h => countries.includes(h.country) && h.date === dateStr
+    );
   }
 
   // Get time logs for selected date - each log is already a session
@@ -32,12 +74,33 @@
     const now = dayjs();
     
     return timeLogs
-      .filter(tl => tl.start_timestamp && tl.start_timestamp.startsWith(dateStr))
+      .filter(tl => {
+        if (!tl.start_timestamp) return false;
+        
+        // Convert UTC timestamp to user's timezone for comparison
+        const logTimezone = tl.timezone || userTimezone;
+        const startDate = dayjs.utc(tl.start_timestamp).tz(logTimezone);
+        
+        // For multi-day logs, check if selected date falls within the range
+        if (tl.end_timestamp) {
+          const endDate = dayjs.utc(tl.end_timestamp).tz(logTimezone);
+          const selectedDay = dayjs(dateStr).startOf('day');
+          const logStart = startDate.startOf('day');
+          const logEnd = endDate.startOf('day');
+          
+          // Check if selected date is within the range (inclusive)
+          return selectedDay.isSameOrAfter(logStart) && selectedDay.isSameOrBefore(logEnd);
+        }
+        
+        // For single-day or running logs, just check start date
+        return startDate.format('YYYY-MM-DD') === dateStr;
+      })
       .map(log => {
         // For running sessions (no end_timestamp), calculate duration to current time
         let duration = log.duration_minutes;
         if (!log.end_timestamp && log.start_timestamp) {
-          const start = dayjs(log.start_timestamp);
+          const logTimezone = log.timezone || userTimezone;
+          const start = dayjs.utc(log.start_timestamp).tz(logTimezone);
           duration = now.diff(start, 'minute');
         }
         
@@ -123,17 +186,30 @@
 
   $: if (selectedDate || timeLogs || refreshTick) {
     sessions = getSessionsForSelectedDate();
-    calculateTimeline(sessions);
+    
+    // Split sessions into special types and normal
+    specialTypeSessions = sessions.filter(s => s.log?.type && s.log.type !== 'normal');
+    normalSessions = sessions.filter(s => !s.log?.type || s.log.type === 'normal');
+    
+    calculateTimeline(normalSessions);
 
     hourLabels = getHourLabels();
 
+    // Apply filter to both special and normal sessions
+    filteredSpecialTypeSessions = selectedButtonFilter 
+      ? specialTypeSessions.filter(s => s.button_id === selectedButtonFilter)
+      : specialTypeSessions;
+    
     filteredSessions = selectedButtonFilter 
-      ? sessions.filter(s => s.button_id === selectedButtonFilter)
-      : sessions;
+      ? normalSessions.filter(s => s.button_id === selectedButtonFilter)
+      : normalSessions;
     
     uniqueButtons = Array.from(new Set(sessions.map(s => s.button_id)))
       .map(id => buttons.find(b => b.id === id))
       .filter(b => b !== undefined);
+
+    // Get all holidays for selected date from all configured countries
+    currentHolidays = getHolidaysForDate(selectedDate);
   }
 
   $: displaySessions = computeIndentation(filteredSessions || []);
@@ -196,6 +272,80 @@
       {/each}
     </select>
   </div>
+
+  <!-- Special Type Sessions (Sick, Holiday, etc.) -->
+  {#if filteredSpecialTypeSessions.length > 0}
+    <div class="mb-6 space-y-2">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">Special Entries</h3>
+      {#each filteredSpecialTypeSessions as session}
+        {@const button = buttons.find(b => b.id === session.button_id)}
+        {@const type = session.log?.type || 'normal'}
+        {@const typeLabel = TYPE_LABELS[type] || type}
+        {@const typeColor = TYPE_COLORS[type] || '#6B7280'}
+        {@const logTimezone = session.log?.timezone || userTimezone}
+        {@const startDate = session.startTime ? dayjs.utc(session.startTime).tz(logTimezone) : null}
+        {@const endDate = session.endTime ? dayjs.utc(session.endTime).tz(logTimezone) : null}
+        {@const isMultiDay = startDate && endDate && endDate.diff(startDate, 'day') >= 1}
+        {@const dateRangeText = isMultiDay && startDate && endDate 
+          ? `${startDate.format('MMM D')} - ${endDate.format('MMM D, YYYY')}`
+          : startDate ? startDate.format('MMM D, YYYY') : ''}
+        {#if button}
+          <button
+            on:click={() => onEditTimelog(session)}
+            class="w-full flex items-center gap-3 p-4 rounded-lg border-2 hover:shadow-md transition-all text-left"
+            style="border-color: {typeColor}20; background-color: {typeColor}10;"
+          >
+            <div 
+              class="w-4 h-4 rounded-full flex-shrink-0"
+              style="background-color: {typeColor};"
+            ></div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold text-gray-800">{typeLabel}</span>
+                <span class="text-gray-600">•</span>
+                <span class="text-gray-700">
+                  {button.emoji ? `${button.emoji} ` : ''}{button.name}
+                </span>
+              </div>
+              {#if isMultiDay}
+                <p class="text-xs text-gray-600 mb-1">
+                  📅 {dateRangeText}
+                </p>
+              {/if}
+              {#if session.log?.notes}
+                <p class="text-sm text-gray-600 truncate">{session.log.notes}</p>
+              {/if}
+              {#if session.duration}
+                <p class="text-xs text-gray-500 mt-1">
+                  {Math.floor(session.duration / 60)}h {session.duration % 60}m
+                </p>
+              {/if}
+            </div>
+          </button>
+        {/if}
+      {/each}
+    </div>
+  {/if}
+
+  <!-- Public Holiday Banner -->
+  {#if currentHolidays.length > 0}
+    <div class="mb-4 space-y-2">
+      {#each currentHolidays as holiday}
+        <div class="p-3 rounded-lg bg-purple-50 border border-purple-200 flex items-center gap-2">
+          <span class="text-purple-600 text-lg">🎉</span>
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-purple-900">{holiday.name}</p>
+            <p class="text-xs text-purple-700">Public Holiday • {holiday.country}</p>
+          </div>
+        </div>
+      {/each}
+    </div>
+  {/if}
+
+  <!-- Timeline Section Header -->
+  {#if filteredSessions.length > 0}
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">Timeline</h3>
+  {/if}
   
   {#if filteredSessions.length > 0}
     <!-- Timeline View -->
@@ -229,8 +379,8 @@
       </div>
     </div>
   {:else if sessions.length > 0 && selectedButtonFilter}
-    <p class="text-gray-500 text-center py-8">No activities for selected button on this date</p>
-  {:else}
+    <p class="text-gray-500 text-center py-8">No timeline activities for selected button on this date</p>
+  {:else if filteredSpecialTypeSessions.length === 0}
     <p class="text-gray-500 text-center py-8">No activities on this date</p>
   {/if}
 </div>

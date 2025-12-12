@@ -11,6 +11,7 @@
   import { timeLogsStore } from '../stores/timelogs';
   import { buttonsStore } from '../stores/buttons';
   import { targetsStore } from '../stores/targets';
+  import { holidaysStore } from '../stores/holidays';
   import { snackbar } from '../stores/snackbar';
   import dayjs from 'dayjs';
 
@@ -67,6 +68,29 @@
     dayjs(tl.start_timestamp).year() === currentMonth.year()
   );
   $: buttons = $buttonsStore.buttons;
+  $: targets = $targetsStore.targets;
+
+  // Get unique state codes from all daily targets
+  function getTargetCountries(): string[] {
+    const countries = targets
+      .filter(t => t.state_code) // Only targets with state codes
+      .map(t => t.state_code!);
+    return Array.from(new Set(countries)); // Remove duplicates
+  }
+
+  // Sync holidays for all countries in targets
+  async function syncHolidays() {
+    const countries = getTargetCountries();
+    if (countries.length === 0) {
+      // Fallback to user's country from browser locale if no targets have state codes
+      const locale = navigator.language || 'en-US';
+      const country = locale.split('-')[1]?.toUpperCase() || 'US';
+      countries.push(country);
+    }
+    
+    const year = currentMonth.year();
+    await holidaysStore.fetchHolidaysForCountries(countries, year);
+  }
 
   onMount(async () => {
     await Promise.all([
@@ -78,7 +102,15 @@
       timeLogsStore.load(),
       timeLogsStore.loadActive(),
     ]);
+
+    // Sync holidays for the initial month
+    await syncHolidays();
   });
+
+  // Sync holidays when the month/year changes
+  $: if (currentMonth) {
+    syncHolidays();
+  }
 
   function previousMonth() {
     currentMonth = currentMonth.subtract(1, 'month');
@@ -156,12 +188,13 @@
   }
 
   async function handleSaveTimelog(event: CustomEvent) {
-    const { button_id, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
+    const { button_id, type, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
     
     if (existingLog && existingLog.log) {
       // Editing existing timelog session - update it
       await timeLogsStore.update(existingLog.log.id, {
         button_id,
+        type,
         start_timestamp: startTimestamp,
         end_timestamp: endTimestamp || undefined,
         notes: notes || undefined,
@@ -170,6 +203,7 @@
       // Creating new timelog session
       await timeLogsStore.create({
         button_id,
+        type,
         start_timestamp: startTimestamp,
         end_timestamp: endTimestamp || undefined,
         notes: notes || undefined,
@@ -338,6 +372,7 @@
       {selectedDate}
       {buttons}
       {timeLogs}
+      countries={getTargetCountries()}
       onSelectDate={selectDate}
     />
 
@@ -346,6 +381,7 @@
         {selectedDate}
         {timeLogs}
         {buttons}
+        countries={getTargetCountries()}
         onAddTimelog={handleAddTimelog}
         onEditTimelog={handleEditTimelog}
       />

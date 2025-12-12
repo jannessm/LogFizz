@@ -47,6 +47,7 @@
 
       // Calculate worked time for today
       let workedMinutes = 0;
+      let hasSpecialTypeForToday = false;
       
       for (const button of assignedButtons) {
         const buttonLogs = $timeLogsStore.timeLogs.filter(log => 
@@ -57,19 +58,32 @@
         );
 
         for (const log of buttonLogs) {
-          if (log.end_timestamp) {
-            // Completed session
-            if (log.duration_minutes !== undefined && log.duration_minutes !== null) {
-              workedMinutes += log.duration_minutes;
-            } else {
-              const start = dayjs(log.start_timestamp);
-              const end = dayjs(log.end_timestamp);
-              workedMinutes += end.diff(start, 'minute', true);
+          const logType = log.type || 'normal';
+          
+          if (logType !== 'normal') {
+            // For special types (sick, holiday, business-trip, child-sick), count as target duration
+            // Only count once even if there are multiple special type logs
+            // Skip weekends (0 = Sunday, 6 = Saturday)
+            if (!hasSpecialTypeForToday && currentWeekday !== 0 && currentWeekday !== 6) {
+              workedMinutes += targetDuration;
+              hasSpecialTypeForToday = true;
             }
           } else {
-            // Active session - calculate from start to now
-            const start = dayjs(log.start_timestamp);
-            workedMinutes += dayjs().diff(start, 'minute', true);
+            // For normal logs, count actual worked time
+            if (log.end_timestamp) {
+              // Completed session
+              if (log.duration_minutes !== undefined && log.duration_minutes !== null) {
+                workedMinutes += log.duration_minutes;
+              } else {
+                const start = dayjs(log.start_timestamp);
+                const end = dayjs(log.end_timestamp);
+                workedMinutes += end.diff(start, 'minute', true);
+              }
+            } else {
+              // Active session - calculate from start to now
+              const start = dayjs(log.start_timestamp);
+              workedMinutes += dayjs().diff(start, 'minute', true);
+            }
           }
         }
       }
