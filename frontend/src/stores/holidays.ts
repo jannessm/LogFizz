@@ -77,7 +77,17 @@ function createHolidaysStore() {
      */
     async fetchHolidaysForStates(states: string[], year: number): Promise<void> {
       const countries = states.map(state => state.split('-')[0]).filter(onlyUnique);
-      const promises = countries.map(country => this.fetchHolidays(country, year));
+
+      const promises = [];
+
+      // fetch all holidays for the year +/- 3 years
+      for (let i = -3; i <= 3; i++) {
+        const targetYear = year + i;
+        for (const country of countries) {
+          promises.push(this.fetchHolidays(country, targetYear));
+        }
+      }
+
       await Promise.all(promises);
     },
 
