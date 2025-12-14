@@ -1,6 +1,7 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import type { Button, TimeLog, User, SyncQueueItem, DailyTarget, MonthlyBalance } from '../../types';
+import type { StateEntity } from '../../../../lib/types';
 
 interface ClockDB extends DBSchema {
   buttons: {
@@ -277,6 +278,12 @@ export async function getTarget(id: string): Promise<DailyTarget | undefined> {
 export async function getAllTargets(): Promise<DailyTarget[]> {
   const db = await getDB();
   return db.getAll('targets');
+}
+
+export async function getTargetStates(): Promise<string[]> {
+  const targets = await getAllTargets();
+  const states = targets.map(target => target.state_code).filter(code => code !== undefined) as string[];
+  return states;
 }
 
 export async function deleteTarget(target: DailyTarget): Promise<void> {
