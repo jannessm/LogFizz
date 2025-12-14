@@ -105,8 +105,8 @@ export class SyncService {
     await this.queueOperation('target', target, saveTarget);
   }
 
-  async queueDeleteTarget(targetId: string): Promise<void> {
-    const data = { id: targetId, deleted_at: new Date().toISOString() };
+  async queueDeleteTarget(target: DailyTarget): Promise<void> {
+    const data = { ...target, deleted_at: new Date().toISOString() };
     await this.queueOperation('target', data, deleteTarget);
   }
 
@@ -115,13 +115,13 @@ export class SyncService {
     await this.queueOperation('monthlyBalance', monthlyBalance, saveMonthlyBalance);
   }
 
-  async queueDeleteMonthlyBalance(balanceId: string): Promise<void> {
-    const data = { id: balanceId, deleted_at: new Date().toISOString() };
+  async queueDeleteMonthlyBalance(balance: any): Promise<void> {
+    const data = { ...balance, deleted_at: new Date().toISOString() };
     await this.queueOperation('monthlyBalance', data, deleteMonthlyBalance);
   }
 
-  // Sync all pending items using cursor-based approach
-  async syncAll(type: 'all' | 'button' | 'timelog' | 'target' | 'monthlyBalance' = 'all'): Promise<void> {
+  // Alias for external calls
+  async sync(type: 'all' | 'button' | 'timelog' | 'target' | 'monthlyBalance' = 'all'): Promise<void> {
     if (this.isSyncing || !isOnline()) {
       return;
     }
@@ -145,11 +145,6 @@ export class SyncService {
     } finally {
       this.isSyncing = false;
     }
-  }
-
-  // Alias for external calls
-  async sync(type: 'all' | 'button' | 'timelog' | 'target' | 'monthlyBalance' = 'all'): Promise<void> {
-    return this.syncAll(type);
   }
 
   private async pullChanges(
@@ -295,7 +290,7 @@ if (typeof window !== 'undefined') {
     const user = await getUser();
     if (user) {
       console.log('App is online, syncing...');
-      syncService.syncAll();
+      syncService.sync('all');
     }
   });
 }

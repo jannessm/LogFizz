@@ -1,7 +1,7 @@
-import { writable, derived } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import type { Button } from '../types';
-import { buttonApi, isOnline } from '../services/api';
-import { getAllButtons, saveButton as saveButtonDB, getSyncCursor, saveSyncCursor, deleteButton as deleteButtonDB } from '../lib/db';
+import { isOnline } from '../services/api';
+import { getAllButtons, saveButton as saveButtonDB, deleteButton as deleteButtonDB } from '../lib/db';
 import { syncService } from '../services/sync';
 
 interface ButtonsStore {
@@ -73,11 +73,11 @@ function createButtonsStore() {
           updated_at: new Date().toISOString(),
         };
 
-        upsertButton(button);
+        await upsertButton(button);
 
         update(state => ({ 
           ...state, 
-          buttons: [...state.buttons, button].sort((a, b) => a.name.localeCompare(b.name)),
+          buttons: [...state.buttons, button],
           isLoading: false 
         }));
 
@@ -95,27 +95,26 @@ function createButtonsStore() {
     async update(id: string, updates: Partial<Button>) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        update(state => {
-          const index = state.buttons.findIndex(b => b.id === id);
-          if (index === -1) throw new Error('Button not found');
-          
-          const updatedButton = { 
-            ...state.buttons[index], 
-            ...updates,
-            updated_at: new Date().toISOString()
-          };
-          
-          upsertButton(updatedButton);
 
-          const newButtons = [...state.buttons];
-          newButtons[index] = updatedButton;
-          
-          return { 
+        const buttons = get<ButtonsStore>(this).buttons;
+        const index = buttons.findIndex(b => b.id === id);
+        if (index === -1) throw new Error('Button not found');
+
+        const updatedButton = { 
+          ...buttons[index], 
+          ...updates,
+          updated_at: new Date().toISOString()
+        };
+
+        await upsertButton(updatedButton);
+
+        update(state => ({
             ...state, 
-            buttons: newButtons.sort((a, b) => a.name.localeCompare(b.name)),
-            isLoading: false 
-          };
-        });
+            buttons: state.buttons.map(b => b.id === id ? updatedButton : b),
+            isLoading: false
+        }));
+
+        return updatedButton;
       } catch (error: any) {
         update(state => ({ 
           ...state, 
@@ -129,7 +128,8 @@ function createButtonsStore() {
     async delete(button: Button) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        deleteButton(button);
+        await deleteButton(button);
+        
         update(state => ({
           ...state,
           buttons: state.buttons.filter(b => b.id !== button.id),

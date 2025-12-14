@@ -1,6 +1,6 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import type { DailyTarget } from '../types';
-import { saveTarget, getAllTargets, deleteTarget as deleteTargetDB, getSyncCursor, saveSyncCursor } from '../lib/db';
+import { saveTarget, getAllTargets, deleteTarget as deleteTargetDB } from '../lib/db';
 import { syncService } from '../services/sync';
 import { targetApi, isOnline } from '../services/api';
 
@@ -8,6 +8,22 @@ interface TargetsStore {
   targets: DailyTarget[];
   isLoading: boolean;
   error: string | null;
+}
+
+async function upsertTarget(target: DailyTarget) {
+  await saveTarget(target);
+  await syncService.queueUpsertTarget(target);
+  if (isOnline()) {
+    syncService.sync('target');
+  }
+}
+
+async function deleteTarget(target: DailyTarget) {
+  await deleteTargetDB(target);
+  await syncService.queueDeleteTarget(target);
+  if (isOnline()) {
+    syncService.sync('target');
+  }
 }
 
 function createTargetsStore() {
@@ -27,37 +43,9 @@ function createTargetsStore() {
         const localTargets = await getAllTargets();
         update(state => ({ ...state, targets: localTargets.filter(t => !t.deleted_at), isLoading: false }));
 
-        // Try to pull incremental changes from server if online
+        // Try to pull incremental changes from server if online (in the background)
         if (isOnline()) {
-          try {
-            // Get last sync cursor
-            let cursor = await getSyncCursor('targets');
-            if (!cursor) {
-              // First sync - use epoch time to get all data
-              cursor = new Date(0).toISOString();
-            }
-            
-            const result = await targetApi.getSyncChanges(cursor);
-            
-            // Apply changes to local DB
-            for (const target of result.targets) {
-              if ((target as any).deleted_at) {
-                // Target was deleted on server
-                await deleteTargetDB(target.id);
-              } else {
-                await saveTarget(target);
-              }
-            }
-            
-            // Save new cursor
-            await saveSyncCursor('targets', result.cursor);
-            
-            // Reload from DB to reflect changes
-            const updatedTargets = await getAllTargets();
-            update(state => ({ ...state, targets: updatedTargets.filter(t => !t.deleted_at) }));
-          } catch (error) {
-            console.error('Failed to sync targets from server:', error);
-          }
+          await syncService.sync('target');
         }
       } catch (error: any) {
         update(state => ({ 
@@ -84,11 +72,7 @@ function createTargetsStore() {
           updated_at: new Date().toISOString(),
         };
 
-        // Save locally immediately
-        await saveTarget(target);
-        
-        // Queue for sync
-        await syncService.queueTargetCreate(target);
+        await upsertTarget(target);
         
         // Update UI
         update(state => ({ 
@@ -111,29 +95,17 @@ function createTargetsStore() {
     async update(id: string, targetData: Partial<DailyTarget>) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        // Get current target to merge with updates
-        let currentTarget: DailyTarget | undefined;
-        update(state => {
-          currentTarget = state.targets.find(t => t.id === id);
-          return state;
-        });
-
-        if (!currentTarget) {
-          throw new Error(`Target ${id} not found`);
-        }
+        const targets = get<TargetsStore>(this).targets;
+        const index = targets.findIndex(t => t.id === id);
+        if (index === -1) throw new Error(`Target ${id} not found`);
 
         const updatedTarget: DailyTarget = {
-          ...currentTarget,
+          ...targets[index],
           ...targetData,
-          id,
           updated_at: new Date().toISOString(),
         };
 
-        // Save locally immediately
-        await saveTarget(updatedTarget);
-        
-        // Queue for sync
-        await syncService.queueTargetUpdate(updatedTarget);
+        await upsertTarget(updatedTarget);
         
         // Update UI
         update(state => ({ 
@@ -153,23 +125,15 @@ function createTargetsStore() {
       }
     },
 
-    async delete(id: string) {
+    async delete(target: DailyTarget) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        // Soft delete locally
-        const deletedTarget: Partial<DailyTarget> = {
-          id,
-          deleted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        
-        // Queue for sync
-        await syncService.queueTargetDelete(id);
+        await deleteTarget(target);
         
         // Remove from UI immediately
         update(state => ({ 
           ...state, 
-          targets: state.targets.filter(t => t.id !== id),
+          targets: state.targets.filter(t => t.id !== target.id),
           isLoading: false 
         }));
       } catch (error: any) {
@@ -180,23 +144,6 @@ function createTargetsStore() {
         }));
         throw error;
       }
-    },
-
-    // Method to handle sync updates
-    async applySync(targets: DailyTarget[]) {
-      const activeTargets = targets.filter(t => !t.deleted_at);
-      
-      // Save all to local DB
-      for (const target of targets) {
-        if (target.deleted_at) {
-          await deleteTargetDB(target.id);
-        } else {
-          await saveTarget(target);
-        }
-      }
-      
-      // Update UI with active targets only
-      update(state => ({ ...state, targets: activeTargets }));
     },
 
     clearError() {
