@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { DailyTargetService } from '../services/daily-target.service.js';
-import dayjs from '../utils/dayjs.js';
+import dayjs from '../../../lib/utils/dayjs.js';
 
 const targetService = new DailyTargetService();
 

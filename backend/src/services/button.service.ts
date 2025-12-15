@@ -1,7 +1,7 @@
 import { AppDataSource } from '../config/database.js';
 import { Button } from '../entities/Button.js';
 import { MoreThan } from 'typeorm';
-import dayjs from '../utils/dayjs.js';
+import dayjs from '../../../lib/utils/dayjs.js';
 
 export class ButtonService {
   private buttonRepository = AppDataSource.getRepository(Button);

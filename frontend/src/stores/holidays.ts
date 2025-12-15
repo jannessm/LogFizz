@@ -1,7 +1,6 @@
 import { writable } from 'svelte/store';
-import { targetsStore } from './targets';
-import { holidayApi } from '../services/api';
 import type { Holiday } from '../../../lib/types';
+import { holidayApi } from '../services/api';
 
 interface HolidaysState {
   holidays: Holiday[];
@@ -72,7 +71,7 @@ function createHolidaysStore() {
     },
 
     /**
-     * Fetch holidays for multiple countries and a year
+     * Fetch holidays for multiple countries and a year range
      * Caches results to avoid redundant API calls
      */
     async fetchHolidaysForStates(states: string[], year: number): Promise<void> {

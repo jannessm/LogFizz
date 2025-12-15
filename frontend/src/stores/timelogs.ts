@@ -1,28 +1,14 @@
-import { writable, derived } from 'svelte/store';
+import { derived, get } from 'svelte/store';
 import type { TimeLog } from '../types';
-import { timeLogApi, isOnline } from '../services/api';
 import { 
-  getAllButtons,
-  getAllTimeLogs, 
-  getButton,
+  getTimeLogsByYearMonth,
   saveTimeLog as saveTimeLogDB,
-  getTimeLogsByButton,
-  getSyncCursor,
-  saveSyncCursor,
-  deleteTimeLog as deleteTimeLogDB
+  deleteTimeLog as deleteTimeLogDB,
 } from '../lib/db';
 import { syncService } from '../services/sync';
 import { monthlyBalanceService } from '../services/monthly-balance.service';
-
-// Get user's timezone
-const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-interface TimeLogsStore {
-  timeLogs: TimeLog[];
-  activeTimers: TimeLog[];
-  isLoading: boolean;
-  error: string | null;
-}
+import { createBaseStore, type BaseStoreConfig } from './base-store';
+import { dayjs, userTimezone } from '../../../lib/utils/dayjs.js';
 
 /**
  * Helper function to recalculate monthly balances after timelog changes
@@ -43,292 +29,107 @@ async function recalculateBalancesForTimeLogs(timeLogs: TimeLog[]): Promise<void
   }
 }
 
+function timelogStartedBefore(timelog: TimeLog, timestamp: string): boolean {
+  return new Date(timelog.start_timestamp).getTime() < new Date(timestamp).getTime();
+}
+function timelogEndedAfter(timelog: TimeLog, timestamp?: string): boolean {
+  if (!timestamp) {
+    return timelog.end_timestamp === undefined;
+  } else if (!timelog.end_timestamp) {
+    return false;
+  } else {
+    return new Date(timelog.end_timestamp).getTime() > new Date(timestamp).getTime();
+  }
+}
+
+
+
+// Configure the base store for timelogs with hooks for monthly balance recalculation
+const timeLogStoreConfig: BaseStoreConfig<TimeLog> = {
+  db: {
+    getAll: () => getTimeLogsByYearMonth(
+      dayjs().tz(userTimezone).year(),
+      dayjs().tz(userTimezone).month() + 1
+    ), // only load current month initially for performance
+    save: saveTimeLogDB,
+    delete: deleteTimeLogDB,
+  },
+  sync: {
+    queueUpsert: syncService.queueUpsertTimeLog,
+    queueDelete: syncService.queueDeleteTimeLog,
+    syncType: 'timelog',
+  },
+  hooks: {
+    afterCreate: async (timeLog) => {
+      await recalculateBalancesForTimeLogs([timeLog]);
+    },
+    beforeUpdate: async (timeLog, state) => {
+      // sort all timelogs by start_timestamp
+      const allTimeLogs = state.items.filter(tl => tl.id !== timeLog.id)
+        .sort((a, b) =>
+          new Date(a.start_timestamp).getTime() - new Date(b.start_timestamp).getTime()
+        );
+
+      // get timelog that starts before the updated timelog and ends after
+      const warppingTimelog = allTimeLogs.find(tl => 
+        timelogStartedBefore(tl, timeLog.start_timestamp) && 
+        timelogEndedAfter(tl, timeLog.end_timestamp)
+      );
+
+      if (warppingTimelog) {
+        throw new Error('The updated time log overlaps with an existing time log.');
+      }
+
+      return timeLog;
+    },
+    afterUpdate: async (timeLog) => {
+      await recalculateBalancesForTimeLogs([timeLog]);
+    },
+    afterDelete: async (timeLog) => {
+      await recalculateBalancesForTimeLogs([timeLog]);
+    },
+  },
+  storeName: 'TimeLog',
+};
+
+// Create the base store
+const baseStore = createBaseStore<TimeLog>(timeLogStoreConfig);
+
+
 function createTimeLogsStore() {
-  const { subscribe, set, update } = writable<TimeLogsStore>({
-    timeLogs: [],
-    activeTimers: [],
-    isLoading: false,
-    error: null,
-  });
-
   return {
-    subscribe,
-
-    async load() {
-      update(state => ({ ...state, isLoading: true, error: null }));
-      try {
-        // Load from local DB first (fast - show data immediately)
-        const localTimeLogs = await getAllTimeLogs();
-        update(state => ({ ...state, timeLogs: localTimeLogs, isLoading: false }));
-
-        // Try to pull incremental changes from server in background (don't block UI)
-        if (isOnline()) {
-          // Don't await - do this in the background
-          (async () => {
-            try {
-              // Get last sync cursor
-              let cursor = await getSyncCursor('timelogs');
-              if (!cursor) {
-                // First sync - use epoch time to get all data
-                cursor = new Date(0).toISOString();
-              }
-              
-              const result = await timeLogApi.getSyncChanges(cursor);
-              
-              // Apply changes to local DB
-              for (const timeLog of result.timeLogs) {
-                if ((timeLog as any).deleted_at) {
-                  // TimeLog was deleted on server
-                  await deleteTimeLogDB(timeLog.id);
-                } else {
-                  await saveTimeLogDB(timeLog);
-                }
-              }
-              
-              // Save new cursor
-              await saveSyncCursor('timelogs', result.cursor);
-              
-              // Reload from DB to reflect changes
-              const updatedTimeLogs = await getAllTimeLogs();
-              update(state => {
-                return { ...state, timeLogs: updatedTimeLogs};
-              });
-              this.loadActive();
-            } catch (error) {
-              console.error('Failed to sync timelogs from server:', error);
-            }
-          })();
-        }
-      } catch (error: any) {
-        update(state => ({ 
-          ...state, 
-          error: error.message,
-          isLoading: false 
-        }));
-      }
-    },
-
-    async loadActive() {
-      try {
-        // get all buttons
-        const buttons = await getAllButtons();
-        let activeTimers: TimeLog[] = [];
-
-        for (const button of buttons) {
-          const localTimeLogs = await getTimeLogsByButton(button.id);
-          localTimeLogs.sort((a, b) => 
-            new Date(b.start_timestamp).getTime() - new Date(a.start_timestamp).getTime()
-          );
-          
-          // Find the most recent log that has no end_timestamp (still running)
-          const activeLog = localTimeLogs.find(tl => !tl.end_timestamp);
-          if (activeLog) {
-            activeTimers.push(activeLog);
-          }
-        }
-
-        update(state => ({ ...state, activeTimers: activeTimers }));
-      } catch (error) {
-        console.error('Failed to load active timer:', error);
-        // On error, clear active timer to be safe
-        update(state => ({ ...state, activeTimer: null }));
-      }
-    },
-
-    async startTimer(buttonId: string) {
-      update(state => ({ ...state, isLoading: true, error: null }));
-      try {
-        const timeLog: TimeLog = {
-          id: crypto.randomUUID(),
-          user_id: '', // Will be set by backend
-          button_id: buttonId,
-          type: 'normal',
-          start_timestamp: new Date().toISOString(),
-          // No end_timestamp - timer is running
-          timezone: userTimezone,
-          apply_break_calculation: false,
-          is_manual: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        // Offline: queue for sync
-        await syncService.queueTimeLogCreate(timeLog);
-
-        // Recalculate monthly balances
-        await recalculateBalancesForTimeLogs([timeLog]);
-
-        update(state => {
-          const activeTimers = [...(state.activeTimers || []), timeLog];
-          
-          return ({ 
-          ...state, 
-          activeTimers: activeTimers,
-          timeLogs: [...state.timeLogs, timeLog],
-          isLoading: false 
-        })});
-        return timeLog;
-      
-      } catch (error: any) {
-        update(state => ({ 
-          ...state, 
-          error: error.message,
-          isLoading: false 
-        }));
-        throw error;
-      }
-    },
-
-    async stopTimer(id: string, notes?: string, endTimestamp?: string) {
-      update(state => ({ ...state, isLoading: true, error: null }));
-      try {
-        // Find the running timer and update it with end_timestamp
-        const allTimeLogs = await getAllTimeLogs();
-        const runningTimer = allTimeLogs.find(tl => tl.id === id);
-        if (!runningTimer) throw new Error('Timer not found');
-        
-        const now = new Date();
-        const endTime = endTimestamp || now.toISOString();
-        
-        // Update the timer with end timestamp (duration will be calculated by saveTimeLog)
-        const updatedTimeLog: TimeLog = {
-          ...runningTimer,
-          end_timestamp: endTime,
-          duration_minutes: undefined, // Let saveTimeLog calculate this
-          updated_at: now.toISOString(),
-          ...(notes !== undefined && { notes }),
-        };
-        
-        await syncService.queueTimeLogUpdate(updatedTimeLog);
-        
-        // Recalculate monthly balances
-        await recalculateBalancesForTimeLogs([updatedTimeLog]);
-        
-        update(state => ({
-          ...state,
-          activeTimers: state.activeTimers.filter(t => t.id !== id),
-          timeLogs: state.timeLogs.map(tl => tl.id === id ? updatedTimeLog : tl),
-          isLoading: false
-        }));
-        return updatedTimeLog;
-      } catch (error: any) {
-        update(state => ({ 
-          ...state, 
-          error: error.message,
-          isLoading: false 
-        }));
-        throw error;
-      }
-    },
-
-    async update(id: string, updates: Partial<TimeLog>) {
-      update(state => ({ ...state, isLoading: true, error: null }));
-      try {
-        // Get existing timelog
-        const allTimeLogs = await getAllTimeLogs();
-        const existingTimeLog = allTimeLogs.find(tl => tl.id === id);
-        if (!existingTimeLog) {
-          throw new Error('TimeLog not found');
-        }
-
-        // Duration will be calculated by saveTimeLog when the timelog is persisted
-        const updatedTimeLog: TimeLog = {
-          ...existingTimeLog,
-          ...updates,
-          duration_minutes: undefined, // Let saveTimeLog calculate this
-          updated_at: new Date().toISOString(),
-        };
-
-        // Queue for sync
-        await syncService.queueTimeLogUpdate(updatedTimeLog);
-
-        // Recalculate monthly balances
-        await recalculateBalancesForTimeLogs([updatedTimeLog]);
-
-        update(state => ({
-          ...state,
-          timeLogs: state.timeLogs.map(tl => tl.id === id ? updatedTimeLog : tl),
-          isLoading: false
-        }));
-
-        return updatedTimeLog;
-      } catch (error: any) {
-        update(state => ({ 
-          ...state, 
-          error: error.message,
-          isLoading: false 
-        }));
-        throw error;
-      }
-    },
+    ...baseStore,
 
     async create(timeLogData: Partial<TimeLog>) {
-      update(state => ({ ...state, isLoading: true, error: null }));
-      try {
-        // Duration will be calculated by saveTimeLog when the timelog is persisted
-        const timeLog: TimeLog = {
-          id: crypto.randomUUID(),
-          user_id: timeLogData.user_id || '',
-          button_id: timeLogData.button_id || '',
-          type: timeLogData.type || 'normal',
-          start_timestamp: timeLogData.start_timestamp || new Date().toISOString(),
-          end_timestamp: timeLogData.end_timestamp,
-          duration_minutes: undefined, // Let saveTimeLog calculate this
-          timezone: timeLogData.timezone || userTimezone,
-          apply_break_calculation: timeLogData.apply_break_calculation ?? false,
-          notes: timeLogData.notes,
-          is_manual: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        // Queue for sync (works both online and offline)
-        await syncService.queueTimeLogCreate(timeLog);
-
-        // Recalculate monthly balances
-        await recalculateBalancesForTimeLogs([timeLog]);
-
-        update(state => ({ 
-          ...state, 
-          timeLogs: [...state.timeLogs, timeLog],
-          isLoading: false 
-        }));
-        
-        return timeLog;
-      } catch (error: any) {
-        update(state => ({ 
-          ...state, 
-          error: error.message,
-          isLoading: false 
-        }));
-        throw error;
-      }
+      return baseStore.create({
+        id: crypto.randomUUID(),
+        user_id: timeLogData.user_id || '',
+        button_id: timeLogData.button_id || '',
+        type: timeLogData.type || 'normal',
+        start_timestamp: timeLogData.start_timestamp || new Date().toISOString(),
+        end_timestamp: timeLogData.end_timestamp,
+        duration_minutes: undefined, // Let saveTimeLog calculate this
+        timezone: timeLogData.timezone || userTimezone,
+        apply_break_calculation: timeLogData.apply_break_calculation ?? false,
+        notes: timeLogData.notes,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
     },
 
-    async delete(id: string) {
-      update(state => ({ ...state, isLoading: true, error: null }));
+
+    async loadLogsByYearMonth(year: number, month: number): Promise<TimeLog[]> {
+      baseStore.updateWriteable(state => ({ ...state, isLoading: true, error: null }));
       try {
-        // Get the timelog before deleting to recalculate balances
-        const timeLog = await getAllTimeLogs().then(logs => logs.find(tl => tl.id === id));
-        
-        // Delete from local DB first
-        await deleteTimeLogDB(id);
-        
-        // Queue delete for sync
-        await syncService.queueTimeLogDelete(id);
-
-        // Recalculate monthly balances if timelog was found
-        if (timeLog) {
-          await recalculateBalancesForTimeLogs([timeLog]);
-        }
-
-        update(state => ({
+        const timeLogs = await getTimeLogsByYearMonth(year, month);
+        baseStore.updateWriteable(state => ({
           ...state,
-          timeLogs: state.timeLogs.filter(tl => tl.id !== id),
+          items: [...timeLogs, ...state.items],
           isLoading: false
         }));
+        return timeLogs;
       } catch (error: any) {
-        update(state => ({ 
+        baseStore.updateWriteable(state => ({ 
           ...state, 
           error: error.message,
           isLoading: false 
@@ -337,8 +138,40 @@ function createTimeLogsStore() {
       }
     },
 
-    clearError() {
-      update(state => ({ ...state, error: null }));
+
+    async startTimer(buttonId: string) {
+      const timeLog = await baseStore.create({
+        id: crypto.randomUUID(),
+        user_id: '', // Will be set by backend
+        button_id: buttonId,
+        type: 'normal',
+        start_timestamp: new Date().toISOString(),
+        // No end_timestamp - timer is running
+        timezone: userTimezone,
+        apply_break_calculation: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+      return timeLog;
+    },
+
+    async stopTimer(timelog: TimeLog, notes?: string, endTimestamp?: string) {
+      const allTimeLogs = await get(activeTimeLogs);
+      const runningTimer = allTimeLogs.find(tl => tl.id === timelog.id);
+      if (!runningTimer) throw new Error('Timer not found');
+      
+      const now = new Date();
+      const endTime = endTimestamp || now.toISOString();
+      
+      // Update the timer with end timestamp
+      const updatedTimeLog = await baseStore.update(timelog.id, {
+        end_timestamp: endTime,
+        duration_minutes: undefined, // Let saveTimeLog calculate this
+        ...(notes !== undefined && { notes }),
+      });
+
+      return updatedTimeLog;
     },
   };
 }
@@ -350,8 +183,16 @@ export const todayTimeLogs = derived(
   timeLogsStore,
   $timeLogsStore => {
     const today = new Date().toISOString().split('T')[0];
-    return $timeLogsStore.timeLogs.filter(tl => 
+    return $timeLogsStore.items.filter(tl => 
       tl.start_timestamp && tl.start_timestamp.startsWith(today)
     );
+  }
+);
+
+// Derived store for active timelogs (no end_timestamp)
+export const activeTimeLogs = derived(
+  timeLogsStore,
+  $timeLogsStore => {
+    return $timeLogsStore.items.filter(tl => !tl.end_timestamp);
   }
 );

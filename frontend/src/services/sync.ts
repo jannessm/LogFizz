@@ -17,7 +17,6 @@ import {
 } from '../lib/db';
 import { buttonApi, timeLogApi, targetApi, monthlyBalanceApi, isOnline } from './api';
 import type { Button, TimeLog, DailyTarget } from '../types';
-import { validateAndFixTimelogs } from '../lib/buttonLayout';
 
 export class SyncService {
   private isSyncing = false;
@@ -95,9 +94,16 @@ export class SyncService {
     await this.queueOperation('timelog', timeLog, saveTimeLog);
   }
 
-  async queueDeleteTimeLog(timeLogId: string): Promise<void> {
-    const data = { id: timeLogId, deleted_at: new Date().toISOString() };
-    await this.queueOperation('timelog', data, deleteTimeLog);
+  async queueDeleteTimeLog(timeLog: TimeLog | string): Promise<void> {
+    if (typeof timeLog === 'string') {
+      // Backward compatibility - accept id string
+      const data = { id: timeLog, deleted_at: new Date().toISOString() };
+      await this.queueOperation('timelog', data, () => deleteTimeLog(data as TimeLog));
+    } else {
+      // Accept full object
+      const data = { ...timeLog, deleted_at: new Date().toISOString() };
+      await this.queueOperation('timelog', data, () => deleteTimeLog(data as TimeLog));
+    }
   }
 
   // Target queue operations
@@ -200,6 +206,7 @@ export class SyncService {
     // Update local DB with server-confirmed data
     if (result.saved) {
       for (const item of result.saved) {
+        // TODO: delete if marked as deleted
         await save(item);
       }
     }

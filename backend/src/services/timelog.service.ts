@@ -3,7 +3,7 @@ import { TimeLog } from '../entities/TimeLog.js';
 import { Button } from '../entities/Button.js';
 import { DailyTarget } from '../entities/DailyTarget.js';
 import { MoreThan } from 'typeorm';
-import dayjs from '../utils/dayjs.js';
+import dayjs from '../../../lib/utils/dayjs.js';
 
 export class TimeLogService {
   private timeLogRepository = AppDataSource.getRepository(TimeLog);
