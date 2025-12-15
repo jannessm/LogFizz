@@ -11,6 +11,7 @@
   import Snackbar from './components/Snackbar.svelte';
   import { syncService } from './services/sync';
   import { currentPath, navigate } from './lib/navigation';
+  import { loadData } from './services/data';
 
   let isLoading = true;
 
@@ -23,12 +24,13 @@
 
   onMount(async () => {
     await authStore.init();
+    await loadData($authStore.isAuthenticated); // initializes all necessary data stores if logged in
     isLoading = false;
 
     // Auto-sync every minute if online and authenticated
     setInterval(() => {
       if (navigator.onLine && $authStore.isAuthenticated) {
-        syncService.syncAll();
+        syncService.sync();
       }
     }, 1 * 60 * 1000);
   });

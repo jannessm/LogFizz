@@ -13,6 +13,9 @@ dayjs.extend(isSameOrBefore);
 // Set default timezone to UTC for all operations
 dayjs.tz.setDefault('UTC');
 
+// get user's timezone if needed
+export const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 /**
  * Configured dayjs instance with UTC plugin
  * Use this throughout the backend for consistent date/time handling

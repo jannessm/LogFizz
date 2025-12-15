@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { MonthlyBalanceService } from '../services/monthly-balance.service.js';
-import dayjs from '../utils/dayjs.js';
+import dayjs from '../../../lib/utils/dayjs.js';
 
 const monthlyBalanceService = new MonthlyBalanceService();
 

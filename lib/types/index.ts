@@ -86,6 +86,8 @@ export interface TimeLog {
   created_at: string;
   updated_at: string;
   deleted_at?: string; // Soft delete support
+  month?: number; // 1-12 for indexing
+  year?: number; // Full year for indexing
 }
 
 // Holiday types
