@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { TimeLogService } from '../services/timelog.service.js';
-import dayjs from '../utils/dayjs.js';
+import dayjs from '../../../lib/utils/dayjs.js';
 
 const timeLogService = new TimeLogService();
 

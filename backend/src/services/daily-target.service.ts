@@ -2,7 +2,7 @@ import { AppDataSource } from '../config/database.js';
 import { DailyTarget } from '../entities/DailyTarget.js';
 import { Button } from '../entities/Button.js';
 import { IsNull, MoreThan } from 'typeorm';
-import dayjs from '../utils/dayjs.js';
+import dayjs from '../../../lib/utils/dayjs.js';
 
 export class DailyTargetService {
   private targetRepository = AppDataSource.getRepository(DailyTarget);

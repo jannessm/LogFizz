@@ -8,7 +8,8 @@
     "./utils/passwordHash": "./utils/passwordHash.js",
     "./utils/monthlyBalance": "./utils/monthlyBalance.js",
     "./utils/timeFormat": "./utils/timeFormat.js",
-    "./utils/csvImport": "./utils/csvImport.js"
+    "./utils/csvImport": "./utils/csvImport.js",
+    "./utils/dayjs": "./utils/dayjs.js"
   },
   "engines": {
     "node": ">=20.12.0"
