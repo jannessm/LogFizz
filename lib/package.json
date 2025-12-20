@@ -11,6 +11,7 @@
     "./utils/csvImport": "./utils/csvImport.js",
     "./utils/dayjs": "./utils/dayjs.js",
     "./utils/helper": "./utils/helper.js",
+    "./utils/balance": "./utils/balance.js"
   },
   "engines": {
     "node": ">=20.12.0"
