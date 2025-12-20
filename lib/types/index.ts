@@ -62,9 +62,14 @@ export interface MonthlyBalance {
   due_minutes: number;
   balance_minutes: number;
   exclude_holidays: boolean;
+  sick_days: number;
+  holidays: number;
+  business_trip: number;
+  child_sick: number;
   created_at: string;
   updated_at: string;
   target?: DailyTarget;
+  hash: string;
 }
 
 // TimeLog type enum
@@ -77,6 +82,7 @@ export interface TimeLog {
   user_id: string;
   button_id: string;
   type: TimeLogType; // Type of timelog entry
+  whole_day: boolean;
   start_timestamp: string; // When the session started
   end_timestamp?: string; // When the session ended (null if still running)
   duration_minutes?: number; // Auto-calculated when end_timestamp is set
