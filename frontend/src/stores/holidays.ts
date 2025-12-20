@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import type { Holiday } from '../../../lib/types';
 import { holidayApi } from '../services/api';
+import { onlyUnique } from '../../../lib/utils/helper.js';
 
 interface HolidaysState {
   holidays: Holiday[];
@@ -9,9 +10,6 @@ interface HolidaysState {
   loadedYears: Set<string>; // Track loaded country-year combinations
 }
 
-function onlyUnique(value: any, index: any, array: any[]) {
-  return array.indexOf(value) === index;
-}
 
 function createHolidaysStore() {
   const { subscribe, update, set } = writable<HolidaysState>({

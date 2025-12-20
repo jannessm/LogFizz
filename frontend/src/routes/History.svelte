@@ -9,8 +9,8 @@
   import MonthlyBalance from '../components/History/MonthlyBalance.svelte';
   import ImportTimelogsModal from '../components/History/ImportTimelogsModal.svelte';
   import { timeLogsStore } from '../stores/timelogs';
-  import { buttonsStore } from '../stores/buttons';
-  import { targetsStore } from '../stores/targets';
+  import { buttonsStore, buttons } from '../stores/buttons';
+  import { targetsStore, targets } from '../stores/targets';
   import { holidaysStore } from '../stores/holidays';
   import { snackbar } from '../stores/snackbar';
   import dayjs from 'dayjs';
@@ -67,14 +67,14 @@
     dayjs(tl.start_timestamp).month() === currentMonth.month() && 
     dayjs(tl.start_timestamp).year() === currentMonth.year()
   );
-  $: buttons = $buttonsStore.buttons;
-  $: targets = $targetsStore.targets;
+  $: allButtons = $buttons;
+  $: allTargets = $targets;
 
   // Get unique state codes from all daily targets
   function getTargetCountries(): string[] {
-    const countries = targets
-      .filter(t => t.state_code) // Only targets with state codes
-      .map(t => t.state_code!);
+    const countries = allTargets
+      .filter((t: any) => t.state_code) // Only targets with state codes
+      .map((t: any) => t.state_code!);
     return Array.from(new Set(countries)); // Remove duplicates
   }
 
@@ -89,7 +89,7 @@
     }
     
     const year = currentMonth.year();
-    await holidaysStore.fetchHolidaysForCountries(countries, year);
+    await holidaysStore.fetchHolidaysForStates(countries, year);
   }
 
   onMount(async () => {
@@ -228,8 +228,8 @@
     if (!deleteTarget) return;
     
     // Delete the timelog session
-    if (deleteTarget.log?.id) {
-      await timeLogsStore.delete(deleteTarget.log.id);
+    if (deleteTarget.log) {
+      await timeLogsStore.delete(deleteTarget.log);
     }
     
     showDeleteConfirm = false;
@@ -359,7 +359,7 @@
 
     <!-- Charts Component -->
     <HistoryCharts
-      {buttons}
+      buttons={allButtons}
       {timeLogs}
       {currentMonth}
       onDateSelect={selectDate}
@@ -370,7 +370,7 @@
     <HistoryCalendar
       {currentMonth}
       {selectedDate}
-      {buttons}
+      buttons={allButtons}
       {timeLogs}
       countries={getTargetCountries()}
       onSelectDate={selectDate}
@@ -380,7 +380,7 @@
       <HistoryLogs
         {selectedDate}
         {timeLogs}
-        {buttons}
+        buttons={allButtons}
         countries={getTargetCountries()}
         onAddTimelog={handleAddTimelog}
         onEditTimelog={handleEditTimelog}

@@ -21,25 +21,6 @@ export class MonthlyBalanceService {
   }
 
   /**
-   * Get monthly balance
-   */
-  async getMonthlyBalance(
-    userId: string,
-    targetId: string,
-    year: number,
-    month: number
-  ): Promise<MonthlyBalance | null> {
-    return await this.monthlyBalanceRepository.findOne({
-      where: {
-        user_id: userId,
-        target_id: targetId,
-        year,
-        month,
-      },
-    });
-  }
-
-  /**
    * Get all monthly balances for a user in a specific month
    */
   async getAllMonthlyBalances(

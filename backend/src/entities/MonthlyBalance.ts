@@ -31,6 +31,21 @@ export class MonthlyBalance implements MonthlyBalanceEntity {
   @Column('boolean', { default: false })
   exclude_holidays!: boolean; // Whether holidays were excluded from calculation
 
+  @Column('integer', { default: 0 })
+  sick_days!: number;
+
+  @Column('integer', { default: 0 })
+  holidays!: number;
+  
+  @Column('integer', { default: 0 })
+  business_trip!: number;
+
+  @Column('integer', { default: 0 })
+  child_sick!: number;
+
+  @Column('string', { default: 0 })
+  hash!: string;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 

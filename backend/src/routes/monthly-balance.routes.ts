@@ -32,6 +32,11 @@ export async function monthlyBalanceRoutes(fastify: FastifyInstance) {
             due_minutes: Type.Integer(),
             balance_minutes: Type.Integer(),
             exclude_holidays: Type.Boolean(),
+            sick_days: Type.Integer(),
+            holidays: Type.Integer(),
+            business_trip: Type.Integer(),
+            child_sick: Type.Integer(),
+            hash: Type.Integer(),
             created_at: Type.String(),
             updated_at: Type.String(),
             target: Type.Optional(Type.Object({

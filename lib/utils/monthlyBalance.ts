@@ -1,26 +1,7 @@
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc.js';
-import timezone from 'dayjs/plugin/timezone.js';
-import isSameOrAfter from 'dayjs/plugin/isSameOrAfter.js';
-import isSameOrBefore from 'dayjs/plugin/isSameOrBefore.js';
-import { TimeLog } from '../types/index.js';
-
-
-// Extend dayjs with UTC and timezone plugins
-dayjs.extend(utc);
-dayjs.extend(timezone);
-dayjs.extend(isSameOrAfter);
-dayjs.extend(isSameOrBefore);
-
-// Set default timezone to UTC for all operations
-dayjs.tz.setDefault('UTC');
-
-export interface DailyTarget {
-  weekdays: number[]; // 0=Sunday, 6=Saturday
-  duration_minutes: number[]; // Duration for each weekday
-  starting_from?: Date | null;
-  ending_at?: Date | null; // Date at which tracking ends (balance calculated only up to this date)
-}
+import { time } from 'console';
+import { TimeLog, DailyTarget, MonthlyBalance } from '../types/index.js';
+import dayjs from './dayjs.js';
+import crypto from 'crypto';
 
 export interface EffectiveDateRange {
   effectiveStartDate: dayjs.Dayjs;
@@ -33,62 +14,11 @@ export interface BalanceValidation {
 }
 
 /**
- * Calculate total worked minutes from time logs
- * Uses duration_minutes if available, otherwise calculates from timestamps
- * Respects auto_subtract_breaks flag if provided
- * Break calculation: 30 mins after 6h, 45 mins after 9h
- * 
- * @param timeLogs - Array of time logs with timestamps and optional duration
- * @param rawData - Optional array of raw data containing auto_subtract_breaks flag
- * @returns Total worked minutes (rounded)
- */
-export function calculateWorkedMinutes(
-  timeLogs: TimeLog[],
-  rawData?: Array<{ auto_subtract_breaks?: boolean }>
-): number {
-  let totalMinutes = 0;
-  const now = dayjs();
-
-  for (let i = 0; i < timeLogs.length; i++) {
-    const log = timeLogs[i];
-    const raw = rawData ? rawData[i] : null;
-    
-    // Use pre-calculated duration if available, otherwise calculate from timestamps
-    let minutes = log.duration_minutes;
-    if (minutes === undefined || minutes === null) {
-      const startTime = dayjs(log.start_timestamp);
-      // For running sessions (no end_timestamp), calculate duration to current time
-      const endTime = log.end_timestamp ? dayjs(log.end_timestamp) : now;
-      minutes = endTime.diff(startTime, 'minute', true);
-    }
-    
-    // Apply break subtraction if auto_subtract_breaks is enabled
-    const autoSubtractBreaks = raw?.auto_subtract_breaks ?? false;
-    if (autoSubtractBreaks && minutes > 0) {
-      // German break rules: 30 min after 6h, additional 15 min (total 45) after 9h
-      if (minutes >= 9 * 60) {
-        minutes -= 45; // 45 minutes break for 9+ hours
-      } else if (minutes >= 6 * 60) {
-        minutes -= 30; // 30 minutes break for 6-9 hours
-      }
-    }
-    
-    totalMinutes += Math.max(0, minutes);
-  }
-
-  return Math.round(totalMinutes);
-}
-
-/**
  * Calculate due minutes based on target and month
  * Respects starting_from date - only counts days on or after starting_from
  * Respects ending_at date - only counts days on or before ending_at
  * 
-<<<<<<< HEAD
  * @param target - Daily target with weekdays, duration_minutes, and optional starting_from/ending_at dates
-=======
- * @param target - Daily target with weekdays, duration_minutes, starting_from, and ending_at
->>>>>>> 37e2d80 (Add ending_at field to DailyTarget type and implement end date handling)
  * @param year - Year (e.g., 2025)
  * @param month - Month (1-12)
  * @param holidays - Set of holiday dates in YYYY-MM-DD format to exclude
@@ -188,6 +118,53 @@ export function getEarliestAffectedMonth(timeLogs: Array<{ start_timestamp: Date
   return earliestDate;
 }
 
+function calculateDurationMinutes(
+  log: TimeLog,
+  start?: dayjs.Dayjs,
+  end?: dayjs.Dayjs
+): number {
+  if (log.duration_minutes !== undefined && log.duration_minutes !== null) {
+    return log.duration_minutes;
+  }
+  const logStart = dayjs(log.start_timestamp);
+  const logEnd = log.end_timestamp ? dayjs(log.end_timestamp) : dayjs();
+
+  let duration = 0;
+
+  let breakDuration = 0;
+  if (log.apply_break_calculation) {
+    let minutes = logEnd.diff(logStart, 'minute', true);
+    if (minutes >= 9 * 60) {
+      minutes -= 45;
+      breakDuration = 45;
+    } else if (minutes >= 6 * 60) {
+      minutes -= 30;
+      breakDuration = 30;
+    }
+    duration = Math.max(0, Math.round(minutes));
+  } else {
+    duration = logEnd.diff(logStart, 'minute', true);
+  }
+
+  // Adjust duration if start/end boundaries are provided
+  // when a break was applied, we assume the break was taken in the last section
+  // 19:30 |-------------| 23:59 (4h29m) => add the break back if we cut off part of the log
+  // 00:00 |---break-----| 04:00 (3h31m)
+  if (start && end) {
+    if (logStart.isBefore(start)) {
+      duration -= start.diff(logStart, 'minute', true) - breakDuration;
+    }
+
+    if (logEnd.isAfter(end)) {
+      duration -= logEnd.diff(end, 'minute', true);
+    }
+
+    duration = Math.max(0, Math.round(duration));
+  }
+
+  return duration;
+}
+
 /**
  * Calculate worked minutes for special log types (sick, holiday, business-trip, child-sick)
  * Uses target duration for each weekday in the log's date range
@@ -198,8 +175,8 @@ export function getEarliestAffectedMonth(timeLogs: Array<{ start_timestamp: Date
  * @param effectiveEndDate - End of the calculation period
  * @returns Total worked minutes for special type logs
  */
-export function calculateWorkedMinutesForSpecialType(
-  log: TimeLogWithType,
+function calculateWorkedMinutes(
+  log: TimeLog,
   target: DailyTarget,
   effectiveStartDate: dayjs.Dayjs,
   effectiveEndDate: dayjs.Dayjs
@@ -210,24 +187,27 @@ export function calculateWorkedMinutesForSpecialType(
   const startLogDate = dayjs(log.start_timestamp);
   const endLogDate = log.end_timestamp ? dayjs(log.end_timestamp) : startLogDate;
   
+  if (log.type === 'normal') {
+    // For normal logs, just return the duration_minutes
+    return log.duration_minutes ? log.duration_minutes : calculateDurationMinutes(log, effectiveEndDate, effectiveEndDate);
+  }
+
   // Iterate through each day in the range
   let currentDate = startLogDate.startOf('day');
   const lastDate = endLogDate.startOf('day');
   
   while (currentDate.isSameOrBefore(lastDate)) {
     // Check if this day falls within our calculation period
-    if (currentDate.isSameOrAfter(effectiveStartDate) && currentDate.isBefore(effectiveEndDate)) {
+    if (currentDate.isSameOrAfter(effectiveStartDate) &&
+        currentDate.isBefore(effectiveEndDate)) {
       const dayOfWeek = currentDate.day();
-      
-      // Skip weekends (0 = Sunday, 6 = Saturday)
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        const weekdayIndex = target.weekdays.indexOf(dayOfWeek);
+
+      const weekdayIndex = target.weekdays.indexOf(dayOfWeek);
         
-        if (weekdayIndex !== -1) {
-          // This day is a target day, add the target duration
-          const targetDuration = target.duration_minutes[weekdayIndex];
-          workedMinutes += targetDuration;
-        }
+      // This day is a target day, add the target duration
+      if (weekdayIndex !== -1) {
+        const targetDuration = target.duration_minutes[weekdayIndex];
+        workedMinutes += targetDuration;
       }
     }
     currentDate = currentDate.add(1, 'day');
@@ -320,113 +300,81 @@ export function shouldCalculateBalance(
   return { shouldCalculate: true };
 }
 
-/**
- * Get the cumulative balance from the previous month
- * Returns 0 if there's no previous balance or if before starting_from
- * 
- * @param year - Current year
- * @param month - Current month (1-12)
- * @param startingFrom - Starting date for tracking (null if not set)
- * @param getPreviousBalanceMinutes - Function to fetch previous month's balance_minutes
- * @returns Previous month's cumulative balance or 0
- */
-export async function getPreviousMonthCumulativeBalance(
-  year: number,
-  month: number,
-  startingFrom: dayjs.Dayjs | null,
-  getPreviousBalanceMinutes: (year: number, month: number) => Promise<number>
-): Promise<number> {
-  const currentMonth = dayjs.utc(`${year}-${month.toString().padStart(2, '0')}-01`);
-  const previousMonth = currentMonth.subtract(1, 'month');
-  const prevYear = previousMonth.year();
-  const prevMonth = previousMonth.month() + 1;
-  
-  // Check if previous month is entirely before starting_from
-  if (startingFrom) {
-    const currentMonthStart = currentMonth.startOf('day');
-    if (startingFrom.isAfter(currentMonthStart) || startingFrom.isSame(currentMonthStart)) {
-      return 0;
-    }
-  }
-  
-  // Get previous month's balance using the provided function
-  return await getPreviousBalanceMinutes(prevYear, prevMonth);
+
+export function hashTimeLogs(
+  timeLogs: TimeLog[]
+): string {
+  const hash = crypto.createHash('sha256');
+  // sort timelogs on created at timestamp
+  timeLogs.sort((a, b) => {
+    const ta = dayjs(a.created_at).valueOf();
+    const tb = dayjs(b.created_at).valueOf();
+    return ta - tb;
+  });
+  hash.update(timeLogs.toString());
+  const hashStr = hash.digest('hex');
+
+  return hashStr;
 }
 
-/**
- * Core monthly balance calculation
- * Calculates worked minutes, due minutes, and balance for a given month
- * 
- * @param config - Configuration object with all necessary parameters
- * @returns Object with worked_minutes, due_minutes, and balance_minutes
- */
-export async function calculateMonthlyBalanceCore(config: {
-  target: DailyTarget;
-  year: number;
-  month: number;
-  timeLogs: TimeLogWithType[];
-  buttonBreakMap: Map<string, boolean>;
-  holidays: Set<string>;
-  previousMonthBalance: number;
-}): Promise<{
-  worked_minutes: number;
-  due_minutes: number;
-  balance_minutes: number;
-}> {
-  const { target, year, month, timeLogs, buttonBreakMap, holidays, previousMonthBalance } = config;
-  
+
+export function calculateMonthlyBalance(
+  currentMonthlyBalance: Partial<MonthlyBalance> & {
+    target_id: string;
+    year: number;
+    month: number;
+    exclude_holidays: boolean;
+  },
+  target: DailyTarget,
+  timeLogs: TimeLog[],
+  holidays: Set<string>,
+  previousMonthlyBalance?: { balance_minutes: number },
+): Partial<MonthlyBalance> {
+  // check timeLogs hash whether monthly balance needs to be recalculated
+  if (currentMonthlyBalance?.hash) {
+    const hashStr = hashTimeLogs(timeLogs);
+
+    if (hashStr == currentMonthlyBalance.hash) {
+      return currentMonthlyBalance;
+    } else {
+      currentMonthlyBalance.hash = hashStr;
+    }
+  }
+
   // Calculate effective date range
-  const { effectiveStartDate, effectiveEndDate } = calculateEffectiveDateRange(target, year, month);
+  const { effectiveStartDate, effectiveEndDate } = calculateEffectiveDateRange(
+    target,
+    currentMonthlyBalance.year,
+    currentMonthlyBalance.month
+  );
   
   // Calculate worked minutes considering special types
   let workedMinutes = 0;
   
   for (const tl of timeLogs) {
-    const logType = tl.type || 'normal';
-    
-    if (logType === 'normal') {
-      // For normal logs, use actual worked duration
-      let minutes = tl.duration_minutes;
-      
-      if (minutes === undefined || minutes === null) {
-        // Calculate from timestamps only if duration is not stored
-        const autoSubtractBreaks = (tl.button_id && buttonBreakMap.has(tl.button_id)) 
-          ? buttonBreakMap.get(tl.button_id) ?? false 
-          : false;
-        const startTime = dayjs(tl.start_timestamp);
-        const endTime = tl.end_timestamp ? dayjs(tl.end_timestamp) : dayjs();
-        minutes = endTime.diff(startTime, 'minute', true);
-        
-        // Apply break subtraction if enabled (only when calculating from timestamps)
-        if (autoSubtractBreaks && minutes > 0) {
-          if (minutes >= 9 * 60) {
-            minutes -= 45;
-          } else if (minutes >= 6 * 60) {
-            minutes -= 30;
-          }
-        }
-      }
-      // If duration_minutes exists, use it as-is (breaks already subtracted during save)
-      
-      workedMinutes += Math.max(0, Math.round(minutes));
-    } else {
-      // For special types (sick, holiday, business-trip, child-sick), use target duration
-      workedMinutes += calculateWorkedMinutesForSpecialType(tl, target, effectiveStartDate, effectiveEndDate);
-    }
+    workedMinutes += calculateWorkedMinutes(
+      tl,
+      target,
+      effectiveStartDate,
+      effectiveEndDate
+    );
   }
   
   // Calculate due minutes based on target
-  const dueMinutes = calculateDueMinutes(target, year, month, holidays);
-  
+  const dueMinutes = calculateDueMinutes(
+    target,
+    currentMonthlyBalance.year,
+    currentMonthlyBalance.month,
+    holidays
+  );
+
   // Calculate this month's balance
-  const thisMonthBalance = workedMinutes - dueMinutes;
-  
+  currentMonthlyBalance.balance_minutes = workedMinutes - dueMinutes;
+
   // Total balance = previous cumulative + this month's balance
-  const balanceMinutes = previousMonthBalance + thisMonthBalance;
-  
-  return {
-    worked_minutes: workedMinutes,
-    due_minutes: dueMinutes,
-    balance_minutes: balanceMinutes,
-  };
+  if (previousMonthlyBalance) {
+    currentMonthlyBalance.balance_minutes += previousMonthlyBalance.balance_minutes;
+  }
+
+  return currentMonthlyBalance;
 }

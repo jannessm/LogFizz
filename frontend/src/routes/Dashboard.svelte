@@ -150,7 +150,7 @@
     
     if (isActive) {
       // Find the active timelog for this button
-      const activeTimer = $timeLogsStore.activeTimers.find(t => t.button_id === button.id);
+      const activeTimer = $timeLogsStore.activeTimers?.find(t => t.button_id === button.id);
       if (activeTimer) {
         // Open TimelogForm to edit active timelog
         editingTimelog = {
@@ -205,8 +205,8 @@
 
   function handleDeleteTimelog(event: CustomEvent) {
     const { session } = event.detail;
-    if (session?.log?.id) {
-      timeLogsStore.delete(session.log.id);
+    if (session?.log) {
+      timeLogsStore.delete(session.log);
     }
     showTimelogForm = false;
     editingTimelog = null;

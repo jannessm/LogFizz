@@ -105,30 +105,4 @@ describe('Monthly Balance Service - Sync Only', () => {
       expect(syncResponse.statusCode).toBe(401);
     });
   });
-
-  describe('Service Methods', () => {
-    it('should get monthly balance by user, target, year, and month', async () => {
-      const balance = monthlyBalanceRepository.create({
-        user_id: userId,
-        target_id: targetId,
-        year: 2025,
-        month: 1,
-        worked_minutes: 480,
-        due_minutes: 1920,
-        balance_minutes: -1440,
-        exclude_holidays: false,
-      });
-      await monthlyBalanceRepository.save(balance);
-
-      const result = await monthlyBalanceService.getMonthlyBalance(userId, targetId, 2025, 1);
-
-      expect(result).toBeDefined();
-      expect(result?.worked_minutes).toBe(480);
-    });
-
-    it('should return null when monthly balance does not exist', async () => {
-      const result = await monthlyBalanceService.getMonthlyBalance(userId, targetId, 2025, 1);
-      expect(result).toBeNull();
-    });
-  });
 });
