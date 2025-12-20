@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
 import type { Button, TimeLog, User, SyncQueueItem, DailyTarget, MonthlyBalance } from '../../types';
-import type { StateEntity } from '../../../../lib/types';
+import { dayjs, userTimezone } from '../../../../lib/utils/dayjs.js';
 
 interface ClockDB extends DBSchema {
   buttons: {
@@ -13,7 +13,7 @@ interface ClockDB extends DBSchema {
     value: TimeLog;
     indexes: { 
       'by-button': string;
-      'by-start': string;
+      'by-year-month': [number, number];
     };
   };
   targets: {
@@ -25,6 +25,7 @@ interface ClockDB extends DBSchema {
     value: MonthlyBalance;
     indexes: {
       'by-year-month': [number, number];
+      'by-target-id': string;
     };
   };
   syncQueue: {
@@ -66,7 +67,7 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
       if (!db.objectStoreNames.contains('timelogs')) {
         const timelogStore = db.createObjectStore('timelogs', { keyPath: 'id' });
         timelogStore.createIndex('by-button', 'button_id');
-        timelogStore.createIndex('by-start', 'timestamp');
+        timelogStore.createIndex('by-year-month', ['year', 'month']);
       }
 
       // Sync queue store
@@ -98,6 +99,7 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
       if (!db.objectStoreNames.contains('monthlyBalances')) {
         const monthlyBalanceStore = db.createObjectStore('monthlyBalances', { keyPath: 'id' });
         monthlyBalanceStore.createIndex('by-year-month', ['year', 'month']);
+        monthlyBalanceStore.createIndex('by-target-id', 'target_id');
       }
     },
   });
@@ -134,7 +136,13 @@ export async function saveTimeLog(timelog: TimeLog): Promise<void> {
   // For normal type, calculate duration if it's 0 or undefined and we have both timestamps
   let finalTimelog = timelog;
   const type = timelog.type || 'normal';
-  
+  // set month and year for indexing
+  finalTimelog = {
+    ...timelog,
+    month: dayjs(timelog.start_timestamp).tz(userTimezone).month() + 1,
+    year: dayjs(timelog.start_timestamp).tz(userTimezone).year(),
+  };
+
   if (type === 'normal' && timelog.start_timestamp && timelog.end_timestamp) {
     
     // Determine whether to apply break calculation
@@ -186,14 +194,14 @@ export async function getTimeLog(id: string): Promise<TimeLog | undefined> {
   return db.get('timelogs', id);
 }
 
-export async function getAllTimeLogs(): Promise<TimeLog[]> {
-  const db = await getDB();
-  return db.getAll('timelogs');
-}
-
 export async function getTimeLogsByButton(buttonId: string): Promise<TimeLog[]> {
   const db = await getDB();
   return db.getAllFromIndex('timelogs', 'by-button', buttonId);
+}
+
+export async function getTimeLogsByYearMonth(year: number, month: number): Promise<TimeLog[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('timelogs', 'by-year-month', [year, month]);
 }
 
 export async function deleteTimeLog(timelog: TimeLog): Promise<void> {
@@ -334,6 +342,11 @@ export async function getAllMonthlyBalances(): Promise<MonthlyBalance[]> {
 export async function getMonthlyBalancesByYearMonth(year: number, month: number): Promise<MonthlyBalance[]> {
   const db = await getDB();
   return db.getAllFromIndex('monthlyBalances', 'by-year-month', [year, month]);
+}
+
+export async function getMonthlyBalancesByTargetId(targetId: string): Promise<MonthlyBalance[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('monthlyBalances', 'by-target-id', targetId);
 }
 
 export async function deleteMonthlyBalance(balance: MonthlyBalance): Promise<void> {

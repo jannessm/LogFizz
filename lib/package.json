@@ -9,7 +9,8 @@
     "./utils/monthlyBalance": "./utils/monthlyBalance.js",
     "./utils/timeFormat": "./utils/timeFormat.js",
     "./utils/csvImport": "./utils/csvImport.js",
-    "./utils/dayjs": "./utils/dayjs.js"
+    "./utils/dayjs": "./utils/dayjs.js",
+    "./utils/helper": "./utils/helper.js",
   },
   "engines": {
     "node": ">=20.12.0"

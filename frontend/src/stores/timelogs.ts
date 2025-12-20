@@ -6,26 +6,28 @@ import {
   deleteTimeLog as deleteTimeLogDB,
 } from '../lib/db';
 import { syncService } from '../services/sync';
-import { monthlyBalanceService } from '../services/monthly-balance.service';
 import { createBaseStore, type BaseStoreConfig } from './base-store';
 import { dayjs, userTimezone } from '../../../lib/utils/dayjs.js';
+import { balancesStore } from './monthly-balances';
 
-/**
- * Helper function to recalculate monthly balances after timelog changes
- */
-async function recalculateBalancesForTimeLogs(timeLogs: TimeLog[]): Promise<void> {
-  if (timeLogs.length === 0) {
-    return;
+async function recalculateBalancesForTimeLogs(timelogs: TimeLog[]) {
+  // get months affected by the timelogs
+  const affectedMonths = new Set<string>();
+  for (const tl of timelogs) {
+    const start = dayjs.tz(tl.start_timestamp, userTimezone);
+    affectedMonths.add(`${start.year()}-${start.month() + 1}`);
+    if (tl.end_timestamp) {
+      const end = dayjs.tz(tl.end_timestamp, userTimezone);
+      affectedMonths.add(`${end.year()}-${end.month() + 1}`);
+    }
   }
 
-  try {
-    const timeLogsForRecalc = timeLogs.map(tl => ({
-      start_timestamp: tl.start_timestamp,
-      button_id: tl.button_id,
-    }));
-    await monthlyBalanceService.recalculateAffectedMonthlyBalances(timeLogsForRecalc);
-  } catch (error) {
-    console.error('Failed to recalculate monthly balances:', error);
+  for (const monthKey of affectedMonths) {
+    const [yearStr, monthStr] = monthKey.split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+
+    balancesStore.getMonthlyBalancesByYearMonth(year, month);
   }
 }
 
