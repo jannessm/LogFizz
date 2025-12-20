@@ -45,6 +45,23 @@ TimeLogsArray1 --> TimeLog
 - worked_days! (all days excluding public holidays)
 - created_at!
 - updated_at!
+- deleted_at
+
+### Target Data Structure
+
+- id!
+- user_id!
+- name!
+- duration_specs:
+  - starting_from!
+  - ending_at?
+  - duration_minutes[]
+  - weekdays[]
+  - exclude_holidays
+  - state_code
+- created_at
+- updated_at
+- deleted_at
 
 ### Timelog Data Structure
 
@@ -63,6 +80,7 @@ TimeLogsArray1 --> TimeLog
 - created_at
 - month!
 - year!
+- deleted_at
 
 ### Upsert / Delete Timelog
 
