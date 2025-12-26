@@ -37,7 +37,7 @@ TimeLogsArray1 --> TimeLog
 - date (year for yearlybalance, year-month for monthlybalance, ...)
 - due_minutes!
 - worked_minutes!
-- cumulation_minutes!
+- cumulative_minutes!
 - sick_days!
 - holidays! (no public holidays)
 - business_trip!
@@ -52,22 +52,28 @@ TimeLogsArray1 --> TimeLog
 - id!
 - user_id!
 - name!
-- duration_specs:
-  - starting_from!
-  - ending_at?
-  - duration_minutes[]
-  - weekdays[]
-  - exclude_holidays
-  - state_code
+- target_spec_ids[]
 - created_at
 - updated_at
 - deleted_at
+
+### Target Spec Structure
+
+- id!
+- user_id!
+- target_id!
+- starting_from!
+- ending_at?
+- duration_minutes[]
+- weekdays[]
+- exclude_holidays
+- state_code
 
 ### Timelog Data Structure
 
 - id!
 - user_id!
-- button_id!
+- timer_id!
 - type (normal, sick, holiday, business-trip, child-sick)
 - whole_day!
 - start_timestamp!

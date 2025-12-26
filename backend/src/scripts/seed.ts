@@ -1,8 +1,9 @@
 import 'reflect-metadata';
 import { AppDataSource } from '../config/database.js';
 import { User } from '../entities/User.js';
-import { Button } from '../entities/Button.js';
-import { DailyTarget } from '../entities/DailyTarget.js';
+import { Timer } from '../entities/Timer.js';
+import { Target } from '../entities/Target.js';
+import { TargetSpec } from '../entities/TargetSpec.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { hashPassword } from '../utils/password.js';
@@ -10,7 +11,7 @@ import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.js';
 
 /**
  * Seed script for development environment
- * Creates sample users, buttons, time logs, and holidays
+ * Creates sample users, timers, time logs, and holidays
  * 
  * Usage: npm run seed
  */
@@ -29,7 +30,7 @@ async function seed() {
     if (process.env.NODE_ENV !== 'production') {
       console.log('🧹 Clearing existing data...');
       // Use raw SQL to truncate with CASCADE to handle foreign key constraints
-      await AppDataSource.query('TRUNCATE TABLE time_logs, buttons, daily_targets, holidays, users RESTART IDENTITY CASCADE');
+      await AppDataSource.query('TRUNCATE TABLE time_logs, timers, target_specs, targets, holidays, users RESTART IDENTITY CASCADE');
       console.log('✅ Existing data cleared');
     }
 
@@ -65,30 +66,51 @@ async function seed() {
     console.log('   - demo@example.com (password: demo123)');
     console.log('   - test@example.com (password: test123)');
 
-    // Create sample daily targets for demo user (before buttons so we can link them)
-    console.log('🎯 Creating sample daily targets...');
-    const targetRepo = AppDataSource.getRepository(DailyTarget);
+    // Create sample targets and target specs for demo user
+    console.log('🎯 Creating sample targets...');
+    const targetRepo = AppDataSource.getRepository(Target);
+    const targetSpecRepo = AppDataSource.getRepository(TargetSpec);
     
-    // Create work target starting from October 2025 (to test cumulative balance)
+    // Create work target with spec starting from October 2025 (to test cumulative balance)
     const workStartingFrom = new Date(Date.UTC(2025, 9, 1)); // October 1, 2025
     const workTarget = targetRepo.create({
       user_id: demoUser.id,
       name: 'Work Target',
+      target_spec_ids: [], // Will be updated after creating spec
+    });
+    await targetRepo.save(workTarget);
+    
+    const workSpec = targetSpecRepo.create({
+      user_id: demoUser.id,
+      target_id: workTarget.id,
       duration_minutes: [480, 480, 480, 480, 480], // 8 hours per day
       weekdays: [1, 2, 3, 4, 5], // Monday to Friday
       starting_from: workStartingFrom,
+      exclude_holidays: false,
     });
+    await targetSpecRepo.save(workSpec);
+    workTarget.target_spec_ids = [workSpec.id];
     await targetRepo.save(workTarget);
 
-    // Create study target starting from November 2025
+    // Create study target with spec starting from November 2025
     const studyStartingFrom = new Date(Date.UTC(2025, 10, 1)); // November 1, 2025
     const studyTarget = targetRepo.create({
       user_id: demoUser.id,
       name: 'Study Target',
+      target_spec_ids: [],
+    });
+    await targetRepo.save(studyTarget);
+    
+    const studySpec = targetSpecRepo.create({
+      user_id: demoUser.id,
+      target_id: studyTarget.id,
       duration_minutes: [120, 120], // 2 hours per day
       weekdays: [2, 4], // Tuesday and Thursday
       starting_from: studyStartingFrom,
+      exclude_holidays: false,
     });
+    await targetSpecRepo.save(studySpec);
+    studyTarget.target_spec_ids = [studySpec.id];
     await targetRepo.save(studyTarget);
 
     // Create exercise target with ending_at date (to test targets that end)
@@ -97,23 +119,33 @@ async function seed() {
     const exerciseTarget = targetRepo.create({
       user_id: demoUser.id,
       name: 'Exercise Target (Ended)',
+      target_spec_ids: [],
+    });
+    await targetRepo.save(exerciseTarget);
+    
+    const exerciseSpec = targetSpecRepo.create({
+      user_id: demoUser.id,
+      target_id: exerciseTarget.id,
       duration_minutes: [60, 60, 60], // 1 hour per day
       weekdays: [1, 3, 5], // Monday, Wednesday, Friday
       starting_from: exerciseStartingFrom,
       ending_at: exerciseEndingAt,
+      exclude_holidays: false,
     });
+    await targetSpecRepo.save(exerciseSpec);
+    exerciseTarget.target_spec_ids = [exerciseSpec.id];
     await targetRepo.save(exerciseTarget);
 
-    console.log('✅ Created 3 sample daily targets');
+    console.log('✅ Created 3 sample targets with specs');
     console.log('   - Work Target: starting from Oct 2025, Mon-Fri 8h');
     console.log('   - Study Target: starting from Nov 2025, Tue/Thu 2h');
     console.log('   - Exercise Target (Ended): Sep-Oct 2025, Mon/Wed/Fri 1h');
 
-    // Create sample buttons for demo user
-    console.log('🔘 Creating sample buttons...');
-    const buttonRepo = AppDataSource.getRepository(Button);
+    // Create sample timers for demo user
+    console.log('⏱️  Creating sample timers...');
+    const timerRepo = AppDataSource.getRepository(Timer);
     
-    const workButton = buttonRepo.create({
+    const workTimer = timerRepo.create({
       user_id: demoUser.id,
       name: 'Work',
       emoji: '💼',
@@ -122,9 +154,9 @@ async function seed() {
       auto_subtract_breaks: true,
       archived: false,
     });
-    await buttonRepo.save(workButton);
+    await timerRepo.save(workTimer);
 
-    const studyButton = buttonRepo.create({
+    const studyTimer = timerRepo.create({
       user_id: demoUser.id,
       name: 'Study',
       emoji: '📚',
@@ -133,9 +165,9 @@ async function seed() {
       auto_subtract_breaks: false,
       archived: false,
     });
-    await buttonRepo.save(studyButton);
+    await timerRepo.save(studyTimer);
 
-    const exerciseButton = buttonRepo.create({
+    const exerciseTimer = timerRepo.create({
       user_id: demoUser.id,
       name: 'Exercise',
       emoji: '🏃',
@@ -143,9 +175,9 @@ async function seed() {
       auto_subtract_breaks: false,
       archived: false,
     });
-    await buttonRepo.save(exerciseButton);
+    await timerRepo.save(exerciseTimer);
 
-    const projectButton = buttonRepo.create({
+    const projectTimer = timerRepo.create({
       user_id: demoUser.id,
       name: 'Side Project',
       emoji: '🚀',
@@ -153,10 +185,10 @@ async function seed() {
       auto_subtract_breaks: false,
       archived: false,
     });
-    await buttonRepo.save(projectButton);
+    await timerRepo.save(projectTimer);
 
-    // Create buttons for test user
-    const meetingButton = buttonRepo.create({
+    // Create timers for test user
+    const meetingTimer = timerRepo.create({
       user_id: testUser.id,
       name: 'Meetings',
       emoji: '📞',
@@ -164,10 +196,10 @@ async function seed() {
       auto_subtract_breaks: false,
       archived: false,
     });
-    await buttonRepo.save(meetingButton);
+    await timerRepo.save(meetingTimer);
 
-    // Create button linked to the ended exercise target (to test ended target behavior)
-    const exerciseButtonOld = buttonRepo.create({
+    // Create timer linked to the ended exercise target (to test ended target behavior)
+    const exerciseTimerOld = timerRepo.create({
       user_id: demoUser.id,
       name: 'Old Exercise',
       emoji: '🏋️',
@@ -176,9 +208,9 @@ async function seed() {
       auto_subtract_breaks: false,
       archived: true, // Mark as archived for testing
     });
-    await buttonRepo.save(exerciseButtonOld);
+    await timerRepo.save(exerciseTimerOld);
 
-    console.log('✅ Created 6 sample buttons (3 linked to daily targets)');
+    console.log('✅ Created 6 sample timers (3 linked to targets)');
 
     // Create sample time logs for demo user
     // Now using the new structure with start_timestamp, end_timestamp, and duration_minutes
@@ -198,12 +230,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: exerciseButtonOld.id,
+          timer_id: exerciseTimerOld.id,
           start_timestamp: exerciseStart,
           end_timestamp: exerciseEnd,
           timezone: 'Europe/Berlin',
           notes: 'Morning exercise',
-          apply_break_calculation: exerciseButtonOld.auto_subtract_breaks,
+          apply_break_calculation: exerciseTimerOld.auto_subtract_breaks,
         }));
       }
     }
@@ -222,12 +254,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: workButton.id,
+          timer_id: workTimer.id,
           start_timestamp: workStart,
           end_timestamp: workEnd,
           timezone: 'Europe/Berlin',
           notes: 'October work session',
-          apply_break_calculation: workButton.auto_subtract_breaks,
+          apply_break_calculation: workTimer.auto_subtract_breaks,
         }));
       }
 
@@ -238,12 +270,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: exerciseButtonOld.id,
+          timer_id: exerciseTimerOld.id,
           start_timestamp: exerciseStart,
           end_timestamp: exerciseEnd,
           timezone: 'Europe/Berlin',
           notes: 'Morning exercise (last month)',
-          apply_break_calculation: exerciseButtonOld.auto_subtract_breaks,
+          apply_break_calculation: exerciseTimerOld.auto_subtract_breaks,
         }));
       }
     }
@@ -262,12 +294,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: workButton.id,
+          timer_id: workTimer.id,
           start_timestamp: workStart,
           end_timestamp: workEnd,
           timezone: 'Europe/Berlin',
           notes: 'November work session',
-          apply_break_calculation: workButton.auto_subtract_breaks,
+          apply_break_calculation: workTimer.auto_subtract_breaks,
         }));
 
         // Study sessions on Tue & Thu
@@ -277,12 +309,12 @@ async function seed() {
 
           await timeLogRepo.save(timeLogRepo.create({
             user_id: demoUser.id,
-            button_id: studyButton.id,
+            timer_id: studyTimer.id,
             start_timestamp: studyStart,
             end_timestamp: studyEnd,
             timezone: 'Europe/Berlin',
             notes: 'November study session',
-            apply_break_calculation: studyButton.auto_subtract_breaks,
+            apply_break_calculation: studyTimer.auto_subtract_breaks,
           }));
         }
       }
@@ -310,12 +342,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: workButton.id,
+          timer_id: workTimer.id,
           start_timestamp: workStart,
           end_timestamp: workEnd,
           timezone: 'Europe/Berlin',
           notes: 'Work day',
-          apply_break_calculation: workButton.auto_subtract_breaks,
+          apply_break_calculation: workTimer.auto_subtract_breaks,
         }));
 
         // Study session: 7:00 PM - 9:00 PM
@@ -327,12 +359,12 @@ async function seed() {
 
           await timeLogRepo.save(timeLogRepo.create({
             user_id: demoUser.id,
-            button_id: studyButton.id,
+            timer_id: studyTimer.id,
             start_timestamp: studyStart,
             end_timestamp: studyEnd,
             timezone: 'Europe/Berlin',
             notes: 'Evening study session',
-            apply_break_calculation: studyButton.auto_subtract_breaks,
+            apply_break_calculation: studyTimer.auto_subtract_breaks,
           }));
         }
       }
@@ -346,12 +378,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: exerciseButton.id,
+          timer_id: exerciseTimer.id,
           start_timestamp: exerciseStart,
           end_timestamp: exerciseEnd,
           timezone: 'Europe/Berlin',
           notes: 'Morning workout',
-          apply_break_calculation: exerciseButton.auto_subtract_breaks,
+          apply_break_calculation: exerciseTimer.auto_subtract_breaks,
         }));
       }
 
@@ -364,12 +396,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: projectButton.id,
+          timer_id: projectTimer.id,
           start_timestamp: projectStart,
           end_timestamp: projectEnd,
           timezone: 'Europe/Berlin',
           notes: 'Weekend coding session',
-          apply_break_calculation: projectButton.auto_subtract_breaks,
+          apply_break_calculation: projectTimer.auto_subtract_breaks,
         }));
       }
     }
@@ -380,12 +412,12 @@ async function seed() {
     
     await timeLogRepo.save(timeLogRepo.create({
       user_id: demoUser.id,
-      button_id: workButton.id,
+      timer_id: workTimer.id,
       start_timestamp: activeStart,
       // No end_timestamp - this is an active timer
       timezone: 'Europe/Berlin',
       notes: 'Currently working',
-      apply_break_calculation: workButton.auto_subtract_breaks,
+      apply_break_calculation: workTimer.auto_subtract_breaks,
       type: 'normal',
     }));
 
@@ -404,7 +436,7 @@ async function seed() {
     
     await timeLogRepo.save(timeLogRepo.create({
       user_id: demoUser.id,
-      button_id: workButton.id,
+      timer_id: workTimer.id,
       start_timestamp: sickStart,
       end_timestamp: sickEnd,
       timezone: 'Europe/Berlin',
@@ -423,7 +455,7 @@ async function seed() {
     
     await timeLogRepo.save(timeLogRepo.create({
       user_id: demoUser.id,
-      button_id: workButton.id,
+      timer_id: workTimer.id,
       start_timestamp: holidayStart,
       end_timestamp: holidayEnd,
       timezone: 'Europe/Berlin',
@@ -442,7 +474,7 @@ async function seed() {
     
     await timeLogRepo.save(timeLogRepo.create({
       user_id: demoUser.id,
-      button_id: workButton.id,
+      timer_id: workTimer.id,
       start_timestamp: businessTripStart,
       end_timestamp: businessTripEnd,
       timezone: 'Europe/Berlin',
@@ -461,7 +493,7 @@ async function seed() {
     
     await timeLogRepo.save(timeLogRepo.create({
       user_id: demoUser.id,
-      button_id: workButton.id,
+      timer_id: workTimer.id,
       start_timestamp: childSickStart,
       end_timestamp: childSickEnd,
       timezone: 'Europe/Berlin',
@@ -480,7 +512,7 @@ async function seed() {
     
     await timeLogRepo.save(timeLogRepo.create({
       user_id: demoUser.id,
-      button_id: workButton.id,
+      timer_id: workTimer.id,
       start_timestamp: normalStart,
       end_timestamp: normalEnd,
       timezone: 'Europe/Berlin',
@@ -499,7 +531,7 @@ async function seed() {
     
     await timeLogRepo.save(timeLogRepo.create({
       user_id: demoUser.id,
-      button_id: workButton.id,
+      timer_id: workTimer.id,
       start_timestamp: holidayMultiStart,
       end_timestamp: holidayMultiEnd,
       timezone: 'Europe/Berlin',
@@ -518,7 +550,7 @@ async function seed() {
     
     await timeLogRepo.save(timeLogRepo.create({
       user_id: demoUser.id,
-      button_id: workButton.id,
+      timer_id: workTimer.id,
       start_timestamp: sickMultiStart,
       end_timestamp: sickMultiEnd,
       timezone: 'Europe/Berlin',
@@ -541,11 +573,11 @@ async function seed() {
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\n📝 Summary:');
     console.log('   - 2 users created (demo@example.com, test@example.com)');
-    console.log('   - 3 daily targets created:');
+    console.log('   - 3 targets created:');
     console.log('     * Work: Mon-Fri 8h, starting Oct 2025');
     console.log('     * Study: Tue/Thu 2h, starting Nov 2025');
     console.log('     * Exercise (Ended): Mon/Wed/Fri 1h, Sep-Oct 2025 (with ending_at date)');
-    console.log('   - 6 buttons created (3 linked to targets)');
+    console.log('   - 6 timers created (3 linked to targets)');
     console.log('   - Historical time logs for Sep-Nov 2025 (for testing cumulative balance & ended targets)');
     console.log('   - Current week time logs with various types (normal, sick, holiday, business-trip, child-sick)');
     console.log('   - 1 active timer');

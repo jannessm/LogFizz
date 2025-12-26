@@ -24,8 +24,9 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
         200: Type.Object({
           timeLogs: Type.Array(Type.Object({
             id: Type.String(),
-            button_id: Type.String(),
+            timer_id: Type.String(),
             type: Type.String(),
+            whole_day: Type.Boolean(),
             start_timestamp: Type.String(),
             end_timestamp: Type.Optional(Type.String()),
             duration_minutes: Type.Optional(Type.Number()),
@@ -77,8 +78,9 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
       body: Type.Object({
         timeLogs: Type.Array(Type.Object({
           id: Type.String(), // Required for offline-first with client-generated UUIDs
-          button_id: Type.String(),
+          timer_id: Type.String(),
           type: Type.Optional(Type.String()),
+          whole_day: Type.Optional(Type.Boolean()),
           start_timestamp: Type.String(),
           end_timestamp: Type.Optional(Type.String()),
           duration_minutes: Type.Optional(Type.Number()),
@@ -92,8 +94,9 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
         200: Type.Object({
           saved: Type.Optional(Type.Array(Type.Object({
             id: Type.String(),
-            button_id: Type.String(),
+            timer_id: Type.String(),
             type: Type.String(),
+            whole_day: Type.Boolean(),
             start_timestamp: Type.String(),
             end_timestamp: Type.Optional(Type.String()),
             duration_minutes: Type.Optional(Type.Number()),
@@ -106,8 +109,9 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
           conflicts: Type.Optional(Type.Array(Type.Object({
             clientVersion: Type.Object({
               id: Type.String(),
-              button_id: Type.String(),
+              timer_id: Type.String(),
               type: Type.Optional(Type.String()),
+              whole_day: Type.Optional(Type.Boolean()),
               start_timestamp: Type.String(),
               end_timestamp: Type.Optional(Type.String()),
               duration_minutes: Type.Optional(Type.Number()),
@@ -118,8 +122,9 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
             }),
             serverVersion: Type.Object({
               id: Type.String(),
-              button_id: Type.String(),
+              timer_id: Type.String(),
               type: Type.String(),
+              whole_day: Type.Boolean(),
               start_timestamp: Type.String(),
               end_timestamp: Type.Optional(Type.String()),
               duration_minutes: Type.Optional(Type.Number()),

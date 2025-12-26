@@ -1,11 +1,11 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
-import { MonthlyBalanceService } from '../services/monthly-balance.service.js';
+import { BalanceService } from '../services/balance.service.js';
 import dayjs from '../../../lib/utils/dayjs.js';
 
-const monthlyBalanceService = new MonthlyBalanceService();
+const balanceService = new BalanceService();
 
-export async function monthlyBalanceRoutes(fastify: FastifyInstance) {
+export async function balanceRoutes(fastify: FastifyInstance) {
   // Middleware to check authentication
   fastify.addHook('preHandler', async (request, reply) => {
     if (!request.session.userId) {
@@ -16,36 +16,32 @@ export async function monthlyBalanceRoutes(fastify: FastifyInstance) {
   // Sync endpoint - Get monthly balances changed since timestamp
   fastify.get('/sync', {
     schema: {
-      tags: ['MonthlyBalance'],
+      tags: ['Balance'],
       querystring: Type.Object({
         since: Type.String({ format: 'date-time' }),
       }),
       response: {
         200: Type.Object({
-          monthlyBalances: Type.Array(Type.Object({
+          balances: Type.Array(Type.Object({
             id: Type.String(),
             user_id: Type.String(),
             target_id: Type.String(),
-            year: Type.Integer(),
-            month: Type.Integer(),
-            worked_minutes: Type.Integer(),
+            next_balance_id: Type.Optional(Type.String()),
+            parent_balance_id: Type.Optional(Type.String()),
+
+            date: Type.String(),
             due_minutes: Type.Integer(),
-            balance_minutes: Type.Integer(),
-            exclude_holidays: Type.Boolean(),
+            worked_minutes: Type.Integer(),
+            cumulative_minutes: Type.Integer(),
+            
             sick_days: Type.Integer(),
             holidays: Type.Integer(),
             business_trip: Type.Integer(),
             child_sick: Type.Integer(),
-            hash: Type.Integer(),
+            worked_days: Type.Integer(),
+            
             created_at: Type.String(),
             updated_at: Type.String(),
-            target: Type.Optional(Type.Object({
-              id: Type.String(),
-              name: Type.String(),
-              duration_minutes: Type.Array(Type.Integer()),
-              weekdays: Type.Array(Type.Integer()),
-              exclude_holidays: Type.Boolean(),
-            })),
           })),
           cursor: Type.String(),
         }),
@@ -67,13 +63,13 @@ export async function monthlyBalanceRoutes(fastify: FastifyInstance) {
         return reply.code(400).send({ error: 'Invalid timestamp format' });
       }
 
-      const monthlyBalances = await monthlyBalanceService.getChangedMonthlyBalancesSince(userId, sinceDate.toDate());
+      const balances = await balanceService.getChangedBalancesSince(userId, sinceDate.toDate());
       
       // Cursor represents the current server state
       const cursor = dayjs().toISOString();
       
       return reply.send({
-        monthlyBalances,
+        balances,
         cursor,
       });
     } catch (error) {

@@ -1,5 +1,5 @@
 import { time } from 'console';
-import { TimeLog, DailyTarget, MonthlyBalance } from '../types/index.js';
+import { TimeLog, WorkSchedule, MonthlyBalance } from '../types/index.js';
 import dayjs from './dayjs.js';
 import crypto from 'crypto';
 
@@ -25,7 +25,7 @@ export interface BalanceValidation {
  * @returns Total due minutes for the month
  */
 export function calculateDueMinutes(
-  target: DailyTarget,
+  target: WorkSchedule,
   year: number,
   month: number,
   holidays: Set<string> = new Set()
@@ -177,7 +177,7 @@ function calculateDurationMinutes(
  */
 function calculateWorkedMinutes(
   log: TimeLog,
-  target: DailyTarget,
+  target: WorkSchedule,
   effectiveStartDate: dayjs.Dayjs,
   effectiveEndDate: dayjs.Dayjs
 ): number {
@@ -226,7 +226,7 @@ function calculateWorkedMinutes(
  * @returns Effective start and end dates for calculations
  */
 export function calculateEffectiveDateRange(
-  target: DailyTarget,
+  target: WorkSchedule,
   year: number,
   month: number
 ): EffectiveDateRange {
@@ -262,7 +262,7 @@ export function calculateEffectiveDateRange(
  * @returns Validation result with shouldCalculate flag and optional reason
  */
 export function shouldCalculateBalance(
-  target: DailyTarget,
+  target: WorkSchedule,
   year: number,
   month: number
 ): BalanceValidation {
@@ -325,7 +325,7 @@ export function calculateMonthlyBalance(
     month: number;
     exclude_holidays: boolean;
   },
-  target: DailyTarget,
+  target: WorkSchedule,
   timeLogs: TimeLog[],
   holidays: Set<string>,
   previousMonthlyBalance?: { balance_minutes: number },

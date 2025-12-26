@@ -1,18 +1,18 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import type { DailyTarget } from '../types';
+  import type { WorkSchedule } from '../types';
   import { targetsStore } from '../stores/targets';
   import { buttonsStore } from '../stores/buttons';
   import { timeLogsStore } from '../stores/timelogs';
   import { formatMinutes, formatHours, getBalanceColor } from '../../../lib/utils/timeFormat.js';
   import dayjs from 'dayjs';
 
-  let balances: Map<string, { worked: number; due: number; balance: number; target: DailyTarget }> = new Map();
+  let balances: Map<string, { worked: number; due: number; balance: number; target: WorkSchedule }> = new Map();
   let refreshTick = 0;
   let intervalId: number | undefined;
 
   function calculateDailyBalances() {
-    const newBalances = new Map<string, { worked: number; due: number; balance: number; target: DailyTarget }>();
+    const newBalances = new Map<string, { worked: number; due: number; balance: number; target: WorkSchedule }>();
     const today = dayjs().startOf('day');
     const todayEnd = dayjs().endOf('day');
     const currentWeekday = today.day(); // 0 = Sunday, 1 = Monday, etc.

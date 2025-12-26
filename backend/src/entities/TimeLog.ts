@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import type { TimeLogEntity, TimeLogType } from '../../../lib/types/index.js';
 
 @Entity('time_logs')
@@ -10,10 +10,13 @@ export class TimeLog implements TimeLogEntity {
   user_id!: string;
 
   @Column('uuid')
-  button_id!: string;
+  timer_id!: string;
 
   @Column('varchar', { default: 'normal' })
   type!: TimeLogType;
+
+  @Column('boolean', { default: false })
+  whole_day!: boolean;
 
   @Column('timestamptz')
   start_timestamp!: Date;
@@ -46,9 +49,7 @@ export class TimeLog implements TimeLogEntity {
   @JoinColumn({ name: 'user_id' })
   user!: any;
 
-  @ManyToOne('Button', 'time_logs', { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'button_id' })
-  button!: any;
-
-
+  @ManyToOne('Timer', 'time_logs', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'timer_id' })
+  timer!: any;
 }

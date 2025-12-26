@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
-  import type { DailyTarget, State, Button } from '../types';
+  import type { WorkSchedule, State, Button } from '../types';
   import { targetsStore } from '../stores/targets';
   import { statesStore } from '../stores/states';
   import { buttonsStore } from '../stores/buttons';
 
-  export let target: DailyTarget | null = null;
+  export let target: WorkSchedule | null = null;
 
   const dispatch = createEventDispatcher();
 
@@ -147,7 +147,7 @@
       // Backend expects an array, one entry per weekday that has this target
       const duration_minutes = weekdays.map(() => totalMinutes);
       
-      const targetData: Partial<DailyTarget> = {
+      const targetData: Partial<WorkSchedule> = {
         name: name.trim(),
         duration_minutes,
         weekdays,

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { buildApp } from '../app.js';
 import { FastifyInstance } from 'fastify';
 
-describe('Button Sync Routes', () => {
+describe('Timer Sync Routes', () => {
   let app: FastifyInstance;
   let authCookie: string;
   let userId: string;
@@ -11,14 +11,14 @@ describe('Button Sync Routes', () => {
     app = await buildApp();
 
     // Register and login a test user
-    const email = `buttontest${Date.now()}@example.com`;
+    const email = `timertest${Date.now()}@example.com`;
     await app.inject({
       method: 'POST',
       url: '/api/auth/register',
       payload: {
         email,
         password: 'testpassword123',
-        name: 'Button Test User',
+        name: 'Timer Test User',
       },
     });
 
@@ -39,17 +39,17 @@ describe('Button Sync Routes', () => {
     await app.close();
   });
 
-  it('should create a new button via sync', async () => {
-    const buttonId = '550e8400-e29b-41d4-a716-446655440000';
+  it('should create a new timer via sync', async () => {
+    const timerId = '550e8400-e29b-41d4-a716-446655440000';
     const response = await app.inject({
       method: 'POST',
-      url: '/api/buttons/sync',
+      url: '/api/timers/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        buttons: [{
-          id: buttonId,
+        timers: [{
+          id: timerId,
           name: 'Work',
           emoji: '💼',
           color: '#3B82F6',
@@ -62,7 +62,7 @@ describe('Button Sync Routes', () => {
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
     expect(body.saved).toHaveLength(1);
-    expect(body.saved[0].id).toBe(buttonId);
+    expect(body.saved[0].id).toBe(timerId);
     expect(body.saved[0].name).toBe('Work');
     expect(body.saved[0].emoji).toBe('💼');
     expect(body.saved[0].color).toBe('#3B82F6');
@@ -70,18 +70,18 @@ describe('Button Sync Routes', () => {
     expect(body.saved[0].archived).toBe(false);
   });
 
-  it('should get all user buttons via sync', async () => {
-    // Create a button first
-    const buttonId = '660e8400-e29b-41d4-a716-446655440001';
+  it('should get all user timers via sync', async () => {
+    // Create a timer first
+    const timerId = '660e8400-e29b-41d4-a716-446655440001';
     await app.inject({
       method: 'POST',
-      url: '/api/buttons/sync',
+      url: '/api/timers/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        buttons: [{
-          id: buttonId,
+        timers: [{
+          id: timerId,
           name: 'Study',
           emoji: '📚',
           color: '#10B981',
@@ -93,7 +93,7 @@ describe('Button Sync Routes', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/api/buttons/sync?since=1970-01-01T00:00:00.000Z',
+      url: '/api/timers/sync?since=1970-01-01T00:00:00.000Z',
       headers: {
         cookie: authCookie,
       },
@@ -101,39 +101,39 @@ describe('Button Sync Routes', () => {
 
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body);
-    expect(Array.isArray(body.buttons)).toBe(true);
-    expect(body.buttons.length).toBeGreaterThan(0);
+    expect(Array.isArray(body.timers)).toBe(true);
+    expect(body.timers.length).toBeGreaterThan(0);
     expect(body.cursor).toBeDefined();
   });
 
-  it('should update a button via sync', async () => {
-    // Create a button
-    const buttonId = '770e8400-e29b-41d4-a716-446655440002';
+  it('should update a timer via sync', async () => {
+    // Create a timer
+    const timerId = '770e8400-e29b-41d4-a716-446655440002';
     await app.inject({
       method: 'POST',
-      url: '/api/buttons/sync',
+      url: '/api/timers/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        buttons: [{
-          id: buttonId,
+        timers: [{
+          id: timerId,
           name: 'Exercise',
           auto_subtract_breaks: false,
         }],
       },
     });
 
-    // Update the button
+    // Update the timer
     const updateResponse = await app.inject({
       method: 'POST',
-      url: '/api/buttons/sync',
+      url: '/api/timers/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        buttons: [{
-          id: buttonId,
+        timers: [{
+          id: timerId,
           name: 'Workout',
           emoji: '💪',
           auto_subtract_breaks: false,
@@ -148,34 +148,34 @@ describe('Button Sync Routes', () => {
     expect(body.saved[0].emoji).toBe('💪');
   });
 
-  it('should soft delete a button via sync', async () => {
-    // Create a button
-    const buttonId = '880e8400-e29b-41d4-a716-446655440003';
+  it('should soft delete a timer via sync', async () => {
+    // Create a timer
+    const timerId = '880e8400-e29b-41d4-a716-446655440003';
     await app.inject({
       method: 'POST',
-      url: '/api/buttons/sync',
+      url: '/api/timers/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        buttons: [{
-          id: buttonId,
+        timers: [{
+          id: timerId,
           name: 'Temporary',
           auto_subtract_breaks: false,
         }],
       },
     });
 
-    // Soft delete the button
+    // Soft delete the timer
     const deleteResponse = await app.inject({
       method: 'POST',
-      url: '/api/buttons/sync',
+      url: '/api/timers/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        buttons: [{
-          id: buttonId,
+        timers: [{
+          id: timerId,
           name: 'Temporary',
           auto_subtract_breaks: false,
           deleted_at: new Date().toISOString(),
@@ -191,30 +191,30 @@ describe('Button Sync Routes', () => {
     // Verify it's marked as deleted in sync
     const syncResponse = await app.inject({
       method: 'GET',
-      url: '/api/buttons/sync?since=1970-01-01T00:00:00.000Z',
+      url: '/api/timers/sync?since=1970-01-01T00:00:00.000Z',
       headers: {
         cookie: authCookie,
       },
     });
 
     const syncBody = JSON.parse(syncResponse.body);
-    const deletedButton = syncBody.buttons.find((b: any) => b.id === buttonId);
-    expect(deletedButton).toBeDefined();
-    expect(deletedButton.deleted_at).toBeDefined();
+    const deletedTimer = syncBody.timers.find((t: any) => t.id === timerId);
+    expect(deletedTimer).toBeDefined();
+    expect(deletedTimer.deleted_at).toBeDefined();
   });
 
-  it('should archive and unarchive a button via sync', async () => {
-    // Create a button
-    const buttonId = '990e8400-e29b-41d4-a716-446655440004';
+  it('should archive and unarchive a timer via sync', async () => {
+    // Create a timer
+    const timerId = '990e8400-e29b-41d4-a716-446655440004';
     await app.inject({
       method: 'POST',
-      url: '/api/buttons/sync',
+      url: '/api/timers/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        buttons: [{
-          id: buttonId,
+        timers: [{
+          id: timerId,
           name: 'Old Project',
           emoji: '📦',
           auto_subtract_breaks: false,
@@ -223,16 +223,16 @@ describe('Button Sync Routes', () => {
       },
     });
 
-    // Archive the button
+    // Archive the timer
     const archiveResponse = await app.inject({
       method: 'POST',
-      url: '/api/buttons/sync',
+      url: '/api/timers/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        buttons: [{
-          id: buttonId,
+        timers: [{
+          id: timerId,
           name: 'Old Project',
           emoji: '📦',
           auto_subtract_breaks: false,
@@ -246,16 +246,16 @@ describe('Button Sync Routes', () => {
     expect(archiveBody.saved).toHaveLength(1);
     expect(archiveBody.saved[0].archived).toBe(true);
 
-    // Unarchive the button
+    // Unarchive the timer
     const unarchiveResponse = await app.inject({
       method: 'POST',
-      url: '/api/buttons/sync',
+      url: '/api/timers/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        buttons: [{
-          id: buttonId,
+        timers: [{
+          id: timerId,
           name: 'Old Project',
           emoji: '📦',
           auto_subtract_breaks: false,
@@ -270,18 +270,18 @@ describe('Button Sync Routes', () => {
     expect(unarchiveBody.saved[0].archived).toBe(false);
   });
 
-  it('should create a button with archived flag set to true', async () => {
-    const buttonId = 'aa0e8400-e29b-41d4-a716-446655440005';
+  it('should create a timer with archived flag set to true', async () => {
+    const timerId = 'aa0e8400-e29b-41d4-a716-446655440005';
     const response = await app.inject({
       method: 'POST',
-      url: '/api/buttons/sync',
+      url: '/api/timers/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        buttons: [{
-          id: buttonId,
-          name: 'Archived Button',
+        timers: [{
+          id: timerId,
+          name: 'Archived Timer',
           archived: true,
           auto_subtract_breaks: false,
         }],
@@ -292,13 +292,13 @@ describe('Button Sync Routes', () => {
     const body = JSON.parse(response.body);
     expect(body.saved).toHaveLength(1);
     expect(body.saved[0].archived).toBe(true);
-    expect(body.saved[0].name).toBe('Archived Button');
+    expect(body.saved[0].name).toBe('Archived Timer');
   });
 
   it('should not allow unauthenticated requests', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/buttons/sync?since=1970-01-01T00:00:00.000Z',
+      url: '/api/timers/sync?since=1970-01-01T00:00:00.000Z',
     });
 
     expect(response.statusCode).toBe(401);
