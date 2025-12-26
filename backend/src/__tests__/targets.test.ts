@@ -113,12 +113,14 @@ describe('Target Sync Routes with Nested Specs', () => {
             {
               id: specId2,
               duration_minutes: [120],
+              exclude_holidays: false,
               weekdays: [1, 3, 5],
               starting_from: startDate2, // Later date first
             },
             {
               id: specId1,
               duration_minutes: [120],
+              exclude_holidays: false,
               weekdays: [1, 3, 5],
               starting_from: startDate1, // Earlier date second
             },
@@ -165,6 +167,7 @@ describe('Target Sync Routes with Nested Specs', () => {
           target_specs: [{
             id: specId,
             duration_minutes: [60],
+              exclude_holidays: false,
             weekdays: [0, 6],
             starting_from: dayjs('2025-01-01').toISOString(),
           }],
@@ -194,11 +197,17 @@ describe('Target Sync Routes with Nested Specs', () => {
             id: specId,
             duration_minutes: [60], // Not changed
             weekdays: [0, 6], // Not changed
+            exclude_holidays: false,
             starting_from: dayjs('2025-01-01').toISOString(),
           }],
         }],
       },
     });
+
+    if (updateResponse.statusCode !== 200) {
+      console.error('Update failed with status:', updateResponse.statusCode);
+      console.error('Response body:', updateResponse.body);
+    }
 
     expect(updateResponse.statusCode).toBe(200);
     const updatedTarget = JSON.parse(updateResponse.body).saved[0];
@@ -229,8 +238,9 @@ describe('Target Sync Routes with Nested Specs', () => {
           target_specs: [{
             id: specId,
             duration_minutes: [480],
+              exclude_holidays: false,
             weekdays: [1, 2, 3, 4, 5],
-            exclude_holidays: false,
+              exclude_holidays: false,
             state_code: undefined,
             starting_from: dayjs('2025-01-01').toISOString(),
           }],
@@ -291,12 +301,14 @@ describe('Target Sync Routes with Nested Specs', () => {
             {
               id: specId1,
               duration_minutes: [480],
+              exclude_holidays: false,
               weekdays: [1, 2, 3, 4, 5],
               starting_from: dayjs('2025-01-01').toISOString(),
             },
             {
               id: specId2,
               duration_minutes: [120],
+              exclude_holidays: false,
               weekdays: [0, 6],
               starting_from: dayjs('2025-06-01').toISOString(),
             },
@@ -335,12 +347,14 @@ describe('Target Sync Routes with Nested Specs', () => {
             {
               id: specId1,
               duration_minutes: [480],
+              exclude_holidays: false,
               weekdays: [1, 2, 3, 4, 5],
               starting_from: dayjs('2025-01-01').toISOString(),
             },
             {
               id: specId2,
               duration_minutes: [240],
+              exclude_holidays: false,
               weekdays: [0, 6],
               starting_from: dayjs('2025-06-01').toISOString(),
             },
@@ -363,6 +377,7 @@ describe('Target Sync Routes with Nested Specs', () => {
           target_specs: [{
             id: specId1,
             duration_minutes: [480],
+              exclude_holidays: false,
             weekdays: [1, 2, 3, 4, 5],
             starting_from: dayjs('2025-01-01').toISOString(),
           }],
@@ -405,6 +420,7 @@ describe('Target Sync Routes with Nested Specs', () => {
           target_specs: [{
             id: specId,
             duration_minutes: [480],
+              exclude_holidays: false,
             weekdays: [1, 2, 3, 4, 5],
             starting_from: dayjs('2025-01-01').toISOString(),
           }],
@@ -431,6 +447,7 @@ describe('Target Sync Routes with Nested Specs', () => {
           target_specs: [{
             id: specId,
             duration_minutes: [500],
+              exclude_holidays: false,
             weekdays: [1, 2, 3, 4, 5],
             starting_from: dayjs('2025-01-01').toISOString(),
             updated_at: oldTimestamp,
@@ -489,12 +506,14 @@ describe('Target Sync Routes with Nested Specs', () => {
               {
                 id: target1Spec1,
                 duration_minutes: [480],
+              exclude_holidays: false,
                 weekdays: [1, 2, 3, 4, 5],
                 starting_from: dayjs('2025-01-01').toISOString(),
               },
               {
                 id: target1Spec2,
                 duration_minutes: [450],
+              exclude_holidays: false,
                 weekdays: [1, 2, 3, 4, 5],
                 starting_from: dayjs('2025-06-01').toISOString(),
               },
@@ -507,6 +526,7 @@ describe('Target Sync Routes with Nested Specs', () => {
               {
                 id: target2Spec1,
                 duration_minutes: [120],
+              exclude_holidays: false,
                 weekdays: [0, 6],
                 starting_from: dayjs('2025-01-01').toISOString(),
               },
@@ -548,8 +568,9 @@ describe('Target Sync Routes with Nested Specs', () => {
           target_specs: [{
             id: specId,
             duration_minutes: [480],
+              exclude_holidays: false,
             weekdays: [1, 2, 3, 4, 5],
-            exclude_holidays: false,
+              exclude_holidays: false,
             starting_from: dayjs('2025-01-01').toISOString(),
           }],
         }],
@@ -592,6 +613,7 @@ describe('Target Sync Routes with Nested Specs', () => {
           target_specs: [{
             id: specId,
             duration_minutes: [480],
+              exclude_holidays: false,
             weekdays: [1, 2, 3, 4, 5],
             starting_from: dayjs('2025-01-01').toISOString(),
           }],
@@ -601,8 +623,8 @@ describe('Target Sync Routes with Nested Specs', () => {
 
     const originalUpdatedAt = new Date(JSON.parse(createResponse.body).saved[0].updated_at);
 
-    // Wait a bit
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Wait to ensure timestamp difference (SQLite needs significant time difference)
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Update only the spec (not the target name)
     const updateResponse = await app.inject({
@@ -619,6 +641,7 @@ describe('Target Sync Routes with Nested Specs', () => {
             id: specId,
             duration_minutes: [500], // Changed
             weekdays: [1, 2, 3, 4, 5],
+            exclude_holidays: false,
             starting_from: dayjs('2025-01-01').toISOString(),
           }],
         }],

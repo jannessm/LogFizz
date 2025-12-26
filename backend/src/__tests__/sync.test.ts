@@ -144,8 +144,8 @@ describe('Sync API - Offline-First', () => {
         },
       });
 
-      // Wait for timestamp to be different
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // Wait for timestamp to be different (SQLite needs more time than PostgreSQL)
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Client tries to update with old timestamp
       const syncResponse = await app.inject({
@@ -275,7 +275,7 @@ describe('Sync API - Offline-First', () => {
         },
       });
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Client tries to sync both: timer1 has conflict, timer2 succeeds
       const syncResponse = await app.inject({
@@ -377,7 +377,7 @@ describe('Sync API - Offline-First', () => {
       const cursor1 = JSON.parse(sync1.payload).cursor;
 
       // Wait to ensure timestamp difference between cursor and next creation
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       // Create timer 2 after cursor via sync
       timerId2 = '550e8400-e29b-41d4-a716-446655444444';
@@ -525,7 +525,7 @@ describe('Sync API - Offline-First', () => {
         },
       });
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Client tries to update with old timestamp
       const syncResponse = await app.inject({
@@ -657,7 +657,7 @@ describe('Sync API - Offline-First', () => {
       const cursor1 = JSON.parse(sync1.payload).cursor;
 
       // Wait to ensure timestamp difference between cursor and next creation
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       // Create log 2 after cursor via sync
       const log2Id = '660e8400-e29b-41d4-a716-446655440013';
