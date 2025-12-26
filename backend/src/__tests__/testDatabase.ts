@@ -1,4 +1,4 @@
-import { TestDataSource } from '../config/database.test.js';
+import { TestDataSource } from '../config/database.config.js';
 import { State } from '../entities/State.js';
 
 /**

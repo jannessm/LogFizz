@@ -1,5 +1,5 @@
 import { beforeAll, afterAll, vi } from 'vitest';
-import { TestDataSource } from '../config/database.test.js';
+import { TestDataSource } from '../config/database.config.js';
 import { initializeTestDatabase } from './testDatabase.js';
 
 // Mock hCaptcha verification for tests
@@ -8,6 +8,28 @@ vi.mock('../utils/hcaptcha.js', () => ({
   requireHCaptcha: vi.fn().mockResolvedValue(undefined),
   isHCaptchaRequired: vi.fn().mockReturnValue(false),
 }));
+
+// Mock Email Service to prevent SMTP connection attempts in tests
+vi.mock('../services/email.service.js', () => {
+  class MockEmailService {
+    async sendWelcomeEmail() {
+      return Promise.resolve();
+    }
+    async sendPasswordResetEmail() {
+      return Promise.resolve();
+    }
+    async sendStatisticsEmail() {
+      return Promise.resolve();
+    }
+    async verifyConnection() {
+      return Promise.resolve(true);
+    }
+  }
+  
+  return {
+    EmailService: MockEmailService,
+  };
+});
 
 // Mock Redis to prevent connection attempts in tests
 vi.mock('../config/redis.js', () => ({
@@ -18,7 +40,7 @@ vi.mock('../config/redis.js', () => ({
 
 // Mock the production database to use test database
 vi.mock('../config/database.js', async () => {
-  const testDb = await import('../config/database.test.js');
+  const testDb = await import('../config/database.config.js');
   return {
     AppDataSource: testDb.TestDataSource,
   };

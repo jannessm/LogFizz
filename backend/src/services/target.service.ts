@@ -159,6 +159,21 @@ export class TargetService {
           savedSpecs.push(await this.targetSpecRepository.save(spec));
         }
 
+        // Calculate max updated_at from target and all its specs
+        const allUpdatedAts = [
+          savedTarget.updated_at,
+          ...savedSpecs.map(s => s.updated_at),
+        ];
+        const maxUpdatedAt = allUpdatedAts.reduce((max, current) => 
+          current > max ? current : max
+        , savedTarget.updated_at);
+
+        // Update target's updated_at to reflect spec creation
+        if (maxUpdatedAt > savedTarget.updated_at) {
+          savedTarget.updated_at = maxUpdatedAt;
+          await this.targetRepository.save(savedTarget);
+        }
+
         savedTargets.push({
           ...savedTarget,
           target_specs: savedSpecs.map(s => ({
@@ -166,6 +181,7 @@ export class TargetService {
             weekdays: s.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
             duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
           })),
+          updated_at: maxUpdatedAt,
         });
         continue;
       }
@@ -199,6 +215,21 @@ export class TargetService {
           savedSpecs.push(await this.targetSpecRepository.save(spec));
         }
 
+        // Calculate max updated_at from target and all its specs
+        const allUpdatedAts = [
+          savedTarget.updated_at,
+          ...savedSpecs.map(s => s.updated_at),
+        ];
+        const maxUpdatedAt = allUpdatedAts.reduce((max, current) => 
+          current > max ? current : max
+        , savedTarget.updated_at);
+
+        // Update target's updated_at to reflect spec creation
+        if (maxUpdatedAt > savedTarget.updated_at) {
+          savedTarget.updated_at = maxUpdatedAt;
+          await this.targetRepository.save(savedTarget);
+        }
+
         savedTargets.push({
           ...savedTarget,
           target_specs: savedSpecs.map(s => ({
@@ -206,6 +237,7 @@ export class TargetService {
             weekdays: s.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
             duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
           })),
+          updated_at: maxUpdatedAt,
         });
         continue;
       }
@@ -356,6 +388,21 @@ export class TargetService {
       // Sort specs by starting_from
       savedSpecs.sort((a, b) => a.starting_from.getTime() - b.starting_from.getTime());
 
+      // Calculate max updated_at from target and all its specs
+      const allUpdatedAts = [
+        existingTarget.updated_at,
+        ...savedSpecs.map(s => s.updated_at),
+      ];
+      const maxUpdatedAt = allUpdatedAts.reduce((max, current) => 
+        current > max ? current : max
+      , existingTarget.updated_at);
+
+      // Update target's updated_at to reflect spec changes
+      if (maxUpdatedAt > existingTarget.updated_at) {
+        existingTarget.updated_at = maxUpdatedAt;
+        await this.targetRepository.save(existingTarget);
+      }
+
       // Convert and add to saved targets
       savedTargets.push({
         ...existingTarget,
@@ -364,6 +411,7 @@ export class TargetService {
           weekdays: s.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
           duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
         })),
+        updated_at: maxUpdatedAt,
       });
     }
 

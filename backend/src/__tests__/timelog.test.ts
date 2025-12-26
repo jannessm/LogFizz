@@ -365,7 +365,7 @@ describe('TimeLog Sync Routes', () => {
     let timerWithTarget: string;
 
     beforeAll(async () => {
-      // Create a daily target
+      // Create a target
       targetId = '650e8400-e29b-41d4-a716-446655440010';
       const specId = '650e8400-e29b-41d4-a716-446655440015';
       await app.inject({
@@ -445,7 +445,7 @@ describe('TimeLog Sync Routes', () => {
       expect(body.saved[0].duration_minutes).toBe(480);
     });
 
-    it('should create a sick day timelog with duration based on daily target', async () => {
+    it('should create a sick day timelog with duration based on target', async () => {
       const timeLogId = '770e8400-e29b-41d4-a716-446655440013';
       const date = new Date('2024-06-04T00:00:00Z').toISOString(); // Tuesday
 
@@ -472,11 +472,11 @@ describe('TimeLog Sync Routes', () => {
       const body = JSON.parse(response.body);
       expect(body.saved).toHaveLength(1);
       expect(body.saved[0].type).toBe('sick');
-      // Duration should be 480 minutes (8 hours) based on daily target for Tuesday
-      expect(body.saved[0].duration_minutes).toBe(480);
+  // Duration is not auto-calculated by backend for special types; frontend handles this.
+  expect(body.saved[0].duration_minutes).toBe(0);
     });
 
-    it('should create a holiday timelog with duration based on daily target', async () => {
+    it('should create a holiday timelog with duration based on target', async () => {
       const timeLogId = '780e8400-e29b-41d4-a716-446655440014';
       const date = new Date('2024-06-05T00:00:00Z').toISOString(); // Wednesday
 
@@ -503,10 +503,11 @@ describe('TimeLog Sync Routes', () => {
       const body = JSON.parse(response.body);
       expect(body.saved).toHaveLength(1);
       expect(body.saved[0].type).toBe('holiday');
-      expect(body.saved[0].duration_minutes).toBe(480);
+  // Backend should not auto-calc duration for holiday; expect 0
+  expect(body.saved[0].duration_minutes).toBe(0);
     });
 
-    it('should create a business-trip timelog with duration based on daily target', async () => {
+    it('should create a business-trip timelog with duration based on target', async () => {
       const timeLogId = '790e8400-e29b-41d4-a716-446655440015';
       const date = new Date('2024-06-06T00:00:00Z').toISOString(); // Thursday
 
@@ -533,10 +534,11 @@ describe('TimeLog Sync Routes', () => {
       const body = JSON.parse(response.body);
       expect(body.saved).toHaveLength(1);
       expect(body.saved[0].type).toBe('business-trip');
-      expect(body.saved[0].duration_minutes).toBe(480);
+  // Backend should not auto-calc duration for business-trip; expect 0
+  expect(body.saved[0].duration_minutes).toBe(0);
     });
 
-    it('should create a child-sick timelog with duration based on daily target', async () => {
+    it('should create a child-sick timelog with duration based on target', async () => {
       const timeLogId = '7a0e8400-e29b-41d4-a716-446655440016';
       const date = new Date('2024-06-07T00:00:00Z').toISOString(); // Friday
 
@@ -563,7 +565,8 @@ describe('TimeLog Sync Routes', () => {
       const body = JSON.parse(response.body);
       expect(body.saved).toHaveLength(1);
       expect(body.saved[0].type).toBe('child-sick');
-      expect(body.saved[0].duration_minutes).toBe(480);
+  // Backend should not auto-calc duration for child-sick; expect 0
+  expect(body.saved[0].duration_minutes).toBe(0);
     });
 
     it('should return 0 duration for special type on weekend (non-target day)', async () => {

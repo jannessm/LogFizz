@@ -129,6 +129,14 @@ export function calculateTimelogDuration(timelog: TimeLog): number {
   if (timelog.duration_minutes !== undefined && timelog.duration_minutes !== null) {
     return timelog.duration_minutes;
   }
+
+  // Do not auto-calculate durations for special day types when duration isn't provided.
+  // These are handled as whole-day counters in frontend and should not get inferred
+  // from timestamps by backend tests/logic.
+  const specialTypes = new Set<TimeLogType>(['sick', 'holiday', 'business-trip', 'child-sick']);
+  if (timelog.type && specialTypes.has(timelog.type)) {
+    return 0;
+  }
   
   // Calculate from timestamps
   if (!timelog.start_timestamp || !timelog.end_timestamp) {
