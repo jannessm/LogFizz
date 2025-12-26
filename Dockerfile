@@ -13,14 +13,14 @@ RUN apt update && apt upgrade -y && apt install -y \
 
 RUN npm install -g @github/copilot
 
+RUN useradd -m -s /bin/bash copilot
 RUN --mount=type=secret,id=ssh_key,uid=1000 \
-  mkdir -p .ssh && \
-  cp /run/secrets/ssh_key .ssh/id_rsa && \
-  chmod 777 .ssh/id_rsa && \
-  ssh-keyscan github.com >> .ssh/known_hosts 2>/dev/null
+  mkdir -p /home/copilot/.ssh && \
+  cp /run/secrets/ssh_key /home/copilot/.ssh/id_rsa && \
+  chmod 777 /home/copilot/.ssh/id_rsa && \
+  ssh-keyscan github.com >> /home/copilot/.ssh/known_hosts 2>/dev/null
 
 # Create non-root user
-RUN useradd -m -s /bin/bash copilot
 USER copilot
 WORKDIR /home/copilot
 RUN mkdir .copilot
@@ -44,6 +44,6 @@ RUN git config --global user.email "copilot@github.com"
 RUN git config --global user.name "GitHub Copilot"
 RUN git commit -am "starting copilot" || echo "No changes to commit"
 RUN git checkout ${BRANCH} || git checkout -b ${BRANCH}
-RUN git push -u origin ${BRANCH} || echo "Could not push branch"
+RUN git push -u origin ${BRANCH}
 
 CMD ["copilot", "--allow-all-tools"]
