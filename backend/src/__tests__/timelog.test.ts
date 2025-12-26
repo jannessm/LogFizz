@@ -367,6 +367,7 @@ describe('TimeLog Sync Routes', () => {
     beforeAll(async () => {
       // Create a daily target
       targetId = '650e8400-e29b-41d4-a716-446655440010';
+      const specId = '650e8400-e29b-41d4-a716-446655440015';
       await app.inject({
         method: 'POST',
         url: '/api/targets/sync',
@@ -377,10 +378,13 @@ describe('TimeLog Sync Routes', () => {
           targets: [{
             id: targetId,
             name: 'Work Week',
-            weekdays: [1, 2, 3, 4, 5], // Monday to Friday
-            duration_minutes: [480, 480, 480, 480, 480], // 8 hours per day
-            exclude_holidays: false,
-            starting_from: '2024-01-01T00:00:00Z',
+            target_specs: [{
+              id: specId,
+              duration_minutes: [480, 480, 480, 480, 480], // 8 hours per day
+              weekdays: [1, 2, 3, 4, 5], // Monday to Friday
+              exclude_holidays: false,
+              starting_from: '2024-01-01T00:00:00Z',
+            }],
           }],
         },
       });
@@ -428,6 +432,11 @@ describe('TimeLog Sync Routes', () => {
           }],
         },
       });
+
+      if (response.statusCode !== 200) {
+        console.error('Timelog create failed with status:', response.statusCode);
+        console.error('Response body:', response.body);
+      }
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
