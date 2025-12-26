@@ -1,6 +1,6 @@
 import { AppDataSource } from '../config/database.js';
 import { User } from '../entities/User.js';
-import { Button } from '../entities/Button.js';
+import { Timer } from '../entities/Timer.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { IsNull, MoreThan, Not } from 'typeorm';
 
@@ -10,7 +10,7 @@ export interface SystemStatistics {
     active: number; // Users who logged time in last 30 days
     new: number; // Users created in last 30 days
   };
-  buttons: {
+  timers: {
     total: number;
     average_per_user: number;
   };
@@ -26,7 +26,7 @@ export interface SystemStatistics {
       email: string;
       hours_tracked: number;
     } | null;
-    most_used_button: {
+    most_used_timer: {
       name: string;
       emoji?: string;
       usage_count: number;
@@ -36,7 +36,7 @@ export interface SystemStatistics {
 
 export class StatisticsService {
   private userRepository = AppDataSource.getRepository(User);
-  private buttonRepository = AppDataSource.getRepository(Button);
+  private timerRepository = AppDataSource.getRepository(Timer);
   private timeLogRepository = AppDataSource.getRepository(TimeLog);
 
   /**
@@ -73,12 +73,12 @@ export class StatisticsService {
 
     const activeUsers = activeUserIds.length;
 
-    // Button statistics
-    const totalButtons = await this.buttonRepository.count({
+    // Timer statistics
+    const totalTimers = await this.timerRepository.count({
       where: { deleted_at: IsNull() },
     });
 
-    const averageButtonsPerUser = totalUsers > 0 ? totalButtons / totalUsers : 0;
+    const averageTimersPerUser = totalUsers > 0 ? totalTimers / totalUsers : 0;
 
     // Time log statistics
     const totalTimeLogs = await this.timeLogRepository.count({
@@ -98,7 +98,7 @@ export class StatisticsService {
 
     // Activity statistics
     const mostActiveUser = await this.getMostActiveUser();
-    const mostUsedButton = await this.getMostUsedButton();
+    const mostUsedTimer = await this.getMostUsedTimer();
 
     return {
       users: {
@@ -106,9 +106,9 @@ export class StatisticsService {
         active: activeUsers,
         new: newUsers,
       },
-      buttons: {
-        total: totalButtons,
-        average_per_user: parseFloat(averageButtonsPerUser.toFixed(2)),
+      timers: {
+        total: totalTimers,
+        average_per_user: parseFloat(averageTimersPerUser.toFixed(2)),
       },
       timeLogs: {
         total: totalTimeLogs,
@@ -118,7 +118,7 @@ export class StatisticsService {
       },
       activity: {
         most_active_user: mostActiveUser,
-        most_used_button: mostUsedButton,
+        most_used_timer: mostUsedTimer,
       },
     };
   }
@@ -201,19 +201,19 @@ export class StatisticsService {
   }
 
   /**
-   * Get the most used button (by number of time log entries)
+   * Get the most used timer (by number of time log entries)
    */
-  private async getMostUsedButton(): Promise<{
+  private async getMostUsedTimer(): Promise<{
     name: string;
     emoji?: string;
     usage_count: number;
   } | null> {
     const result = await this.timeLogRepository
       .createQueryBuilder('tl')
-      .select('tl.button_id', 'button_id')
+      .select('tl.timer_id', 'timer_id')
       .addSelect('COUNT(*)', 'usage_count')
       .where('tl.deleted_at IS NULL')
-      .groupBy('tl.button_id')
+      .groupBy('tl.timer_id')
       .orderBy('usage_count', 'DESC')
       .limit(1)
       .getRawOne();
@@ -222,17 +222,17 @@ export class StatisticsService {
       return null;
     }
 
-    const button = await this.buttonRepository.findOne({
-      where: { id: result.button_id },
+    const timer = await this.timerRepository.findOne({
+      where: { id: result.timer_id },
     });
 
-    if (!button) {
+    if (!timer) {
       return null;
     }
 
     return {
-      name: button.name,
-      emoji: button.emoji,
+      name: timer.name,
+      emoji: timer.emoji,
       usage_count: parseInt(result.usage_count),
     };
   }

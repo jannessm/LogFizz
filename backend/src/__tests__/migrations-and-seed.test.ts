@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { DataSource } from 'typeorm';
 import { User } from '../entities/User.js';
-import { Button } from '../entities/Button.js';
-import { DailyTarget } from '../entities/DailyTarget.js';
+import { Timer } from '../entities/Timer.js';
+import { Target } from '../entities/Target.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { State } from '../entities/State.js';
-import { MonthlyBalance } from '../entities/MonthlyBalance.js';
+import { Balance } from '../entities/Balance.js';
 import { HolidayMetadata } from '../entities/HolidayMetadata.js';
 
 /**
@@ -27,7 +27,7 @@ describe.skip('Migrations and Seeding', () => {
       database: 'clock_test_db', // Use same test DB as AppDataSource
       synchronize: false, // Important: use migrations, not synchronize
       logging: false,
-      entities: [User, Button, DailyTarget, TimeLog, Holiday, State, MonthlyBalance, HolidayMetadata],
+      entities: [User, Timer, Target, TimeLog, Holiday, State, Balance, HolidayMetadata],
       migrations: ['src/migrations/*.ts'],
     });
   });
@@ -79,13 +79,13 @@ describe.skip('Migrations and Seeding', () => {
         
         // Verify all expected tables exist
         expect(tableNames).toContain('users');
-        expect(tableNames).toContain('buttons');
-        expect(tableNames).toContain('daily_targets');
+        expect(tableNames).toContain('timers');
+        expect(tableNames).toContain('targets');
         expect(tableNames).toContain('time_logs');
         expect(tableNames).toContain('holidays');
         expect(tableNames).toContain('holiday_metadata');
         expect(tableNames).toContain('states');
-        expect(tableNames).toContain('monthly_balances');
+        expect(tableNames).toContain('balances');
         expect(tableNames).toContain('migrations');
 
         console.log(`✓ All ${tableNames.length} tables created successfully`);
@@ -113,11 +113,11 @@ describe.skip('Migrations and Seeding', () => {
         const indexNames = indexes.map((idx: any) => idx.indexname);
         
         // Verify critical indexes exist
-        expect(indexNames).toContain('IDX_daily_targets_user_id');
-        expect(indexNames).toContain('IDX_daily_targets_state_code');
-        expect(indexNames).toContain('IDX_buttons_user_id');
+        expect(indexNames).toContain('IDX_targets_user_id');
+        expect(indexNames).toContain('IDX_targets_state_code');
+        expect(indexNames).toContain('IDX_timers_user_id');
         expect(indexNames).toContain('IDX_time_logs_user_id');
-        expect(indexNames).toContain('IDX_time_logs_button_id');
+        expect(indexNames).toContain('IDX_time_logs_timer_id');
         expect(indexNames).toContain('IDX_time_logs_start_timestamp');
 
         console.log(`✓ Found ${indexNames.length} indexes`);
@@ -147,12 +147,12 @@ describe.skip('Migrations and Seeding', () => {
         const fkNames = constraints.map((c: any) => c.constraint_name);
         
         // Verify critical foreign keys exist
-        expect(fkNames).toContain('FK_daily_targets_user_id');
-        expect(fkNames).toContain('FK_daily_targets_state_code');
-        expect(fkNames).toContain('FK_buttons_user_id');
-        expect(fkNames).toContain('FK_buttons_target_id');
+        expect(fkNames).toContain('FK_targets_user_id');
+        expect(fkNames).toContain('FK_targets_state_code');
+        expect(fkNames).toContain('FK_timers_user_id');
+        expect(fkNames).toContain('FK_timers_target_id');
         expect(fkNames).toContain('FK_time_logs_user_id');
-        expect(fkNames).toContain('FK_time_logs_button_id');
+        expect(fkNames).toContain('FK_time_logs_timer_id');
 
         console.log(`✓ Found ${fkNames.length} foreign key constraints`);
       } finally {
@@ -188,10 +188,10 @@ describe.skip('Migrations and Seeding', () => {
       
       // Run the seeding logic inline (same as seed.ts)
       const userRepo = testDataSource.getRepository(User);
-      const buttonRepo = testDataSource.getRepository(Button);
+      const timerRepo = testDataSource.getRepository(Timer);
       
       // Check that we can clear and seed data
-      await testDataSource.query('TRUNCATE TABLE time_logs, buttons, daily_targets, holidays, monthly_balances, users RESTART IDENTITY CASCADE');
+      await testDataSource.query('TRUNCATE TABLE time_logs, timers, targets, holidays, balances, users RESTART IDENTITY CASCADE');
       
       // Verify truncate worked
       const userCountBefore = await userRepo.count();
@@ -234,23 +234,23 @@ describe.skip('Migrations and Seeding', () => {
       console.log(`✓ Found ${users.length} seeded user(s)`);
     });
 
-    it.skip('should have created sample buttons', async () => {
-      const buttonRepo = testDataSource.getRepository(Button);
-      const buttons = await buttonRepo.find();
+    it.skip('should have created sample timers', async () => {
+      const timerRepo = testDataSource.getRepository(Timer);
+      const timers = await timerRepo.find();
       
-      expect(buttons.length).toBeGreaterThan(0);
+      expect(timers.length).toBeGreaterThan(0);
       
-      // Verify buttons have required fields
-      buttons.forEach(button => {
-        expect(button.name).toBeDefined();
-        expect(button.user_id).toBeDefined();
+      // Verify timers have required fields
+      timers.forEach(timer => {
+        expect(timer.name).toBeDefined();
+        expect(timer.user_id).toBeDefined();
       });
       
-      console.log(`✓ Found ${buttons.length} seeded button(s)`);
+      console.log(`✓ Found ${timers.length} seeded timer(s)`);
     });
 
-    it.skip('should have created sample daily targets', async () => {
-      const targetRepo = testDataSource.getRepository(DailyTarget);
+    it.skip('should have created sample targets', async () => {
+      const targetRepo = testDataSource.getRepository(Target);
       const targets = await targetRepo.find();
       
       expect(targets.length).toBeGreaterThan(0);
@@ -258,32 +258,11 @@ describe.skip('Migrations and Seeding', () => {
       // Verify targets have required fields
       targets.forEach(target => {
         expect(target.name).toBeDefined();
-        expect(target.duration_minutes).toBeDefined();
-        expect(target.weekdays).toBeDefined();
-        expect(Array.isArray(target.duration_minutes)).toBe(true);
-        expect(Array.isArray(target.weekdays)).toBe(true);
+        expect(target.target_spec_ids).toBeDefined();
+        expect(Array.isArray(target.target_spec_ids)).toBe(true);
       });
       
-      console.log(`✓ Found ${targets.length} seeded daily target(s)`);
-    });
-
-    it.skip('should support ending_at column in daily targets', async () => {
-      const targetRepo = testDataSource.getRepository(DailyTarget);
-      const targets = await targetRepo.find();
-      
-      // Find a target with ending_at set (from seed data)
-      const endedTarget = targets.find(t => t.ending_at !== null && t.ending_at !== undefined);
-      
-      expect(endedTarget).toBeDefined();
-      expect(endedTarget?.ending_at).toBeInstanceOf(Date);
-      expect(endedTarget?.starting_from).toBeInstanceOf(Date);
-      
-      // Verify ending_at is after starting_from
-      if (endedTarget?.starting_from && endedTarget?.ending_at) {
-        expect(endedTarget.ending_at.getTime()).toBeGreaterThan(endedTarget.starting_from.getTime());
-      }
-      
-      console.log(`✓ Found target with ending_at: ${endedTarget?.name} (ends ${endedTarget?.ending_at?.toISOString().split('T')[0]})`);
+      console.log(`✓ Found ${targets.length} seeded target(s)`);
     });
 
     it.skip('should have created sample time logs', async () => {
@@ -295,7 +274,7 @@ describe.skip('Migrations and Seeding', () => {
       // Verify time logs have required fields
       timeLogs.forEach(log => {
         expect(log.user_id).toBeDefined();
-        expect(log.button_id).toBeDefined();
+        expect(log.timer_id).toBeDefined();
         expect(log.start_timestamp).toBeDefined();
         expect(log.timezone).toBeDefined();
       });
@@ -321,34 +300,34 @@ describe.skip('Migrations and Seeding', () => {
     });
 
     it.skip('should maintain referential integrity', async () => {
-      // Verify buttons reference existing users and targets
-      const buttonRepo = testDataSource.getRepository(Button);
+      // Verify timers reference existing users and targets
+      const timerRepo = testDataSource.getRepository(Timer);
       const userRepo = testDataSource.getRepository(User);
-      const targetRepo = testDataSource.getRepository(DailyTarget);
+      const targetRepo = testDataSource.getRepository(Target);
       
-      const buttons = await buttonRepo.find();
+      const timers = await timerRepo.find();
       const users = await userRepo.find();
       const targets = await targetRepo.find();
       
       const userIds = new Set(users.map(u => u.id));
       const targetIds = new Set(targets.map(t => t.id));
       
-      buttons.forEach(button => {
-        expect(userIds.has(button.user_id)).toBe(true);
-        if (button.target_id) {
-          expect(targetIds.has(button.target_id)).toBe(true);
+      timers.forEach(timer => {
+        expect(userIds.has(timer.user_id)).toBe(true);
+        if (timer.target_id) {
+          expect(targetIds.has(timer.target_id)).toBe(true);
         }
       });
       
-      // Verify time logs reference existing users and buttons
+      // Verify time logs reference existing users and timers
       const timeLogRepo = testDataSource.getRepository(TimeLog);
       const timeLogs = await timeLogRepo.find();
       
-      const buttonIds = new Set(buttons.map(b => b.id));
+      const timerIds = new Set(timers.map(t => t.id));
       
       timeLogs.forEach(log => {
         expect(userIds.has(log.user_id)).toBe(true);
-        expect(buttonIds.has(log.button_id)).toBe(true);
+        expect(timerIds.has(log.timer_id)).toBe(true);
       });
       
       console.log('✓ All foreign key references are valid');

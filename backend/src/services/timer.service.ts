@@ -1,20 +1,20 @@
 import { AppDataSource } from '../config/database.js';
-import { Button } from '../entities/Button.js';
+import { Timer } from '../entities/Timer.js';
 import { MoreThan } from 'typeorm';
 import dayjs from '../../../lib/utils/dayjs.js';
 
-export class ButtonService {
-  private buttonRepository = AppDataSource.getRepository(Button);
+export class TimerService {
+  private timerRepository = AppDataSource.getRepository(Timer);
 
   /**
-   * Get all buttons (including soft-deleted) changed since a given timestamp
+   * Get all timers (including soft-deleted) changed since a given timestamp
    * Used for sync functionality
    */
-  async getChangedButtonsSince(userId: string, since: Date): Promise<Button[]> {
+  async getChangedTimersSince(userId: string, since: Date): Promise<Timer[]> {
     // Include records where either updated_at or created_at is greater than `since`.
     // Some DBs may have limited timestamp resolution; checking created_at ensures newly
     // created rows after the cursor are not missed.
-    return this.buttonRepository.find({
+    return this.timerRepository.find({
       where: [
         { user_id: userId, updated_at: MoreThan(since) },
         { user_id: userId, created_at: MoreThan(since) },
@@ -24,29 +24,29 @@ export class ButtonService {
   }
 
   /**
-   * Push bulk changes to buttons (create or update) with conflict detection
-   * Returns conflicts if any exist, otherwise returns saved buttons
+   * Push bulk changes to timers (create or update) with conflict detection
+   * Returns conflicts if any exist, otherwise returns saved timers
    */
-  async pushButtonChanges(
+  async pushTimerChanges(
     userId: string, 
-    changes: Array<Partial<Button> & { updated_at?: Date }>
+    changes: Array<Partial<Timer> & { updated_at?: Date }>
   ): Promise<{
-    saved: Button[];
+    saved: Timer[];
     conflicts: Array<{
-      clientVersion: Partial<Button>;
-      serverVersion: Button;
+      clientVersion: Partial<Timer>;
+      serverVersion: Timer;
     }>;
   }> {
-    const savedButtons: Button[] = [];
+    const savedTimers: Timer[] = [];
     const conflicts: Array<{
-      clientVersion: Partial<Button>;
-      serverVersion: Button;
+      clientVersion: Partial<Timer>;
+      serverVersion: Timer;
     }> = [];
 
     for (const change of changes) {
       if (change.id) {
-        // Check if button exists on server
-        const existing = await this.buttonRepository.findOne({
+        // Check if timer exists on server
+        const existing = await this.timerRepository.findOne({
           where: { id: change.id, user_id: userId },
         });
 
@@ -69,32 +69,32 @@ export class ButtonService {
           Object.assign(existing, change);
           // Remove updated_at from client to let TypeORM auto-update it
           delete (existing as any).updated_at;
-          const button = await this.buttonRepository.save(existing);
-          savedButtons.push(button);
+          const timer = await this.timerRepository.save(existing);
+          savedTimers.push(timer);
         } else {
-          // Button doesn't exist, create new one with client-provided UUID
-          const button = this.buttonRepository.create({
+          // Timer doesn't exist, create new one with client-provided UUID
+          const timer = this.timerRepository.create({
             ...change,
             user_id: userId,
             id: change.id, // Use client-generated UUID
           });
           // Remove updated_at to let TypeORM set it
-          delete (button as any).updated_at;
-          const saved = await this.buttonRepository.save(button);
-          savedButtons.push(saved);
+          delete (timer as any).updated_at;
+          const saved = await this.timerRepository.save(timer);
+          savedTimers.push(saved);
         }
       } else {
-        // Create new button (no ID provided - shouldn't happen in offline-first)
-        const button = this.buttonRepository.create({
+        // Create new timer (no ID provided - shouldn't happen in offline-first)
+        const timer = this.timerRepository.create({
           ...change,
           user_id: userId,
         });
-        delete (button as any).updated_at;
-        const saved = await this.buttonRepository.save(button);
-        savedButtons.push(saved);
+        delete (timer as any).updated_at;
+        const saved = await this.timerRepository.save(timer);
+        savedTimers.push(saved);
       }
     }
 
-    return { saved: savedButtons, conflicts };
+    return { saved: savedTimers, conflicts };
   }
 }

@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
-import type { ButtonEntity } from '../../../lib/types/index.js';
+import type { TimerEntity } from '../../../lib/types/index.js';
 
-@Entity('buttons')
-export class Button implements ButtonEntity {
+@Entity('timers')
+export class Timer implements TimerEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
@@ -36,14 +36,14 @@ export class Button implements ButtonEntity {
   @Column('timestamptz', { nullable: true })
   deleted_at?: Date;
 
-  @ManyToOne('User', 'buttons', { onDelete: 'CASCADE' })
+  @ManyToOne('User', 'timers', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user!: any;
 
-  @ManyToOne('DailyTarget', { onDelete: 'SET NULL' })
+  @ManyToOne('Target', { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'target_id' })
-  daily_target?: any;
+  target?: any;
 
-  @OneToMany('TimeLog', 'button')
+  @OneToMany('TimeLog', 'timer')
   time_logs?: any[];
 }
