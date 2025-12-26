@@ -15,15 +15,8 @@ might need to copy 'copilot-cli' token from the mac keychain. Then
 docker build -t copilot-node \
   --build-arg BRANCH="fix-tests" \
   --build-arg GH_USER= \
-  --build-arg GH_T= .
-```
-
-else:
-
-```bash
-docker build -t copilot-node \
-  --secret id=copilot_config,src=$HOME/.copilot/config.json \
-  --build-arg BRANCH=fix-tests \
+  --build-arg GH_T= \
+  --secret id=ssh_key,src=$HOME/.ssh/id_rsa \
   .
 ```
 
