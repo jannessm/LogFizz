@@ -3,12 +3,12 @@
   import { todayTargets } from '../stores/targets';
   import { buttonsStore } from '../stores/buttons';
   import { timeLogsStore } from '../stores/timelogs';
-  import type { DailyTarget } from '../types';
+  import type { WorkSchedule } from '../types';
   import dayjs from 'dayjs';
 
-  let activeTargets: DailyTarget[] = [];
-  let inactiveTargets: DailyTarget[] = [];
-  let displayedTargets: DailyTarget[] = [];
+  let activeTargets: WorkSchedule[] = [];
+  let inactiveTargets: WorkSchedule[] = [];
+  let displayedTargets: WorkSchedule[] = [];
   let progressMap = new Map<string, { totalMinutes: number; targetDuration: number; percentage: number; completed: boolean }>();
   let interval: number | null = null;
 
@@ -67,9 +67,8 @@
     if (interval) clearInterval(interval);
   });
 
-
   // Check if target is currently active (any assigned button is running)
-  function isTargetActive(target: DailyTarget): boolean {
+  function isTargetActive(target: WorkSchedule): boolean {
     // Find all buttons assigned to this target
     const assignedButtons = $buttonsStore.buttons.filter(b => b.target_id === target.id);
     
@@ -80,7 +79,7 @@
   }
 
   // Calculate progress for each target
-  function calculateTargetProgress(target: DailyTarget) {
+  function calculateTargetProgress(target: WorkSchedule) {
     // Find all buttons assigned to this target
     const assignedButtons = $buttonsStore.buttons.filter(b => b.target_id === target.id);
     

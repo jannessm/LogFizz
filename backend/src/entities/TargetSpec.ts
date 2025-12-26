@@ -1,16 +1,24 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import type { DailyTargetEntity } from '../../../lib/types/index.js';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import type { TargetSpecEntity } from '../../../lib/types/index.js';
 
-@Entity('daily_targets')
-export class DailyTarget implements DailyTargetEntity {
+@Entity('target_specs')
+export class TargetSpec implements TargetSpecEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column('uuid')
   user_id!: string;
 
-  @Column('varchar')
-  name!: string;
+  @Column('uuid')
+  target_id!: string;
+
+  @Column('timestamptz', { default: () => 'CURRENT_TIMESTAMP' })
+  starting_from!: Date;
+
+
+  @Column('timestamptz', { nullable: true })
+  ending_at?: Date;
+
 
   @Column('simple-array')
   duration_minutes!: number[];
@@ -24,11 +32,6 @@ export class DailyTarget implements DailyTargetEntity {
   @Column('varchar', { nullable: true })
   state_code?: string;
 
-  @Column('timestamptz', { nullable: true })
-  starting_from?: Date;
-
-  @Column('timestamptz', { nullable: true })
-  ending_at?: Date;
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
@@ -36,17 +39,15 @@ export class DailyTarget implements DailyTargetEntity {
   @UpdateDateColumn({ type: 'timestamptz' })
   updated_at!: Date;
 
-  @Column('timestamptz', { nullable: true })
-  deleted_at?: Date;
-
-  @ManyToOne('User', 'daily_targets', { onDelete: 'CASCADE' })
+  @ManyToOne('User', 'target_specs', { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user!: any;
+
+  @ManyToOne('Target', 'target_specs', { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'target_id' })
+  target!: any;
 
   @ManyToOne('State', { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'state_code', referencedColumnName: 'code' })
   state?: any;
-
-  @OneToMany('MonthlyBalance', 'target')
-  monthly_balances?: any[];
 }

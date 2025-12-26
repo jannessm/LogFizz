@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import type { MonthlyBalance, DailyTarget } from '../../types';
+  import type { MonthlyBalance, WorkSchedule } from '../../types';
   import { monthlyBalanceApi, isOnline } from '../../services/api';
   import { 
     getMonthlyBalancesByYearMonth, 
@@ -15,7 +15,7 @@
   export let month: number; // 1-12
 
   let balances: MonthlyBalance[] = [];
-  let targetsWithoutStartingFrom: DailyTarget[] = [];
+  let targetsWithoutStartingFrom: WorkSchedule[] = [];
   let loading = false;
   let error: string | null = null;
   let refreshTick = 0; // Used to trigger reactivity for running sessions

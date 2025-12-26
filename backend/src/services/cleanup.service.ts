@@ -1,13 +1,13 @@
 import { AppDataSource } from '../config/database.js';
 import { User } from '../entities/User.js';
-import { Button } from '../entities/Button.js';
+import { Timer } from '../entities/Timer.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { LessThan, Not, IsNull } from 'typeorm';
 import { HolidayCrawlerService } from './holiday-crawler.service.js';
 
 export class CleanupService {
   private userRepository = AppDataSource.getRepository(User);
-  private buttonRepository = AppDataSource.getRepository(Button);
+  private timerRepository = AppDataSource.getRepository(Timer);
   private timeLogRepository = AppDataSource.getRepository(TimeLog);
   private holidayCrawler = new HolidayCrawlerService();
 
@@ -16,19 +16,19 @@ export class CleanupService {
    */
   async cleanupOldDeletedRecords(): Promise<{
     usersDeleted: number;
-    buttonsDeleted: number;
+    timersDeleted: number;
     timeLogsDeleted: number;
   }> {
     const fourMonthsAgo = new Date();
     fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
 
-    // Delete TimeLogs first (has foreign keys to Button and User)
+    // Delete TimeLogs first (has foreign keys to Timer and User)
     const timeLogsResult = await this.timeLogRepository.delete({
       deleted_at: LessThan(fourMonthsAgo),
     });
 
-    // Delete Buttons (has foreign key to User)
-    const buttonsResult = await this.buttonRepository.delete({
+    // Delete Timers (has foreign key to User)
+    const timersResult = await this.timerRepository.delete({
       deleted_at: LessThan(fourMonthsAgo),
     });
 
@@ -39,7 +39,7 @@ export class CleanupService {
 
     return {
       usersDeleted: usersResult.affected || 0,
-      buttonsDeleted: buttonsResult.affected || 0,
+      timersDeleted: timersResult.affected || 0,
       timeLogsDeleted: timeLogsResult.affected || 0,
     };
   }
@@ -49,7 +49,7 @@ export class CleanupService {
    */
   async getPendingDeletionCount(): Promise<{
     users: number;
-    buttons: number;
+    timers: number;
     timeLogs: number;
   }> {
     const fourMonthsAgo = new Date();
@@ -61,7 +61,7 @@ export class CleanupService {
       },
     });
 
-    const buttons = await this.buttonRepository.count({
+    const timers = await this.timerRepository.count({
       where: {
         deleted_at: LessThan(fourMonthsAgo),
       },
@@ -73,7 +73,7 @@ export class CleanupService {
       },
     });
 
-    return { users, buttons, timeLogs };
+    return { users, timers, timeLogs };
   }
 
   /**
@@ -143,11 +143,11 @@ export class CleanupService {
     // 2. Clean up old deleted records
     console.log('\nTask 2: Cleaning up old deleted records...');
     const deletionCount = await this.getPendingDeletionCount();
-    console.log(`Records pending deletion: ${deletionCount.users} users, ${deletionCount.buttons} buttons, ${deletionCount.timeLogs} time logs`);
+    console.log(`Records pending deletion: ${deletionCount.users} users, ${deletionCount.timers} timers, ${deletionCount.timeLogs} time logs`);
     
-    if (deletionCount.users > 0 || deletionCount.buttons > 0 || deletionCount.timeLogs > 0) {
+    if (deletionCount.users > 0 || deletionCount.timers > 0 || deletionCount.timeLogs > 0) {
       const result = await this.cleanupOldDeletedRecords();
-      console.log(`✓ Permanently deleted: ${result.usersDeleted} users, ${result.buttonsDeleted} buttons, ${result.timeLogsDeleted} time logs`);
+      console.log(`✓ Permanently deleted: ${result.usersDeleted} users, ${result.timersDeleted} timers, ${result.timeLogsDeleted} time logs`);
     } else {
       console.log('✓ No old deleted records to clean up');
     }

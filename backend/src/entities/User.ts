@@ -39,12 +39,12 @@ export class User implements UserEntity {
   @Column('timestamptz', { nullable: true })
   reset_token_expires_at?: Date;
 
-  @OneToMany('Button', 'user')
-  buttons?: any[];
+  @OneToMany('Timer', 'user')
+  timers?: any[];
 
   @OneToMany('TimeLog', 'user')
   time_logs?: any[];
 
-  @OneToMany('MonthlyBalance', 'user')
-  monthly_balances?: any[];
+  @OneToMany('Balance', 'user')
+  balances?: any[];
 }

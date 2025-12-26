@@ -2,8 +2,8 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { buildApp } from '../app.js';
 import { FastifyInstance } from 'fastify';
 import { AppDataSource } from '../config/database.js';
-import { MonthlyBalanceService } from '../services/monthly-balance.service.js';
-import { MonthlyBalance } from '../entities/MonthlyBalance.js';
+import { BalanceService } from '../services/balance.service.js';
+import { Balance } from '../entities/Balance.js';
 
 /**
  * Monthly Balance Service Tests
@@ -17,13 +17,13 @@ describe('Monthly Balance Service - Sync Only', () => {
   let sessionCookie: string;
   let userId: string;
   let targetId: string;
-  let monthlyBalanceService: MonthlyBalanceService;
-  let monthlyBalanceRepository: any;
+  let balanceService: BalanceService;
+  let balanceRepository: any;
 
   beforeAll(async () => {
     app = await buildApp();
-    monthlyBalanceService = new MonthlyBalanceService();
-    monthlyBalanceRepository = AppDataSource.getRepository(MonthlyBalance);
+    balanceService = new BalanceService();
+    balanceRepository = AppDataSource.getRepository(Balance);
   });
 
   afterAll(async () => {
@@ -32,9 +32,9 @@ describe('Monthly Balance Service - Sync Only', () => {
 
   beforeEach(async () => {
     // Clean database - use query builder to delete all records
-    await AppDataSource.getRepository('MonthlyBalance').createQueryBuilder().delete().execute();
+    await AppDataSource.getRepository('Balance').createQueryBuilder().delete().execute();
     await AppDataSource.getRepository('TimeLog').createQueryBuilder().delete().execute();
-    await AppDataSource.getRepository('Button').createQueryBuilder().delete().execute();
+    await AppDataSource.getRepository('Timer').createQueryBuilder().delete().execute();
     await AppDataSource.getRepository('DailyTarget').createQueryBuilder().delete().execute();
     await AppDataSource.getRepository('User').createQueryBuilder().delete().execute();
 
@@ -85,7 +85,7 @@ describe('Monthly Balance Service - Sync Only', () => {
     it('should return empty array when no monthly balances exist', async () => {
       const syncResponse = await app.inject({
         method: 'GET',
-        url: '/api/monthly-balances/sync?since=1970-01-01T00:00:00.000Z',
+        url: '/api/balances/sync?since=1970-01-01T00:00:00.000Z',
         headers: { cookie: sessionCookie },
       });
 
@@ -99,7 +99,7 @@ describe('Monthly Balance Service - Sync Only', () => {
     it('should reject sync request without authentication', async () => {
       const syncResponse = await app.inject({
         method: 'GET',
-        url: '/api/monthly-balances/sync?since=1970-01-01T00:00:00.000Z',
+        url: '/api/balances/sync?since=1970-01-01T00:00:00.000Z',
       });
 
       expect(syncResponse.statusCode).toBe(401);

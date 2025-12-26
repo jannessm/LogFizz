@@ -6,7 +6,7 @@ describe('TimeLog Sync Routes', () => {
   let app: FastifyInstance;
   let authCookie: string;
   let userId: string;
-  let buttonId: string;
+  let timerId: string;
 
   beforeAll(async () => {
     app = await buildApp();
@@ -34,16 +34,16 @@ describe('TimeLog Sync Routes', () => {
     authCookie = loginResponse.headers['set-cookie'] as string;
     userId = JSON.parse(loginResponse.body).id;
 
-    buttonId = '550e8400-e29b-41d4-a716-446655440000';
+    timerId = '550e8400-e29b-41d4-a716-446655440000';
     await app.inject({
       method: 'POST',
-      url: '/api/buttons/sync',
+      url: '/api/timers/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        buttons: [{
-          id: buttonId,
+        timers: [{
+          id: timerId,
           name: 'Work',
           auto_subtract_breaks: false,
         }],
@@ -68,7 +68,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
           notes: 'Starting work session',
@@ -80,7 +80,7 @@ describe('TimeLog Sync Routes', () => {
     const body = JSON.parse(response.body);
     expect(body.saved).toHaveLength(1);
     expect(body.saved[0].id).toBe(timeLogId);
-    expect(body.saved[0].button_id).toBe(buttonId);
+    expect(body.saved[0].timer_id).toBe(timerId);
     expect(body.saved[0].start_timestamp).toBeDefined();
     expect(body.saved[0].timezone).toBe('Europe/Berlin');
     expect(body.saved[0].notes).toBe('Starting work session');
@@ -100,7 +100,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: startTime,
           end_timestamp: endTime,
           timezone: 'Europe/Berlin',
@@ -136,7 +136,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
           notes: 'Initial notes',
@@ -153,7 +153,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
           notes: 'Updated notes',
@@ -180,7 +180,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
           notes: 'To be deleted',
@@ -197,7 +197,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
           notes: 'To be deleted',
@@ -249,7 +249,7 @@ describe('TimeLog Sync Routes', () => {
         timeLogs: [
           {
             id: timeLogId,
-            button_id: buttonId,
+            timer_id: timerId,
             start_timestamp: startTime,
             end_timestamp: endTime,
             duration_minutes: 60, // Frontend calculates this
@@ -310,7 +310,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: newLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: new Date().toISOString(),
           timezone: 'Europe/Berlin',
           notes: 'Recent log',
@@ -346,7 +346,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: new Date().toISOString(),
           timezone: 'America/New_York',
           notes: 'US session',
@@ -362,7 +362,7 @@ describe('TimeLog Sync Routes', () => {
 
   describe('TimeLog Type Field', () => {
     let targetId: string;
-    let buttonWithTarget: string;
+    let timerWithTarget: string;
 
     beforeAll(async () => {
       // Create a daily target
@@ -385,18 +385,18 @@ describe('TimeLog Sync Routes', () => {
         },
       });
 
-      // Create a button with the target
-      buttonWithTarget = '650e8400-e29b-41d4-a716-446655440011';
+      // Create a timer with the target
+      timerWithTarget = '650e8400-e29b-41d4-a716-446655440011';
       await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: {
           cookie: authCookie,
         },
         payload: {
-          buttons: [{
-            id: buttonWithTarget,
-            name: 'Work Button',
+          timers: [{
+            id: timerWithTarget,
+            name: 'Work Timer',
             target_id: targetId,
             auto_subtract_breaks: false,
           }],
@@ -418,7 +418,7 @@ describe('TimeLog Sync Routes', () => {
         payload: {
           timeLogs: [{
             id: timeLogId,
-            button_id: buttonWithTarget,
+            timer_id: timerWithTarget,
             type: 'normal',
             start_timestamp: startTime,
             end_timestamp: endTime,
@@ -449,7 +449,7 @@ describe('TimeLog Sync Routes', () => {
         payload: {
           timeLogs: [{
             id: timeLogId,
-            button_id: buttonWithTarget,
+            timer_id: timerWithTarget,
             type: 'sick',
             start_timestamp: date,
             end_timestamp: date,
@@ -480,7 +480,7 @@ describe('TimeLog Sync Routes', () => {
         payload: {
           timeLogs: [{
             id: timeLogId,
-            button_id: buttonWithTarget,
+            timer_id: timerWithTarget,
             type: 'holiday',
             start_timestamp: date,
             end_timestamp: date,
@@ -510,7 +510,7 @@ describe('TimeLog Sync Routes', () => {
         payload: {
           timeLogs: [{
             id: timeLogId,
-            button_id: buttonWithTarget,
+            timer_id: timerWithTarget,
             type: 'business-trip',
             start_timestamp: date,
             end_timestamp: date,
@@ -540,7 +540,7 @@ describe('TimeLog Sync Routes', () => {
         payload: {
           timeLogs: [{
             id: timeLogId,
-            button_id: buttonWithTarget,
+            timer_id: timerWithTarget,
             type: 'child-sick',
             start_timestamp: date,
             end_timestamp: date,
@@ -570,7 +570,7 @@ describe('TimeLog Sync Routes', () => {
         payload: {
           timeLogs: [{
             id: timeLogId,
-            button_id: buttonWithTarget,
+            timer_id: timerWithTarget,
             type: 'sick',
             start_timestamp: date,
             end_timestamp: date,
@@ -588,7 +588,7 @@ describe('TimeLog Sync Routes', () => {
       expect(body.saved[0].duration_minutes).toBe(0);
     });
 
-    it('should return 0 duration for special type when button has no target', async () => {
+    it('should return 0 duration for special type when timer has no target', async () => {
       const timeLogId = '7c0e8400-e29b-41d4-a716-446655440018';
       const date = new Date('2024-06-03T00:00:00Z').toISOString();
 
@@ -601,7 +601,7 @@ describe('TimeLog Sync Routes', () => {
         payload: {
           timeLogs: [{
             id: timeLogId,
-            button_id: buttonId, // This button has no target
+            timer_id: timerId, // This timer has no target
             type: 'sick',
             start_timestamp: date,
             end_timestamp: date,
@@ -615,7 +615,7 @@ describe('TimeLog Sync Routes', () => {
       const body = JSON.parse(response.body);
       expect(body.saved).toHaveLength(1);
       expect(body.saved[0].type).toBe('sick');
-      // Duration should be 0 because button has no target
+      // Duration should be 0 because timer has no target
       expect(body.saved[0].duration_minutes).toBe(0);
     });
   });

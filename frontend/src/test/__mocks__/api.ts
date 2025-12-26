@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { User, Button, TimeLog, DailyTarget } from '../../types';
+import type { User, Button, TimeLog, WorkSchedule } from '../../types';
 
 // Mock user data
 export const mockUser: User = {
@@ -23,8 +23,8 @@ export const mockButton: Button = {
   updated_at: '2024-01-01T00:00:00Z',
 };
 
-// Mock target data
-export const mockTarget: DailyTarget = {
+// Mock work schedule data
+export const mockTarget: WorkSchedule = {
   id: 'target-1',
   user_id: '1',
   name: 'Daily Work',
