@@ -33,6 +33,8 @@ WORKDIR /home/copilot
 ENV PATH="/home/copilot/.local/bin:${PATH}"
 
 COPY --chown=copilot:copilot . .
+RUN rm -rf **/node_modules
+RUN cd backend && npm ci && cd ../frontend && npm ci && cd ../lib && npm ci && cd ..
 
 RUN git config --global user.email "copilot@github.com"
 RUN git config --global user.name "GitHub Copilot"
