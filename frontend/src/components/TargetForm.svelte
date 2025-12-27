@@ -4,7 +4,7 @@
   import type { WorkSchedule, State, Button } from '../types';
   import { targetsStore } from '../stores/targets';
   import { statesStore } from '../stores/states';
-  import { buttonsStore } from '../stores/buttons';
+  import { timersStore } from '../stores/timers';
 
   export let target: WorkSchedule | null = null;
 
@@ -29,8 +29,8 @@
   let availableButtons: Button[] = [];
   let selectedButtonIds: string[] = [];
 
-  $: if ($buttonsStore.buttons) {
-    availableButtons = $buttonsStore.buttons;
+  $: if ($timersStore.buttons) {
+    availableButtons = $timersStore.buttons;
     
     // If editing a target, pre-select buttons that are already assigned to this target
     if (target?.id && availableButtons.length > 0 && selectedButtonIds.length === 0) {
@@ -114,11 +114,11 @@
 
     // Update buttons
     for (const buttonId of toAssign) {
-      await buttonsStore.update(buttonId, { target_id: targetId });
+      await timersStore.update(buttonId, { target_id: targetId });
     }
 
     for (const buttonId of toUnassign) {
-      await buttonsStore.update(buttonId, { target_id: undefined });
+      await timersStore.update(buttonId, { target_id: undefined });
     }
   }
 

@@ -3,7 +3,7 @@
   import dayjs from 'dayjs';
   import utc from 'dayjs/plugin/utc';
   import timezone from 'dayjs/plugin/timezone';
-  import { buttonsStore } from '../stores/buttons';
+  import { timersStore } from '../stores/timers';
 
   dayjs.extend(utc);
   dayjs.extend(timezone);
@@ -50,7 +50,7 @@
     }
   }
 
-  $: buttons = $buttonsStore.buttons;
+  $: buttons = $timersStore.buttons;
   $: hasDateError = errorMessage === 'End time must be after start time';
 
   const DAY_START_TIME = '00:00:00';

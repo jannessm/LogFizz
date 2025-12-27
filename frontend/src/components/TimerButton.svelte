@@ -2,7 +2,7 @@
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import type { Button } from '../types';
   import { timeLogsStore } from '../stores/timelogs';
-  import { buttonsStore } from '../stores/buttons';
+  import { timersStore } from '../stores/timers';
   import dayjs from 'dayjs';
   import { formatTime } from '../../../lib/utils/timeFormat.js';
 
@@ -115,7 +115,7 @@
 
   async function handleDelete() {
     if (confirm(`Delete "${button.name}"?`)) {
-      await buttonsStore.delete(button.id);
+      await timersStore.delete(button.id);
     }
   }
 

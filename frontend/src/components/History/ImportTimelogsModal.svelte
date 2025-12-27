@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import { buttonsStore } from '../../stores/buttons';
+  import { timersStore } from '../../stores/timers';
   import ButtonForm from '../ButtonForm.svelte';
   import {
     parseCSV,
@@ -51,7 +51,7 @@
     return null;
   }
 
-  $: buttons = $buttonsStore.buttons;
+  $: buttons = $timersStore.buttons;
 
   function handleClose() {
     dispatch('close');
@@ -368,7 +368,7 @@
     // After button is created (or form closed), refresh and auto-select the newest button for the project
     if (currentProjectForButton) {
       // Get the most recently created button (last in the list after sorting)
-      const sortedButtons = [...$buttonsStore.buttons].sort((a, b) => 
+      const sortedButtons = [...$timersStore.buttons].sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       

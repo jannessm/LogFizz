@@ -1,31 +1,33 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
-import type { Button, TimeLog, User, SyncQueueItem, DailyTarget, MonthlyBalance } from '../../types';
+import type { Timer, TimeLog, User, SyncQueueItem, Balance } from '../../types';
+import type { TargetWithSpecs } from '../../types';
 import { dayjs, userTimezone } from '../../../../lib/utils/dayjs.js';
 
 interface ClockDB extends DBSchema {
-  buttons: {
+  timers: {
     key: string;
-    value: Button;
+    value: Timer;
   };
   timelogs: {
     key: string;
     value: TimeLog;
     indexes: { 
-      'by-button': string;
+      'by-timer': string;
       'by-year-month': [number, number];
     };
   };
   targets: {
     key: string;
-    value: DailyTarget;
+    value: TargetWithSpecs;
   };
-  monthlyBalances: {
+  balances: {
     key: string;
-    value: MonthlyBalance;
+    value: Balance;
     indexes: {
-      'by-year-month': [number, number];
+      'by-date': string;
       'by-target-id': string;
+      'by-user-target-date': [string, string, string];
     };
   };
   syncQueue: {
@@ -47,7 +49,7 @@ interface ClockDB extends DBSchema {
 }
 
 const DB_NAME = 'tapshift-db';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbInstance: IDBPDatabase<ClockDB> | null = null;
 
@@ -58,15 +60,15 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
 
   dbInstance = await openDB<ClockDB>(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion) {
-      // Buttons store
-      if (!db.objectStoreNames.contains('buttons')) {
-        const buttonStore = db.createObjectStore('buttons', { keyPath: 'id' });
+      // Timers store (formerly buttons)
+      if (!db.objectStoreNames.contains('timers')) {
+        db.createObjectStore('timers', { keyPath: 'id' });
       }
 
       // TimeLogs store
       if (!db.objectStoreNames.contains('timelogs')) {
         const timelogStore = db.createObjectStore('timelogs', { keyPath: 'id' });
-        timelogStore.createIndex('by-button', 'button_id');
+        timelogStore.createIndex('by-timer', 'timer_id');
         timelogStore.createIndex('by-year-month', ['year', 'month']);
       }
 
@@ -95,11 +97,22 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
         db.createObjectStore('states', { keyPath: 'id' });
       }
 
-      // Monthly Balances store (added in version 2)
-      if (!db.objectStoreNames.contains('monthlyBalances')) {
-        const monthlyBalanceStore = db.createObjectStore('monthlyBalances', { keyPath: 'id' });
-        monthlyBalanceStore.createIndex('by-year-month', ['year', 'month']);
-        monthlyBalanceStore.createIndex('by-target-id', 'target_id');
+      // Balances store (unified for daily/monthly/yearly)
+      if (!db.objectStoreNames.contains('balances')) {
+        const balanceStore = db.createObjectStore('balances', { keyPath: 'id' });
+        balanceStore.createIndex('by-date', 'date');
+        balanceStore.createIndex('by-target-id', 'target_id');
+        balanceStore.createIndex('by-user-target-date', ['user_id', 'target_id', 'date']);
+      }
+
+      // Migration: Delete old stores if upgrading from v2
+      if (oldVersion < 3) {
+        if (db.objectStoreNames.contains('buttons')) {
+          db.deleteObjectStore('buttons');
+        }
+        if (db.objectStoreNames.contains('monthlyBalances')) {
+          db.deleteObjectStore('monthlyBalances');
+        }
       }
     },
   });
@@ -107,25 +120,25 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
   return dbInstance;
 }
 
-// Button operations
-export async function saveButton(button: Button): Promise<void> {
+// Timer operations (formerly Button)
+export async function saveTimer(timer: Timer): Promise<void> {
   const db = await getDB();
-  await db.put('buttons', button);
+  await db.put('timers', timer);
 }
 
-export async function getButton(id: string): Promise<Button | undefined> {
+export async function getTimer(id: string): Promise<Timer | undefined> {
   const db = await getDB();
-  return db.get('buttons', id);
+  return db.get('timers', id);
 }
 
-export async function getAllButtons(): Promise<Button[]> {
+export async function getAllTimers(): Promise<Timer[]> {
   const db = await getDB();
-  return db.getAll('buttons');
+  return db.getAll('timers');
 }
 
-export async function deleteButton(button: Button): Promise<void> {
+export async function deleteTimer(timer: Timer): Promise<void> {
   const db = await getDB();
-  await db.delete('buttons', button.id);
+  await db.delete('timers', timer.id);
 }
 
 // TimeLog operations
@@ -146,18 +159,18 @@ export async function saveTimeLog(timelog: TimeLog): Promise<void> {
   if (type === 'normal' && timelog.start_timestamp && timelog.end_timestamp) {
     
     // Determine whether to apply break calculation
-    // Priority: timelog's explicit setting > button's auto_subtract_breaks > false
+    // Priority: timelog's explicit setting > timer's auto_subtract_breaks > false
     let applyBreaks = timelog.apply_break_calculation;
     
-    // Only check button setting if apply_break_calculation is not explicitly set
-    if (applyBreaks === undefined && timelog.button_id) {
+    // Only check timer setting if apply_break_calculation is not explicitly set
+    if (applyBreaks === undefined && timelog.timer_id) {
       try {
-        const button = await getButton(timelog.button_id);
-        if (button) {
-          applyBreaks = button.auto_subtract_breaks;
+        const timer = await getTimer(timelog.timer_id);
+        if (timer) {
+          applyBreaks = timer.auto_subtract_breaks;
         }
       } catch (err) {
-        console.warn('Failed to read button for break calculation:', err);
+        console.warn('Failed to read timer for break calculation:', err);
       }
     }
     
@@ -194,9 +207,9 @@ export async function getTimeLog(id: string): Promise<TimeLog | undefined> {
   return db.get('timelogs', id);
 }
 
-export async function getTimeLogsByButton(buttonId: string): Promise<TimeLog[]> {
+export async function getTimeLogsByTimer(timerId: string): Promise<TimeLog[]> {
   const db = await getDB();
-  return db.getAllFromIndex('timelogs', 'by-button', buttonId);
+  return db.getAllFromIndex('timelogs', 'by-timer', timerId);
 }
 
 export async function getTimeLogsByYearMonth(year: number, month: number): Promise<TimeLog[]> {
@@ -264,37 +277,44 @@ export async function getSetting(key: string): Promise<any> {
 }
 
 // Sync cursor operations
-export async function saveSyncCursor(type: 'buttons' | 'timelogs' | 'targets' | 'monthlyBalances', cursor: string): Promise<void> {
+export async function saveSyncCursor(type: 'timers' | 'timelogs' | 'targets' | 'balances', cursor: string): Promise<void> {
   await saveSetting(`sync_cursor_${type}`, cursor);
 }
 
-export async function getSyncCursor(type: 'buttons' | 'timelogs' | 'targets' | 'monthlyBalances'): Promise<string | undefined> {
+export async function getSyncCursor(type: 'timers' | 'timelogs' | 'targets' | 'balances'): Promise<string | undefined> {
   return await getSetting(`sync_cursor_${type}`);
 }
 
-// Target operations
-export async function saveTarget(target: DailyTarget): Promise<void> {
+// Target operations (now with nested target_specs)
+export async function saveTarget(target: TargetWithSpecs): Promise<void> {
   const db = await getDB();
   await db.put('targets', target);
 }
 
-export async function getTarget(id: string): Promise<DailyTarget | undefined> {
+export async function getTarget(id: string): Promise<TargetWithSpecs | undefined> {
   const db = await getDB();
   return db.get('targets', id);
 }
 
-export async function getAllTargets(): Promise<DailyTarget[]> {
+export async function getAllTargets(): Promise<TargetWithSpecs[]> {
   const db = await getDB();
   return db.getAll('targets');
 }
 
 export async function getTargetStates(): Promise<string[]> {
   const targets = await getAllTargets();
-  const states = targets.map(target => target.state_code).filter(code => code !== undefined) as string[];
+  const states: string[] = [];
+  for (const target of targets) {
+    for (const spec of target.target_specs || []) {
+      if (spec.state_code) {
+        states.push(spec.state_code);
+      }
+    }
+  }
   return states;
 }
 
-export async function deleteTarget(target: DailyTarget): Promise<void> {
+export async function deleteTarget(target: TargetWithSpecs): Promise<void> {
   const db = await getDB();
   await db.delete('targets', target.id);
 }
@@ -314,42 +334,42 @@ export async function saveStates(states: any[]): Promise<void> {
 // Clear all data
 export async function clearAllData(): Promise<void> {
   const db = await getDB();
-  await db.clear('buttons');
+  await db.clear('timers');
   await db.clear('timelogs');
   await db.clear('targets');
-  await db.clear('monthlyBalances');
+  await db.clear('balances');
   await db.clear('syncQueue');
   await db.clear('user');
   await db.clear('settings');
 }
 
-// Monthly Balance operations
-export async function saveMonthlyBalance(balance: MonthlyBalance): Promise<void> {
+// Balance operations (unified for daily/monthly/yearly)
+export async function saveBalance(balance: Balance): Promise<void> {
   const db = await getDB();
-  await db.put('monthlyBalances', balance);
+  await db.put('balances', balance);
 }
 
-export async function getMonthlyBalance(id: string): Promise<MonthlyBalance | undefined> {
+export async function getBalance(id: string): Promise<Balance | undefined> {
   const db = await getDB();
-  return db.get('monthlyBalances', id);
+  return db.get('balances', id);
 }
 
-export async function getAllMonthlyBalances(): Promise<MonthlyBalance[]> {
+export async function getAllBalances(): Promise<Balance[]> {
   const db = await getDB();
-  return db.getAll('monthlyBalances');
+  return db.getAll('balances');
 }
 
-export async function getMonthlyBalancesByYearMonth(year: number, month: number): Promise<MonthlyBalance[]> {
+export async function getBalancesByDate(date: string): Promise<Balance[]> {
   const db = await getDB();
-  return db.getAllFromIndex('monthlyBalances', 'by-year-month', [year, month]);
+  return db.getAllFromIndex('balances', 'by-date', date);
 }
 
-export async function getMonthlyBalancesByTargetId(targetId: string): Promise<MonthlyBalance[]> {
+export async function getBalancesByTargetId(targetId: string): Promise<Balance[]> {
   const db = await getDB();
-  return db.getAllFromIndex('monthlyBalances', 'by-target-id', targetId);
+  return db.getAllFromIndex('balances', 'by-target-id', targetId);
 }
 
-export async function deleteMonthlyBalance(balance: MonthlyBalance): Promise<void> {
+export async function deleteBalance(balance: Balance): Promise<void> {
   const db = await getDB();
-  await db.delete('monthlyBalances', balance.id);
+  await db.delete('balances', balance.id);
 }

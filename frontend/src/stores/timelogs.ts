@@ -8,7 +8,7 @@ import {
 import { syncService } from '../services/sync';
 import { createBaseStore, type BaseStoreConfig } from './base-store';
 import { dayjs, userTimezone } from '../../../lib/utils/dayjs.js';
-import { balancesStore } from './monthly-balances';
+import { balancesStore } from './balances';
 
 async function recalculateBalancesForTimeLogs(timelogs: TimeLog[]) {
   // get months affected by the timelogs
@@ -22,12 +22,15 @@ async function recalculateBalancesForTimeLogs(timelogs: TimeLog[]) {
     }
   }
 
+  // Trigger balance recalculation for affected months
   for (const monthKey of affectedMonths) {
     const [yearStr, monthStr] = monthKey.split('-');
     const year = parseInt(yearStr, 10);
     const month = parseInt(monthStr, 10);
-
-    balancesStore.getMonthlyBalancesByYearMonth(year, month);
+    // Balance recalculation will be handled by the balances store
+    // For now, just log the affected months
+    // TODO: trigger calculation!
+    console.log(`Balance recalculation needed for ${year}-${month}`);
   }
 }
 
@@ -106,8 +109,9 @@ function createTimeLogsStore() {
       return baseStore.create({
         id: crypto.randomUUID(),
         user_id: timeLogData.user_id || '',
-        button_id: timeLogData.button_id || '',
+        timer_id: timeLogData.timer_id || '',
         type: timeLogData.type || 'normal',
+        whole_day: timeLogData.whole_day ?? false,
         start_timestamp: timeLogData.start_timestamp || new Date().toISOString(),
         end_timestamp: timeLogData.end_timestamp,
         duration_minutes: undefined, // Let saveTimeLog calculate this
@@ -141,12 +145,13 @@ function createTimeLogsStore() {
     },
 
 
-    async startTimer(buttonId: string) {
+    async startTimer(timerId: string) {
       const timeLog = await baseStore.create({
         id: crypto.randomUUID(),
         user_id: '', // Will be set by backend
-        button_id: buttonId,
+        timer_id: timerId,
         type: 'normal',
+        whole_day: false,
         start_timestamp: new Date().toISOString(),
         // No end_timestamp - timer is running
         timezone: userTimezone,

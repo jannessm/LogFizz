@@ -7,7 +7,7 @@ import { get } from 'svelte/store';
 // Mock the stores
 const mockButtons = [
   {
-    id: 'button-1',
+    id: 'timer-1',
     user_id: 'user-1',
     name: 'Work',
     emoji: '💼',
@@ -17,7 +17,7 @@ const mockButtons = [
     updated_at: '2024-01-01T00:00:00Z',
   },
   {
-    id: 'button-2',
+    id: 'timer-2',
     user_id: 'user-1',
     name: 'Study',
     emoji: '📚',
@@ -61,13 +61,13 @@ describe('TimelogForm Component', () => {
 
   it('renders edit timelog form with existing data', () => {
     const existingLog = {
-      button_id: 'button-1',
+      timer_id: 'timer-1',
       startTime: '2024-12-04T09:00:00',
       endTime: '2024-12-04T17:00:00',
       log: {
         id: 'log-1',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T09:00:00Z',
         end_timestamp: '2024-12-04T17:00:00Z',
         duration_minutes: 480,
@@ -103,7 +103,7 @@ describe('TimelogForm Component', () => {
 
     // Select a button
     const buttonSelect = screen.getByLabelText(/Button/i) as HTMLSelectElement;
-    await fireEvent.change(buttonSelect, { target: { value: 'button-1' } });
+    await fireEvent.change(buttonSelect, { target: { value: 'timer-1' } });
 
     // Uncheck the "Running" checkbox to show end date/time fields
     const runningCheckbox = screen.getByLabelText(/Running/i) as HTMLInputElement;
@@ -175,13 +175,13 @@ describe('TimelogForm Component', () => {
 
     // Test with existing log (should show delete button)
     const existingLog = {
-      button_id: 'button-1',
+      timer_id: 'timer-1',
       startTime: '2024-12-04T09:00:00',
       endTime: '2024-12-04T17:00:00',
       log: {
         id: 'log-1',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T09:00:00Z',
         end_timestamp: '2024-12-04T17:00:00Z',
         duration_minutes: 480,
@@ -218,7 +218,7 @@ describe('TimelogForm Component', () => {
 
     // Fill in the form
     const buttonSelect = screen.getByLabelText(/Button/i) as HTMLSelectElement;
-    await fireEvent.change(buttonSelect, { target: { value: 'button-1' } });
+    await fireEvent.change(buttonSelect, { target: { value: 'timer-1' } });
 
     // Uncheck the "Running" checkbox to show end date/time fields
     const runningCheckbox = screen.getByLabelText(/Running/i) as HTMLInputElement;
@@ -238,7 +238,7 @@ describe('TimelogForm Component', () => {
     await fireEvent.input(notesInput, { target: { value: 'Test work session' } });
 
     // Verify the form has the correct values
-    expect(buttonSelect.value).toBe('button-1');
+    expect(buttonSelect.value).toBe('timer-1');
     expect(startDateInput.value).toBe('2024-12-04');
     expect(startTimeInput.value).toBe('09:00');
     expect(endDateInput.value).toBe('2024-12-04');
@@ -265,13 +265,13 @@ describe('TimelogForm Component', () => {
   it('correctly handles editing a timelog with apply_break_calculation enabled', async () => {
     // Create a timelog for a button with auto_subtract_breaks enabled
     const existingLog = {
-      button_id: 'button-1', // This button has auto_subtract_breaks: true
+      timer_id: 'timer-1', // This button has auto_subtract_breaks: true
       startTime: '2024-12-04T08:00:00',
       endTime: '2024-12-04T18:00:00', // 10 hours total
       log: {
         id: 'log-1',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T18:00:00Z',
         duration_minutes: 555, // 10 hours (600 min) - 45 min break = 555 min
@@ -297,7 +297,7 @@ describe('TimelogForm Component', () => {
     
     // Verify the button with auto_subtract_breaks is selected
     const buttonSelect = screen.getByLabelText(/Button/i) as HTMLSelectElement;
-    expect(buttonSelect.value).toBe('button-1');
+    expect(buttonSelect.value).toBe('timer-1');
     
     // Verify the times are populated correctly
     const startTimeInput = screen.getByLabelText(/Start Time/i) as HTMLInputElement;
@@ -324,13 +324,13 @@ describe('TimelogForm Component', () => {
   it('correctly handles editing a timelog from button without auto_subtract_breaks', async () => {
     // Create a timelog for a button WITHOUT auto_subtract_breaks
     const existingLog = {
-      button_id: 'button-2', // This button has auto_subtract_breaks: false
+      timer_id: 'timer-2', // This button has auto_subtract_breaks: false
       startTime: '2024-12-04T08:00:00',
       endTime: '2024-12-04T18:00:00', // 10 hours total
       log: {
         id: 'log-2',
         user_id: 'user-1',
-        button_id: 'button-2',
+        timer_id: 'timer-2',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T18:00:00Z',
         duration_minutes: 600, // 10 hours (600 min) - no break subtraction
@@ -356,7 +356,7 @@ describe('TimelogForm Component', () => {
     
     // Verify the button without auto_subtract_breaks is selected
     const buttonSelect = screen.getByLabelText(/Button/i) as HTMLSelectElement;
-    expect(buttonSelect.value).toBe('button-2');
+    expect(buttonSelect.value).toBe('timer-2');
 
     // Modify the end time
     const endTimeInput = screen.getByLabelText(/End Time/i) as HTMLInputElement;
@@ -384,13 +384,13 @@ describe('TimelogForm Component', () => {
 
   it('shows delete confirmation dialog when delete button is clicked', async () => {
     const existingLog = {
-      button_id: 'button-1',
+      timer_id: 'timer-1',
       startTime: '2024-12-04T09:00:00',
       endTime: '2024-12-04T17:00:00',
       log: {
         id: 'log-1',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T09:00:00Z',
         end_timestamp: '2024-12-04T17:00:00Z',
         duration_minutes: 480,
@@ -577,13 +577,13 @@ describe('TimelogForm Component', () => {
 
     it('pre-populates type from existing log', () => {
       const existingLog = {
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         startTime: '2024-12-04T09:00:00',
         endTime: '2024-12-04T17:00:00',
         log: {
           id: 'log-1',
           user_id: 'user-1',
-          button_id: 'button-1',
+          timer_id: 'timer-1',
           type: 'sick',
           start_timestamp: '2024-12-04T09:00:00Z',
           end_timestamp: '2024-12-04T17:00:00Z',
