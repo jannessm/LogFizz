@@ -59,6 +59,8 @@ TimeLogsArray1 --> TimeLog
 
 ### Target Spec Structure
 
+only used in the backend. the frontend gets a nested datastructure and therefore no created, updated, deleted timestamps are used by the frontend.
+
 - id!
 - user_id!
 - target_id!
@@ -68,6 +70,9 @@ TimeLogsArray1 --> TimeLog
 - weekdays[]
 - exclude_holidays
 - state_code
+- created_at
+- updated_at
+- deleted_at
 
 ### Timelog Data Structure
 
