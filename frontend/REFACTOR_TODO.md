@@ -19,7 +19,7 @@ The backend has been refactored to implement a new balance calculation system:
 ### 1.1 Update Type Imports
 - [ ] **File: `src/types/index.ts`**
   - [ ] Remove `Button` export, add `Timer` export
-  - [ ] Remove `DailyTarget` export, add `Target` and `TargetSpec` exports
+  - [ ] Remove `DailyTarget` export, add `Target` export (with nested `target_specs` array - TargetSpec is not a separate entity for frontend)
   - [ ] Remove `MonthlyBalance` export, add `Balance` export
   - [ ] Verify all types are re-exported from `@clock/shared/types`
 
@@ -65,10 +65,10 @@ The backend has been refactored to implement a new balance calculation system:
 ### 3.2 Targets Store Refactor
 - [ ] **File: `src/stores/targets.ts`**
   - [ ] Remove old `DailyTarget` references
-  - [ ] Update to use `Target` type (`Target_Specs` are not a separate type for the frontend!) 
-  - [ ] Update `update()` method to handle TargetSpec updates
-  - [ ] Update `delete()` method to cascade delete TargetSpecs
-  - [ ] Update fields from Target to support an array of targetSpecs:
+  - [ ] Update to use `Target` type with nested `target_specs` array (TargetSpec is embedded in Target, not a separate entity for frontend - backend returns joined data)
+  - [ ] Update `update()` method to handle embedded target_specs array updates
+  - [ ] Update `delete()` method (no cascade needed - target_specs are part of Target object)
+  - [ ] Update fields: Target now contains `target_spec_ids[]` reference and receives nested target_specs from backend
 
 ### 3.3 Monthly Balances → Balances Store
 - [ ] **File: `src/stores/monthly-balances.ts` → `src/stores/balances.ts`**
@@ -76,7 +76,7 @@ The backend has been refactored to implement a new balance calculation system:
   - [ ] Remove dependency on removed `@clock/shared/monthlyBalance`
   - [ ] Update to use `Balance` type instead of `MonthlyBalance`
   - [ ] Implement new balance calculation flow from `lib/utils/balance.ts`:
-    - [ ] Use `calculateDueMinutes(date, target, targetSpecs, holidays)`
+    - [ ] Use `calculateDueMinutes(date, target, holidays)` (target_specs accessed via target.target_specs)
     - [ ] Use `calculateWorkedMinutesForDate(date, timelogs)`
     - [ ] Use `aggregateToMonthly(dailyBalances, previousCumulation)`
     - [ ] Use `aggregateToYearly(monthlyBalances, previousCumulation)`
@@ -131,17 +131,17 @@ The backend has been refactored to implement a new balance calculation system:
 
 ### 4.2 Target Components
 - [ ] **File: `src/components/TargetForm.svelte`**
-  - [ ] Update form to handle Target + TargetSpec split:
-    - [ ] Separate sections for Target (name) and TargetSpec (schedule details)
-    - [ ] Support multiple TargetSpecs per Target
+  - [ ] Update form to handle Target with nested target_specs (backend returns joined data):
+    - [ ] Separate sections for Target (name) and target_specs (schedule details)
+    - [ ] Support multiple target_specs entries per Target
     - [ ] Add UI for `starting_from` and `ending_at` dates
-  - [ ] Update validation logic for new structure
-  - [ ] Update submit handler to create both Target and TargetSpec
-  - [ ] Add ability to add/edit/delete multiple TargetSpecs
+  - [ ] Update validation logic for nested structure
+  - [ ] Update submit handler to save Target with embedded target_specs array
+  - [ ] Add ability to add/edit/delete target_specs within the Target object
 
 - [ ] **File: `src/components/DailyTargets.svelte`**
-  - [ ] Update to fetch and display Target with its TargetSpecs
-  - [ ] Update display logic to show applicable TargetSpec for current date
+  - [ ] Update to fetch and display Target with nested target_specs (already joined from backend)
+  - [ ] Update display logic to show applicable target_spec for current date (filter from target.target_specs array)
   - [ ] Update references from `DailyTarget` to `Target`
 
 ### 4.3 Balance Components
@@ -200,10 +200,9 @@ The backend has been refactored to implement a new balance calculation system:
 - [ ] **File: `src/services/api.ts`**
   - [ ] Update endpoint constants:
     - [ ] `/buttons` → `/timers`
-    - [ ] `/targets` endpoints (verify structure)
+    - [ ] `/targets` endpoints (returns Target with nested target_specs - no separate TargetSpec endpoints needed)
     - [ ] `/monthly-balances` → `/balances`
-  - [ ] Update request/response types to match new backend structure
-  - [ ] Add methods for TargetSpec CRUD operations
+  - [ ] Update request/response types to match new backend structure (Target includes embedded target_specs array)
 
 ---
 
@@ -276,7 +275,7 @@ The backend has been refactored to implement a new balance calculation system:
 
 - [ ] **Update README** (if exists in frontend/)
   - [ ] Document new balance calculation approach
-  - [ ] Document Target + TargetSpec relationship
+  - [ ] Document Target with nested target_specs structure (backend joins data - frontend receives single entity)
   - [ ] Document timelog types
 
 ---
@@ -324,7 +323,7 @@ No migration needed!
 - [ ] Test edge cases:
   - [ ] Multi-day timelogs
   - [ ] Timelogs spanning month boundaries
-  - [ ] Multiple TargetSpecs for same Target
+  - [ ] Multiple target_specs entries within same Target (nested array)
   - [ ] Whole-day special type timelogs
   - [ ] Balance recalculation after bulk import
 - [ ] Performance testing with large datasets
