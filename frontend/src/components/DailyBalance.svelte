@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import type { WorkSchedule } from '../types';
   import { targetsStore } from '../stores/targets';
-  import { buttonsStore } from '../stores/buttons';
+  import { timersStore } from '../stores/timers';
   import { timeLogsStore } from '../stores/timelogs';
   import { formatMinutes, formatHours, getBalanceColor } from '../../../lib/utils/timeFormat.js';
   import dayjs from 'dayjs';
@@ -43,7 +43,7 @@
       const targetDuration = todayIndex >= 0 ? target.duration_minutes[todayIndex] : (target.duration_minutes[0] || 0);
 
       // Find all buttons assigned to this target
-      const assignedButtons = $buttonsStore.buttons.filter(b => b.target_id === target.id && !b.deleted_at);
+      const assignedButtons = $timersStore.buttons.filter(b => b.target_id === target.id && !b.deleted_at);
 
       // Calculate worked time for today
       let workedMinutes = 0;
@@ -101,7 +101,7 @@
     balances = newBalances;
   }
 
-  $: if ($targetsStore.targets && $buttonsStore.buttons && $timeLogsStore.timeLogs || refreshTick) {
+  $: if ($targetsStore.targets && $timersStore.buttons && $timeLogsStore.timeLogs || refreshTick) {
     calculateDailyBalances();
   }
 

@@ -37,7 +37,7 @@ export interface DbOperations<T extends BaseItem> {
 export interface SyncOperations<T extends BaseItem> {
   queueUpsert: (item: T) => Promise<void>;
   queueDelete: (item: T) => Promise<void>;
-  syncType: 'button' | 'timelog' | 'target' | 'monthlyBalance';
+  syncType: 'timer' | 'timelog' | 'target' | 'balance';
 }
 
 /**

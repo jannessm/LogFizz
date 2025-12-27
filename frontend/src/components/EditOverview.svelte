@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { buttonsStore } from '../stores/buttons';
+  import { timersStore } from '../stores/timers';
   import { targetsStore } from '../stores/targets';
   import { timeLogsStore } from '../stores/timelogs';
   import type { Button, DailyTarget } from '../types';
@@ -27,7 +27,7 @@
 
   async function handleDeleteButton(button: Button) {
     if (confirm(`Delete button "${button.name}"?`)) {
-      await buttonsStore.delete(button.id);
+      await timersStore.delete(button.id);
     }
   }
 
@@ -39,7 +39,7 @@
 
   // Calculate progress for each target
   function calculateTargetProgress(target: DailyTarget) {
-    const assignedButtons = $buttonsStore.buttons.filter(b => b.target_id === target.id);
+    const assignedButtons = $timersStore.buttons.filter(b => b.target_id === target.id);
     const todayStart = dayjs().startOf('day');
     const todayEnd = dayjs().endOf('day');
     
@@ -114,10 +114,10 @@
   $: archivedTargets = $targetsStore.targets.filter(t => isTargetEnded(t));
 
   // Get active buttons (not linked to ended targets)
-  $: activeButtons = $buttonsStore.buttons.filter(b => !b.archived);
+  $: activeButtons = $timersStore.buttons.filter(b => !b.archived);
 
   // Get archived buttons (linked to ended targets)
-  $: archivedButtons = $buttonsStore.buttons.filter(b => b.archived);
+  $: archivedButtons = $timersStore.buttons.filter(b => b.archived);
 </script>
 
 <!-- Modal Overlay -->

@@ -13,9 +13,8 @@ import {
   aggregateToYearly,
   type Balance,
   type Target,
-  type DurationSpec,
 } from './balance.js';
-import type { TimeLog } from '../types/index.js';
+import type { TimeLog, TargetSpec } from '../types/index.js';
 
 describe('Balance Calculation Utilities', () => {
   describe('getEffectiveRange', () => {
@@ -166,17 +165,20 @@ describe('Balance Calculation Utilities', () => {
   });
 
   describe('calculateDueMinutes', () => {
-    const createTarget = (specs: Partial<DurationSpec>[]): Target => ({
+    const createTarget = (specs: Partial<TargetSpec>[]): Target => ({
       id: 'target-1',
       user_id: 'user-1',
       name: 'Test Target',
-      duration_specs: specs.map(spec => ({
+      target_specs: specs.map(spec => ({
+        id: `spec-${Math.random()}`,
+        user_id: 'user-1',
+        target_id: 'target-1',
         starting_from: spec.starting_from || '2024-01-01',
-        ending_at: spec.ending_at || null,
+        ending_at: spec.ending_at || undefined,
         duration_minutes: spec.duration_minutes || [480, 480, 480, 480, 480],
         weekdays: spec.weekdays || [1, 2, 3, 4, 5],
         exclude_holidays: spec.exclude_holidays !== undefined ? spec.exclude_holidays : false,
-        state_code: spec.state_code || null,
+        state_code: spec.state_code || undefined,
       })),
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z',
@@ -257,7 +259,7 @@ describe('Balance Calculation Utilities', () => {
           date: '2024-06-01',
           due_minutes: 480,
           worked_minutes: 500,
-          cumulation_minutes: 0, // Not used for daily
+          cumulative_minutes: 0, // Not used for daily
           sick_days: 0,
           holidays: 0,
           business_trip: 0,
@@ -275,7 +277,7 @@ describe('Balance Calculation Utilities', () => {
           date: '2024-06-02',
           due_minutes: 480,
           worked_minutes: 470,
-          cumulation_minutes: 0,
+          cumulative_minutes: 0,
           sick_days: 0,
           holidays: 0,
           business_trip: 0,
@@ -290,7 +292,7 @@ describe('Balance Calculation Utilities', () => {
       expect(result.date).toBe('2024-06');
       expect(result.due_minutes).toBe(960);
       expect(result.worked_minutes).toBe(970);
-      expect(result.cumulation_minutes).toBe(10); // 970 - 960 + 0
+      expect(result.cumulative_minutes).toBe(10); // 970 - 960 + 0
       expect(result.worked_days).toBe(2);
     });
 
@@ -305,7 +307,7 @@ describe('Balance Calculation Utilities', () => {
           date: '2024-06-01',
           due_minutes: 480,
           worked_minutes: 0,
-          cumulation_minutes: 0,
+          cumulative_minutes: 0,
           sick_days: 1,
           holidays: 0,
           business_trip: 0,
@@ -332,7 +334,7 @@ describe('Balance Calculation Utilities', () => {
           date: '2024-06-01',
           due_minutes: 480,
           worked_minutes: 480,
-          cumulation_minutes: 0,
+          cumulative_minutes: 0,
           sick_days: 0,
           holidays: 0,
           business_trip: 0,
@@ -345,7 +347,7 @@ describe('Balance Calculation Utilities', () => {
       
       const previousCumulation = 120;
       const result = aggregateToMonthly(dailyBalances, previousCumulation);
-      expect(result.cumulation_minutes).toBe(120); // 480 - 480 + 120
+      expect(result.cumulative_minutes).toBe(120); // 480 - 480 + 120
     });
   });
 
@@ -361,7 +363,7 @@ describe('Balance Calculation Utilities', () => {
           date: '2024-01',
           due_minutes: 9600,
           worked_minutes: 9800,
-          cumulation_minutes: 200,
+          cumulative_minutes: 200,
           sick_days: 1,
           holidays: 0,
           business_trip: 0,
@@ -379,7 +381,7 @@ describe('Balance Calculation Utilities', () => {
           date: '2024-02',
           due_minutes: 9120,
           worked_minutes: 9100,
-          cumulation_minutes: 180,
+          cumulative_minutes: 180,
           sick_days: 0,
           holidays: 2,
           business_trip: 0,
@@ -394,7 +396,7 @@ describe('Balance Calculation Utilities', () => {
       expect(result.date).toBe('2024');
       expect(result.due_minutes).toBe(18720);
       expect(result.worked_minutes).toBe(18900);
-      expect(result.cumulation_minutes).toBe(180); // 18900 - 18720 + 0
+      expect(result.cumulative_minutes).toBe(180); // 18900 - 18720 + 0
       expect(result.worked_days).toBe(39);
       expect(result.sick_days).toBe(1);
       expect(result.holidays).toBe(2);

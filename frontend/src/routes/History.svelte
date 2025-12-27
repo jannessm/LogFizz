@@ -9,7 +9,7 @@
   import MonthlyBalance from '../components/History/MonthlyBalance.svelte';
   import ImportTimelogsModal from '../components/History/ImportTimelogsModal.svelte';
   import { timeLogsStore } from '../stores/timelogs';
-  import { buttonsStore, buttons } from '../stores/buttons';
+  import { timersStore, timers } from '../stores/timers';
   import { targetsStore, targets } from '../stores/targets';
   import { holidaysStore } from '../stores/holidays';
   import { snackbar } from '../stores/snackbar';
@@ -67,14 +67,19 @@
     dayjs(tl.start_timestamp).month() === currentMonth.month() && 
     dayjs(tl.start_timestamp).year() === currentMonth.year()
   );
-  $: allButtons = $buttons;
+  $: allTimers = $timers;
   $: allTargets = $targets;
 
   // Get unique state codes from all daily targets
   function getTargetCountries(): string[] {
-    const countries = allTargets
-      .filter((t: any) => t.state_code) // Only targets with state codes
-      .map((t: any) => t.state_code!);
+    const countries: string[] = [];
+    for (const t of allTargets) {
+      for (const spec of t.target_specs || []) {
+        if (spec.state_code) {
+          countries.push(spec.state_code);
+        }
+      }
+    }
     return Array.from(new Set(countries)); // Remove duplicates
   }
 
@@ -188,12 +193,12 @@
   }
 
   async function handleSaveTimelog(event: CustomEvent) {
-    const { button_id, type, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
+    const { timer_id, type, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
     
     if (existingLog && existingLog.log) {
       // Editing existing timelog session - update it
       await timeLogsStore.update(existingLog.log.id, {
-        button_id,
+        timer_id,
         type,
         start_timestamp: startTimestamp,
         end_timestamp: endTimestamp || undefined,
@@ -202,7 +207,7 @@
     } else {
       // Creating new timelog session
       await timeLogsStore.create({
-        button_id,
+        timer_id,
         type,
         start_timestamp: startTimestamp,
         end_timestamp: endTimestamp || undefined,
@@ -250,17 +255,17 @@
   }
 
   async function handleImportConfirm(event: CustomEvent<{ 
-    buttonId: string; 
-    timelogs: Array<{ start_timestamp: string; end_timestamp: string; notes?: string; button_id?: string }>; 
+    timerId: string; 
+    timelogs: Array<{ start_timestamp: string; end_timestamp: string; notes?: string; timer_id?: string }>; 
     skippedCount: number;
     hasProjectMappings?: boolean;
   }>) {
-    const { buttonId, timelogs, skippedCount, hasProjectMappings } = event.detail;
+    const { timerId, timelogs, skippedCount, hasProjectMappings } = event.detail;
     
     // Create all timelogs concurrently for better performance
     const createPromises = timelogs.map(log => 
       timeLogsStore.create({
-        button_id: log.button_id || buttonId, // Use button_id from timelog if present (project mapping), otherwise use shared buttonId
+        timer_id: log.timer_id || timerId, // Use timer_id from timelog if present (project mapping), otherwise use shared timerId
         start_timestamp: log.start_timestamp,
         end_timestamp: log.end_timestamp,
         notes: log.notes,

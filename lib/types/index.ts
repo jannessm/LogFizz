@@ -63,8 +63,8 @@ export interface Balance {
   id: string;
   user_id: string;
   target_id: string;
-  next_balance_id: string;
-  parent_balance_id: string;
+  next_balance_id: string | null;
+  parent_balance_id?: string | null;
 
   date: string; // year, year-month, or year-month-date
   due_minutes: number;

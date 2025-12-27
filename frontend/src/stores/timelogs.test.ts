@@ -93,7 +93,7 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-1',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T17:00:00Z', // 9 hours
         duration_minutes: 495, // 9 hours (540 min) - 45 min = 495 min
@@ -127,7 +127,7 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-2',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T18:00:00Z', // 10 hours
         duration_minutes: 555, // 10 hours (600 min) - 45 min = 555 min
@@ -161,7 +161,7 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-3',
         user_id: 'user-1',
-        button_id: 'button-2',
+        timer_id: 'timer-2',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T17:00:00Z', // 9 hours
         duration_minutes: 540, // 9 hours (540 min) - no breaks
@@ -195,7 +195,7 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-4',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T12:00:00Z', // 4 hours
         duration_minutes: 240, // 4 hours - no break threshold reached
@@ -229,7 +229,7 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-5',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T13:59:00Z', // Just under 6 hours
         duration_minutes: 359, // 5:59 - no break
@@ -263,7 +263,7 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-6',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T16:59:00Z', // Just under 9 hours
         duration_minutes: 509, // 8:59 - 30 min break = 509 min
@@ -297,7 +297,7 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-7',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T17:00:00Z', // 9 hours
         duration_minutes: 495, // 9 hours - 45 min = 495 min
@@ -336,7 +336,7 @@ describe('timeLogsStore - Break Calculation', () => {
       const runningTimer: TimeLog = {
         id: 'timer-1',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: undefined, // Still running
         duration_minutes: undefined,

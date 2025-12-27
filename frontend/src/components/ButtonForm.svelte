@@ -1,18 +1,17 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import type { Button } from '../types';
-  import { buttonsStore } from '../stores/buttons';
+  import type { Timer } from '../types';
+  import { timersStore } from '../stores/timers';
   import { targetsStore } from '../stores/targets';
   import EmojiPicker from './EmojiPicker.svelte';
 
-  export let button: Button | null = null;
+  export let button: Timer | null = null;
 
   const dispatch = createEventDispatcher();
 
   let name = button?.name || '';
   let emoji = button?.emoji || '';
   let color = button?.color || '#3B82F6';
-  let targetId = button?.target_id || '';
   let autoSubtractBreaks = button?.auto_subtract_breaks ?? false;
   let archived = button?.archived ?? false;
   let isLoading = false;
@@ -33,24 +32,23 @@
     errorMessage = '';
 
     try {
-      const buttonData = {
+      const timerData = {
         name: name.trim(),
         emoji: emoji || undefined,
         color,
-        target_id: targetId || undefined,
         auto_subtract_breaks: autoSubtractBreaks,
         archived,
       };
 
       if (button) {
-        await buttonsStore.update(button.id, buttonData);
+        await timersStore.update(button.id, timerData);
       } else {
-        await buttonsStore.create(buttonData);
+        await timersStore.create(timerData);
       }
 
       dispatch('close');
     } catch (error: any) {
-      errorMessage = error.message || 'Failed to save button';
+      errorMessage = error.message || 'Failed to save timer';
     } finally {
       isLoading = false;
     }
@@ -141,26 +139,6 @@
             bind:value={color}
             class="w-full h-10 rounded-md border border-gray-300"
           />
-        </div>
-
-        <!-- Target Assignment -->
-        <div>
-          <label for="targetId" class="block text-sm font-medium text-gray-700 mb-1">
-            Assign to Target (optional)
-          </label>
-          <select
-            id="targetId"
-            bind:value={targetId}
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">No target</option>
-            {#each $targetsStore.targets.slice().sort((a, b) => a.name.localeCompare(b.name)) as target}
-              <option value={target.id}>{target.name}</option>
-            {/each}
-          </select>
-          <p class="text-xs text-gray-500 mt-1">
-            Assign this button to a daily target to track progress
-          </p>
         </div>
 
         <!-- Goal Time -->

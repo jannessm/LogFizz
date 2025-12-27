@@ -1,5 +1,5 @@
 import { derived } from 'svelte/store';
-import type { DailyTarget } from '../types';
+import type { TargetWithSpecs } from '../types';
 import { saveTarget, getAllTargets, deleteTarget as deleteTargetDB } from '../lib/db';
 import { syncService } from '../services/sync';
 import { createBaseStore, type BaseStoreConfig } from './base-store';
@@ -7,7 +7,7 @@ import { holidaysStore } from './holidays';
 import dayjs from '../../../lib/utils/dayjs.js';
 
 // Configure the base store for targets
-const targetStoreConfig: BaseStoreConfig<DailyTarget> = {
+const targetStoreConfig: BaseStoreConfig<TargetWithSpecs> = {
   db: {
     getAll: getAllTargets,
     save: saveTarget,
@@ -20,10 +20,21 @@ const targetStoreConfig: BaseStoreConfig<DailyTarget> = {
   },
   hooks: {
     afterLoad: (items) => {
-      holidaysStore.fetchHolidaysForStates(
-        items.map(t => t.state_code).filter(Boolean) as string[],
-        dayjs().year(),
-      );
+      // Collect all state codes from target_specs
+      const stateCodes: string[] = [];
+      for (const target of items) {
+        for (const spec of target.target_specs || []) {
+          if (spec.state_code) {
+            stateCodes.push(spec.state_code);
+          }
+        }
+      }
+      if (stateCodes.length > 0) {
+        holidaysStore.fetchHolidaysForStates(
+          stateCodes,
+          dayjs().year(),
+        );
+      }
       return items;
     },
   },
@@ -31,24 +42,19 @@ const targetStoreConfig: BaseStoreConfig<DailyTarget> = {
 };
 
 // Create the base store
-const baseStore = createBaseStore<DailyTarget>(targetStoreConfig);
+const baseStore = createBaseStore<TargetWithSpecs>(targetStoreConfig);
 
 // Create the targets store with custom create method
 function createTargetsStore() {
   return {
     ...baseStore,
 
-    async create(targetData: Partial<DailyTarget>) {
+    async create(targetData: Partial<TargetWithSpecs>) {
       return baseStore.create({
         id: crypto.randomUUID(),
         user_id: '',
         name: targetData.name || '',
-        duration_minutes: targetData.duration_minutes || [60], // Default to 60 minutes
-        weekdays: targetData.weekdays || [1, 2, 3, 4, 5], // Default to weekdays
-        exclude_holidays: targetData.exclude_holidays || false,
-        state_code: targetData.state_code,
-        starting_from: targetData.starting_from,
-        ending_at: targetData.ending_at,
+        target_specs: targetData.target_specs || [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
@@ -64,11 +70,30 @@ export const targets = derived(
   ($store) => $store.items
 );
 
-// Derived store for today's targets
+// Derived store for today's targets (those with active target_specs for today)
 export const todayTargets = derived(
   targetsStore,
   ($targetsStore) => {
-    const today = new Date().getDay();
-    return $targetsStore.items.filter(t => t.weekdays.includes(today));
+    const today = dayjs();
+    const todayWeekday = today.day(); // 0=Sunday, 6=Saturday
+    const todayStr = today.format('YYYY-MM-DD');
+    
+    return $targetsStore.items.filter(target => {
+      // Check if any target_spec is active for today
+      for (const spec of target.target_specs || []) {
+        const startDate = dayjs(spec.starting_from);
+        const endDate = spec.ending_at ? dayjs(spec.ending_at) : null;
+        
+        // Check date range
+        if (today.isBefore(startDate, 'day')) continue;
+        if (endDate && today.isAfter(endDate, 'day')) continue;
+        
+        // Check weekday
+        if (spec.weekdays.includes(todayWeekday)) {
+          return true;
+        }
+      }
+      return false;
+    });
   }
 );

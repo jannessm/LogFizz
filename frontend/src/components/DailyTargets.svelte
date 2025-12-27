@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { todayTargets } from '../stores/targets';
-  import { buttonsStore } from '../stores/buttons';
+  import { timersStore } from '../stores/timers';
   import { timeLogsStore } from '../stores/timelogs';
   import type { WorkSchedule } from '../types';
   import dayjs from 'dayjs';
@@ -12,7 +12,7 @@
   let progressMap = new Map<string, { totalMinutes: number; targetDuration: number; percentage: number; completed: boolean }>();
   let interval: number | null = null;
 
-  $: if ($todayTargets.length > 0 && $buttonsStore.buttons && $timeLogsStore.timeLogs) {
+  $: if ($todayTargets.length > 0 && $timersStore.buttons && $timeLogsStore.timeLogs) {
     updateProgressMap();
     
     // Separate active and inactive targets
@@ -70,7 +70,7 @@
   // Check if target is currently active (any assigned button is running)
   function isTargetActive(target: WorkSchedule): boolean {
     // Find all buttons assigned to this target
-    const assignedButtons = $buttonsStore.buttons.filter(b => b.target_id === target.id);
+    const assignedButtons = $timersStore.buttons.filter(b => b.target_id === target.id);
     
     // Check if any of these buttons have active timers
     return assignedButtons.some(button => 
@@ -81,7 +81,7 @@
   // Calculate progress for each target
   function calculateTargetProgress(target: WorkSchedule) {
     // Find all buttons assigned to this target
-    const assignedButtons = $buttonsStore.buttons.filter(b => b.target_id === target.id);
+    const assignedButtons = $timersStore.buttons.filter(b => b.target_id === target.id);
     
     // Get today's start/end
     const todayStart = dayjs().startOf('day');

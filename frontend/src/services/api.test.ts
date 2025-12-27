@@ -18,20 +18,14 @@ describe('API Service', () => {
       expect(typeof apiModule.authApi.updateProfile).toBe('function');
     });
 
-    it('should export buttonApi', () => {
-      expect(apiModule.buttonApi).toBeDefined();
-      expect(typeof apiModule.buttonApi.getAll).toBe('function');
-      expect(typeof apiModule.buttonApi.get).toBe('function');
-      expect(typeof apiModule.buttonApi.create).toBe('function');
-      expect(typeof apiModule.buttonApi.update).toBe('function');
-      expect(typeof apiModule.buttonApi.delete).toBe('function');
+    it('should export timerApi', () => {
+      expect(apiModule.timerApi).toBeDefined();
+      expect(typeof apiModule.timerApi.getSyncChanges).toBe('function');
+      expect(typeof apiModule.timerApi.pushSyncChanges).toBe('function');
     });
 
     it('should export timeLogApi', () => {
       expect(apiModule.timeLogApi).toBeDefined();
-      expect(typeof apiModule.timeLogApi.start).toBe('function');
-      expect(typeof apiModule.timeLogApi.stop).toBe('function');
-      expect(typeof apiModule.timeLogApi.getAll).toBe('function');
       expect(typeof apiModule.timeLogApi.getSyncChanges).toBe('function');
       expect(typeof apiModule.timeLogApi.pushSyncChanges).toBe('function');
     });

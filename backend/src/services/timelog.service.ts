@@ -1,14 +1,9 @@
 import { AppDataSource } from '../config/database.js';
 import { TimeLog } from '../entities/TimeLog.js';
-import { Timer } from '../entities/Timer.js';
-import { Target } from '../entities/Target.js';
 import { MoreThan } from 'typeorm';
-import dayjs from '../../../lib/utils/dayjs.js';
 
 export class TimeLogService {
   private timeLogRepository = AppDataSource.getRepository(TimeLog);
-  private timerRepository = AppDataSource.getRepository(Timer);
-  private targetRepository = AppDataSource.getRepository(Target);
 
   /**
    * Get all time logs (including soft-deleted) changed since a given timestamp
@@ -24,62 +19,6 @@ export class TimeLogService {
     });
   }
 
-  /**
-   * Calculate duration for a time log based on its type
-   * For special types (sick, holiday, etc.), calculate based on daily target
-   * For normal type, preserve provided duration or calculate from start/end timestamps
-   */
-  private async calculateDuration(timeLog: Partial<TimeLog>): Promise<number | undefined> {
-    const type = timeLog.type || 'normal'; // Default to 'normal' if not specified
-
-    // For normal type, use provided duration_minutes if available
-    if (type === 'normal') {
-      // If duration is already provided, use it
-      if (timeLog.duration_minutes !== undefined && timeLog.duration_minutes !== null) {
-        return timeLog.duration_minutes;
-      }
-      // Otherwise, calculate from timestamps if both are available
-      if (timeLog.end_timestamp && timeLog.start_timestamp) {
-        const startTime = dayjs(timeLog.start_timestamp);
-        const endTime = dayjs(timeLog.end_timestamp);
-        return endTime.diff(startTime, 'minute');
-      }
-      return undefined;
-    }
-
-    // For special types, get the daily target duration for this day
-    if (timeLog.timer_id && timeLog.start_timestamp) {
-      // Get the timer to find its target_id
-      const timer = await this.timerRepository.findOne({
-        where: { id: timeLog.timer_id },
-      });
-
-      if (!timer || !timer.target_id) {
-        // No target assigned, return 0
-        return 0;
-      }
-
-      // Get the target
-      const target = await this.targetRepository.findOne({
-        where: { id: timer.target_id },
-      });
-
-      if (!target) {
-        return 0;
-      }
-
-      // Get the weekday of the timelog (0=Sunday, 6=Saturday)
-      const date = dayjs(timeLog.start_timestamp);
-      const weekday = date.day();
-
-      // Note: Target structure has changed, this logic may need to be updated
-      // based on the new target_spec_ids system
-      // For now, return 0 as a placeholder
-      return 0;
-    }
-
-    return undefined;
-  }
 
   /**
    * Push bulk changes to time logs (create or update) with conflict detection
@@ -102,16 +41,6 @@ export class TimeLogService {
     }> = [];
 
     for (const change of changes) {
-      // Calculate duration for the timelog only for special types
-      // For normal type, preserve the provided duration_minutes
-      const type = change.type || 'normal';
-      if (type !== 'normal') {
-        const duration = await this.calculateDuration(change);
-        if (duration !== undefined) {
-          change.duration_minutes = duration;
-        }
-      }
-
       if (change.id) {
         // Check if time log exists on server
         const existing = await this.timeLogRepository.findOne({
