@@ -28,10 +28,10 @@ const mockButtons = [
   },
 ];
 
-vi.mock('../stores/buttons', () => ({
-  buttonsStore: {
+vi.mock('../stores/timers', () => ({
+  timersStore: {
     subscribe: vi.fn((callback) => {
-      callback({ buttons: mockButtons, isLoading: false, error: null });
+      callback({ items: mockButtons, isLoading: false, error: null });
       return () => {};
     }),
   },
@@ -74,7 +74,7 @@ describe('TimelogForm Component', () => {
         timezone: 'UTC',
         apply_break_calculation: false,
         notes: 'Test note',
-        is_manual: true,
+        
         created_at: '2024-12-04T09:00:00Z',
         updated_at: '2024-12-04T17:00:00Z',
       },
@@ -188,7 +188,7 @@ describe('TimelogForm Component', () => {
         timezone: 'UTC',
         apply_break_calculation: false,
         notes: '',
-        is_manual: true,
+        
         created_at: '2024-12-04T09:00:00Z',
         updated_at: '2024-12-04T17:00:00Z',
       },
@@ -278,7 +278,7 @@ describe('TimelogForm Component', () => {
         timezone: 'UTC',
         apply_break_calculation: true, // Break calculation was applied
         notes: 'Long work session',
-        is_manual: true,
+        
         created_at: '2024-12-04T08:00:00Z',
         updated_at: '2024-12-04T18:00:00Z',
       },
@@ -337,7 +337,7 @@ describe('TimelogForm Component', () => {
         timezone: 'UTC',
         apply_break_calculation: false, // No break calculation
         notes: 'Study session',
-        is_manual: true,
+        
         created_at: '2024-12-04T08:00:00Z',
         updated_at: '2024-12-04T18:00:00Z',
       },
@@ -397,7 +397,7 @@ describe('TimelogForm Component', () => {
         timezone: 'UTC',
         apply_break_calculation: false,
         notes: '',
-        is_manual: true,
+        
         created_at: '2024-12-04T09:00:00Z',
         updated_at: '2024-12-04T17:00:00Z',
       },
@@ -513,8 +513,9 @@ describe('TimelogForm Component', () => {
         // Should not show start/end time fields for sick type
         expect(screen.queryByLabelText(/Start Time/i)).not.toBeInTheDocument();
         expect(screen.queryByLabelText(/End Time/i)).not.toBeInTheDocument();
-        // Should show date field
-        expect(screen.getByLabelText(/Date/i)).toBeInTheDocument();
+        // Should show date range fields (Start Date and End Date)
+        expect(screen.getByLabelText(/Start Date/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/End Date/i)).toBeInTheDocument();
       });
     });
 
@@ -533,7 +534,9 @@ describe('TimelogForm Component', () => {
       await waitFor(() => {
         expect(screen.queryByLabelText(/Start Time/i)).not.toBeInTheDocument();
         expect(screen.queryByLabelText(/End Time/i)).not.toBeInTheDocument();
-        expect(screen.getByLabelText(/Date/i)).toBeInTheDocument();
+        // Should show date range fields (Start Date and End Date)
+        expect(screen.getByLabelText(/Start Date/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/End Date/i)).toBeInTheDocument();
       });
     });
 
@@ -591,7 +594,7 @@ describe('TimelogForm Component', () => {
           timezone: 'UTC',
           apply_break_calculation: false,
           notes: 'Sick day',
-          is_manual: true,
+          
           created_at: '2024-12-04T09:00:00Z',
           updated_at: '2024-12-04T17:00:00Z',
         },

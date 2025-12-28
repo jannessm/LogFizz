@@ -17,7 +17,7 @@
 
   const dispatch = createEventDispatcher();
 
-  let buttonId = existingLog?.button_id || '';
+  let buttonId = existingLog?.timer_id || '';
   let type = existingLog?.log?.type || 'normal';
   
   // When editing, convert from stored timezone to user's local timezone
@@ -50,7 +50,7 @@
     }
   }
 
-  $: buttons = $timersStore.buttons;
+  $: buttons = $timersStore.items;
   $: hasDateError = errorMessage === 'End time must be after start time';
 
   const DAY_START_TIME = '00:00:00';
@@ -82,7 +82,7 @@
       const endTimestamp = `${endDate}T${DAY_END_TIME}`;
       
       dispatch('save', {
-        button_id: buttonId,
+        timer_id: buttonId,
         type,
         startTimestamp,
         endTimestamp,
@@ -119,7 +119,7 @@
     }
 
     dispatch('save', {
-      button_id: buttonId,
+      timer_id: buttonId,
       type,
       startTimestamp,
       endTimestamp,

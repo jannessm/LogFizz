@@ -105,7 +105,7 @@
         }
         
         return {
-          button_id: log.button_id,
+          timer_id: log.timer_id,
           startTime: log.start_timestamp,
           endTime: log.end_timestamp,
           duration: duration,
@@ -197,14 +197,14 @@
 
     // Apply filter to both special and normal sessions
     filteredSpecialTypeSessions = selectedButtonFilter 
-      ? specialTypeSessions.filter(s => s.button_id === selectedButtonFilter)
+      ? specialTypeSessions.filter(s => s.timer_id === selectedButtonFilter)
       : specialTypeSessions;
     
     filteredSessions = selectedButtonFilter 
-      ? normalSessions.filter(s => s.button_id === selectedButtonFilter)
+      ? normalSessions.filter(s => s.timer_id === selectedButtonFilter)
       : normalSessions;
     
-    uniqueButtons = Array.from(new Set(sessions.map(s => s.button_id)))
+    uniqueButtons = Array.from(new Set(sessions.map(s => s.timer_id)))
       .map(id => buttons.find(b => b.id === id))
       .filter(b => b !== undefined);
 
@@ -278,7 +278,7 @@
     <div class="mb-6 space-y-2">
       <h3 class="text-sm font-semibold text-gray-700 mb-3">Special Entries</h3>
       {#each filteredSpecialTypeSessions as session}
-        {@const button = buttons.find(b => b.id === session.button_id)}
+        {@const button = buttons.find(b => b.id === session.timer_id)}
         {@const type = session.log?.type || 'normal'}
         {@const typeLabel = TYPE_LABELS[type] || type}
         {@const typeColor = TYPE_COLORS[type] || '#6B7280'}
@@ -371,7 +371,7 @@
 
         <!-- Session boxes -->
         {#each displaySessions as session}
-          {@const button = buttons.find(b => b.id === session.button_id)}
+          {@const button = buttons.find(b => b.id === session.timer_id)}
           {#if button}
             <SessionBox {session} {button} {timelineStart} {timelineEnd} {timelineHeight} indentLevel={session.indentLevel} onEdit={onEditTimelog} />
           {/if}

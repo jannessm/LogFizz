@@ -136,7 +136,6 @@ export class SyncService {
     // Check if user is logged in
     const user = await getUser();
     if (!user) {
-      console.log('Skipping sync: user not logged in');
       return;
     }
 
@@ -297,7 +296,6 @@ if (typeof window !== 'undefined') {
   window.addEventListener('online', async () => {
     const user = await getUser();
     if (user) {
-      console.log('App is online, syncing...');
       syncService.sync('all');
     }
   });

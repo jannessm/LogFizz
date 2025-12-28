@@ -3,16 +3,18 @@
   import { todayTargets } from '../stores/targets';
   import { timersStore } from '../stores/timers';
   import { timeLogsStore } from '../stores/timelogs';
-  import type { WorkSchedule } from '../types';
+  import { activeTimeLogs } from '../stores/timelogs';
+  import type { TargetWithSpecs } from '../types';
   import dayjs from 'dayjs';
+  import { getActiveTargetSpec } from '../lib/utils/targetSpec';
 
-  let activeTargets: WorkSchedule[] = [];
-  let inactiveTargets: WorkSchedule[] = [];
-  let displayedTargets: WorkSchedule[] = [];
+  let activeTargets: TargetWithSpecs[] = [];
+  let inactiveTargets: TargetWithSpecs[] = [];
+  let displayedTargets: TargetWithSpecs[] = [];
   let progressMap = new Map<string, { totalMinutes: number; targetDuration: number; percentage: number; completed: boolean }>();
   let interval: number | null = null;
 
-  $: if ($todayTargets.length > 0 && $timersStore.buttons && $timeLogsStore.timeLogs) {
+  $: if ($todayTargets.length > 0 && $timersStore.items && $timeLogsStore.items) {
     updateProgressMap();
     
     // Separate active and inactive targets
@@ -68,20 +70,20 @@
   });
 
   // Check if target is currently active (any assigned button is running)
-  function isTargetActive(target: WorkSchedule): boolean {
+  function isTargetActive(target: TargetWithSpecs): boolean {
     // Find all buttons assigned to this target
-    const assignedButtons = $timersStore.buttons.filter(b => b.target_id === target.id);
+    const assignedButtons = $timersStore.items.filter(b => b.target_id === target.id);
     
     // Check if any of these buttons have active timers
     return assignedButtons.some(button => 
-      $timeLogsStore.activeTimers.some(timer => timer.button_id === button.id)
+      $activeTimeLogs.some(timer => timer.timer_id === button.id)
     );
   }
 
   // Calculate progress for each target
-  function calculateTargetProgress(target: WorkSchedule) {
+  function calculateTargetProgress(target: TargetWithSpecs) {
     // Find all buttons assigned to this target
-    const assignedButtons = $timersStore.buttons.filter(b => b.target_id === target.id);
+    const assignedButtons = $timersStore.items.filter(b => b.target_id === target.id);
     
     // Get today's start/end
     const todayStart = dayjs().startOf('day');
@@ -92,8 +94,8 @@
     
     for (const button of assignedButtons) {
       // Get today's logs for this button
-      const buttonLogs = $timeLogsStore.timeLogs.filter(log => 
-        log.button_id === button.id &&
+      const buttonLogs = $timeLogsStore.items.filter(log => 
+        log.timer_id === button.id &&
         log.start_timestamp &&
         dayjs(log.start_timestamp).isAfter(todayStart) &&
         dayjs(log.start_timestamp).isBefore(todayEnd)
@@ -120,10 +122,11 @@
     }
     
     // Get duration for today's weekday
-    // duration_minutes is an array with one value per weekday in target.weekdays
+    // Get active target spec for today
+    const activeSpec = getActiveTargetSpec(target);
     const today = new Date().getDay();
-    const todayIndex = target.weekdays.indexOf(today);
-    const targetDuration = todayIndex >= 0 ? target.duration_minutes[todayIndex] : (target.duration_minutes[0] || 60);
+    const todayIndex = activeSpec?.weekdays.indexOf(today) ?? -1;
+    const targetDuration = todayIndex >= 0 && activeSpec ? activeSpec.duration_minutes[todayIndex] : (activeSpec?.duration_minutes[0] || 60);
     
     const percentage = Math.min(100, Math.round((totalMinutes / targetDuration) * 100));
     const completed = totalMinutes >= targetDuration;

@@ -104,16 +104,6 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
         balanceStore.createIndex('by-target-id', 'target_id');
         balanceStore.createIndex('by-user-target-date', ['user_id', 'target_id', 'date']);
       }
-
-      // Migration: Delete old stores if upgrading from v2
-      if (oldVersion < 3) {
-        if (db.objectStoreNames.contains('buttons')) {
-          db.deleteObjectStore('buttons');
-        }
-        if (db.objectStoreNames.contains('monthlyBalances')) {
-          db.deleteObjectStore('monthlyBalances');
-        }
-      }
     },
   });
 

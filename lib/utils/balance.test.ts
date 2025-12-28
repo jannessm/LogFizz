@@ -255,7 +255,7 @@ describe('Balance Calculation Utilities', () => {
           user_id: 'user-1',
           target_id: 'target-1',
           next_balance_id: null,
-          parent_balance_id: null,
+          
           date: '2024-06-01',
           due_minutes: 480,
           worked_minutes: 500,
@@ -273,7 +273,7 @@ describe('Balance Calculation Utilities', () => {
           user_id: 'user-1',
           target_id: 'target-1',
           next_balance_id: null,
-          parent_balance_id: null,
+          
           date: '2024-06-02',
           due_minutes: 480,
           worked_minutes: 470,
@@ -303,7 +303,7 @@ describe('Balance Calculation Utilities', () => {
           user_id: 'user-1',
           target_id: 'target-1',
           next_balance_id: null,
-          parent_balance_id: null,
+          
           date: '2024-06-01',
           due_minutes: 480,
           worked_minutes: 0,
@@ -330,7 +330,7 @@ describe('Balance Calculation Utilities', () => {
           user_id: 'user-1',
           target_id: 'target-1',
           next_balance_id: null,
-          parent_balance_id: null,
+          
           date: '2024-06-01',
           due_minutes: 480,
           worked_minutes: 480,
@@ -359,7 +359,7 @@ describe('Balance Calculation Utilities', () => {
           user_id: 'user-1',
           target_id: 'target-1',
           next_balance_id: null,
-          parent_balance_id: null,
+          
           date: '2024-01',
           due_minutes: 9600,
           worked_minutes: 9800,
@@ -377,7 +377,7 @@ describe('Balance Calculation Utilities', () => {
           user_id: 'user-1',
           target_id: 'target-1',
           next_balance_id: null,
-          parent_balance_id: null,
+          
           date: '2024-02',
           due_minutes: 9120,
           worked_minutes: 9100,

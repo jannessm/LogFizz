@@ -1,36 +1,44 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
-  import type { WorkSchedule, State, Button } from '../types';
+  import type { TargetWithSpecs, State, Timer, TargetSpec } from '../types';
   import { targetsStore } from '../stores/targets';
   import { statesStore } from '../stores/states';
   import { timersStore } from '../stores/timers';
+  import { getActiveTargetSpec, getLatestTargetSpec } from '../lib/utils/targetSpec';
 
-  export let target: WorkSchedule | null = null;
+  export let target: TargetWithSpecs | null = null;
 
   const dispatch = createEventDispatcher();
 
   let name = target?.name || '';
+  
+  // Get the active or latest spec for initialization
+  let currentSpec: TargetSpec | undefined;
+  if (target) {
+    currentSpec = getActiveTargetSpec(target) || getLatestTargetSpec(target);
+  }
+  
   // Get first duration value if target exists, otherwise default to 90 minutes (1h 30m)
-  const firstDuration = target?.duration_minutes?.[0] || 90;
+  const firstDuration = currentSpec?.duration_minutes?.[0] || 90;
   let durationHours = Math.floor(firstDuration / 60);
   let durationMinutes = firstDuration % 60;
-  let weekdays = target?.weekdays || [1, 2, 3, 4, 5]; // Mon-Fri by default
-  let excludeHolidays = target?.exclude_holidays || false;
-  let stateCode = target?.state_code || '';
-  let startingFrom = target?.starting_from ? target.starting_from.split('T')[0] : undefined;
-  let endingAt = target?.ending_at ? target.ending_at.split('T')[0] : undefined;
+  let weekdays = currentSpec?.weekdays || [1, 2, 3, 4, 5]; // Mon-Fri by default
+  let excludeHolidays = currentSpec?.exclude_holidays || false;
+  let stateCode = currentSpec?.state_code || '';
+  let startingFrom = currentSpec?.starting_from ? currentSpec.starting_from.split('T')[0] : undefined;
+  let endingAt = currentSpec?.ending_at ? currentSpec.ending_at.split('T')[0] : undefined;
   let isLoading = false;
   let errorMessage = '';
   let availableStates: State[] = [];
   let selectedCountry = '';
   let filteredStates: State[] = [];
   let availableCountries: string[] = [];
-  let availableButtons: Button[] = [];
+  let availableButtons: Timer[] = [];
   let selectedButtonIds: string[] = [];
 
-  $: if ($timersStore.buttons) {
-    availableButtons = $timersStore.buttons;
+  $: if ($timersStore.items) {
+    availableButtons = $timersStore.items;
     
     // If editing a target, pre-select buttons that are already assigned to this target
     if (target?.id && availableButtons.length > 0 && selectedButtonIds.length === 0) {
@@ -47,9 +55,9 @@
     const countries = new Set(availableStates.map(s => s.country));
     availableCountries = Array.from(countries).sort();
     
-    // If we have a target with state_code, find and set the country
-    if (target?.state_code && availableStates.length > 0 && !selectedCountry) {
-      const targetState = availableStates.find(s => s.code === target.state_code);
+    // If we have a target with state_code in spec, find and set the country
+    if (currentSpec?.state_code && availableStates.length > 0 && !selectedCountry) {
+      const targetState = availableStates.find(s => s.code === currentSpec!.state_code);
       if (targetState) {
         selectedCountry = targetState.country;
       }
@@ -143,18 +151,21 @@
     errorMessage = '';
 
     try {
-      // Create array with same duration for each selected weekday
-      // Backend expects an array, one entry per weekday that has this target
-      const duration_minutes = weekdays.map(() => totalMinutes);
+      const totalMinutes = durationHours * 60 + durationMinutes;
       
-      const targetData: Partial<WorkSchedule> = {
-        name: name.trim(),
-        duration_minutes,
+      // Create target_spec
+      const targetSpec: Partial<TargetSpec> = {
+        duration_minutes: weekdays.map(() => totalMinutes),
         weekdays,
         exclude_holidays: excludeHolidays,
         state_code: stateCode || undefined,
         starting_from: startingFrom ? new Date(startingFrom).toISOString() : undefined,
         ending_at: endingAt ? new Date(endingAt).toISOString() : undefined,
+      };
+
+      const targetData: Partial<TargetWithSpecs> = {
+        name: name.trim(),
+        target_specs: [targetSpec as TargetSpec],
       };
 
       let savedTargetId: string;
@@ -342,8 +353,6 @@
                     <div class="flex items-center justify-center mb-2">
                       {#if button.emoji}
                         <span class="text-2xl">{button.emoji}</span>
-                      {:else if button.icon}
-                        <span class="w-8 h-8 {button.icon}" style="color: {button.color || '#000'}"></span>
                       {:else}
                         <span class="w-8 h-8 icon-[si--button-duotone]" style="color: {button.color || '#6B7280'}"></span>
                       {/if}

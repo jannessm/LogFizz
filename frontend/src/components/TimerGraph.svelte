@@ -1,26 +1,26 @@
 <script lang="ts">
   import { onMount, afterUpdate } from 'svelte';
   import { createEventDispatcher } from 'svelte';
-  import type { Button } from '../types';
+  import type { Timer } from '../types';
   import { timeLogsStore } from '../stores/timelogs';
-  import { computeButtonLayout } from '../lib/buttonLayout';
+  import { computeTimerLayout } from '../lib/timerLayout';
   import TimerButton from './TimerButton.svelte';
 
-  export let buttons: Button[];
+  export let buttons: Timer[];
   export let editMode = false;
   export let toggleMode = true;
 
   const dispatch = createEventDispatcher();
-  const buttonSize = 150; // Base size of each button in pixels
+  const timerSize = 150; // Base size of each timer in pixels
 
   let containerWidth = 500;
   let containerHeight = 600;
   let containerEl: HTMLDivElement;
 
-  // Compute button positions based on transition graph
-  $: buttonPositions = computeButtonLayout(buttons, $timeLogsStore.timeLogs, containerWidth, containerHeight, buttonSize);
+  // Compute timer positions based on transition graph
+  $: timerPositions = computeTimerLayout(buttons, $timeLogsStore.items, containerWidth, containerHeight, timerSize);
 
-  function handleEdit(button: Button) {
+  function handleEdit(button: Timer) {
     dispatch('edit', button);
   }
 
@@ -64,9 +64,9 @@
     </div>
   {:else}
     {#each buttons as button (button.id)}
-      {@const position = buttonPositions.get(button.id)}
+      {@const position = timerPositions.get(button.id)}
       {#if position}
-        {@const isActive = $timeLogsStore.activeTimers.some(t => t.button_id === button.id)}
+        {@const isActive = $timeLogsStore.items.some(t => t.timer_id === button.id && !t.end_timestamp)}
         <div
           class="absolute transition-all duration-500 ease-out rounded-full drop-shadow-lg"
           class:drop-shadow-2xl={isActive}
@@ -75,7 +75,7 @@
             left: {position.x}px;
             top: {position.y}px;
             transform: translate(-50%, -50%) scale({isActive ? 1.2 : 1});
-            width: {isActive ? buttonSize * 1.2 : buttonSize}px;
+            width: {isActive ? timerSize * 1.2 : timerSize}px;
             z-index: {isActive ? 10 : 1};
           "
         >

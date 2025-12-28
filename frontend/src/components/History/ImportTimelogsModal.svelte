@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
   import { timersStore } from '../../stores/timers';
-  import ButtonForm from '../ButtonForm.svelte';
+  import TimerForm from '../TimerForm.svelte';
   import {
     parseCSV,
     autoDetectColumns,
@@ -51,7 +51,7 @@
     return null;
   }
 
-  $: buttons = $timersStore.buttons;
+  $: buttons = $timersStore.items;
 
   function handleClose() {
     dispatch('close');
@@ -368,7 +368,7 @@
     // After button is created (or form closed), refresh and auto-select the newest button for the project
     if (currentProjectForButton) {
       // Get the most recently created button (last in the list after sorting)
-      const sortedButtons = [...$timersStore.buttons].sort((a, b) => 
+      const sortedButtons = [...$timersStore.items].sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       
@@ -426,7 +426,7 @@
         const projectIndex = headers.indexOf(projectColumn);
         
         // Build timelogs with their button assignments based on project
-        const timelogsWithButtons: Array<typeof result.valid[0] & { button_id: string }> = [];
+        const timelogsWithButtons: Array<typeof result.valid[0] & { timer_id: string }> = [];
         let ignoredCount = 0;
 
         result.valid.forEach((timelog, index) => {
@@ -444,7 +444,7 @@
 
           timelogsWithButtons.push({
             ...timelog,
-            button_id: buttonId,
+            timer_id: buttonId,
           });
         });
 
@@ -454,9 +454,9 @@
           warningMessage = `⚠️ ${totalSkipped} row${totalSkipped !== 1 ? 's' : ''} will be skipped (${result.errors.length} errors, ${ignoredCount} ignored).\n\nImporting ${timelogsWithButtons.length} valid timelog${timelogsWithButtons.length !== 1 ? 's' : ''}.`;
         }
 
-        // Dispatch single import event with timelogs that already have button_id
+        // Dispatch single import event with timelogs that already have timer_id
         dispatch('import', {
-          buttonId: '', // Not used - button_id is on each timelog
+          buttonId: '', // Not used - timer_id is on each timelog
           timelogs: timelogsWithButtons,
           skippedCount: totalSkipped,
           errors: result.errors,
@@ -1062,7 +1062,7 @@
 </div>
 
 {#if showButtonForm}
-  <ButtonForm on:close={handleButtonFormClose} />
+  <TimerForm on:close={handleButtonFormClose} />
 {/if}
 
 <style>

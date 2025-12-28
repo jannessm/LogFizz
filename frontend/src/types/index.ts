@@ -1,6 +1,5 @@
 /**
  * Frontend types - re-exported from shared lib package
- * This file maintains backwards compatibility for existing frontend imports
  */
 import type { TargetSpec } from '../../../lib/types/index.js';
 
@@ -16,10 +15,11 @@ export type {
   ApiResponse,
   SyncQueueItem,
   GoalProgress,
+  TargetSpec,
 } from '../../../lib/types/index.js';
 
 // Extended Target type that includes nested target_specs from backend
-// Backend sends Target with joined target_specs array - no separate target_spec_ids needed
+// Backend sends Target with joined target_specs array
 export interface TargetWithSpecs {
   id: string;
   user_id: string;
