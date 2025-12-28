@@ -5,7 +5,10 @@ import { syncService } from '../services/sync';
 import { createBaseStore, type BaseStoreConfig } from './base-store';
 import dayjs from '../../../lib/utils/dayjs.js';
 
-// Configure the base store for timers
+/**
+ * Configuration for the timers store
+ * Timers represent trackable activities (e.g., "Work", "Exercise")
+ */
 const timerStoreConfig: BaseStoreConfig<Timer> = {
   db: {
     getAll: getAllTimers,
@@ -20,14 +23,21 @@ const timerStoreConfig: BaseStoreConfig<Timer> = {
   storeName: 'Timer',
 };
 
-// Create the base store
 const baseStore = createBaseStore<Timer>(timerStoreConfig);
 
-// Create the timers store with custom create method
+/**
+ * Creates the timers store with custom create method
+ * @returns Enhanced timer store with CRUD operations
+ */
 function createTimersStore() {
   return {
     ...baseStore,
 
+    /**
+     * Create a new timer with default values
+     * @param timerData - Partial timer data to create
+     * @returns Created timer
+     */
     async create(timerData: Partial<Timer>) {
       return baseStore.create({
         id: crypto.randomUUID(),
@@ -44,16 +54,19 @@ function createTimersStore() {
   };
 }
 
+/** Main timers store - manages timer CRUD operations */
 export const timersStore = createTimersStore();
 
-// Derived store for timers (maps 'items' to 'timers' for backward compatibility)
+/** Derived store providing direct access to timers array */
 export const timers = derived(
   timersStore,
   ($store) => $store.items
 );
 
-// Derived store for active timers (timers with no running timelog)
-// A timer is active if it has no timelog with end_timestamp === undefined
+/**
+ * Derived store for active timers (timers with no running timelog)
+ * A timer is active if it has no timelog with end_timestamp === undefined
+ */
 export const activeTimers = derived(
   timersStore,
   ($store) => {

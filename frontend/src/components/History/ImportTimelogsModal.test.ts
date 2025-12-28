@@ -36,11 +36,11 @@ const mockButtons = [
   },
 ];
 
-// Mock the buttons store
-vi.mock('../../stores/buttons', () => ({
-  buttonsStore: {
+// Mock the timers store
+vi.mock('../../stores/timers', () => ({
+  timersStore: {
     subscribe: (callback: any) => {
-      callback({ buttons: mockButtons });
+      callback({ items: mockButtons });
       return () => {};
     },
   },

@@ -9,34 +9,77 @@ import { syncService } from '../services/sync';
 import { createBaseStore, type BaseStoreConfig } from './base-store';
 import { dayjs, userTimezone } from '../../../lib/utils/dayjs.js';
 import { balancesStore } from './balances';
+import { targetsStore } from './targets';
 
-async function recalculateBalancesForTimeLogs(timelogs: TimeLog[]) {
-  // get months affected by the timelogs
-  const affectedMonths = new Set<string>();
-  for (const tl of timelogs) {
-    const start = dayjs.tz(tl.start_timestamp, userTimezone);
-    affectedMonths.add(`${start.year()}-${start.month() + 1}`);
-    if (tl.end_timestamp) {
-      const end = dayjs.tz(tl.end_timestamp, userTimezone);
-      affectedMonths.add(`${end.year()}-${end.month() + 1}`);
-    }
+/**
+ * Triggers balance recalculation for timelogs.
+ * Identifies all affected dates (handling multi-day timelogs) and triggers
+ * daily balance recalculation which propagates up through monthly and yearly balances.
+ * 
+ * Algorithm from docs/balances.md:
+ * 1. For each granularity level (daily, monthly, yearly):
+ *    - Get balances directly affected by the timelog
+ *    - Recalculate each daily balance completely
+ *    - For monthly/yearly: propagate cumulations through next_balance_id chain
+ * 
+ * @param timelog - Timelog that was created/updated/deleted
+ */
+async function recalculateBalancesForTimeLog(timelog: TimeLog) {
+  await Promise.all([
+    targetsStore.load(),
+    balancesStore.load()
+  ]);
+  
+  const targets = await targetsStore.getTargetsByTimerIds([timelog.timer_id]);
+  if (targets.length === 0) return;
+  
+  const start = dayjs(timelog.start_timestamp);
+  const end = timelog.end_timestamp ? dayjs(timelog.end_timestamp) : dayjs();
+  
+  // Get all affected dates (timelog may span multiple days)
+  const affectedDates: string[] = [];
+  let current = start.startOf('day');
+  const endDay = end.startOf('day');
+  
+  while (current.isSameOrBefore(endDay, 'day')) {
+    affectedDates.push(current.format('YYYY-MM-DD'));
+    current = current.add(1, 'day');
   }
-
-  // Trigger balance recalculation for affected months
-  for (const monthKey of affectedMonths) {
-    const [yearStr, monthStr] = monthKey.split('-');
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10);
-    // Balance recalculation will be handled by the balances store
-    // For now, just log the affected months
-    // TODO: trigger calculation!
-    console.log(`Balance recalculation needed for ${year}-${month}`);
+  
+  // Get unique months and years from affected dates
+  const affectedMonths = new Set(affectedDates.map(d => d.substring(0, 7))); // YYYY-MM
+  const affectedYears = new Set(affectedDates.map(d => d.substring(0, 4))); // YYYY
+  
+  for (const target of targets) {
+    // 1. Recalculate daily balances
+    for (const date of affectedDates) {
+      await balancesStore.recalculateDailyBalance(target.id, date);
+    }
+    
+    // 2. Recalculate monthly balances and propagate cumulations
+    for (const month of affectedMonths) {
+      const [year, monthNum] = month.split('-').map(Number);
+      await balancesStore.recalculateMonthlyBalance(target.id, year, monthNum);
+    }
+    
+    // 3. Recalculate yearly balances and propagate cumulations
+    for (const year of affectedYears) {
+      await balancesStore.recalculateYearlyBalance(target.id, Number(year));
+    }
   }
 }
 
+/**
+ * Check if a timelog started before the given timestamp
+ */
 function timelogStartedBefore(timelog: TimeLog, timestamp: string): boolean {
   return new Date(timelog.start_timestamp).getTime() < new Date(timestamp).getTime();
 }
+
+/**
+ * Check if a timelog ended after the given timestamp
+ * Returns true if timelog is still running (no end_timestamp) and timestamp is undefined
+ */
 function timelogEndedAfter(timelog: TimeLog, timestamp?: string): boolean {
   if (!timestamp) {
     return timelog.end_timestamp === undefined;
@@ -47,15 +90,17 @@ function timelogEndedAfter(timelog: TimeLog, timestamp?: string): boolean {
   }
 }
 
-
-
-// Configure the base store for timelogs with hooks for monthly balance recalculation
+/**
+ * Configuration for the timelogs store
+ * Timelogs represent time tracking entries with start/end timestamps
+ * Includes hooks for balance recalculation on CRUD operations
+ */
 const timeLogStoreConfig: BaseStoreConfig<TimeLog> = {
   db: {
     getAll: () => getTimeLogsByYearMonth(
       dayjs().tz(userTimezone).year(),
       dayjs().tz(userTimezone).month() + 1
-    ), // only load current month initially for performance
+    ), // Only load current month initially for performance
     save: saveTimeLogDB,
     delete: deleteTimeLogDB,
   },
@@ -66,7 +111,7 @@ const timeLogStoreConfig: BaseStoreConfig<TimeLog> = {
   },
   hooks: {
     afterCreate: async (timeLog) => {
-      await recalculateBalancesForTimeLogs([timeLog]);
+      await recalculateBalancesForTimeLog(timeLog);
     },
     beforeUpdate: async (timeLog, state) => {
       // sort all timelogs by start_timestamp
@@ -88,23 +133,39 @@ const timeLogStoreConfig: BaseStoreConfig<TimeLog> = {
       return timeLog;
     },
     afterUpdate: async (timeLog) => {
-      await recalculateBalancesForTimeLogs([timeLog]);
+      await recalculateBalancesForTimeLog(timeLog);
     },
     afterDelete: async (timeLog) => {
-      await recalculateBalancesForTimeLogs([timeLog]);
+      await recalculateBalancesForTimeLog(timeLog);
     },
   },
   storeName: 'TimeLog',
 };
 
-// Create the base store
 const baseStore = createBaseStore<TimeLog>(timeLogStoreConfig);
 
-
+/**
+ * Creates the timelogs store with time tracking operations
+ * @returns Enhanced timelog store with timer start/stop and CRUD operations
+ */
 function createTimeLogsStore() {
   return {
     ...baseStore,
 
+    /**
+     * Load active timelogs (running timers)
+     * Currently handled by getAll which loads current month
+     */
+    async loadActive() {
+      // TODO: still needed?
+      // Active timers will be filtered from items
+    },
+
+    /**
+     * Create a new timelog entry
+     * @param timeLogData - Partial timelog data
+     * @returns Created timelog
+     */
     async create(timeLogData: Partial<TimeLog>) {
       return baseStore.create({
         id: crypto.randomUUID(),
@@ -123,7 +184,12 @@ function createTimeLogsStore() {
       });
     },
 
-
+    /**
+     * Load timelogs for a specific year and month
+     * @param year - Year to load (e.g., 2024)
+     * @param month - Month to load (1-12)
+     * @returns Array of timelogs for that month
+     */
     async loadLogsByYearMonth(year: number, month: number): Promise<TimeLog[]> {
       baseStore.updateWriteable(state => ({ ...state, isLoading: true, error: null }));
       try {
@@ -145,6 +211,11 @@ function createTimeLogsStore() {
     },
 
 
+    /**
+     * Start a new timer (create running timelog)
+     * @param timerId - ID of the timer to start
+     * @returns Created timelog with no end_timestamp
+     */
     async startTimer(timerId: string) {
       const timeLog = await baseStore.create({
         id: crypto.randomUUID(),
@@ -153,7 +224,6 @@ function createTimeLogsStore() {
         type: 'normal',
         whole_day: false,
         start_timestamp: new Date().toISOString(),
-        // No end_timestamp - timer is running
         timezone: userTimezone,
         apply_break_calculation: false,
         created_at: new Date().toISOString(),
@@ -163,15 +233,17 @@ function createTimeLogsStore() {
       return timeLog;
     },
 
+    /**
+     * Stop a running timer by setting end_timestamp
+     * @param timelog - The running timelog to stop
+     * @param notes - Optional notes to add
+     * @param endTimestamp - Optional custom end time (defaults to now)
+     * @returns Updated timelog with end_timestamp
+     */
     async stopTimer(timelog: TimeLog, notes?: string, endTimestamp?: string) {
-      const allTimeLogs = await get(activeTimeLogs);
-      const runningTimer = allTimeLogs.find(tl => tl.id === timelog.id);
-      if (!runningTimer) throw new Error('Timer not found');
-      
       const now = new Date();
       const endTime = endTimestamp || now.toISOString();
       
-      // Update the timer with end timestamp
       const updatedTimeLog = await baseStore.update(timelog.id, {
         end_timestamp: endTime,
         duration_minutes: undefined, // Let saveTimeLog calculate this
@@ -183,9 +255,10 @@ function createTimeLogsStore() {
   };
 }
 
+/** Main timelogs store - manages time tracking entries */
 export const timeLogsStore = createTimeLogsStore();
 
-// Derived store for today's timelogs
+/** Derived store for today's timelogs */
 export const todayTimeLogs = derived(
   timeLogsStore,
   $timeLogsStore => {
@@ -196,7 +269,7 @@ export const todayTimeLogs = derived(
   }
 );
 
-// Derived store for active timelogs (no end_timestamp)
+/** Derived store for active timelogs (running timers - no end_timestamp) */
 export const activeTimeLogs = derived(
   timeLogsStore,
   $timeLogsStore => {

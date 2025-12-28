@@ -2,14 +2,15 @@
   import { timersStore } from '../stores/timers';
   import { targetsStore } from '../stores/targets';
   import { timeLogsStore } from '../stores/timelogs';
-  import type { Button, DailyTarget } from '../types';
+  import type { Timer, TargetWithSpecs } from '../types';
   import dayjs from 'dayjs';
   import { createEventDispatcher } from 'svelte';
+  import { getActiveTargetSpec, isTargetEnded, getWeekdayNames } from '../lib/utils/targetSpec';
 
   const dispatch = createEventDispatcher();
 
-  export let onEditButton: (button: Button) => void;
-  export let onEditTarget: (target: DailyTarget) => void;
+  export let onEditButton: (button: Timer) => void;
+  export let onEditTarget: (target: TargetWithSpecs) => void;
   export let onAddButton: () => void;
   export let onAddTarget: () => void;
 
@@ -25,21 +26,21 @@
     onAddButton();
   }
 
-  async function handleDeleteButton(button: Button) {
+  async function handleDeleteButton(button: Timer) {
     if (confirm(`Delete button "${button.name}"?`)) {
-      await timersStore.delete(button.id);
+      await timersStore.delete(button);
     }
   }
 
-  async function handleDeleteTarget(target: DailyTarget) {
+  async function handleDeleteTarget(target: TargetWithSpecs) {
     if (confirm(`Delete target "${target.name}"?`)) {
-      await targetsStore.delete(target.id);
+      await targetsStore.delete(target);
     }
   }
 
   // Calculate progress for each target
-  function calculateTargetProgress(target: DailyTarget) {
-    const assignedButtons = $timersStore.buttons.filter(b => b.target_id === target.id);
+  function calculateTargetProgress(target: TargetWithSpecs) {
+    const assignedButtons = $timersStore.items.filter(b => b.target_id === target.id);
     const todayStart = dayjs().startOf('day');
     const todayEnd = dayjs().endOf('day');
     
@@ -47,8 +48,8 @@
     
     for (const button of assignedButtons) {
       // Get today's logs for this button
-      const buttonLogs = $timeLogsStore.timeLogs.filter(log => 
-        log.button_id === button.id &&
+      const buttonLogs = $timeLogsStore.items.filter(log => 
+        log.timer_id === button.id &&
         log.start_timestamp &&
         dayjs(log.start_timestamp).isAfter(todayStart) &&
         dayjs(log.start_timestamp).isBefore(todayEnd)
@@ -74,9 +75,11 @@
       }
     }
     
+    // Get active target spec for today
+    const activeSpec = getActiveTargetSpec(target);
     const today = new Date().getDay();
-    const todayIndex = target.weekdays.indexOf(today);
-    const targetDuration = todayIndex >= 0 ? target.duration_minutes[todayIndex] : (target.duration_minutes[0] || 60);
+    const todayIndex = activeSpec?.weekdays.indexOf(today) ?? -1;
+    const targetDuration = todayIndex >= 0 && activeSpec ? activeSpec.duration_minutes[todayIndex] : (activeSpec?.duration_minutes[0] || 60);
     
     const percentage = Math.min(100, Math.round((totalMinutes / targetDuration) * 100));
     
@@ -96,28 +99,17 @@
     }
   }
 
-  function getWeekdayNames(weekdays: number[]): string {
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return weekdays.map(d => dayNames[d]).join(', ');
-  }
-
-  // Check if a target has ended (ending_at date is in the past)
-  function isTargetEnded(target: DailyTarget): boolean {
-    if (!target.ending_at) return false;
-    return dayjs(target.ending_at).isBefore(dayjs(), 'day');
-  }
-
   // Get active targets (not ended)
-  $: activeTargets = $targetsStore.targets.filter(t => !isTargetEnded(t));
+  $: activeTargets = $targetsStore.items.filter(t => !isTargetEnded(t));
   
   // Get ended/archived targets
-  $: archivedTargets = $targetsStore.targets.filter(t => isTargetEnded(t));
+  $: archivedTargets = $targetsStore.items.filter(t => isTargetEnded(t));
 
   // Get active buttons (not linked to ended targets)
-  $: activeButtons = $timersStore.buttons.filter(b => !b.archived);
+  $: activeButtons = $timersStore.items.filter(b => !b.archived);
 
   // Get archived buttons (linked to ended targets)
-  $: archivedButtons = $timersStore.buttons.filter(b => b.archived);
+  $: archivedButtons = $timersStore.items.filter(b => b.archived);
 </script>
 
 <!-- Modal Overlay -->
@@ -204,7 +196,11 @@
                   <span class="text-gray-500">
                     {progress.percentage}% ({formatDuration(progress.totalMinutes)} / {formatDuration(progress.targetDuration)})
                   </span>
-                  <span class="text-gray-400">{getWeekdayNames(target.weekdays)}</span>
+                  {#each [getActiveTargetSpec(target)] as activeSpec}
+                    {#if activeSpec}
+                      <span class="text-gray-400">{getWeekdayNames(activeSpec.weekdays)}</span>
+                    {/if}
+                  {/each}
                 </div>
               </div>
             {/each}
@@ -251,7 +247,7 @@
                           </span>
                         {/if}
                         {#if button.target_id}
-                          {@const linkedTarget = $targetsStore.targets.find(t => t.id === button.target_id)}
+                          {@const linkedTarget = $targetsStore.items.find(t => t.id === button.target_id)}
                           {#if linkedTarget}
                             <span class="flex items-center gap-1">
                               <span class="icon-[proicons--link]" style="width: 12px; height: 12px;"></span>
@@ -317,10 +313,14 @@
                     </div>
                     
                     <div class="flex justify-between items-center text-xs text-gray-500">
-                      <span>{getWeekdayNames(target.weekdays)}</span>
-                      {#if target.ending_at}
-                        <span class="text-red-600 font-medium">Ended: {dayjs(target.ending_at).format('MMM D, YYYY')}</span>
-                      {/if}
+                      {#each [getActiveTargetSpec(target)] as latestSpec}
+                        {#if latestSpec}
+                          <span>{getWeekdayNames(latestSpec.weekdays)}</span>
+                          {#if latestSpec.ending_at}
+                            <span class="text-red-600 font-medium">Ended: {dayjs(latestSpec.ending_at).format('MMM D, YYYY')}</span>
+                          {/if}
+                        {/if}
+                      {/each}
                     </div>
                   </div>
                 {/each}
@@ -353,7 +353,7 @@
                               </span>
                             {/if}
                             {#if button.target_id}
-                              {@const linkedTarget = $targetsStore.targets.find(t => t.id === button.target_id)}
+                              {@const linkedTarget = $targetsStore.items.find(t => t.id === button.target_id)}
                               {#if linkedTarget}
                                 <span class="flex items-center gap-1 text-red-600">
                                   <span class="icon-[proicons--link]" style="width: 12px; height: 12px;"></span>

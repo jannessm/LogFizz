@@ -1,12 +1,12 @@
 <script lang="ts">
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
-  import type { Button } from '../types';
+  import type { Timer } from '../types';
   import { timeLogsStore } from '../stores/timelogs';
-  import { timersStore } from '../stores/timers';
+  import { timersStore, activeTimers } from '../stores/timers';
   import dayjs from 'dayjs';
   import { formatTime } from '../../../lib/utils/timeFormat.js';
 
-  export let button: Button;
+  export let timer: Timer;
   export let editMode = false;
   export let toggleMode = true;
 
@@ -19,7 +19,7 @@
   let longPressTimer: number | null = null;
   let isLongPressTriggered = false;
 
-  $: activeTimer = $timeLogsStore.activeTimers.filter(t => t.button_id === button.id)[0];
+  $: activeTimer = $activeTimers.find(t => t.id === timer.id);
   $: isActive = activeTimer !== undefined;
 
   // Calculate elapsed time for active timer
@@ -31,8 +31,8 @@
   // Calculate today's total time from completed timelogs
   $: {
     const today = dayjs().format('YYYY-MM-DD');
-    const todayLogs = $timeLogsStore.timeLogs.filter(tl => 
-      tl.button_id === button.id && tl.start_timestamp && tl.start_timestamp.startsWith(today)
+    const todayLogs = $timeLogsStore.items.filter(tl => 
+      tl.timer_id === button.id && tl.start_timestamp && tl.start_timestamp.startsWith(today)
     );
     
     // Sum up durations from completed logs
@@ -103,9 +103,9 @@
     } else {
       if (toggleMode) {
         // Stop any other active timers first
-        const otherActiveTimers = $timeLogsStore.activeTimers.filter(t => t.button_id !== button.id);
+        const otherActiveTimers = $activeTimeLogs.filter(t => t.timer_id !== button.id);
         for (const timer of otherActiveTimers) {
-          await timeLogsStore.stopTimer(timer.id);
+          await timeLogsStore.stopTimer(timer);
         }
       }
       // Start timer
@@ -115,26 +115,9 @@
 
   async function handleDelete() {
     if (confirm(`Delete "${button.name}"?`)) {
-      await timersStore.delete(button.id);
+      await timersStore.delete(button);
     }
   }
-
-  function getGoalProgress(): number {
-    if (!button.goal_time_minutes) return 0;
-    return Math.min(100, (todayTime / button.goal_time_minutes) * 100);
-  }
-
-  function getGoalDifference(): { minutes: number; isPositive: boolean } {
-    if (!button.goal_time_minutes) return { minutes: 0, isPositive: false };
-    const difference = todayTime - button.goal_time_minutes;
-    return {
-      minutes: Math.abs(difference),
-      isPositive: difference >= 0
-    };
-  }
-
-  $: goalProgress = getGoalProgress();
-  $: goalDifference = getGoalDifference();
 </script>
 
 <div class="relative">

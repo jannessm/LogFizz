@@ -1,42 +1,43 @@
+// @ts-ignore - d3-force types are optional
 import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, type SimulationNodeDatum, type SimulationLinkDatum } from 'd3-force';
-import type { Button, TimeLog } from '../types';
+import type { Timer, TimeLog } from '../types';
 
-export interface ButtonNode extends SimulationNodeDatum {
+export interface TimerNode extends SimulationNodeDatum {
   id: string;
-  button: Button;
+  timer: Timer;
   frequency: number;
   x?: number;
   y?: number;
 }
 
-export interface ButtonEdge extends SimulationLinkDatum<ButtonNode> {
-  source: ButtonNode | string;
-  target: ButtonNode | string;
+export interface TimerEdge extends SimulationLinkDatum<TimerNode> {
+  source: TimerNode | string;
+  target: TimerNode | string;
   weight: number;
 }
 
 /**
- * Analyzes timelogs to build a transition graph between buttons
- * Returns nodes (buttons with frequency) and edges (transitions with weights)
+ * Analyzes timelogs to build a transition graph between timers
+ * Returns nodes (timers with frequency) and edges (transitions with weights)
  */
-export function buildButtonGraph(buttons: Button[], timelogs: TimeLog[]): { nodes: ButtonNode[], edges: ButtonEdge[] } {
-  const button_ids = buttons.map(b => b.id);
+export function buildTimerGraph(timers: Timer[], timelogs: TimeLog[]): { nodes: TimerNode[], edges: TimerEdge[] } {
+  const timer_ids = timers.map(t => t.id);
 
   // Sort timelogs by start_timestamp
-  const sortedLogs = timelogs.filter(tl => button_ids.includes(tl.button_id))
+  const sortedLogs = timelogs.filter(tl => timer_ids.includes(tl.timer_id))
                              .sort((a, b) =>
     new Date(a.start_timestamp).getTime() - new Date(b.start_timestamp).getTime()
   );
 
-  // Count frequency for each button (how many times it was used)
+  // Count frequency for each timer (how many times it was used)
   const frequency: Record<string, number> = {};
-  buttons.forEach(b => frequency[b.id] = 0);
+  timers.forEach(t => frequency[t.id] = 0);
   
   sortedLogs.forEach(tl => {
-    frequency[tl.button_id] = (frequency[tl.button_id] || 0) + 1;
+    frequency[tl.timer_id] = (frequency[tl.timer_id] || 0) + 1;
   });
 
-  // Build transition map: button_id -> next_button_id -> count
+  // Build transition map: timer_id -> next_timer_id -> count
   const transitions: Record<string, Record<string, number>> = {};
   
   // Look for consecutive completed sessions
@@ -44,10 +45,10 @@ export function buildButtonGraph(buttons: Button[], timelogs: TimeLog[]): { node
     const current = sortedLogs[i];
     const next = sortedLogs[i + 1];
     
-    // Only count transition if current session ended and next is a different button
-    if (current.end_timestamp && current.button_id !== next.button_id) {
-      const from = current.button_id;
-      const to = next.button_id;
+    // Only count transition if current session ended and next is a different timer
+    if (current.end_timestamp && current.timer_id !== next.timer_id) {
+      const from = current.timer_id;
+      const to = next.timer_id;
       
       if (!transitions[from]) transitions[from] = {};
       transitions[from][to] = (transitions[from][to] || 1) + 1;
@@ -55,11 +56,10 @@ export function buildButtonGraph(buttons: Button[], timelogs: TimeLog[]): { node
   }
   
   // Add missing transitions with weight 1
-
-  for (const from of button_ids) {
+  for (const from of timer_ids) {
     if (!transitions[from]) transitions[from] = {};
 
-    for (const to of button_ids) {
+    for (const to of timer_ids) {
       if (from !== to && !transitions[from][to]) {
         transitions[from][to] = 1;
       }
@@ -67,14 +67,14 @@ export function buildButtonGraph(buttons: Button[], timelogs: TimeLog[]): { node
   }
 
   // Create nodes
-  const nodes: ButtonNode[] = buttons.map(button => ({
-    id: button.id,
-    button,
-    frequency: frequency[button.id] || 0,
+  const nodes: TimerNode[] = timers.map(timer => ({
+    id: timer.id,
+    timer,
+    frequency: frequency[timer.id] || 0,
   }));
 
   // Create edges
-  const edges: ButtonEdge[] = [];
+  const edges: TimerEdge[] = [];
   Object.entries(transitions).forEach(([from, targets]) => {
     Object.entries(targets).forEach(([to, weight]) => {
       edges.push({
@@ -89,22 +89,22 @@ export function buildButtonGraph(buttons: Button[], timelogs: TimeLog[]): { node
 }
 
 /**
- * Computes 2D positions for buttons using force-directed layout
- * More frequently used buttons will be positioned towards the center
- * Buttons with higher transition weights will be positioned closer together
+ * Computes 2D positions for timers using force-directed layout
+ * More frequently used timers will be positioned towards the center
+ * Timers with higher transition weights will be positioned closer together
  */
-export function computeButtonLayout(
-  buttons: Button[], 
+export function computeTimerLayout(
+  timers: Timer[], 
   timelogs: TimeLog[],
   width: number = 500,
   height: number = 600,
-  buttonSize: number = 150
+  timerSize: number = 150
 ): Map<string, { x: number; y: number }> {
-  if (buttons.length === 0) {
+  if (timers.length === 0) {
     return new Map();
   }
 
-  const { nodes, edges } = buildButtonGraph(buttons, timelogs);
+  const { nodes, edges } = buildTimerGraph(timers, timelogs);
 
   // If no nodes, return empty
   if (nodes.length === 0) {
@@ -124,30 +124,30 @@ export function computeButtonLayout(
   const simulation = forceSimulation(nodes)
     // Center force pulls nodes towards the center
     .force('center', forceCenter(width / 2, height / 2))
-    // Charge force - more frequently used buttons have stronger attraction to center
-    .force('charge', forceManyBody<ButtonNode>()
-      .strength(d => {
-        // More frequent buttons = stronger pull to center (more negative = more attraction)
+    // Charge force - more frequently used timers have stronger attraction to center
+    .force('charge', forceManyBody<TimerNode>()
+      .strength((d: TimerNode) => {
+        // More frequent timers = stronger pull to center (more negative = more attraction)
         const normalizedFreq = d.frequency / maxFreq;
         return -200 * (1 + normalizedFreq * 2);
       })
     )
-    // Link force - higher weight = stronger attraction between connected buttons
-    .force('link', forceLink<ButtonNode, ButtonEdge>(edges)
-      .id(d => d.id)
-      .distance(d => {
+    // Link force - higher weight = stronger attraction between connected timers
+    .force('link', forceLink<TimerNode, TimerEdge>(edges)
+      .id((d: TimerNode) => d.id)
+      .distance((d: TimerEdge) => {
         // Higher weight = closer distance
         const normalizedWeight = d.weight / maxWeight;
         return 100 * (1 - normalizedWeight * 0.5); // 50-100 pixels
       })
-      .strength(d => {
+      .strength((d: TimerEdge) => {
         // Higher weight = stronger connection
         const normalizedWeight = d.weight / maxWeight;
         return 0.5 + normalizedWeight * 0.5; // 0.5-1.0
       })
     )
-    // Collision force - prevent overlap (button size ~150px diameter)
-    .force('collide', forceCollide<ButtonNode>().radius(buttonSize / 2 + 10));
+    // Collision force - prevent overlap (timer size ~150px diameter)
+    .force('collide', forceCollide<TimerNode>().radius(timerSize / 2 + 10));
 
   // Run simulation synchronously
   simulation.stop();
@@ -169,4 +169,3 @@ export function computeButtonLayout(
 
   return positions;
 }
-

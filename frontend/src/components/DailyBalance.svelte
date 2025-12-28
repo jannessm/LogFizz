@@ -1,198 +1,89 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import type { WorkSchedule } from '../types';
-  import { targetsStore } from '../stores/targets';
-  import { timersStore } from '../stores/timers';
-  import { timeLogsStore } from '../stores/timelogs';
-  import { formatMinutes, formatHours, getBalanceColor } from '../../../lib/utils/timeFormat.js';
-  import dayjs from 'dayjs';
+  import { dailyBalances } from '../stores/balances';
+  import { todayTargets } from '../stores/targets';
+  import { startBalanceUpdates, stopBalanceUpdates, liveBalanceTick } from '../stores/live-balance';
+  import type { Balance, TargetWithSpecs } from '../types';
+  import { formatMinutes } from '../../../lib/utils/timeFormat.js';
+  import dayjs from '../../../lib/utils/dayjs.js';
 
-  let balances: Map<string, { worked: number; due: number; balance: number; target: WorkSchedule }> = new Map();
-  let refreshTick = 0;
-  let intervalId: number | undefined;
+  let todayBalances: Balance[] = [];
+  const componentId = crypto.randomUUID();
+  const today = dayjs().format('YYYY-MM-DD');
 
-  function calculateDailyBalances() {
-    const newBalances = new Map<string, { worked: number; due: number; balance: number; target: WorkSchedule }>();
-    const today = dayjs().startOf('day');
-    const todayEnd = dayjs().endOf('day');
-    const currentWeekday = today.day(); // 0 = Sunday, 1 = Monday, etc.
-
-    for (const target of $targetsStore.targets) {
-      // Skip if target doesn't apply today
-      if (!target.weekdays.includes(currentWeekday)) {
-        continue;
-      }
-
-      // Skip if target is deleted
-      if (target.deleted_at) {
-        continue;
-      }
-
-      // Skip if we're before the starting_from date
-      if (target.starting_from && dayjs(target.starting_from).isAfter(today)) {
-        continue;
-      }
-
-      // Skip if we're after the ending_at date
-      if (target.ending_at && dayjs(target.ending_at).isBefore(today)) {
-        continue;
-      }
-
-      // Get the target duration for today
-      const todayIndex = target.weekdays.indexOf(currentWeekday);
-      const targetDuration = todayIndex >= 0 ? target.duration_minutes[todayIndex] : (target.duration_minutes[0] || 0);
-
-      // Find all buttons assigned to this target
-      const assignedButtons = $timersStore.buttons.filter(b => b.target_id === target.id && !b.deleted_at);
-
-      // Calculate worked time for today
-      let workedMinutes = 0;
-      let hasSpecialTypeForToday = false;
-      
-      for (const button of assignedButtons) {
-        const buttonLogs = $timeLogsStore.timeLogs.filter(log => 
-          log.button_id === button.id &&
-          log.start_timestamp &&
-          dayjs(log.start_timestamp).isAfter(today) &&
-          dayjs(log.start_timestamp).isBefore(todayEnd)
-        );
-
-        for (const log of buttonLogs) {
-          const logType = log.type || 'normal';
-          
-          if (logType !== 'normal') {
-            // For special types (sick, holiday, business-trip, child-sick), count as target duration
-            // Only count once even if there are multiple special type logs
-            // Skip weekends (0 = Sunday, 6 = Saturday)
-            if (!hasSpecialTypeForToday && currentWeekday !== 0 && currentWeekday !== 6) {
-              workedMinutes += targetDuration;
-              hasSpecialTypeForToday = true;
-            }
-          } else {
-            // For normal logs, count actual worked time
-            if (log.end_timestamp) {
-              // Completed session
-              if (log.duration_minutes !== undefined && log.duration_minutes !== null) {
-                workedMinutes += log.duration_minutes;
-              } else {
-                const start = dayjs(log.start_timestamp);
-                const end = dayjs(log.end_timestamp);
-                workedMinutes += end.diff(start, 'minute', true);
-              }
-            } else {
-              // Active session - calculate from start to now
-              const start = dayjs(log.start_timestamp);
-              workedMinutes += dayjs().diff(start, 'minute', true);
-            }
-          }
-        }
-      }
-
-      const balanceMinutes = workedMinutes - targetDuration;
-
-      newBalances.set(target.id, {
-        worked: workedMinutes,
-        due: targetDuration,
-        balance: balanceMinutes,
-        target: target
+  // Filter daily balances for today and combine with target data
+  $: {
+    // Force recalculation when liveBalanceTick changes
+    void $liveBalanceTick;
+    
+    todayBalances = $dailyBalances
+      .filter(b => b.date === today)
+      .sort((a, b) => {
+        const targetA = $todayTargets.find(t => t.id === a.target_id);
+        const targetB = $todayTargets.find(t => t.id === b.target_id);
+        return (targetA?.name || '').localeCompare(targetB?.name || '');
       });
-    }
-
-    balances = newBalances;
   }
 
-  $: if ($targetsStore.targets && $timersStore.buttons && $timeLogsStore.timeLogs || refreshTick) {
-    calculateDailyBalances();
-  }
-
-  // Check if there are any running sessions
-  function hasRunningSessions(): boolean {
-    return $timeLogsStore.activeTimers.length > 0;
-  }
-
-  // Set up interval to refresh running sessions every 5 seconds
   onMount(() => {
-    if (hasRunningSessions()) {
-      intervalId = window.setInterval(() => {
-        if (hasRunningSessions()) {
-          refreshTick++;
-        } else if (intervalId) {
-          window.clearInterval(intervalId);
-          intervalId = undefined;
-        }
-      }, 5000); // Update every 5 seconds
-    }
+    startBalanceUpdates(componentId);
   });
 
   onDestroy(() => {
-    if (intervalId) {
-      window.clearInterval(intervalId);
-    }
+    stopBalanceUpdates(componentId);
   });
 
-  // Watch for timer changes to start/stop interval
-  $: if ($timeLogsStore.activeTimers) {
-    if (hasRunningSessions() && !intervalId) {
-      intervalId = window.setInterval(() => {
-        if (hasRunningSessions()) {
-          refreshTick++;
-        } else if (intervalId) {
-          window.clearInterval(intervalId);
-          intervalId = undefined;
-        }
-      }, 5000);
-    } else if (!hasRunningSessions() && intervalId) {
-      window.clearInterval(intervalId);
-      intervalId = undefined;
-    }
+  function getBalanceColor(balance: number): string {
+    if (balance > 0) return 'text-green-600';
+    if (balance < 0) return 'text-red-600';
+    return 'text-gray-800';
   }
 
-  $: sortedBalances = Array.from(balances.values()).sort((a, b) => 
-    a.target.name.localeCompare(b.target.name)
-  );
+  function getTarget(targetId: string): TargetWithSpecs | undefined {
+    return $todayTargets.find(t => t.id === targetId);
+  }
 </script>
 
-{#if sortedBalances.length > 0}
+{#if todayBalances.length > 0}
   <div class="mb-4">
     <div class="bg-white rounded-lg shadow-md p-4">
       <h3 class="text-sm font-semibold text-gray-700 mb-3">Today's Balance</h3>
       
       <div class="space-y-3">
-        {#each sortedBalances as { worked, due, balance, target } (target.id)}
-          <div class="border border-gray-200 rounded-lg p-3">
-            <div class="flex justify-between items-start mb-2">
-              <div>
-                <h4 class="font-medium text-gray-800">{target.name}</h4>
-                {#if target.exclude_holidays}
-                  <span class="text-xs text-gray-500">
-                    (excluding public holidays)
-                  </span>
-                {/if}
+        {#each todayBalances as balance (balance.id)}
+          {@const target = getTarget(balance.target_id)}
+          {#if target}
+            <div class="border border-gray-200 rounded-lg p-3">
+              <div class="flex justify-between items-start mb-2">
+                <div>
+                  <h4 class="font-medium text-gray-800">{target.name}</h4>
+                  {#if target.target_specs.some(spec => spec.exclude_holidays)}
+                    <span class="text-xs text-gray-500">
+                      (excluding public holidays)
+                    </span>
+                  {/if}
+                </div>
+                <div class="text-right">
+                  <div class={`text-lg font-bold ${getBalanceColor(balance.cumulative_minutes)}`}>
+                    {formatMinutes(balance.cumulative_minutes)}
+                  </div>
+                </div>
               </div>
-              <div class="text-right">
-                <div class={`text-lg font-bold ${getBalanceColor(balance)}`}>
-                  {formatMinutes(balance)}
+              
+              <div class="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span class="text-gray-600">Worked:</span>
+                  <span class="font-medium text-gray-800 ml-1">{formatMinutes(balance.worked_minutes)}</span>
+                </div>
+                <div>
+                  <span class="text-gray-600">Due:</span>
+                  <span class="font-medium text-gray-800 ml-1">{formatMinutes(balance.due_minutes)}</span>
                 </div>
               </div>
             </div>
-            
-            <div class="grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <span class="text-gray-600">Worked:</span>
-                <span class="font-medium text-gray-800 ml-1">{formatHours(worked)}</span>
-              </div>
-              <div>
-                <span class="text-gray-600">Due:</span>
-                <span class="font-medium text-gray-800 ml-1">{formatHours(due)}</span>
-              </div>
-            </div>
-          </div>
+          {/if}
         {/each}
       </div>
     </div>
   </div>
 {/if}
-
-<style>
-  /* Add any custom styles here */
-</style>

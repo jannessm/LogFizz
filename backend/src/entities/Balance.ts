@@ -16,9 +16,6 @@ export class Balance implements BalanceEntity {
   @Column('uuid', { default: null })
   next_balance_id: string;
 
-  @Column('uuid', { default: null })
-  parent_balance_id: string;
-
 
   @Column('varchar') // year, year-month, or year-month-date
   date!: string;

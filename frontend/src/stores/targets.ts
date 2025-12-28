@@ -1,12 +1,17 @@
-import { derived } from 'svelte/store';
+import { derived, get } from 'svelte/store';
 import type { TargetWithSpecs } from '../types';
 import { saveTarget, getAllTargets, deleteTarget as deleteTargetDB } from '../lib/db';
 import { syncService } from '../services/sync';
 import { createBaseStore, type BaseStoreConfig } from './base-store';
 import { holidaysStore } from './holidays';
+import { timers } from './timers'; 
 import dayjs from '../../../lib/utils/dayjs.js';
 
-// Configure the base store for targets
+/**
+ * Configuration for the targets store
+ * Targets define work schedules with target hours per weekday
+ * Each target contains nested target_specs for different date ranges
+ */
 const targetStoreConfig: BaseStoreConfig<TargetWithSpecs> = {
   db: {
     getAll: getAllTargets,
@@ -20,7 +25,7 @@ const targetStoreConfig: BaseStoreConfig<TargetWithSpecs> = {
   },
   hooks: {
     afterLoad: (items) => {
-      // Collect all state codes from target_specs
+      // Pre-fetch holidays for all state codes referenced in target_specs
       const stateCodes: string[] = [];
       for (const target of items) {
         for (const spec of target.target_specs || []) {
@@ -41,14 +46,21 @@ const targetStoreConfig: BaseStoreConfig<TargetWithSpecs> = {
   storeName: 'Target',
 };
 
-// Create the base store
 const baseStore = createBaseStore<TargetWithSpecs>(targetStoreConfig);
 
-// Create the targets store with custom create method
+/**
+ * Creates the targets store with custom create method
+ * @returns Enhanced targets store with CRUD operations
+ */
 function createTargetsStore() {
   return {
     ...baseStore,
 
+    /**
+     * Create a new target with nested target_specs
+     * @param targetData - Partial target data
+     * @returns Created target
+     */
     async create(targetData: Partial<TargetWithSpecs>) {
       return baseStore.create({
         id: crypto.randomUUID(),
@@ -59,36 +71,50 @@ function createTargetsStore() {
         updated_at: new Date().toISOString(),
       });
     },
+
+    async getTargetsByTimerIds(timerIds: string[]): Promise<TargetWithSpecs[]> {
+      if (timerIds.length > 0) {
+        return [];
+      }
+
+      const _targets = get(targets);
+      const _timers = get(timers).filter(t => !!timerIds.find(i => t.id == i));
+      
+      if (_timers.length == 0) {
+        return [];
+      }
+      return _targets.filter(target => _timers.find(t => target.id == t.target_id));
+    }
   };
 }
 
+/** Main targets store - manages work schedule targets */
 export const targetsStore = createTargetsStore();
 
-// Derived store for backward compatibility
+/** Derived store providing direct access to targets array */
 export const targets = derived(
   targetsStore,
   ($store) => $store.items
 );
 
-// Derived store for today's targets (those with active target_specs for today)
+/**
+ * Derived store for targets active today
+ * Filters targets that have a target_spec matching today's date and weekday
+ */
 export const todayTargets = derived(
   targetsStore,
   ($targetsStore) => {
     const today = dayjs();
     const todayWeekday = today.day(); // 0=Sunday, 6=Saturday
-    const todayStr = today.format('YYYY-MM-DD');
     
     return $targetsStore.items.filter(target => {
-      // Check if any target_spec is active for today
       for (const spec of target.target_specs || []) {
         const startDate = dayjs(spec.starting_from);
         const endDate = spec.ending_at ? dayjs(spec.ending_at) : null;
         
-        // Check date range
         if (today.isBefore(startDate, 'day')) continue;
         if (endDate && today.isAfter(endDate, 'day')) continue;
         
-        // Check weekday
         if (spec.weekdays.includes(todayWeekday)) {
           return true;
         }

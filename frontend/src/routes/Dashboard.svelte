@@ -1,13 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { timersStore } from '../stores/timers';
-  import { timeLogsStore } from '../stores/timelogs';
+  import { timeLogsStore, activeTimeLogs } from '../stores/timelogs';
   import { targetsStore } from '../stores/targets';
   import { authStore } from '../stores/auth';
   import { snackbar } from '../stores/snackbar';
   import { authApi } from '../services/api';
-  import ButtonGraph from '../components/ButtonGraph.svelte';
-  import ButtonForm from '../components/ButtonForm.svelte';
+  import TimerGraph from '../components/TimerGraph.svelte';
+  import TimerForm from '../components/TimerForm.svelte';
   import TimelogForm from '../components/TimelogForm.svelte';
   import DailyTargets from '../components/DailyTargets.svelte';
   import TargetForm from '../components/TargetForm.svelte';
@@ -15,8 +15,7 @@
   import EditOverview from '../components/EditOverview.svelte';
   import AddSelector from '../components/AddSelector.svelte';
   import dayjs from 'dayjs';
-  import type { Timer } from '../types';
-  import type { TargetWithSpecs } from '../types';
+  import type { Timer, TargetWithSpecs } from '../types';
   import { getSetting } from '../lib/db';
 
   let showButtonForm = false;
@@ -106,7 +105,7 @@
     showButtonForm = true;
   }
 
-  function handleEditButton(event: CustomEvent | Button) {
+  function handleEditButton(event: CustomEvent | Timer) {
     const button = 'detail' in event ? event.detail : event;
     editingButton = button;
     showButtonForm = true;
@@ -123,7 +122,7 @@
     showTargetForm = true;
   }
 
-  function handleEditTarget(target: DailyTarget) {
+  function handleEditTarget(target: TargetWithSpecs) {
     editingTarget = target;
     showTargetForm = true;
     showEditOverview = false;
@@ -151,7 +150,7 @@
     
     if (isActive) {
       // Find the active timelog for this timer
-      const activeTimer = $timeLogsStore.activeTimers?.find(t => t.timer_id === button.id);
+      const activeTimer = $activeTimeLogs?.find(t => t.timer_id === button.id);
       if (activeTimer) {
         // Open TimelogForm to edit active timelog
         editingTimelog = {
@@ -286,9 +285,9 @@
     <div class="mx-auto px-4 py-6 min-w-full w-full h-full">
       <!-- Daily Targets Overview -->
 
-      <!-- Button Graph -->
-      <ButtonGraph 
-        buttons={$timersStore.buttons.filter(b => !b.archived)}
+      <!-- Timer Graph -->
+      <TimerGraph 
+        buttons={$timersStore.items.filter(b => !b.archived)}
         {editMode}
         {toggleMode}
         on:edit={handleEditButton}
@@ -324,9 +323,9 @@
     />
   {/if}
 
-  <!-- Button Form Modal -->
+  <!-- Timer Form Modal -->
   {#if showButtonForm}
-    <ButtonForm 
+    <TimerForm 
       button={editingButton}
       on:close={handleCloseForm}
     />

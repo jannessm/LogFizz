@@ -186,7 +186,6 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "user_id" uuid NOT NULL,
                 "target_id" uuid NOT NULL,
                 "next_balance_id" uuid,
-                "parent_balance_id" uuid,
 
                 "date" character varying NOT NULL,
                 "due_minutes" integer NOT NULL DEFAULT 0,
@@ -209,8 +208,6 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 CONSTRAINT "FK_balances_target" FOREIGN KEY ("target_id") 
                     REFERENCES "targets"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
                 CONSTRAINT "FK_balances_next" FOREIGN KEY ("next_balance_id") 
-                    REFERENCES "balances"("id") ON DELETE NO ACTION ON UPDATE NO ACTION,
-                CONSTRAINT "FK_balances_parent" FOREIGN KEY ("parent_balance_id") 
                     REFERENCES "balances"("id") ON DELETE NO ACTION ON UPDATE NO ACTION
             )
         `);

@@ -278,7 +278,6 @@ export function aggregateToMonthly(
     user_id: first.user_id,
     target_id: first.target_id,
     next_balance_id: null,
-    parent_balance_id: null, // Will be set by caller
     date,
     due_minutes: totalDue,
     worked_minutes: totalWorked,
@@ -333,7 +332,6 @@ export function aggregateToYearly(
     user_id: first.user_id,
     target_id: first.target_id,
     next_balance_id: null,
-    parent_balance_id: null, // Will be set by caller
     date,
     due_minutes: totalDue,
     worked_minutes: totalWorked,

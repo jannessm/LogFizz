@@ -27,7 +27,6 @@ export async function balanceRoutes(fastify: FastifyInstance) {
             user_id: Type.String(),
             target_id: Type.String(),
             next_balance_id: Type.Optional(Type.String()),
-            parent_balance_id: Type.Optional(Type.String()),
 
             date: Type.String(),
             due_minutes: Type.Integer(),

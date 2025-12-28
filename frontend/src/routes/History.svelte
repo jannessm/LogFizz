@@ -63,7 +63,7 @@
     window.history.replaceState({}, '', newURL);
   }
 
-  $: timeLogs = $timeLogsStore.timeLogs.filter(tl => 
+  $: timeLogs = $timeLogsStore.items.filter(tl => 
     dayjs(tl.start_timestamp).month() === currentMonth.month() && 
     dayjs(tl.start_timestamp).year() === currentMonth.year()
   );
@@ -99,7 +99,7 @@
 
   onMount(async () => {
     await Promise.all([
-      buttonsStore.load(),
+      timersStore.load(),
       targetsStore.load(),
     ]);
 
@@ -364,7 +364,7 @@
 
     <!-- Charts Component -->
     <HistoryCharts
-      buttons={allButtons}
+      buttons={allTimers}
       {timeLogs}
       {currentMonth}
       onDateSelect={selectDate}
@@ -375,7 +375,7 @@
     <HistoryCalendar
       {currentMonth}
       {selectedDate}
-      buttons={allButtons}
+      buttons={allTimers}
       {timeLogs}
       countries={getTargetCountries()}
       onSelectDate={selectDate}
@@ -385,7 +385,7 @@
       <HistoryLogs
         {selectedDate}
         {timeLogs}
-        buttons={allButtons}
+        buttons={allTimers}
         countries={getTargetCountries()}
         onAddTimelog={handleAddTimelog}
         onEditTimelog={handleEditTimelog}
