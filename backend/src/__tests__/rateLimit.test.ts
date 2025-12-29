@@ -22,7 +22,7 @@ describe('Rate Limiting for Authentication Routes', () => {
     it('should allow requests within rate limit', async () => {
       const email = `ratelimit${Date.now()}@example.com`;
       const password = 'testpassword123';
-      const hashedPassword = hashPasswordForTransport(password, email);
+      const hashedPassword = await hashPasswordForTransport(password, email);
       
       // Register a user first
       await app.inject({
@@ -54,7 +54,7 @@ describe('Rate Limiting for Authentication Routes', () => {
     it('should block requests exceeding rate limit', async () => {
       const email = `ratelimit-exceed${Date.now()}@example.com`;
       const password = 'testpassword123';
-      const hashedPassword = hashPasswordForTransport(password, email);
+      const hashedPassword = await hashPasswordForTransport(password, email);
       
       // Register a user first
       await app.inject({
@@ -89,7 +89,7 @@ describe('Rate Limiting for Authentication Routes', () => {
     it('should include rate limit headers', async () => {
       const email = `ratelimit-headers${Date.now()}@example.com`;
       const password = 'testpassword123';
-      const hashedPassword = hashPasswordForTransport(password, email);
+      const hashedPassword = await hashPasswordForTransport(password, email);
       
       await app.inject({
         method: 'POST',
@@ -142,7 +142,7 @@ describe('Rate Limiting for Authentication Routes', () => {
       const password = 'testpassword123';
       for (let i = 0; i < 7; i++) {
         const email = `ratelimit-reg-exceed-${Date.now()}-${i}@example.com`;
-        const hashedPassword = hashPasswordForTransport(password, email);
+        const hashedPassword = await hashPasswordForTransport(password, email);
         const response = await app.inject({
           method: 'POST',
           url: '/api/auth/register',
@@ -226,7 +226,7 @@ describe('Rate Limiting for Authentication Routes', () => {
     it('should allow requests within rate limit', async () => {
       const email = 'test@example.com';
       const newPassword = 'newpassword123';
-      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
+      const hashedNewPassword = await hashPasswordForTransport(newPassword, email);
       
       // Make 3 reset password requests (within limit)
       for (let i = 0; i < 3; i++) {
@@ -247,7 +247,7 @@ describe('Rate Limiting for Authentication Routes', () => {
     it('should block requests exceeding rate limit', async () => {
       const email = 'test@example.com';
       const newPassword = 'newpassword123';
-      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
+      const hashedNewPassword = await hashPasswordForTransport(newPassword, email);
       
       // Make more than 3 reset password requests
       const responses = [];
@@ -284,9 +284,9 @@ describe('Rate Limiting for Authentication Routes', () => {
     it('should allow requests within rate limit for authenticated users', async () => {
       const email = `ratelimit-change${Date.now()}@example.com`;
       const password = 'testpassword123';
-      const hashedPassword = hashPasswordForTransport(password, email);
+      const hashedPassword = await hashPasswordForTransport(password, email);
       const newPassword = 'newpassword456';
-      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
+      const hashedNewPassword = await hashPasswordForTransport(newPassword, email);
       
       // Register and login
       await changePasswordApp.inject({
@@ -343,9 +343,9 @@ describe('Rate Limiting for Authentication Routes', () => {
     it('should block requests exceeding rate limit', async () => {
       const email = `ratelimit-change-exceed${Date.now()}@example.com`;
       const password = 'testpassword123';
-      const hashedPassword = hashPasswordForTransport(password, email);
+      const hashedPassword = await hashPasswordForTransport(password, email);
       const newPassword = 'newpassword456';
-      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
+      const hashedNewPassword = await hashPasswordForTransport(newPassword, email);
       
       // Register and login
       await changePasswordApp.inject({
