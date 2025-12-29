@@ -42,7 +42,7 @@ async function seed() {
     // Then bcrypt hash them for storage
     const demoEmail = 'demo@example.com';
     const demoPassword = 'demo123';
-    const demoHashedForTransport = hashPasswordForTransport(demoPassword, demoEmail);
+    const demoHashedForTransport = await hashPasswordForTransport(demoPassword, demoEmail);
     
     const demoUser = userRepo.create({
       email: demoEmail,
@@ -53,7 +53,7 @@ async function seed() {
     
     const testEmail = 'test@example.com';
     const testPassword = 'test123';
-    const testHashedForTransport = hashPasswordForTransport(testPassword, testEmail);
+    const testHashedForTransport = await hashPasswordForTransport(testPassword, testEmail);
     
     const testUser = userRepo.create({
       email: testEmail,

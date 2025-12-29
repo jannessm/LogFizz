@@ -145,16 +145,16 @@
     toggleMode = !toggleMode;
   }
 
-  function handleLongPress(event: CustomEvent<{ button: Timer; isActive: boolean }>) {
-    const { button, isActive } = event.detail;
+  function handleLongPress(event: CustomEvent<{ timer: Timer; isActive: boolean }>) {
+    const { timer, isActive } = event.detail;
     
     if (isActive) {
       // Find the active timelog for this timer
-      const activeTimer = $activeTimeLogs?.find(t => t.timer_id === button.id);
+      const activeTimer = $activeTimeLogs?.find(t => t.timer_id === timer.id);
       if (activeTimer) {
         // Open TimelogForm to edit active timelog
         editingTimelog = {
-          timer_id: button.id,
+          timer_id: timer.id,
           startTime: activeTimer.start_timestamp,
           endTime: null,
           log: activeTimer
@@ -163,7 +163,7 @@
       }
     } else {
       // Open ButtonForm to edit button
-      handleEditButton(button);
+      handleEditButton(timer);
     }
   }
 
@@ -213,13 +213,13 @@
   }
 
   async function handleTimerStopped(event: CustomEvent) {
-    const { timer, button } = event.detail;
+    const { timer, button: timerButton } = event.detail;
     timerToStop = timer;
 
     if (editOnStopEnabled) {
       // Open TimelogForm to allow adding notes before stopping
       editingTimelog = {
-        timer_id: button.id,
+        timer_id: timerButton.id,
         startTime: timer.start_timestamp,
         endTime: null,
         log: timer

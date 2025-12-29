@@ -1,6 +1,6 @@
 import ky from 'ky';
 import type { User, Timer, TimeLog, Holiday, State, Balance } from '../types';
-import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.js';
+import { hashPasswordForTransport } from '../../../lib/utils/passwordHash';
 
 // In development, use proxy (relative path). In production, use env variable or default to same origin
 const API_BASE_URL = import.meta.env.PROD 
@@ -32,7 +32,9 @@ export const authApi = {
   },
 
   async login(email: string, password: string, hcaptchaToken?: string): Promise<User> {
+    console.log('→ Logging in user:', email);
     const hashedPassword = await hashPasswordForTransport(password, email);
+    console.log('→ Logging in user:', email, hashedPassword);
     const response = await api.post('api/auth/login', { 
       json: { 
         email, 

@@ -204,7 +204,7 @@ describe.skip('Migrations and Seeding', () => {
       
       const testEmail = 'test-seed@example.com';
       const testPassword = 'test123';
-      const hashedForTransport = passwordHash.hashPasswordForTransport(testPassword, testEmail);
+      const hashedForTransport = await passwordHash.hashPasswordForTransport(testPassword, testEmail);
       
       const testUser = userRepo.create({
         email: testEmail,

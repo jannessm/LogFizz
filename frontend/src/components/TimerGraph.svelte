@@ -80,7 +80,7 @@
           "
         >
           <TimerButton 
-            {button}
+            timer={button}
             {editMode}
             {toggleMode}
             on:edit={() => handleEdit(button)}

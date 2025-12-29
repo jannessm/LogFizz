@@ -137,7 +137,7 @@ async function testMigrations() {
     
     const testEmail = 'migration-test@example.com';
     const testPassword = 'test123';
-    const hashedForTransport = hashPasswordForTransport(testPassword, testEmail);
+    const hashedForTransport = await hashPasswordForTransport(testPassword, testEmail);
     
     const testUser = userRepo.create({
       email: testEmail,
