@@ -1,13 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { buttonsStore } from '../stores/buttons';
-  import { timeLogsStore } from '../stores/timelogs';
+  import { timersStore } from '../stores/timers';
+  import { timeLogsStore, activeTimeLogs } from '../stores/timelogs';
   import { targetsStore } from '../stores/targets';
   import { authStore } from '../stores/auth';
   import { snackbar } from '../stores/snackbar';
   import { authApi } from '../services/api';
-  import ButtonGraph from '../components/ButtonGraph.svelte';
-  import ButtonForm from '../components/ButtonForm.svelte';
+  import TimerGraph from '../components/TimerGraph.svelte';
+  import TimerForm from '../components/TimerForm.svelte';
   import TimelogForm from '../components/TimelogForm.svelte';
   import DailyTargets from '../components/DailyTargets.svelte';
   import TargetForm from '../components/TargetForm.svelte';
@@ -15,7 +15,7 @@
   import EditOverview from '../components/EditOverview.svelte';
   import AddSelector from '../components/AddSelector.svelte';
   import dayjs from 'dayjs';
-  import type { Button, DailyTarget } from '../types';
+  import type { Timer, TargetWithSpecs } from '../types';
   import { getSetting } from '../lib/db';
 
   let showButtonForm = false;
@@ -24,9 +24,9 @@
   let showEditOverview = false;
   let showAddSelector = false;
   let editMode = false;
-  let editingButton: Button | null = null;
+  let editingButton: Timer | null = null;
   let editingTimelog: any = null;
-  let editingTarget: DailyTarget | null = null;
+  let editingTarget: TargetWithSpecs | null = null;
   let toggleMode = true;
   let verificationReminderShown = false;
   let editOnStopEnabled = true;
@@ -37,7 +37,7 @@
   onMount(async () => {
     
     await Promise.all([
-      buttonsStore.load(),
+      timersStore.load(),
       targetsStore.load(),
     ]);
 
@@ -105,7 +105,7 @@
     showButtonForm = true;
   }
 
-  function handleEditButton(event: CustomEvent | Button) {
+  function handleEditButton(event: CustomEvent | Timer) {
     const button = 'detail' in event ? event.detail : event;
     editingButton = button;
     showButtonForm = true;
@@ -122,7 +122,7 @@
     showTargetForm = true;
   }
 
-  function handleEditTarget(target: DailyTarget) {
+  function handleEditTarget(target: TargetWithSpecs) {
     editingTarget = target;
     showTargetForm = true;
     showEditOverview = false;
@@ -145,16 +145,16 @@
     toggleMode = !toggleMode;
   }
 
-  function handleLongPress(event: CustomEvent<{ button: Button; isActive: boolean }>) {
-    const { button, isActive } = event.detail;
+  function handleLongPress(event: CustomEvent<{ timer: Timer; isActive: boolean }>) {
+    const { timer, isActive } = event.detail;
     
     if (isActive) {
-      // Find the active timelog for this button
-      const activeTimer = $timeLogsStore.activeTimers?.find(t => t.button_id === button.id);
+      // Find the active timelog for this timer
+      const activeTimer = $activeTimeLogs?.find(t => t.timer_id === timer.id);
       if (activeTimer) {
         // Open TimelogForm to edit active timelog
         editingTimelog = {
-          button_id: button.id,
+          timer_id: timer.id,
           startTime: activeTimer.start_timestamp,
           endTime: null,
           log: activeTimer
@@ -163,7 +163,7 @@
       }
     } else {
       // Open ButtonForm to edit button
-      handleEditButton(button);
+      handleEditButton(timer);
     }
   }
 
@@ -173,16 +173,16 @@
   }
 
   async function handleSaveTimelog(event: CustomEvent) {
-    const { button_id, type, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
+    const { timer_id, type, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
     
     // If this is a timer being stopped (timerToStop is set), stop it with the notes and custom end time
     if (timerToStop && existingLog?.log?.id === timerToStop.id) {
-      await timeLogsStore.stopTimer(timerToStop.id, notes || undefined, endTimestamp || undefined);
+      await timeLogsStore.stopTimer(timerToStop, notes || undefined, endTimestamp || undefined);
       timerToStop = null;
     } else if (existingLog && existingLog.log) {
       // Editing existing timelog
       await timeLogsStore.update(existingLog.log.id, {
-        button_id,
+        timer_id,
         type,
         start_timestamp: startTimestamp,
         end_timestamp: endTimestamp || undefined,
@@ -191,7 +191,7 @@
     } else {
       // Creating new timelog
       await timeLogsStore.create({
-        button_id,
+        timer_id,
         type,
         start_timestamp: startTimestamp,
         end_timestamp: endTimestamp || undefined,
@@ -213,13 +213,13 @@
   }
 
   async function handleTimerStopped(event: CustomEvent) {
-    const { timer, button } = event.detail;
+    const { timer, button: timerButton } = event.detail;
     timerToStop = timer;
 
     if (editOnStopEnabled) {
       // Open TimelogForm to allow adding notes before stopping
       editingTimelog = {
-        button_id: button.id,
+        timer_id: timerButton.id,
         startTime: timer.start_timestamp,
         endTime: null,
         log: timer
@@ -227,7 +227,7 @@
       showTimelogForm = true;
     } else {
       // Stop timer immediately without opening form
-      await timeLogsStore.stopTimer(timer.id);
+      await timeLogsStore.stopTimer(timer);
       timerToStop = null;
     }
   }
@@ -235,7 +235,7 @@
   async function handleCloseTimelogFormWithStop() {
     // If there's a pending timer to stop, stop it now without saving changes
     if (timerToStop) {
-      await timeLogsStore.stopTimer(timerToStop.id);
+      await timeLogsStore.stopTimer(timerToStop);
       timerToStop = null;
     }
     showTimelogForm = false;
@@ -285,9 +285,9 @@
     <div class="mx-auto px-4 py-6 min-w-full w-full h-full">
       <!-- Daily Targets Overview -->
 
-      <!-- Button Graph -->
-      <ButtonGraph 
-        buttons={$buttonsStore.buttons.filter(b => !b.archived)}
+      <!-- Timer Graph -->
+      <TimerGraph 
+        buttons={$timersStore.items.filter(b => !b.archived)}
         {editMode}
         {toggleMode}
         on:edit={handleEditButton}
@@ -323,9 +323,9 @@
     />
   {/if}
 
-  <!-- Button Form Modal -->
+  <!-- Timer Form Modal -->
   {#if showButtonForm}
-    <ButtonForm 
+    <TimerForm 
       button={editingButton}
       on:close={handleCloseForm}
     />

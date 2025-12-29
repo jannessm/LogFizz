@@ -33,7 +33,6 @@ TimeLogsArray1 --> TimeLog
 - user_id!
 - target_id!
 - next_balance_id? (null if last balance or daily balance, only same granularity allowed!)
-- parent_balance_id? (null if yearly, else is the balance id of the upper level: daily -> monthly -> yearly)
 - date (year for yearlybalance, year-month for monthlybalance, ...)
 - due_minutes!
 - worked_minutes!
@@ -46,6 +45,8 @@ TimeLogsArray1 --> TimeLog
 - created_at!
 - updated_at!
 - deleted_at
+
+**Note**: The `parent_balance_id` field has been removed. The bottom-up calculation approach (Daily → Monthly → Yearly) uses aggregation instead of parent references.
 
 ### Target Data Structure
 
@@ -93,20 +94,6 @@ only used in the backend. the frontend gets a nested datastructure and therefore
 - year!
 - deleted_at
 
-### Upsert / Delete Timelog
-
-The index db should have an index of date + target_id for efficient loading of affected days
-
-```mermaid
-graph LR
-  UpsertTimelog([Upsert / Delete Timelog]) --> getEffectedBalance[get effected days]
-  getEffectedBalance --> forEach{for each<br>effected day}
-  forEach --> |next| getTarget --> updateBalanceDay["apply difference of<br>timelog duration<br>to daily balance"]
-	  --> updateBalanceMonth["apply difference of<br>timelog duration<br>to monthly balance"] --> chainMonth[iter over all balances linked<br>by next_balance_id and<br>update the cumulation]
-       	  --> updateBalanceYearly["apply difference of<br>timelog duration<br>to yearly balance"] --> chainYear[iter over all balances linked<br>by next_balance_id and<br> update the cumulation] --> forEach
-  forEach --> Done
-```
-
 ### Minute Timer
 
 To be as up to date as possible use a loop to trigger the update of active timelogs and propagate the due (only changes daily) and worked minutes (changes each minute). This should only happen when the balance is displayed to the user (e.g. history view).
@@ -137,6 +124,27 @@ Start([Calcualte Balances]) --> getTargets[(load targets, buttons<br>holidays)] 
   --> aggregate[aggregate due/worked minutes and counters of<br>special days in dailybalance list] --> loop
 loop --done--> aggregateMonth[aggregate monthly balances into a list] --> aggregateYear[aggregate yearly balances into a list] --> save[(save balances)] --> eachTarget
 eachTarget --> done
+```
+
+### Update Balances on Timelog change
+
+routine to update all balances without doing all the math when one timelog gets updated. To retrieve the affected balances use the start and end date of the timelog. for each day in this timespan load all balances until today. if balances are missing, create a new one and set the next_balance_id field. To get the next level, get all unique months/years respectively.
+
+```mermaid
+graph TD
+subgraph UpdateBalances
+updateBalances([updateBalances<br>Input: timelog]) --> eachLevel{for daily, monthly, yearly} --> getAffected[get balances<br>directly effected by timelog] -->
+each{for each<br>balance}
+each --next--> recalc(["new_balance = calculateDaily(balance.date)"]) --> isDaily{is monthly, or yearly} --no--> each
+isDaily --yes--> propMonth(["propagateCumulation(new_balance)"]) --> each
+each --done--> return1
+end
+
+subgraph propagateCumulation
+prop([propagateCumulation<br>Input: balance, cumulative]) --> calcCum[cumulative = balance.cumulative + balance.worked - balance.due] --> while{while balance.next_balance_id} --true--> loadBal[new_balance = get next balance by next_balance_id] --> setCumNew[new_balance.cumulative = cumulative] -->
+  setCum[cumulative = new_balance.cumulative + new_balance.worked - new_balance.due] --> while
+  while --false--> return
+end
 ```
 
 ### Due Calcuation

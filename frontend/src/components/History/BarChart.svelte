@@ -66,7 +66,7 @@
         }
         
         if (duration !== undefined && duration !== null) {
-          const buttonData = buttonDailyData.get(log.button_id);
+          const buttonData = buttonDailyData.get(log.timer_id);
           if (buttonData) {
             buttonData[day - 1] += duration / 60; // Convert to hours
           }

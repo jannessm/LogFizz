@@ -67,7 +67,7 @@
   }
 
   async function handleSync() {
-    await syncService.syncAll();
+    await syncService.sync('all');
     hasPendingSync = await syncService.hasPendingSync();
   }
 

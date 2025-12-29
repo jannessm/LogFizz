@@ -1,36 +1,56 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { createEventDispatcher } from 'svelte';
-  import type { WorkSchedule, State, Button } from '../types';
+  import type { TargetWithSpecs, State, Timer, TargetSpec } from '../types';
   import { targetsStore } from '../stores/targets';
   import { statesStore } from '../stores/states';
-  import { buttonsStore } from '../stores/buttons';
+  import { timersStore } from '../stores/timers';
+  import { getActiveTargetSpec } from '../lib/utils/targetSpec';
+  import dayjs from '../../../lib/utils/dayjs';
 
-  export let target: WorkSchedule | null = null;
+  export let target: TargetWithSpecs | null = null;
 
   const dispatch = createEventDispatcher();
 
   let name = target?.name || '';
-  // Get first duration value if target exists, otherwise default to 90 minutes (1h 30m)
-  const firstDuration = target?.duration_minutes?.[0] || 90;
-  let durationHours = Math.floor(firstDuration / 60);
-  let durationMinutes = firstDuration % 60;
-  let weekdays = target?.weekdays || [1, 2, 3, 4, 5]; // Mon-Fri by default
-  let excludeHolidays = target?.exclude_holidays || false;
-  let stateCode = target?.state_code || '';
-  let startingFrom = target?.starting_from ? target.starting_from.split('T')[0] : undefined;
-  let endingAt = target?.ending_at ? target.ending_at.split('T')[0] : undefined;
+  
+  // Manage multiple target specs
+  let targetSpecs: TargetSpec[] = target?.target_specs?.length ? [...target.target_specs] : [];
+  let editingSpecIndex: number | null = null;
+  let showSpecForm = false;
+  
+  // If creating a new target and no specs exist, show the form
+  $: if (!target && targetSpecs.length === 0 && !showSpecForm) {
+    // Use setTimeout to avoid updating during render
+    setTimeout(() => openSpecForm(null), 0);
+  }
+  
+  // Form state for current spec being edited/created
+  let specFormState = createEmptySpecForm();
+  
   let isLoading = false;
   let errorMessage = '';
   let availableStates: State[] = [];
-  let selectedCountry = '';
   let filteredStates: State[] = [];
   let availableCountries: string[] = [];
-  let availableButtons: Button[] = [];
+  let availableButtons: Timer[] = [];
   let selectedButtonIds: string[] = [];
+  
+  function createEmptySpecForm() {
+    return {
+      durationHours: 1,
+      durationMinutes: 30,
+      weekdays: [1, 2, 3, 4, 5] as number[],
+      excludeHolidays: false,
+      stateCode: '',
+      selectedCountry: '',
+      startingFrom: undefined as string | undefined,
+      endingAt: undefined as string | undefined,
+    };
+  }
 
-  $: if ($buttonsStore.buttons) {
-    availableButtons = $buttonsStore.buttons;
+  $: if ($timersStore.items) {
+    availableButtons = $timersStore.items;
     
     // If editing a target, pre-select buttons that are already assigned to this target
     if (target?.id && availableButtons.length > 0 && selectedButtonIds.length === 0) {
@@ -46,19 +66,11 @@
     // Extract unique countries from states
     const countries = new Set(availableStates.map(s => s.country));
     availableCountries = Array.from(countries).sort();
-    
-    // If we have a target with state_code, find and set the country
-    if (target?.state_code && availableStates.length > 0 && !selectedCountry) {
-      const targetState = availableStates.find(s => s.code === target.state_code);
-      if (targetState) {
-        selectedCountry = targetState.country;
-      }
-    }
   }
 
   $: {
-    if (selectedCountry) {
-      filteredStates = availableStates.filter(s => s.country === selectedCountry)
+    if (specFormState.selectedCountry) {
+      filteredStates = availableStates.filter(s => s.country === specFormState.selectedCountry)
         .sort((a, b) => a.state.localeCompare(b.state));
     } else {
       filteredStates = [];
@@ -67,7 +79,143 @@
 
   function handleCountryChange() {
     // Reset state selection when country changes
-    stateCode = '';
+    specFormState.stateCode = '';
+  }
+
+  function openSpecForm(index: number | null = null) {
+    editingSpecIndex = index;
+    
+    if (index !== null && targetSpecs[index]) {
+      // Editing existing spec
+      const spec = targetSpecs[index];
+      const firstDuration = spec.duration_minutes?.[0] || 90;
+      
+      specFormState = {
+        durationHours: Math.floor(firstDuration / 60),
+        durationMinutes: firstDuration % 60,
+        weekdays: [...spec.weekdays],
+        excludeHolidays: spec.exclude_holidays || false,
+        stateCode: spec.state_code || '',
+        selectedCountry: '',
+        startingFrom: spec.starting_from ? spec.starting_from.split('T')[0] : undefined,
+        endingAt: spec.ending_at ? spec.ending_at.split('T')[0] : undefined,
+      };
+      
+      // Find country for state code
+      if (spec.state_code && availableStates.length > 0) {
+        const targetState = availableStates.find(s => s.code === spec.state_code);
+        if (targetState) {
+          specFormState.selectedCountry = targetState.country;
+        }
+      }
+    } else {
+      // Creating new spec
+      specFormState = createEmptySpecForm();
+      
+      // If there are existing specs, find the latest ending_at date and use it as starting_from
+      if (targetSpecs.length > 0) {
+        // Sort specs by starting_from to find the last one
+        const sortedSpecs = [...targetSpecs].sort((a, b) => {
+          const dateA = a.starting_from ? new Date(a.starting_from).getTime() : 0;
+          const dateB = b.starting_from ? new Date(b.starting_from).getTime() : 0;
+          return dateB - dateA;
+        });
+        
+        const lastSpec = sortedSpecs[0];
+        
+        // If the last spec has an ending_at, use it as the new starting_from
+        if (lastSpec.ending_at) {
+          // Add one day to the ending date to start the next day
+          const nextDay = dayjs(lastSpec.ending_at).add(1, 'day');
+          specFormState.startingFrom = nextDay.format('YYYY-MM-DD');
+        }
+      }
+    }
+    
+    showSpecForm = true;
+  }
+
+  function closeSpecForm() {
+    showSpecForm = false;
+    editingSpecIndex = null;
+    specFormState = createEmptySpecForm();
+  }
+
+  function saveSpec() {
+    const totalMinutes = specFormState.durationHours * 60 + specFormState.durationMinutes;
+    
+    if (totalMinutes <= 0) {
+      errorMessage = 'Duration must be greater than 0';
+      return;
+    }
+    
+    if (specFormState.weekdays.length === 0) {
+      errorMessage = 'Please select at least one day';
+      return;
+    }
+    
+    const newSpec: TargetSpec = {
+      id: editingSpecIndex !== null && targetSpecs[editingSpecIndex]?.id 
+        ? targetSpecs[editingSpecIndex].id 
+        : crypto.randomUUID(),
+      user_id: target?.user_id || '',
+      target_id: target?.id || '',
+      duration_minutes: specFormState.weekdays.map(() => totalMinutes),
+      weekdays: specFormState.weekdays,
+      exclude_holidays: specFormState.excludeHolidays,
+      state_code: specFormState.stateCode || undefined,
+      starting_from: specFormState.startingFrom 
+        ? new Date(specFormState.startingFrom).toISOString() 
+        : dayjs().toISOString(), // Default to now if not specified
+      ending_at: specFormState.endingAt ? new Date(specFormState.endingAt).toISOString() : undefined,
+    };
+    
+    if (editingSpecIndex !== null) {
+      // Update existing spec
+      targetSpecs[editingSpecIndex] = newSpec;
+      targetSpecs = [...targetSpecs];
+    } else {
+      // Add new spec
+      targetSpecs = [...targetSpecs, newSpec];
+    }
+    
+    closeSpecForm();
+    errorMessage = '';
+  }
+
+  function deleteSpec(index: number) {
+    if (targetSpecs.length === 1) {
+      errorMessage = 'Cannot delete the last target spec. A target must have at least one specification.';
+      return;
+    }
+    
+    if (confirm('Are you sure you want to delete this target specification?')) {
+      targetSpecs = targetSpecs.filter((_, i) => i !== index);
+      errorMessage = '';
+    }
+  }
+
+  function formatSpecSummary(spec: TargetSpec): string {
+    const duration = spec.duration_minutes[0];
+    const hours = Math.floor(duration / 60);
+    const minutes = duration % 60;
+    const durationStr = `${hours}h ${minutes}m`;
+    
+    const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const days = spec.weekdays.map(d => weekdayNames[d]).join(', ');
+    
+    let dateRange = '';
+    if (spec.starting_from && spec.ending_at) {
+      dateRange = `${dayjs(spec.starting_from).format('MMM D, YYYY')} - ${dayjs(spec.ending_at).format('MMM D, YYYY')}`;
+    } else if (spec.starting_from) {
+      dateRange = `From ${dayjs(spec.starting_from).format('MMM D, YYYY')}`;
+    } else if (spec.ending_at) {
+      dateRange = `Until ${dayjs(spec.ending_at).format('MMM D, YYYY')}`;
+    } else {
+      dateRange = 'No date restrictions';
+    }
+    
+    return `${durationStr} • ${days} • ${dateRange}`;
   }
 
   onMount(async () => {
@@ -85,10 +233,10 @@
   ];
 
   function toggleDay(day: number) {
-    if (weekdays.includes(day)) {
-      weekdays = weekdays.filter(d => d !== day);
+    if (specFormState.weekdays.includes(day)) {
+      specFormState.weekdays = specFormState.weekdays.filter(d => d !== day);
     } else {
-      weekdays = [...weekdays, day].sort();
+      specFormState.weekdays = [...specFormState.weekdays, day].sort();
     }
   }
 
@@ -114,11 +262,11 @@
 
     // Update buttons
     for (const buttonId of toAssign) {
-      await buttonsStore.update(buttonId, { target_id: targetId });
+      await timersStore.update(buttonId, { target_id: targetId });
     }
 
     for (const buttonId of toUnassign) {
-      await buttonsStore.update(buttonId, { target_id: undefined });
+      await timersStore.update(buttonId, { target_id: undefined });
     }
   }
 
@@ -128,14 +276,8 @@
       return;
     }
 
-    if (weekdays.length === 0) {
-      errorMessage = 'Please select at least one day';
-      return;
-    }
-
-    const totalMinutes = durationHours * 60 + durationMinutes;
-    if (totalMinutes <= 0) {
-      errorMessage = 'Please set a duration greater than 0';
+    if (targetSpecs.length === 0) {
+      errorMessage = 'Please add at least one target specification';
       return;
     }
 
@@ -143,18 +285,9 @@
     errorMessage = '';
 
     try {
-      // Create array with same duration for each selected weekday
-      // Backend expects an array, one entry per weekday that has this target
-      const duration_minutes = weekdays.map(() => totalMinutes);
-      
-      const targetData: Partial<WorkSchedule> = {
+      const targetData: Partial<TargetWithSpecs> = {
         name: name.trim(),
-        duration_minutes,
-        weekdays,
-        exclude_holidays: excludeHolidays,
-        state_code: stateCode || undefined,
-        starting_from: startingFrom ? new Date(startingFrom).toISOString() : undefined,
-        ending_at: endingAt ? new Date(endingAt).toISOString() : undefined,
+        target_specs: targetSpecs,
       };
 
       let savedTargetId: string;
@@ -233,78 +366,84 @@
           />
         </div>
 
-        <!-- Duration -->
-        <div>
-          <div class="block text-sm font-medium text-gray-700 mb-2">
-            Daily Duration *
-          </div>
-          <div class="flex gap-4">
-            <div class="flex-1">
-              <label for="hours" class="block text-xs text-gray-600 mb-1">Hours</label>
-              <input
-                id="hours"
-                type="number"
-                bind:value={durationHours}
-                min="0"
-                max="23"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+        <!-- Target Specifications -->
+        <div class="border-t pt-4">
+          <div class="flex justify-between items-center mb-3">
+            <div>
+              <h3 class="text-sm font-medium text-gray-700">Target Specifications *</h3>
+              <p class="text-xs text-gray-500 mt-1">
+                Define work schedules for different time periods
+              </p>
             </div>
-            <div class="flex-1">
-              <label for="minutes" class="block text-xs text-gray-600 mb-1">Minutes</label>
-              <input
-                id="minutes"
-                type="number"
-                bind:value={durationMinutes}
-                min="0"
-                max="59"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <button
+              type="button"
+              on:click={() => openSpecForm(null)}
+              class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors flex items-center gap-1"
+            >
+              <span class="icon-[si--add-line] w-4 h-4"></span>
+              Add Schedule
+            </button>
+          </div>
+
+          <!-- List of Target Specs -->
+          {#if targetSpecs.length === 0}
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <p class="text-gray-500 text-sm">No schedules defined yet</p>
+              <p class="text-gray-400 text-xs mt-1">Click "Add Schedule" to create one</p>
             </div>
-          </div>
-          <p class="text-sm text-gray-500 mt-1">
-            Total: {durationHours}h {durationMinutes}m
-          </p>
-        </div>
-
-        <!-- Weekdays -->
-        <div>
-          <div id="weekdaysLabel" class="block text-sm font-medium text-gray-700 mb-2">
-            Target applies to: *
-          </div>
-          <div class="flex gap-2 flex-wrap" role="group" aria-labelledby="weekdaysLabel">
-            {#each weekDays as day}
-              <button
-                type="button"
-                on:click={() => toggleDay(day.value)}
-                class="px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                class:bg-blue-600={weekdays.includes(day.value)}
-                class:text-white={weekdays.includes(day.value)}
-                class:bg-gray-200={!weekdays.includes(day.value)}
-                class:text-gray-700={!weekdays.includes(day.value)}
-                aria-pressed={weekdays.includes(day.value)}
-              >
-                {day.label}
-              </button>
-            {/each}
-          </div>
-        </div>
-
-        <!-- Exclude Holidays Toggle -->
-        <div>
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              bind:checked={excludeHolidays}
-              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <span class="text-sm text-gray-700">
-              Exclude public holidays from balance calculation
-            </span>
-          </label>
-          <p class="text-xs text-gray-500 mt-1 ml-6">
-            When enabled, public holidays won't count as missed target days in the monthly balance
-          </p>
+          {:else}
+            <div class="space-y-2">
+              {#each targetSpecs as spec, index}
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                  <div class="flex justify-between items-start gap-3">
+                    <div class="flex-1">
+                      <div class="text-sm text-gray-700 mb-1">
+                        {formatSpecSummary(spec)}
+                      </div>
+                      {#if spec.exclude_holidays}
+                        <div class="flex items-center gap-1 text-xs text-gray-500">
+                          <span class="icon-[si--calendar-remove-line] w-3 h-3"></span>
+                          Excludes public holidays
+                          {#if spec.state_code}
+                            ({spec.state_code})
+                          {/if}
+                        </div>
+                      {/if}
+                    </div>
+                    <div class="flex gap-1">
+                      <button
+                        type="button"
+                        on:click={() => openSpecForm(index)}
+                        class="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        title="Edit"
+                      >
+                        <span class="icon-[si--edit-line] w-4 h-4"></span>
+                      </button>
+                      {#if targetSpecs.length > 1}
+                        <button
+                          type="button"
+                          on:click={() => deleteSpec(index)}
+                          class="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Delete schedule"
+                        >
+                          <span class="icon-[si--delete-2-line] w-4 h-4"></span>
+                        </button>
+                      {:else}
+                        <button
+                          type="button"
+                          disabled
+                          class="p-1.5 text-gray-400 cursor-not-allowed rounded opacity-50"
+                          title="Cannot delete the only schedule - a target must have at least one"
+                        >
+                          <span class="icon-[si--delete-2-line] w-4 h-4"></span>
+                        </button>
+                      {/if}
+                    </div>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
         </div>
 
         <!-- Button Assignment -->
@@ -342,8 +481,6 @@
                     <div class="flex items-center justify-center mb-2">
                       {#if button.emoji}
                         <span class="text-2xl">{button.emoji}</span>
-                      {:else if button.icon}
-                        <span class="w-8 h-8 {button.icon}" style="color: {button.color || '#000'}"></span>
                       {:else}
                         <span class="w-8 h-8 icon-[si--button-duotone]" style="color: {button.color || '#6B7280'}"></span>
                       {/if}
@@ -360,123 +497,6 @@
             {/if}
           </div>
         {/if}
-
-        <!-- Holiday Settings -->
-        <div class="border-t pt-4 mt-4">
-          <div class="block text-sm font-medium text-gray-700 mb-3">
-            Holiday Settings (Optional)
-          </div>
-          <p class="text-xs text-gray-500 mb-3">
-            Select your location to exclude public holidays from this target's calculation
-          </p>
-
-          <div class="space-y-3">
-            <!-- Country -->
-            <div>
-              <label for="country" class="block text-sm text-gray-600 mb-1">
-                Country
-              </label>
-              <select
-                id="country"
-                bind:value={selectedCountry}
-                on:change={handleCountryChange}
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              >
-                <option value="">-- Select a country --</option>
-                {#each availableCountries as country}
-                  <option value={country}>{country}</option>
-                {/each}
-              </select>
-            </div>
-
-            <!-- State -->
-            {#if selectedCountry}
-              <div>
-                <label for="state" class="block text-sm text-gray-600 mb-1">
-                  State/Region
-                </label>
-                <select
-                  id="state"
-                  bind:value={stateCode}
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                >
-                  <option value="">-- Select a state --</option>
-                  {#each filteredStates as s}
-                    <option value={s.code}>{s.state} ({s.code})</option>
-                  {/each}
-                </select>
-              </div>
-            {/if}
-
-            <!-- Starting From -->
-            <div>
-              <label for="startingFrom" class="block text-sm text-gray-600 mb-1">
-                Tracking Starts From
-              </label>
-              <div class="flex gap-2">
-                <input
-                  id="startingFrom"
-                  type="date"
-                  bind:value={startingFrom}
-                  class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                  class:text-gray-300={!startingFrom}
-                />
-                {#if startingFrom}
-                  <button
-                    type="button"
-                    on:click={(e) => {
-                      e.preventDefault();
-                      startingFrom = undefined;
-                      e.currentTarget.blur();
-                    }}
-                    class="px-3 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 hover:text-red-600 transition-colors"
-                    title="Clear date"
-                    aria-label="Clear starting date"
-                  >
-                    <span class="icon-[si--close-line] w-4 h-4"></span>
-                  </button>
-                {/if}
-              </div>
-              <p class="text-xs text-gray-500 mt-1">
-                Optional: Date from which tracking starts (important for balance computations)
-              </p>
-            </div>
-
-            <!-- Ending At -->
-            <div>
-              <label for="endingAt" class="block text-sm text-gray-600 mb-1">
-                Tracking Ends At
-              </label>
-              <div class="flex gap-2">
-                <input
-                  id="endingAt"
-                  type="date"
-                  bind:value={endingAt}
-                  class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                  class:text-gray-300={!endingAt}
-                />
-                {#if endingAt}
-                  <button
-                    type="button"
-                    on:click={(e) => {
-                      e.preventDefault();
-                      endingAt = undefined;
-                      e.currentTarget.blur();
-                    }}
-                    class="px-3 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 hover:text-red-600 transition-colors"
-                    title="Clear date"
-                    aria-label="Clear ending date"
-                  >
-                    <span class="icon-[si--close-line] w-4 h-4"></span>
-                  </button>
-                {/if}
-              </div>
-              <p class="text-xs text-gray-500 mt-1">
-                Optional: Date at which tracking ends (balance calculated only up to this date)
-              </p>
-            </div>
-          </div>
-        </div>
 
         <!-- Actions -->
         <div class="flex gap-3 pt-4">
@@ -499,6 +519,234 @@
     </div>
   </div>
 </div>
+
+<!-- Target Spec Form Modal -->
+{#if showSpecForm}
+  <div 
+    class="fixed inset-0 z-[60] flex items-center justify-center p-4" 
+    on:click={closeSpecForm}
+    on:keydown={(e) => e.key === 'Escape' && closeSpecForm()}
+    role="button"
+    tabindex="0"
+  >
+    <div 
+      class="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
+      on:click|stopPropagation
+      on:keydown|stopPropagation
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+    >
+      <!-- Header -->
+      <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h3 class="text-lg font-semibold text-gray-800">
+          {editingSpecIndex !== null ? 'Edit' : 'Add'} Schedule
+        </h3>
+        <button
+          on:click={closeSpecForm}
+          class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
+          style="width: 24px; height: 24px;"
+          aria-label="Close"
+        ></button>
+      </div>
+
+      <!-- Content -->
+      <div class="overflow-y-auto flex-1 p-6 space-y-4">
+        <!-- Duration -->
+        <div>
+          <div class="block text-sm font-medium text-gray-700 mb-2">
+            Daily Duration *
+          </div>
+          <div class="flex gap-4">
+            <div class="flex-1">
+              <label for="spec-hours" class="block text-xs text-gray-600 mb-1">Hours</label>
+              <input
+                id="spec-hours"
+                type="number"
+                bind:value={specFormState.durationHours}
+                min="0"
+                max="23"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div class="flex-1">
+              <label for="spec-minutes" class="block text-xs text-gray-600 mb-1">Minutes</label>
+              <input
+                id="spec-minutes"
+                type="number"
+                bind:value={specFormState.durationMinutes}
+                min="0"
+                max="59"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <p class="text-sm text-gray-500 mt-1">
+            Total: {specFormState.durationHours}h {specFormState.durationMinutes}m
+          </p>
+        </div>
+
+        <!-- Weekdays -->
+        <div>
+          <div id="specWeekdaysLabel" class="block text-sm font-medium text-gray-700 mb-2">
+            Active Days *
+          </div>
+          <div class="flex gap-2 flex-wrap" role="group" aria-labelledby="specWeekdaysLabel">
+            {#each weekDays as day}
+              <button
+                type="button"
+                on:click={() => toggleDay(day.value)}
+                class="px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                class:bg-blue-600={specFormState.weekdays.includes(day.value)}
+                class:text-white={specFormState.weekdays.includes(day.value)}
+                class:bg-gray-200={!specFormState.weekdays.includes(day.value)}
+                class:text-gray-700={!specFormState.weekdays.includes(day.value)}
+                aria-pressed={specFormState.weekdays.includes(day.value)}
+              >
+                {day.label}
+              </button>
+            {/each}
+          </div>
+        </div>
+
+        <!-- Date Range -->
+        <div class="border-t pt-4">
+          <div class="block text-sm font-medium text-gray-700 mb-3">
+            Date Range (Optional)
+          </div>
+          
+          <!-- Starting From -->
+          <div class="mb-3">
+            <label for="spec-startingFrom" class="block text-sm text-gray-600 mb-1">
+              Starting From
+            </label>
+            <div class="flex gap-2">
+              <input
+                id="spec-startingFrom"
+                type="date"
+                bind:value={specFormState.startingFrom}
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                class:text-gray-300={!specFormState.startingFrom}
+              />
+              {#if specFormState.startingFrom}
+                <button
+                  type="button"
+                  on:click={() => specFormState.startingFrom = undefined}
+                  class="px-3 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 hover:text-red-600 transition-colors"
+                  title="Clear date"
+                >
+                  <span class="icon-[si--close-line] w-4 h-4"></span>
+                </button>
+              {/if}
+            </div>
+          </div>
+
+          <!-- Ending At -->
+          <div>
+            <label for="spec-endingAt" class="block text-sm text-gray-600 mb-1">
+              Ending At
+            </label>
+            <div class="flex gap-2">
+              <input
+                id="spec-endingAt"
+                type="date"
+                bind:value={specFormState.endingAt}
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                class:text-gray-300={!specFormState.endingAt}
+              />
+              {#if specFormState.endingAt}
+                <button
+                  type="button"
+                  on:click={() => specFormState.endingAt = undefined}
+                  class="px-3 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 hover:text-red-600 transition-colors"
+                  title="Clear date"
+                >
+                  <span class="icon-[si--close-line] w-4 h-4"></span>
+                </button>
+              {/if}
+            </div>
+          </div>
+        </div>
+
+        <!-- Holiday Settings -->
+        <div class="border-t pt-4">
+          <div class="block text-sm font-medium text-gray-700 mb-3">
+            Holiday Settings (Optional)
+          </div>
+          
+          <!-- Exclude Holidays Toggle -->
+          <label class="flex items-center gap-2 cursor-pointer mb-3">
+            <input
+              type="checkbox"
+              bind:checked={specFormState.excludeHolidays}
+              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span class="text-sm text-gray-700">
+              Exclude public holidays
+            </span>
+          </label>
+
+          {#if specFormState.excludeHolidays}
+            <!-- Country -->
+            <div class="mb-3">
+              <label for="spec-country" class="block text-sm text-gray-600 mb-1">
+                Country
+              </label>
+              <select
+                id="spec-country"
+                bind:value={specFormState.selectedCountry}
+                on:change={handleCountryChange}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              >
+                <option value="">-- Select a country --</option>
+                {#each availableCountries as country}
+                  <option value={country}>{country}</option>
+                {/each}
+              </select>
+            </div>
+
+            <!-- State -->
+            {#if specFormState.selectedCountry}
+              <div>
+                <label for="spec-state" class="block text-sm text-gray-600 mb-1">
+                  State/Region
+                </label>
+                <select
+                  id="spec-state"
+                  bind:value={specFormState.stateCode}
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                >
+                  <option value="">-- Select a state --</option>
+                  {#each filteredStates as s}
+                    <option value={s.code}>{s.state} ({s.code})</option>
+                  {/each}
+                </select>
+              </div>
+            {/if}
+          {/if}
+        </div>
+
+        <!-- Actions -->
+        <div class="flex gap-3 pt-4">
+          <button
+            type="button"
+            on:click={closeSpecForm}
+            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            on:click={saveSpec}
+            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            {editingSpecIndex !== null ? 'Update' : 'Add'}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   /* Add backdrop blur effect */

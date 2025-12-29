@@ -1,6 +1,6 @@
 import ky from 'ky';
-import type { User, Button, TimeLog, Holiday, State, MonthlyBalance } from '../types';
-import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.js';
+import type { User, Timer, TimeLog, Holiday, State, Balance } from '../types';
+import { hashPasswordForTransport } from '../../../lib/utils/passwordHash';
 
 // In development, use proxy (relative path). In production, use env variable or default to same origin
 const API_BASE_URL = import.meta.env.PROD 
@@ -32,7 +32,9 @@ export const authApi = {
   },
 
   async login(email: string, password: string, hcaptchaToken?: string): Promise<User> {
+    console.log('→ Logging in user:', email);
     const hashedPassword = await hashPasswordForTransport(password, email);
+    console.log('→ Logging in user:', email, hashedPassword);
     const response = await api.post('api/auth/login', { 
       json: { 
         email, 
@@ -97,25 +99,25 @@ export const authApi = {
   },
 };
 
-// Button API
-export const buttonApi = {
+// Timer API (formerly Button)
+export const timerApi = {
   // Cursor-based sync endpoints
-  async getSyncChanges(since: string): Promise<{ buttons: Button[]; cursor: string }> {
+  async getSyncChanges(since: string): Promise<{ timers: Timer[]; cursor: string }> {
     const searchParams = new URLSearchParams({ since });
-    return api.get('api/buttons/sync', { searchParams }).json();
+    return api.get('api/timers/sync', { searchParams }).json();
   },
 
-  async pushSyncChanges(buttons: Partial<Button>[]): Promise<{
-    saved?: Button[];
+  async pushSyncChanges(timers: Partial<Timer>[]): Promise<{
+    saved?: Timer[];
     conflicts?: Array<{
       id: string;
       field: string;
-      clientVersion: Partial<Button>;
-      serverVersion: Button;
+      clientVersion: Partial<Timer>;
+      serverVersion: Timer;
     }>;
     cursor: string;
   }> {
-    return api.post('api/buttons/sync', { json: { buttons } }).json();
+    return api.post('api/timers/sync', { json: { timers } }).json();
   },
 };
 
@@ -197,23 +199,23 @@ export const statesApi = {
   },
 };
 
-// Monthly Balance API
-export const monthlyBalanceApi = {
-  async getSyncChanges(since: string): Promise<{ monthlyBalances: MonthlyBalance[]; cursor: string }> {
+// Balance API (replaces Monthly Balance)
+export const balanceApi = {
+  async getSyncChanges(since: string): Promise<{ balances: Balance[]; cursor: string }> {
     const searchParams = new URLSearchParams({ since });
-    return api.get('api/monthly-balances/sync', { searchParams }).json();
+    return api.get('api/balances/sync', { searchParams }).json();
   },
-  async pushSyncChanges(balances: Partial<MonthlyBalance>[]): Promise<{
-    saved?: MonthlyBalance[];
+  async pushSyncChanges(balances: Partial<Balance>[]): Promise<{
+    saved?: Balance[];
     conflicts?: Array<{
       id: string;
       field: string;
-      clientVersion: Partial<MonthlyBalance>;
-      serverVersion: MonthlyBalance;
+      clientVersion: Partial<Balance>;
+      serverVersion: Balance;
     }>;
     cursor: string;
   }> {
-    return api.post('api/monthly-balances/sync', { json: { monthlyBalances: balances } }).json();
+    return api.post('api/balances/sync', { json: { balances } }).json();
   },
 };
 

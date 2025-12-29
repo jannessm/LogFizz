@@ -70,7 +70,7 @@
       }
       
       if (duration !== undefined && duration !== null) {
-        stats.set(log.button_id, (stats.get(log.button_id) || 0) + duration);
+        stats.set(log.timer_id, (stats.get(log.timer_id) || 0) + duration);
       }
     }
     

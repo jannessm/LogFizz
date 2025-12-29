@@ -37,7 +37,7 @@ export interface DbOperations<T extends BaseItem> {
 export interface SyncOperations<T extends BaseItem> {
   queueUpsert: (item: T) => Promise<void>;
   queueDelete: (item: T) => Promise<void>;
-  syncType: 'button' | 'timelog' | 'target' | 'monthlyBalance';
+  syncType: 'timer' | 'timelog' | 'target' | 'balance';
 }
 
 /**
@@ -110,11 +110,11 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
         // Load from local DB first
-        let items = await config.db.getAll();
+        const allItems = await config.db.getAll();
 
-        // filter out deleted items if hook provided
-        items = [];
-        for (const item of items) {
+        // filter out deleted items and clean up old deleted items
+        const items: T[] = [];
+        for (const item of allItems) {
           if (!item.deleted_at) {
             items.push(item);
           }
@@ -125,11 +125,12 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
           }
         }
 
+        let finalItems = items;
         if (hooks.afterLoad) {
-          items = await hooks.afterLoad(items);
+          finalItems = await hooks.afterLoad(items);
         }
         
-        update(state => ({ ...state, items, isLoading: false }));
+        update(state => ({ ...state, items: finalItems, isLoading: false }));
 
         // Try to pull incremental changes from server if online
         if (isOnline()) {

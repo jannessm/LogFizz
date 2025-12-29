@@ -9,6 +9,9 @@ export class HolidayMetadata implements Omit<HolidayMetadataEntity, 'last_update
   @Column('varchar')
   country!: string;
 
+  @Column('varchar')
+  state!: string;
+
   @Column('int')
   year!: number;
 

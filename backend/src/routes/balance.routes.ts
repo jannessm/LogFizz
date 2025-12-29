@@ -5,6 +5,42 @@ import dayjs from '../../../lib/utils/dayjs.js';
 
 const balanceService = new BalanceService();
 
+// Schema for balance input
+const BalanceInputSchema = Type.Object({
+  id: Type.Optional(Type.String()),
+  target_id: Type.String(),
+  next_balance_id: Type.Optional(Type.String()),
+  date: Type.String(),
+  due_minutes: Type.Integer(),
+  worked_minutes: Type.Integer(),
+  cumulative_minutes: Type.Integer(),
+  sick_days: Type.Integer(),
+  holidays: Type.Integer(),
+  business_trip: Type.Integer(),
+  child_sick: Type.Integer(),
+  worked_days: Type.Integer(),
+  updated_at: Type.Optional(Type.String()),
+});
+
+// Schema for balance output
+const BalanceSchema = Type.Object({
+  id: Type.String(),
+  user_id: Type.String(),
+  target_id: Type.String(),
+  next_balance_id: Type.Optional(Type.String()),
+  date: Type.String(),
+  due_minutes: Type.Integer(),
+  worked_minutes: Type.Integer(),
+  cumulative_minutes: Type.Integer(),
+  sick_days: Type.Integer(),
+  holidays: Type.Integer(),
+  business_trip: Type.Integer(),
+  child_sick: Type.Integer(),
+  worked_days: Type.Integer(),
+  created_at: Type.String(),
+  updated_at: Type.String(),
+});
+
 export async function balanceRoutes(fastify: FastifyInstance) {
   // Middleware to check authentication
   fastify.addHook('preHandler', async (request, reply) => {
@@ -13,7 +49,7 @@ export async function balanceRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Sync endpoint - Get monthly balances changed since timestamp
+  // GET /api/balances/sync - Get balances changed since timestamp
   fastify.get('/sync', {
     schema: {
       tags: ['Balance'],
@@ -22,27 +58,7 @@ export async function balanceRoutes(fastify: FastifyInstance) {
       }),
       response: {
         200: Type.Object({
-          balances: Type.Array(Type.Object({
-            id: Type.String(),
-            user_id: Type.String(),
-            target_id: Type.String(),
-            next_balance_id: Type.Optional(Type.String()),
-            parent_balance_id: Type.Optional(Type.String()),
-
-            date: Type.String(),
-            due_minutes: Type.Integer(),
-            worked_minutes: Type.Integer(),
-            cumulative_minutes: Type.Integer(),
-            
-            sick_days: Type.Integer(),
-            holidays: Type.Integer(),
-            business_trip: Type.Integer(),
-            child_sick: Type.Integer(),
-            worked_days: Type.Integer(),
-            
-            created_at: Type.String(),
-            updated_at: Type.String(),
-          })),
+          balances: Type.Array(BalanceSchema),
           cursor: Type.String(),
         }),
         400: Type.Object({
@@ -73,7 +89,101 @@ export async function balanceRoutes(fastify: FastifyInstance) {
         cursor,
       });
     } catch (error) {
+      console.error('Error fetching balances:', error);
       return reply.code(500).send({ error: 'Internal Server Error' });
+    }
+  });
+
+  // POST /api/balances/sync - Push local changes to server
+  fastify.post('/sync', {
+    schema: {
+      tags: ['Balance'],
+      body: Type.Object({
+        balances: Type.Array(BalanceInputSchema),
+      }),
+      response: {
+        200: Type.Object({
+          saved: Type.Optional(Type.Array(BalanceSchema)),
+          conflicts: Type.Optional(Type.Array(Type.Object({
+            clientVersion: BalanceInputSchema,
+            serverVersion: BalanceSchema,
+          }))),
+          cursor: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.session.userId!;
+    const { balances } = request.body as any;
+
+    try {
+      // Convert string dates to Date objects
+      const processedBalances = balances.map((b: any) => ({
+        ...b,
+        updated_at: b.updated_at ? dayjs(b.updated_at).toDate() : undefined,
+      }));
+
+      const result = await balanceService.pushBalanceChanges(userId, processedBalances);
+
+      // Cursor represents the current server state after this operation
+      const cursor = dayjs().toISOString();
+
+      const response: any = {
+        cursor,
+      };
+
+      if (result.conflicts.length > 0) {
+        response.conflicts = result.conflicts.map(c => ({
+          clientVersion: {
+            ...c.clientVersion,
+            updated_at: c.clientVersion.updated_at instanceof Date 
+              ? c.clientVersion.updated_at.toISOString() 
+              : c.clientVersion.updated_at,
+          },
+          serverVersion: {
+            id: c.serverVersion.id,
+            user_id: c.serverVersion.user_id,
+            target_id: c.serverVersion.target_id,
+            next_balance_id: c.serverVersion.next_balance_id,
+            date: c.serverVersion.date,
+            due_minutes: c.serverVersion.due_minutes,
+            worked_minutes: c.serverVersion.worked_minutes,
+            cumulative_minutes: c.serverVersion.cumulative_minutes,
+            sick_days: c.serverVersion.sick_days,
+            holidays: c.serverVersion.holidays,
+            business_trip: c.serverVersion.business_trip,
+            child_sick: c.serverVersion.child_sick,
+            worked_days: c.serverVersion.worked_days,
+            created_at: c.serverVersion.created_at.toISOString(),
+            updated_at: c.serverVersion.updated_at.toISOString(),
+          },
+        }));
+      }
+
+      if (result.saved.length > 0) {
+        response.saved = result.saved.map(b => ({
+          id: b.id,
+          user_id: b.user_id,
+          target_id: b.target_id,
+          next_balance_id: b.next_balance_id,
+          date: b.date,
+          due_minutes: b.due_minutes,
+          worked_minutes: b.worked_minutes,
+          cumulative_minutes: b.cumulative_minutes,
+          sick_days: b.sick_days,
+          holidays: b.holidays,
+          business_trip: b.business_trip,
+          child_sick: b.child_sick,
+          worked_days: b.worked_days,
+          created_at: b.created_at.toISOString(),
+          updated_at: b.updated_at.toISOString(),
+        }));
+      }
+
+      return reply.send(response);
+    } catch (error) {
+      console.error('Error pushing balance changes:', error);
+      return reply.code(500).send({ error: 'Internal server error' });
     }
   });
 }

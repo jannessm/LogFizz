@@ -17,7 +17,7 @@ describe('Authentication Routes', () => {
   it('should register a new user', async () => {
     const email = `test${Date.now()}@example.com`;
     const password = 'testpassword123';
-    const hashedPassword = hashPasswordForTransport(password, email);
+    const hashedPassword = await hashPasswordForTransport(password, email);
     
     const response = await app.inject({
       method: 'POST',
@@ -39,7 +39,7 @@ describe('Authentication Routes', () => {
   it('should not register a user with duplicate email', async () => {
     const email = `duplicate${Date.now()}@example.com`;
     const password = 'testpassword123';
-    const hashedPassword = hashPasswordForTransport(password, email);
+    const hashedPassword = await hashPasswordForTransport(password, email);
     
     await app.inject({
       method: 'POST',
@@ -69,7 +69,7 @@ describe('Authentication Routes', () => {
   it('should login with correct credentials', async () => {
     const email = `login${Date.now()}@example.com`;
     const password = 'testpassword123';
-    const hashedPassword = hashPasswordForTransport(password, email);
+    const hashedPassword = await hashPasswordForTransport(password, email);
     
     await app.inject({
       method: 'POST',
@@ -100,8 +100,8 @@ describe('Authentication Routes', () => {
   it('should not login with incorrect password', async () => {
     const email = `wrongpass${Date.now()}@example.com`;
     const password = 'testpassword123';
-    const hashedPassword = hashPasswordForTransport(password, email);
-    const wrongHashedPassword = hashPasswordForTransport('wrongpassword', email);
+    const hashedPassword = await hashPasswordForTransport(password, email);
+    const wrongHashedPassword = await hashPasswordForTransport('wrongpassword', email);
     
     await app.inject({
       method: 'POST',
@@ -137,7 +137,7 @@ describe('Authentication Routes', () => {
   it('should return user on /me', async () => {
     const email = `metest${Date.now()}@example.com`;
     const password = 'testpassword123';
-    const hashedPassword = hashPasswordForTransport(password, email);
+    const hashedPassword = await hashPasswordForTransport(password, email);
     
     // Register
     await app.inject({
@@ -258,7 +258,7 @@ describe('Authentication Routes', () => {
     it('should accept forgot password request for existing email', async () => {
       const email = `forgotpass${Date.now()}@example.com`;
       const password = 'testpassword123';
-      const hashedPassword = hashPasswordForTransport(password, email);
+      const hashedPassword = await hashPasswordForTransport(password, email);
       
       // Register a user first
       await app.inject({
@@ -303,8 +303,8 @@ describe('Authentication Routes', () => {
       const email = `resetpass${Date.now()}@example.com`;
       const originalPassword = 'testpassword123';
       const newPassword = 'newpassword456';
-      const hashedOriginalPassword = hashPasswordForTransport(originalPassword, email);
-      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
+      const hashedOriginalPassword = await hashPasswordForTransport(originalPassword, email);
+      const hashedNewPassword = await hashPasswordForTransport(newPassword, email);
       
       // Register a user
       await app.inject({
@@ -378,7 +378,7 @@ describe('Authentication Routes', () => {
     it('should reject password reset with invalid token', async () => {
       const email = 'dummy@example.com';
       const newPassword = 'newpassword456';
-      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
+      const hashedNewPassword = await hashPasswordForTransport(newPassword, email);
       
       const response = await app.inject({
         method: 'POST',
@@ -398,9 +398,9 @@ describe('Authentication Routes', () => {
     it('should reject password reset with expired token', async () => {
       const email = `expiredtoken${Date.now()}@example.com`;
       const password = 'testpassword123';
-      const hashedPassword = hashPasswordForTransport(password, email);
+      const hashedPassword = await hashPasswordForTransport(password, email);
       const newPassword = 'newpassword456';
-      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
+      const hashedNewPassword = await hashPasswordForTransport(newPassword, email);
       
       // Register a user
       await app.inject({
@@ -454,9 +454,9 @@ describe('Authentication Routes', () => {
     it('should clear reset token after successful password reset', async () => {
       const email = `cleartoken${Date.now()}@example.com`;
       const password = 'testpassword123';
-      const hashedPassword = hashPasswordForTransport(password, email);
+      const hashedPassword = await hashPasswordForTransport(password, email);
       const newPassword = 'newpassword456';
-      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
+      const hashedNewPassword = await hashPasswordForTransport(newPassword, email);
       
       // Register a user
       await app.inject({
@@ -503,7 +503,7 @@ describe('Authentication Routes', () => {
 
       // Try to use the same token again
       const anotherPassword = 'anotherpassword789';
-      const hashedAnotherPassword = hashPasswordForTransport(anotherPassword, email);
+      const hashedAnotherPassword = await hashPasswordForTransport(anotherPassword, email);
       
       const response = await app.inject({
         method: 'POST',
@@ -521,7 +521,7 @@ describe('Authentication Routes', () => {
     it('should enforce minimum password length on reset', async () => {
       const email = 'test@example.com';
       const shortPassword = 'short';
-      const hashedShortPassword = hashPasswordForTransport(shortPassword, email);
+      const hashedShortPassword = await hashPasswordForTransport(shortPassword, email);
       
       const response = await app.inject({
         method: 'POST',
@@ -539,10 +539,10 @@ describe('Authentication Routes', () => {
     it('should reject password reset with wrong email', async () => {
       const email = `wrongemail${Date.now()}@example.com`;
       const password = 'testpassword123';
-      const hashedPassword = hashPasswordForTransport(password, email);
+      const hashedPassword = await hashPasswordForTransport(password, email);
       const newPassword = 'newpassword456';
       const wrongEmail = 'wrong@example.com';
-      const hashedNewPassword = hashPasswordForTransport(newPassword, email);
+      const hashedNewPassword = await hashPasswordForTransport(newPassword, email);
       
       // Register a user
       await app.inject({
@@ -592,7 +592,7 @@ describe('Authentication Routes', () => {
     it('should update profile', async () => {
       const email = `profileupdate${Date.now()}@example.com`;
       const password = 'testpassword123';
-      const hashedPassword = hashPasswordForTransport(password, email);
+      const hashedPassword = await hashPasswordForTransport(password, email);
       
       // Register
       await app.inject({

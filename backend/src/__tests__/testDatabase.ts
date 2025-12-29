@@ -52,3 +52,4 @@ async function seedGermanStates() {
   
   console.log('✓ German states seeded');
 }
+

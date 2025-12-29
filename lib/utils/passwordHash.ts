@@ -1,7 +1,5 @@
-import crypto from 'crypto';
-
 /**
- * Client-side password hashing utility (Node.js version).
+ * Client-side password hashing utility (Browser & Node.js compatible).
  * This function should be used on the client side before sending passwords to the API.
  * It provides defense-in-depth by ensuring plain-text passwords never traverse the network.
  * 
@@ -11,7 +9,7 @@ import crypto from 'crypto';
  * @param email - The user's email address (used as salt)
  * @returns A deterministic hash of the password
  */
-export function hashPasswordForTransport(password: string, email: string): string {
+export async function hashPasswordForTransport(password: string, email: string): Promise<string> {
   // Normalize email to lowercase for consistency
   const normalizedEmail = email.toLowerCase().trim();
   
@@ -25,9 +23,16 @@ export function hashPasswordForTransport(password: string, email: string): strin
   // 2. It's fast (client-side performance)
   // 3. It prevents plain-text passwords from being transmitted over the network
   // lgtm[js/insufficient-password-hash]
-  const hash = crypto.createHash('sha256');
-  hash.update(password);
-  hash.update(normalizedEmail);
   
-  return hash.digest('hex');
+  // Use Web Crypto API (available in browsers and Node.js 15+)
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + normalizedEmail);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  
+  // Convert ArrayBuffer to hex string
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  
+  return hashHex;
 }
+

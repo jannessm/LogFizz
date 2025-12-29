@@ -20,7 +20,7 @@
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
-    <script>
+    <script type="module">
       // Register service worker only in production
       if ('serviceWorker' in navigator && import.meta.env.PROD) {
         console.log('register sw')

@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
-import type { User, Button, TimeLog, WorkSchedule } from '../../types';
+import type { User, Timer, TimeLog } from '../../types';
+import type { TargetWithSpecs } from '../../types';
 
 // Mock user data
 export const mockUser: User = {
@@ -10,27 +11,33 @@ export const mockUser: User = {
   updated_at: '2024-01-01T00:00:00Z',
 };
 
-// Mock button data
-export const mockButton: Button = {
-  id: 'button-1',
+// Mock timer data (formerly button)
+export const mockTimer: Timer = {
+  id: 'timer-1',
   user_id: '1',
   name: 'Work',
   emoji: '💼',
   color: '#3B82F6',
   auto_subtract_breaks: true,
-  target_id: undefined,
+  archived: false,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
 
-// Mock work schedule data
-export const mockTarget: WorkSchedule = {
+// Mock target data with nested target_specs
+export const mockTarget: TargetWithSpecs = {
   id: 'target-1',
   user_id: '1',
   name: 'Daily Work',
-  duration_minutes: [480, 480, 480, 480, 480], // 8 hours for each weekday
-  weekdays: [1, 2, 3, 4, 5], // Mon-Fri
-  exclude_holidays: false,
+  target_specs: [{
+    id: 'spec-1',
+    user_id: '1',
+    target_id: 'target-1',
+    starting_from: '2024-01-01',
+    duration_minutes: [480, 480, 480, 480, 480], // 8 hours for each weekday
+    weekdays: [1, 2, 3, 4, 5], // Mon-Fri
+    exclude_holidays: false,
+  }],
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 };
@@ -39,13 +46,14 @@ export const mockTarget: WorkSchedule = {
 export const mockTimeLog: TimeLog = {
   id: 'log-1',
   user_id: '1',
-  button_id: 'button-1',
+  timer_id: 'timer-1',
+  type: 'normal',
+  whole_day: false,
   start_timestamp: '2024-01-01T09:00:00Z',
   end_timestamp: '2024-01-01T17:00:00Z',
   duration_minutes: 480,
   timezone: 'UTC',
   apply_break_calculation: false,
-  is_manual: false,
   created_at: '2024-01-01T09:00:00Z',
   updated_at: '2024-01-01T17:00:00Z',
 };
@@ -54,11 +62,12 @@ export const mockTimeLog: TimeLog = {
 export const mockActiveTimeLog: TimeLog = {
   id: 'log-2',
   user_id: '1',
-  button_id: 'button-1',
+  timer_id: 'timer-1',
+  type: 'normal',
+  whole_day: false,
   start_timestamp: '2024-01-02T09:00:00Z',
   timezone: 'UTC',
   apply_break_calculation: false,
-  is_manual: false,
   created_at: '2024-01-02T09:00:00Z',
   updated_at: '2024-01-02T09:00:00Z',
 };
@@ -73,28 +82,14 @@ export const authApi = {
   updateProfile: vi.fn().mockResolvedValue(mockUser),
 };
 
-// Mock button API
-export const buttonApi = {
-  getAll: vi.fn().mockResolvedValue([mockButton]),
-  get: vi.fn().mockResolvedValue(mockButton),
-  create: vi.fn().mockResolvedValue(mockButton),
-  update: vi.fn().mockResolvedValue(mockButton),
-  delete: vi.fn().mockResolvedValue(undefined),
-  getSyncChanges: vi.fn().mockResolvedValue({ buttons: [mockButton], cursor: new Date().toISOString() }),
-  pushSyncChanges: vi.fn().mockResolvedValue({ saved: [mockButton], conflicts: [], cursor: new Date().toISOString() }),
+// Mock timer API (formerly button)
+export const timerApi = {
+  getSyncChanges: vi.fn().mockResolvedValue({ timers: [mockTimer], cursor: new Date().toISOString() }),
+  pushSyncChanges: vi.fn().mockResolvedValue({ saved: [mockTimer], conflicts: [], cursor: new Date().toISOString() }),
 };
 
 // Mock timeLog API
 export const timeLogApi = {
-  start: vi.fn().mockResolvedValue(mockActiveTimeLog),
-  stop: vi.fn().mockResolvedValue(mockTimeLog),
-  getActive: vi.fn().mockResolvedValue(null),
-  getAll: vi.fn().mockResolvedValue([mockTimeLog]),
-  getTodayTime: vi.fn().mockResolvedValue({ total_minutes: 480 }),
-  getYearlyStats: vi.fn().mockResolvedValue([]),
-  getGoalProgress: vi.fn().mockResolvedValue({ achieved: true, percentage: 100 }),
-  update: vi.fn().mockResolvedValue(mockTimeLog),
-  delete: vi.fn().mockResolvedValue(undefined),
   getSyncChanges: vi.fn().mockResolvedValue({ timeLogs: [mockTimeLog], cursor: new Date().toISOString() }),
   pushSyncChanges: vi.fn().mockResolvedValue({ saved: [mockTimeLog], conflicts: [], cursor: new Date().toISOString() }),
 };
@@ -103,6 +98,12 @@ export const timeLogApi = {
 export const targetApi = {
   getSyncChanges: vi.fn().mockResolvedValue({ targets: [mockTarget], cursor: new Date().toISOString() }),
   pushSyncChanges: vi.fn().mockResolvedValue({ saved: [mockTarget], conflicts: [], cursor: new Date().toISOString() }),
+};
+
+// Mock balance API
+export const balanceApi = {
+  getSyncChanges: vi.fn().mockResolvedValue({ balances: [], cursor: new Date().toISOString() }),
+  pushSyncChanges: vi.fn().mockResolvedValue({ saved: [], conflicts: [], cursor: new Date().toISOString() }),
 };
 
 // Mock holiday API

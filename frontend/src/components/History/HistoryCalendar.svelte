@@ -105,9 +105,9 @@
     const colorMap = new Map<string, string>();
     
     for (const tl of dateTimeLogs) {
-      if (!colorMap.has(tl.button_id)) {
-        const button = buttons.find(b => b.id === tl.button_id);
-        colorMap.set(tl.button_id, button?.color || '#3B82F6');
+      if (!colorMap.has(tl.timer_id)) {
+        const button = buttons.find(b => b.id === tl.timer_id);
+        colorMap.set(tl.timer_id, button?.color || '#3B82F6');
       }
     }
     

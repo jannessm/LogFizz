@@ -6,60 +6,31 @@
  */
 
 import dayjs from './dayjs.js';
-import type { TimeLog, TimeLogType } from '../types/index.js';
+import type { TimeLog, TargetSpec, Balance as BaseBalance } from '../types/index.js';
 
 /**
- * Balance granularity types
- */
-export type BalanceGranularity = 'daily' | 'monthly' | 'yearly';
-
-/**
- * Core Balance interface - used for all balance types
- */
-export interface Balance {
-  id: string;
-  user_id: string;
-  target_id: string;
-  next_balance_id?: string | null; // Links to next balance of same granularity
-  parent_balance_id?: string | null; // Links to parent (daily -> monthly -> yearly)
-  date: string; // 'YYYY' for yearly, 'YYYY-MM' for monthly, 'YYYY-MM-DD' for daily
-  due_minutes: number;
-  worked_minutes: number;
-  cumulation_minutes: number; // worked - due + previous cumulation (not for daily)
-  sick_days: number;
-  holidays: number; // vacation days, not public holidays
-  business_trip: number;
-  child_sick: number;
-  worked_days: number; // days where worked_minutes > 0, excluding certain special types
-  created_at: string;
-  updated_at: string;
-  deleted_at?: string | null;
-}
-
-/**
- * Target duration specification (supports multiple segments)
- */
-export interface DurationSpec {
-  starting_from: string; // ISO date string
-  ending_at?: string | null; // ISO date string
-  duration_minutes: number[]; // one entry per weekday in weekdays array
-  weekdays: number[]; // [1,2,3,4,5] for Mon-Fri, 0=Sunday, 6=Saturday
-  exclude_holidays: boolean;
-  state_code?: string | null;
-}
-
-/**
- * Updated Target structure with duration_specs array
+ * Extended Target type that includes nested target_specs
+ * Used for balance calculations
  */
 export interface Target {
   id: string;
   user_id: string;
   name: string;
-  duration_specs: DurationSpec[];
+  target_specs: TargetSpec[];
   created_at: string;
   updated_at: string;
-  deleted_at?: string | null;
+  deleted_at?: string;
 }
+
+/**
+ * Balance type alias for internal use
+ */
+export type Balance = BaseBalance;
+
+/**
+ * Balance granularity types
+ */
+export type BalanceGranularity = 'daily' | 'monthly' | 'yearly';
 
 /**
  * Counters for special timelog types
@@ -234,7 +205,7 @@ export function calculateDueMinutes(
   const weekday = dateObj.day(); // 0=Sunday, 6=Saturday
   
   // Find the applicable duration spec for this date
-  for (const spec of target.duration_specs) {
+  for (const spec of target.target_specs) {
     const startDate = dayjs(spec.starting_from);
     const endDate = spec.ending_at ? dayjs(spec.ending_at) : null;
     
@@ -315,11 +286,10 @@ export function aggregateToMonthly(
     user_id: first.user_id,
     target_id: first.target_id,
     next_balance_id: null,
-    parent_balance_id: null, // Will be set by caller
     date,
     due_minutes: totalDue,
     worked_minutes: totalWorked,
-    cumulation_minutes: cumulation,
+    cumulative_minutes: cumulation,
     ...counters,
     worked_days: workedDays,
   };
@@ -370,11 +340,10 @@ export function aggregateToYearly(
     user_id: first.user_id,
     target_id: first.target_id,
     next_balance_id: null,
-    parent_balance_id: null, // Will be set by caller
     date,
     due_minutes: totalDue,
     worked_minutes: totalWorked,
-    cumulation_minutes: cumulation,
+    cumulative_minutes: cumulation,
     ...counters,
     worked_days: workedDays,
   };

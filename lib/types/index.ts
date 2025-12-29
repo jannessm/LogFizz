@@ -29,6 +29,8 @@ export interface Timer {
   color?: string;
   auto_subtract_breaks: boolean;
   archived: boolean;
+  target_id?: string; // Optional: link to Target for balance calculation
+  goal_time_minutes?: number; // Optional: daily goal for this timer
   created_at: string;
   updated_at: string;
   deleted_at?: string;
@@ -63,8 +65,7 @@ export interface Balance {
   id: string;
   user_id: string;
   target_id: string;
-  next_balance_id: string;
-  parent_balance_id: string;
+  next_balance_id: string | null;
 
   date: string; // year, year-month, or year-month-date
   due_minutes: number;

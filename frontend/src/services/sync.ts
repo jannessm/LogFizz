@@ -3,20 +3,21 @@ import {
   getUnsyncedItems, 
   markItemSynced,
   deleteFromSyncQueue,
-  saveButton,
+  saveTimer,
   saveTimeLog,
   saveTarget,
-  saveMonthlyBalance,
-  deleteButton,
+  saveBalance,
+  deleteTimer,
   deleteTimeLog,
   deleteTarget,
-  deleteMonthlyBalance,
+  deleteBalance,
   getSyncCursor,
   saveSyncCursor,
   getUser,
 } from '../lib/db';
-import { buttonApi, timeLogApi, targetApi, monthlyBalanceApi, isOnline } from './api';
-import type { Button, TimeLog, DailyTarget } from '../types';
+import { timerApi, timeLogApi, targetApi, balanceApi, isOnline } from './api';
+import type { Timer, TimeLog } from '../types';
+import type { TargetWithSpecs } from '../types';
 
 export class SyncService {
   private isSyncing = false;
@@ -24,13 +25,13 @@ export class SyncService {
 
   private syncConfigs = [
       {
-        type: 'button',
-        cursorKey: 'buttons' as const,
-        api: buttonApi,
-        dataKey: 'buttons',
-        save: saveButton,
-        delete: deleteButton,
-        name: 'button',
+        type: 'timer',
+        cursorKey: 'timers' as const,
+        api: timerApi,
+        dataKey: 'timers',
+        save: saveTimer,
+        delete: deleteTimer,
+        name: 'timer',
       },
       {
         type: 'timelog',
@@ -51,19 +52,19 @@ export class SyncService {
         name: 'target',
       },
       {
-        type: 'monthlyBalance',
-        cursorKey: 'monthlyBalances' as const,
-        api: monthlyBalanceApi,
-        dataKey: 'monthlyBalances',
-        save: saveMonthlyBalance,
-        delete: deleteMonthlyBalance,
-        name: 'monthly balance',
+        type: 'balance',
+        cursorKey: 'balances' as const,
+        api: balanceApi,
+        dataKey: 'balances',
+        save: saveBalance,
+        delete: deleteBalance,
+        name: 'balance',
       },
     ];
 
   // Generic helper to queue operations
   private async queueOperation(
-    type: 'button' | 'timelog' | 'target' | 'monthlyBalance',
+    type: 'timer' | 'timelog' | 'target' | 'balance',
     data: any,
     save: (item: any) => Promise<void>
   ): Promise<void> {
@@ -79,14 +80,14 @@ export class SyncService {
     this.notifyListeners();
   }
 
-  // Button queue operations
-  async queueUpsertButton(button: Button): Promise<void> {
-    await this.queueOperation('button', button, saveButton);
+  // Timer queue operations
+  async queueUpsertTimer(timer: Timer): Promise<void> {
+    await this.queueOperation('timer', timer, saveTimer);
   }
 
-  async queueDeleteButton(button: Button): Promise<void> {
-    const data = { ...button, deleted_at: new Date().toISOString() };
-    await this.queueOperation('button', data, deleteButton);
+  async queueDeleteTimer(timer: Timer): Promise<void> {
+    const data = { ...timer, deleted_at: new Date().toISOString() };
+    await this.queueOperation('timer', data, deleteTimer);
   }
 
   // TimeLog queue operations
@@ -107,27 +108,27 @@ export class SyncService {
   }
 
   // Target queue operations
-  async queueUpsertTarget(target: DailyTarget): Promise<void> {
+  async queueUpsertTarget(target: TargetWithSpecs): Promise<void> {
     await this.queueOperation('target', target, saveTarget);
   }
 
-  async queueDeleteTarget(target: DailyTarget): Promise<void> {
+  async queueDeleteTarget(target: TargetWithSpecs): Promise<void> {
     const data = { ...target, deleted_at: new Date().toISOString() };
     await this.queueOperation('target', data, deleteTarget);
   }
 
-  // Monthly Balance queue operations
-  async queueUpsertMonthlyBalance(monthlyBalance: any): Promise<void> {
-    await this.queueOperation('monthlyBalance', monthlyBalance, saveMonthlyBalance);
+  // Balance queue operations
+  async queueUpsertBalance(balance: any): Promise<void> {
+    await this.queueOperation('balance', balance, saveBalance);
   }
 
-  async queueDeleteMonthlyBalance(balance: any): Promise<void> {
+  async queueDeleteBalance(balance: any): Promise<void> {
     const data = { ...balance, deleted_at: new Date().toISOString() };
-    await this.queueOperation('monthlyBalance', data, deleteMonthlyBalance);
+    await this.queueOperation('balance', data, deleteBalance);
   }
 
   // Alias for external calls
-  async sync(type: 'all' | 'button' | 'timelog' | 'target' | 'monthlyBalance' = 'all'): Promise<void> {
+  async sync(type: 'all' | 'timer' | 'timelog' | 'target' | 'balance' = 'all'): Promise<void> {
     if (this.isSyncing || !isOnline()) {
       return;
     }
@@ -135,7 +136,6 @@ export class SyncService {
     // Check if user is logged in
     const user = await getUser();
     if (!user) {
-      console.log('Skipping sync: user not logged in');
       return;
     }
 
@@ -154,7 +154,7 @@ export class SyncService {
   }
 
   private async pullChanges(
-    cursorKey: 'buttons' | 'timelogs' | 'targets' | 'monthlyBalances',
+    cursorKey: 'timers' | 'timelogs' | 'targets' | 'balances',
     api: any,
     dataKey: string,
     save: (item: any) => Promise<void>,
@@ -183,7 +183,7 @@ export class SyncService {
   }
 
   private async pushChanges(
-    cursor: 'buttons' | 'timelogs' | 'targets' | 'monthlyBalances',
+    cursor: 'timers' | 'timelogs' | 'targets' | 'balances',
     data: any[],
     api: any,
     save: (item: any) => Promise<void>,
@@ -223,7 +223,7 @@ export class SyncService {
   }
 
   // Push local queued changes to server
-  private async pushLocalChanges(type: 'all' | 'button' | 'timelog' | 'target' | 'monthlyBalance' = 'all'): Promise<void> {
+  private async pushLocalChanges(type: 'all' | 'timer' | 'timelog' | 'target' | 'balance' = 'all'): Promise<void> {
     const items = await getUnsyncedItems();
 
     // Filter configs based on type parameter
@@ -246,7 +246,7 @@ export class SyncService {
   }
 
   // Pull server changes since last cursor
-  private async pullServerChanges(type: 'all' | 'button' | 'timelog' | 'target' | 'monthlyBalance' = 'all'): Promise<void> {
+  private async pullServerChanges(type: 'all' | 'timer' | 'timelog' | 'target' | 'balance' = 'all'): Promise<void> {
 
     // Filter configs based on type parameter
     const filteredConfigs = type === 'all' 
@@ -296,7 +296,6 @@ if (typeof window !== 'undefined') {
   window.addEventListener('online', async () => {
     const user = await getUser();
     if (user) {
-      console.log('App is online, syncing...');
       syncService.sync('all');
     }
   });
