@@ -71,17 +71,6 @@ services:
       - backend
     restart: unless-stopped
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: clock-frontend
-    ports:
-      - "8080:80"
-    depends_on:
-      - backend
-    restart: unless-stopped
-
 volumes:
   postgres_data:
   redis_data:

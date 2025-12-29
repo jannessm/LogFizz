@@ -1,94 +1,54 @@
-import { DataSource } from 'typeorm';
-import { AppDataSource } from '../config/database.js';
-
-/**
- * Clean the test database by dropping all schemas and recreating them
- * This is more thorough than just dropSchema as it handles enum types
- */
-export async function cleanTestDatabase() {
-  if (!AppDataSource.isInitialized) {
-    return;
-  }
-
-  const queryRunner = AppDataSource.createQueryRunner();
-  
-  try {
-    // Drop all tables with CASCADE to remove dependencies
-    await queryRunner.query(`
-      DROP SCHEMA public CASCADE;
-      CREATE SCHEMA public;
-      GRANT ALL ON SCHEMA public TO clock_user;
-      GRANT ALL ON SCHEMA public TO public;
-    `);
-    
-    // Reinstall required extensions
-    await queryRunner.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`);
-    
-    console.log('✓ Test database cleaned');
-  } catch (error) {
-    console.error('Error cleaning test database:', error);
-    throw error;
-  } finally {
-    await queryRunner.release();
-  }
-}
+import { TestDataSource } from '../config/database.config.js';
+import { State } from '../entities/State.js';
 
 /**
  * Initialize test database with fresh schema
+ * Uses in-memory SQLite database for tests (no PostgreSQL required)
  */
 export async function initializeTestDatabase() {
-  if (AppDataSource.isInitialized) {
-    await AppDataSource.destroy();
+  if (TestDataSource.isInitialized) {
+    await TestDataSource.destroy();
   }
   
-  await AppDataSource.initialize();
-  
-  // In test mode, synchronize will create all tables
-  // But we need to ensure clean state first
-  await cleanTestDatabase();
-  
-  // Force synchronize to recreate tables
-  await AppDataSource.synchronize(true);
+  await TestDataSource.initialize();
   
   // Seed German states (required for state-related tests)
   await seedGermanStates();
   
-  console.log('✓ Test database initialized');
+  console.log('✓ Test database initialized (in-memory SQLite)');
 }
 
 /**
  * Seed German states into the database
  */
 async function seedGermanStates() {
-  const queryRunner = AppDataSource.createQueryRunner();
+  const stateRepository = TestDataSource.getRepository(State);
   
-  try {
-    await queryRunner.query(`
-      INSERT INTO "states" ("country", "state", "code") VALUES
-      ('Germany', 'Baden-Württemberg', 'DE-BW'),
-      ('Germany', 'Bayern', 'DE-BY'),
-      ('Germany', 'Berlin', 'DE-BE'),
-      ('Germany', 'Brandenburg', 'DE-BB'),
-      ('Germany', 'Bremen', 'DE-HB'),
-      ('Germany', 'Hamburg', 'DE-HH'),
-      ('Germany', 'Hessen', 'DE-HE'),
-      ('Germany', 'Mecklenburg-Vorpommern', 'DE-MV'),
-      ('Germany', 'Niedersachsen', 'DE-NI'),
-      ('Germany', 'Nordrhein-Westfalen', 'DE-NW'),
-      ('Germany', 'Rheinland-Pfalz', 'DE-RP'),
-      ('Germany', 'Saarland', 'DE-SL'),
-      ('Germany', 'Sachsen', 'DE-SN'),
-      ('Germany', 'Sachsen-Anhalt', 'DE-ST'),
-      ('Germany', 'Schleswig-Holstein', 'DE-SH'),
-      ('Germany', 'Thüringen', 'DE-TH')
-      ON CONFLICT (code) DO NOTHING
-    `);
-    
-    console.log('✓ German states seeded');
-  } catch (error) {
-    console.error('Error seeding German states:', error);
-    throw error;
-  } finally {
-    await queryRunner.release();
+  const states = [
+    { country: 'Germany', state: 'Baden-Württemberg', code: 'DE-BW' },
+    { country: 'Germany', state: 'Bayern', code: 'DE-BY' },
+    { country: 'Germany', state: 'Berlin', code: 'DE-BE' },
+    { country: 'Germany', state: 'Brandenburg', code: 'DE-BB' },
+    { country: 'Germany', state: 'Bremen', code: 'DE-HB' },
+    { country: 'Germany', state: 'Hamburg', code: 'DE-HH' },
+    { country: 'Germany', state: 'Hessen', code: 'DE-HE' },
+    { country: 'Germany', state: 'Mecklenburg-Vorpommern', code: 'DE-MV' },
+    { country: 'Germany', state: 'Niedersachsen', code: 'DE-NI' },
+    { country: 'Germany', state: 'Nordrhein-Westfalen', code: 'DE-NW' },
+    { country: 'Germany', state: 'Rheinland-Pfalz', code: 'DE-RP' },
+    { country: 'Germany', state: 'Saarland', code: 'DE-SL' },
+    { country: 'Germany', state: 'Sachsen', code: 'DE-SN' },
+    { country: 'Germany', state: 'Sachsen-Anhalt', code: 'DE-ST' },
+    { country: 'Germany', state: 'Schleswig-Holstein', code: 'DE-SH' },
+    { country: 'Germany', state: 'Thüringen', code: 'DE-TH' },
+  ];
+  
+  for (const stateData of states) {
+    const existing = await stateRepository.findOne({ where: { code: stateData.code } });
+    if (!existing) {
+      await stateRepository.save(stateData);
+    }
   }
+  
+  console.log('✓ German states seeded');
 }

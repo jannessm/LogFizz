@@ -135,19 +135,20 @@ export async function targetRoutes(fastify: FastifyInstance) {
     const userId = request.session.userId!;
     const { targets } = request.body as any;
     
-    // Convert string dates to Date objects
-    const processedTargets = targets.map((t: any) => ({
-      ...t,
-      updated_at: t.updated_at ? dayjs(t.updated_at).toDate() : undefined,
-      deleted_at: t.deleted_at ? dayjs(t.deleted_at).toDate() : undefined,
-      target_specs: (t.target_specs || []).map((s: any) => ({
-        ...s,
-        starting_from: dayjs(s.starting_from).toDate(),
-        ending_at: s.ending_at ? dayjs(s.ending_at).toDate() : undefined,
-      })),
-    }));
-    
-    const result = await targetService.pushTargetChanges(userId, processedTargets);
+    try {
+      // Convert string dates to Date objects
+      const processedTargets = targets.map((t: any) => ({
+        ...t,
+        updated_at: t.updated_at ? dayjs(t.updated_at).toDate() : undefined,
+        deleted_at: t.deleted_at ? dayjs(t.deleted_at).toDate() : undefined,
+        target_specs: (t.target_specs || []).map((s: any) => ({
+          ...s,
+          starting_from: dayjs(s.starting_from).toDate(),
+          ending_at: s.ending_at ? dayjs(s.ending_at).toDate() : undefined,
+        })),
+      }));
+      
+      const result = await targetService.pushTargetChanges(userId, processedTargets);
 
     // Cursor represents the current server state after this operation
     const cursor = dayjs().toISOString();
@@ -205,5 +206,9 @@ export async function targetRoutes(fastify: FastifyInstance) {
     }
 
     return reply.send(response);
+    } catch (error) {
+      console.error('Error pushing target changes:', error);
+      return reply.code(500).send({ error: 'Internal server error' });
+    }
   });
 }

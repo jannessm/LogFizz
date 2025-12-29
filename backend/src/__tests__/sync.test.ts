@@ -590,7 +590,7 @@ describe('Sync API - Offline-First', () => {
       const data = JSON.parse(syncResponse.payload);
       
       expect(data.saved).toHaveLength(1);
-      expect(data.saved[0].description).toBe('Client wins');
+      expect(data.saved[0].notes).toBe('Client wins');
       expect(data.conflicts).toBeUndefined();
     });
   });
@@ -692,7 +692,7 @@ describe('Sync API - Offline-First', () => {
       // Should have log 2
       expect(data.timeLogs.length).toBeGreaterThan(0);
       const log2Records = data.timeLogs.filter((l: any) => 
-        l.description === 'Recent log' || l.id === log2StartId || l.id === log2EndId
+        l.notes === 'Recent log' || l.id === log2Id
       );
       expect(log2Records.length).toBeGreaterThan(0);
     });

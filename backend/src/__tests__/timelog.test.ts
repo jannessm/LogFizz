@@ -377,10 +377,13 @@ describe('TimeLog Sync Routes', () => {
           targets: [{
             id: targetId,
             name: 'Work Week',
-            weekdays: [1, 2, 3, 4, 5], // Monday to Friday
-            duration_minutes: [480, 480, 480, 480, 480], // 8 hours per day
-            exclude_holidays: false,
-            starting_from: '2024-01-01T00:00:00Z',
+            target_specs: [{
+              id: '650e8400-e29b-41d4-a716-446655440020',
+              weekdays: [1, 2, 3, 4, 5], // Monday to Friday
+              duration_minutes: [480, 480, 480, 480, 480], // 8 hours per day
+              exclude_holidays: false,
+              starting_from: '2024-01-01T00:00:00Z',
+            }],
           }],
         },
       });
@@ -453,6 +456,7 @@ describe('TimeLog Sync Routes', () => {
             type: 'sick',
             start_timestamp: date,
             end_timestamp: date,
+            duration_minutes: 480, // 8 hours - client calculates from target
             timezone: 'Europe/Berlin',
             notes: 'Sick day',
           }],
@@ -484,6 +488,7 @@ describe('TimeLog Sync Routes', () => {
             type: 'holiday',
             start_timestamp: date,
             end_timestamp: date,
+            duration_minutes: 480, // 8 hours - client calculates from target
             timezone: 'Europe/Berlin',
             notes: 'Vacation day',
           }],
@@ -514,6 +519,7 @@ describe('TimeLog Sync Routes', () => {
             type: 'business-trip',
             start_timestamp: date,
             end_timestamp: date,
+            duration_minutes: 480, // 8 hours - client calculates from target
             timezone: 'Europe/Berlin',
             notes: 'Business trip',
           }],
@@ -544,6 +550,7 @@ describe('TimeLog Sync Routes', () => {
             type: 'child-sick',
             start_timestamp: date,
             end_timestamp: date,
+            duration_minutes: 480, // 8 hours - client calculates from target
             timezone: 'Europe/Berlin',
             notes: 'Child sick day',
           }],
@@ -574,6 +581,7 @@ describe('TimeLog Sync Routes', () => {
             type: 'sick',
             start_timestamp: date,
             end_timestamp: date,
+            duration_minutes: 0, // 0 hours - client calculates 0 for weekend
             timezone: 'Europe/Berlin',
             notes: 'Weekend sick day',
           }],

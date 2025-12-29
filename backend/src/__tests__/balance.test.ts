@@ -35,7 +35,7 @@ describe('Monthly Balance Service - Sync Only', () => {
     await AppDataSource.getRepository('Balance').createQueryBuilder().delete().execute();
     await AppDataSource.getRepository('TimeLog').createQueryBuilder().delete().execute();
     await AppDataSource.getRepository('Timer').createQueryBuilder().delete().execute();
-    await AppDataSource.getRepository('DailyTarget').createQueryBuilder().delete().execute();
+    await AppDataSource.getRepository('Target').createQueryBuilder().delete().execute();
     await AppDataSource.getRepository('User').createQueryBuilder().delete().execute();
 
     // Register and login
@@ -92,7 +92,7 @@ describe('Monthly Balance Service - Sync Only', () => {
       expect(syncResponse.statusCode).toBe(200);
       const data = JSON.parse(syncResponse.payload);
       
-      expect(data.monthlyBalances).toEqual([]);
+      expect(data.balances).toEqual([]);
       expect(data.cursor).toBeDefined();
     });
 
