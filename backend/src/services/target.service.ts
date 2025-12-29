@@ -137,8 +137,9 @@ export class TargetService {
 
     for (const change of changes) {
       if (!change.id) {
-        // Create new target without ID (let database auto-generate)
+        // Create new target with client-provided UUID
         const target = this.targetRepository.create({
+          id: change.id,
           user_id: userId,
           name: change.name!,
           target_spec_ids: (change.target_specs || []).map(s => s.id),
@@ -158,24 +159,13 @@ export class TargetService {
           savedSpecs.push(await this.targetSpecRepository.save(spec));
         }
 
-        const convertedSpecs = savedSpecs.map(s => ({
-          ...s,
-          weekdays: s.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
-          duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
-        }));
-
-        const allUpdatedAts = [
-          savedTarget.updated_at,
-          ...convertedSpecs.map(s => s.updated_at),
-        ];
-        const maxUpdatedAt = allUpdatedAts.reduce((max, current) => 
-          current > max ? current : max
-        , savedTarget.updated_at);
-
         savedTargets.push({
           ...savedTarget,
-          target_specs: convertedSpecs,
-          updated_at: maxUpdatedAt,
+          target_specs: savedSpecs.map(s => ({
+            ...s,
+            weekdays: s.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
+            duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
+          })),
         });
         continue;
       }
@@ -209,24 +199,13 @@ export class TargetService {
           savedSpecs.push(await this.targetSpecRepository.save(spec));
         }
 
-        const convertedSpecs = savedSpecs.map(s => ({
-          ...s,
-          weekdays: s.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
-          duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
-        }));
-
-        const allUpdatedAts = [
-          savedTarget.updated_at,
-          ...convertedSpecs.map(s => s.updated_at),
-        ];
-        const maxUpdatedAt = allUpdatedAts.reduce((max, current) => 
-          current > max ? current : max
-        , savedTarget.updated_at);
-
         savedTargets.push({
           ...savedTarget,
-          target_specs: convertedSpecs,
-          updated_at: maxUpdatedAt,
+          target_specs: savedSpecs.map(s => ({
+            ...s,
+            weekdays: s.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
+            duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
+          })),
         });
         continue;
       }
@@ -292,8 +271,7 @@ export class TargetService {
 
       // Update target_spec_ids
       const newSpecIds = (change.target_specs || []).map(s => s.id);
-      const existingSpecIds = existingTarget.target_spec_ids || [];
-      if (JSON.stringify(newSpecIds.sort()) !== JSON.stringify([...existingSpecIds].sort())) {
+      if (JSON.stringify(newSpecIds.sort()) !== JSON.stringify([...existingTarget.target_spec_ids].sort())) {
         existingTarget.target_spec_ids = newSpecIds;
         targetNeedsUpdate = true;
       }
@@ -336,12 +314,12 @@ export class TargetService {
             specNeedsUpdate = true;
           }
           
-          if (specData.exclude_holidays !== undefined && specData.exclude_holidays !== existingSpec.exclude_holidays) {
+          if (specData.exclude_holidays !== existingSpec.exclude_holidays) {
             existingSpec.exclude_holidays = specData.exclude_holidays;
             specNeedsUpdate = true;
           }
           
-          if (specData.state_code !== undefined && specData.state_code !== existingSpec.state_code) {
+          if (specData.state_code !== existingSpec.state_code) {
             existingSpec.state_code = specData.state_code;
             specNeedsUpdate = true;
           }
@@ -378,26 +356,14 @@ export class TargetService {
       // Sort specs by starting_from
       savedSpecs.sort((a, b) => a.starting_from.getTime() - b.starting_from.getTime());
 
-      // Calculate max updated_at from target and all its specs
-      const convertedSpecs = savedSpecs.map(s => ({
-        ...s,
-        weekdays: s.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
-        duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
-      }));
-
-      const allUpdatedAts = [
-        existingTarget.updated_at,
-        ...convertedSpecs.map(s => s.updated_at),
-      ];
-      const maxUpdatedAt = allUpdatedAts.reduce((max, current) => 
-        current > max ? current : max
-      , existingTarget.updated_at);
-
       // Convert and add to saved targets
       savedTargets.push({
         ...existingTarget,
-        target_specs: convertedSpecs,
-        updated_at: maxUpdatedAt,
+        target_specs: savedSpecs.map(s => ({
+          ...s,
+          weekdays: s.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
+          duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
+        })),
       });
     }
 
