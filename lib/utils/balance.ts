@@ -6,7 +6,7 @@
  */
 
 import dayjs from './dayjs.js';
-import type { TimeLog, TargetSpec, Balance as BaseBalance } from '../types/index.js';
+import type { TimeLog, TargetSpec, Balance as BaseBalance, TimeLogType } from '../types/index.js';
 
 /**
  * Extended Target type that includes nested target_specs
