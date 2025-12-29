@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 import { User } from '../entities/User.js';
 import { Timer } from '../entities/Timer.js';
 import { Target } from '../entities/Target.js';
+import { TargetSpec } from '../entities/TargetSpec.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { State } from '../entities/State.js';
@@ -12,24 +13,20 @@ import { HolidayMetadata } from '../entities/HolidayMetadata.js';
 /**
  * Test suite to verify that migrations and seeding run without errors
  * This ensures database schema integrity and seed data validity
+ * 
+ * NOTE: These tests are skipped in the regular test suite because they require:
+ * 1. PostgreSQL to be running
+ * 2. Compiled migration files (not TypeScript)
+ * 
+ * To run migration tests, use: npm run test:migrations
+ * This runs a dedicated migration test script that properly handles TypeScript migrations.
  */
 describe.skip('Migrations and Seeding', () => {
   let testDataSource: DataSource;
 
   beforeAll(async () => {
-    // Create a separate test database connection for migration testing
-    testDataSource = new DataSource({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      username: process.env.DB_USERNAME || 'clock_user',
-      password: process.env.DB_PASSWORD || 'clock_password',
-      database: 'clock_test_db', // Use same test DB as AppDataSource
-      synchronize: false, // Important: use migrations, not synchronize
-      logging: false,
-      entities: [User, Timer, Target, TimeLog, Holiday, State, Balance, HolidayMetadata],
-      migrations: ['src/migrations/*.ts'],
-    });
+    // NOTE: Migration tests are skipped in vitest.
+    // Use `npm run test:migrations` to test migrations properly.
   });
 
   afterAll(async () => {
@@ -81,6 +78,7 @@ describe.skip('Migrations and Seeding', () => {
         expect(tableNames).toContain('users');
         expect(tableNames).toContain('timers');
         expect(tableNames).toContain('targets');
+        expect(tableNames).toContain('target_specs');
         expect(tableNames).toContain('time_logs');
         expect(tableNames).toContain('holidays');
         expect(tableNames).toContain('holiday_metadata');
@@ -114,7 +112,9 @@ describe.skip('Migrations and Seeding', () => {
         
         // Verify critical indexes exist
         expect(indexNames).toContain('IDX_targets_user_id');
-        expect(indexNames).toContain('IDX_targets_state_code');
+        expect(indexNames).toContain('IDX_target_specs_user_id');
+        expect(indexNames).toContain('IDX_target_specs_target_id');
+        expect(indexNames).toContain('IDX_target_specs_state_code');
         expect(indexNames).toContain('IDX_timers_user_id');
         expect(indexNames).toContain('IDX_time_logs_user_id');
         expect(indexNames).toContain('IDX_time_logs_timer_id');
@@ -148,11 +148,15 @@ describe.skip('Migrations and Seeding', () => {
         
         // Verify critical foreign keys exist
         expect(fkNames).toContain('FK_targets_user_id');
-        expect(fkNames).toContain('FK_targets_state_code');
+        expect(fkNames).toContain('FK_target_specs_user_id');
+        expect(fkNames).toContain('FK_target_specs_target_id');
+        expect(fkNames).toContain('FK_target_specs_state_code');
         expect(fkNames).toContain('FK_timers_user_id');
         expect(fkNames).toContain('FK_timers_target_id');
         expect(fkNames).toContain('FK_time_logs_user_id');
         expect(fkNames).toContain('FK_time_logs_timer_id');
+        expect(fkNames).toContain('FK_balances_user');
+        expect(fkNames).toContain('FK_balances_target');
 
         console.log(`✓ Found ${fkNames.length} foreign key constraints`);
       } finally {

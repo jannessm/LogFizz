@@ -16,12 +16,6 @@ export class Target implements TargetEntity {
   @Column('simple-array')
   target_spec_ids: string[];
 
-  @Column('uuid', { nullable: true })
-  state_id?: string;
-
-  @Column('timestamptz', { nullable: true })
-  starting_from?: Date;
-
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 

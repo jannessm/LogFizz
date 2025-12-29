@@ -156,13 +156,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "date" date NOT NULL,
                 "name" character varying NOT NULL,
                 "year" integer NOT NULL,
-                CONSTRAINT "PK_holidays_id" PRIMARY KEY ("id"),
-                CONSTRAINT "CHK_holidays_counties_state_codes" CHECK (
-                    "counties" IS NULL OR NOT EXISTS (
-                        SELECT 1 FROM unnest("counties") AS c(code)
-                        WHERE NOT EXISTS (SELECT 1 FROM "states" s WHERE s."code" = c.code)
-                    )
-                )
+                CONSTRAINT "PK_holidays_id" PRIMARY KEY ("id")
             )
         `);
 

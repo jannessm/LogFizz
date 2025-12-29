@@ -4,6 +4,7 @@ import { DataSource } from 'typeorm';
 import { User } from '../entities/User.js';
 import { Timer } from '../entities/Timer.js';
 import { Target } from '../entities/Target.js';
+import { TargetSpec } from '../entities/TargetSpec.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { State } from '../entities/State.js';
@@ -59,7 +60,7 @@ async function testMigrations() {
       database: TEST_DB_NAME,
       synchronize: false,
       logging: false,
-      entities: [User, Timer, Target, TimeLog, Holiday, State, Balance, HolidayMetadata],
+      entities: [User, Timer, Target, TargetSpec, TimeLog, Holiday, State, Balance, HolidayMetadata],
       migrations: [InitialSchema1699700000000],
     });
 
@@ -82,7 +83,7 @@ async function testMigrations() {
       const tableNames = tables.map(t => t.name);
       
       const expectedTables = [
-        'users', 'buttons', 'targets', 'time_logs', 
+        'users', 'timers', 'targets', 'target_specs', 'time_logs', 
         'holidays', 'holiday_metadata', 'states', 'balances', 'migrations'
       ];
       
