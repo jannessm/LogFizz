@@ -164,16 +164,27 @@
     tabindex="-1"
   >
     <!-- Header -->
-    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-800">
-        {existingLog ? 'Edit' : 'Add'} Time Entry
-      </h2>
-      <button
-        on:click={handleClose}
-        class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
-        style="width: 28px; height: 28px;"
-        aria-label="Close"
-      ></button>
+    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-col">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl font-semibold text-gray-800">
+          {#if isTimerStop}
+            Stop Timer
+          {:else}
+            {existingLog ? 'Edit' : 'Add'} Time Entry
+          {/if}
+        </h2>
+        <button
+          on:click={handleClose}
+          class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
+          style="width: 28px; height: 28px;"
+          aria-label="Close"
+        ></button>
+      </div>
+      {#if isTimerStop}
+        <p class="text-sm text-gray-600 mt-2">
+          Add notes or adjust end time (optional). Click "Save" to stop the timer or close to keep it running.
+        </p>
+      {/if}
     </div>
 
     <!-- Scrollable Content -->
@@ -360,13 +371,13 @@
             on:click={handleClose}
             class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            Cancel
+            {isTimerStop ? 'Keep Running' : 'Cancel'}
           </button>
           <button
             type="submit"
             class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            {isTimerStop ? 'Save' : (existingLog ? 'Update' : 'Add')} Entry
+            {isTimerStop ? 'Stop Timer' : (existingLog ? 'Update' : 'Add')} 
           </button>
         </div>
         

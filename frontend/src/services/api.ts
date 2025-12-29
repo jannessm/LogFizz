@@ -32,9 +32,7 @@ export const authApi = {
   },
 
   async login(email: string, password: string, hcaptchaToken?: string): Promise<User> {
-    console.log('→ Logging in user:', email);
     const hashedPassword = await hashPasswordForTransport(password, email);
-    console.log('→ Logging in user:', email, hashedPassword);
     const response = await api.post('api/auth/login', { 
       json: { 
         email, 

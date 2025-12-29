@@ -402,7 +402,7 @@
                       </div>
                       {#if spec.exclude_holidays}
                         <div class="flex items-center gap-1 text-xs text-gray-500">
-                          <span class="icon-[si--calendar-remove-line] w-3 h-3"></span>
+                          <span class="icon-[si--sun-set-duotone] w-3 h-3"></span>
                           Excludes public holidays
                           {#if spec.state_code}
                             ({spec.state_code})
@@ -417,7 +417,7 @@
                         class="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                         title="Edit"
                       >
-                        <span class="icon-[si--edit-line] w-4 h-4"></span>
+                        <span class="icon-[si--edit-detailed-duotone] w-4 h-4"></span>
                       </button>
                       {#if targetSpecs.length > 1}
                         <button
@@ -426,7 +426,7 @@
                           class="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                           title="Delete schedule"
                         >
-                          <span class="icon-[si--delete-2-line] w-4 h-4"></span>
+                          <span class="icon-[si--bin-duotone] w-4 h-4"></span>
                         </button>
                       {:else}
                         <button
@@ -435,7 +435,7 @@
                           class="p-1.5 text-gray-400 cursor-not-allowed rounded opacity-50"
                           title="Cannot delete the only schedule - a target must have at least one"
                         >
-                          <span class="icon-[si--delete-2-line] w-4 h-4"></span>
+                          <span class="icon-[si--bin-duotone] w-4 h-4"></span>
                         </button>
                       {/if}
                     </div>
@@ -481,8 +481,6 @@
                     <div class="flex items-center justify-center mb-2">
                       {#if button.emoji}
                         <span class="text-2xl">{button.emoji}</span>
-                      {:else}
-                        <span class="w-8 h-8 icon-[si--button-duotone]" style="color: {button.color || '#6B7280'}"></span>
                       {/if}
                     </div>
                     

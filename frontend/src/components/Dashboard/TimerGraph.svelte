@@ -1,51 +1,49 @@
 <script lang="ts">
-  import { onMount, afterUpdate } from 'svelte';
-  import { createEventDispatcher } from 'svelte';
-  import type { Timer } from '../types';
-  import { timeLogsStore } from '../stores/timelogs';
-  import { computeTimerLayout } from '../lib/timerLayout';
+  import { onMount } from 'svelte';
+  import type { TimeLog, Timer } from '../../types';
+  import { timeLogsStore } from '../../stores/timelogs';
+  import { computeTimerLayout } from '../../lib/timerLayout';
   import TimerButton from './TimerButton.svelte';
 
-  export let buttons: Timer[];
-  export let editMode = false;
-  export let toggleMode = true;
+  let { 
+    buttons,
+    editMode = false,
+    toggleMode = true,
+    edit,
+    longpress,
+    timerstopped
+  }: {
+    buttons: Timer[];
+    editMode?: boolean;
+    toggleMode?: boolean;
+    edit?: (timer: Timer) => void;
+    longpress?: (timer: Timer, isActive: boolean) => void;
+    timerstopped?: (timelog: TimeLog, timer: Timer) => void;
+  } = $props();
 
-  const dispatch = createEventDispatcher();
   const timerSize = 150; // Base size of each timer in pixels
 
-  let containerWidth = 500;
-  let containerHeight = 600;
+  let containerWidth = $state(500);
+  let containerHeight = $state(600);
   let containerEl: HTMLDivElement;
-
-  // Compute timer positions based on transition graph
-  $: timerPositions = computeTimerLayout(buttons, $timeLogsStore.items, containerWidth, containerHeight, timerSize);
-
-  function handleEdit(button: Timer) {
-    dispatch('edit', button);
-  }
-
-  function handleLongPress(event: CustomEvent) {
-    dispatch('longpress', event.detail);
-  }
-
-  function handleTimerStopped(event: CustomEvent) {
-    dispatch('timerstopped', event.detail);
-  }
+  let timerPositions: Map<string, { x: number; y: number }> = $state(new Map());
 
   onMount(() => {
     if (containerEl) {
       const rect = containerEl.getBoundingClientRect();
       containerWidth = rect.width;
       containerHeight = Math.max(rect.height, 600);
+      timerPositions = computeTimerLayout(buttons, $timeLogsStore.items, containerWidth, containerHeight, timerSize);
     }
   });
 
-  afterUpdate(() => {
+  $effect(() => {
     if (containerEl && buttons.length > 0) {
       const rect = containerEl.getBoundingClientRect();
       containerWidth = rect.width;
       // Dynamic height based on number of buttons
       containerHeight = Math.max(rect.height, Math.min(1000, 400 + buttons.length * 30));
+      timerPositions = computeTimerLayout(buttons, $timeLogsStore.items, containerWidth, containerHeight, timerSize);
     }
   });
 </script>
@@ -83,9 +81,9 @@
             timer={button}
             {editMode}
             {toggleMode}
-            on:edit={() => handleEdit(button)}
-            on:longpress={handleLongPress}
-            on:timerstopped={handleTimerStopped}
+            edit={edit}
+            longpress={longpress}
+            timerstopped={timerstopped}
           />
         </div>
       {/if}

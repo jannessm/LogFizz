@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/svelte';
 import TimerGraph from './TimerGraph.svelte';
-import type { Timer, TimeLog } from '../types';
+import type { Timer, TimeLog } from '../../types';
 
 const { mockTimeLogsStore, mockActiveTimeLogs, mockTimersStore } = vi.hoisted(() => {
   const { writable } = require('svelte/store');
@@ -104,7 +104,7 @@ describe('TimerGraph Component', () => {
   });
 
   it('positions buttons using computed layout', async () => {
-    const { computeTimerLayout } = await import('../lib/timerLayout');
+    const { computeTimerLayout } = await import('../../lib/timerLayout');
     
     render(TimerGraph, {
       props: { buttons: mockButtons, editMode: false, toggleMode: true },

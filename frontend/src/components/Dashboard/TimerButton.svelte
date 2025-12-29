@@ -1,69 +1,96 @@
 <script lang="ts">
-  import { createEventDispatcher, onMount, onDestroy } from 'svelte';
-  import type { Timer } from '../types';
-  import { timeLogsStore, activeTimeLogs } from '../stores/timelogs';
-  import { timersStore } from '../stores/timers';
+  import { onMount, onDestroy } from 'svelte';
+  import type { Timer, TimeLog } from '../../types';
+  import { timeLogsStore, timers, activeTimeLogs } from '../../stores/timelogs';
+  import { timersStore } from '../../stores/timers';
   import dayjs from 'dayjs';
-  import { formatTime } from '../../../lib/utils/timeFormat.js';
+  import { formatTime } from '../../../../lib/utils/timeFormat.js';
+    import type { C } from 'node_modules/vitest/dist/chunks/worker.d.5JNaocaN';
 
-  export let timer: Timer;
-  export let editMode = false;
-  export let toggleMode = true;
+  let {
+    timer,
+    editMode = false,
+    toggleMode = true,
+    edit = () => {},
+    longpress = () => {},
+    timerstopped = () => {},
+  }: {
+    timer: Timer;
+    editMode?: boolean;
+    toggleMode?: boolean;
+    edit?: (timer: Timer) => void;
+    longpress?: (timer: Timer, isActive: boolean) => void;
+    timerstopped?: (timelog: TimeLog, timer: Timer) => void;
+  } = $props();
 
-  const dispatch = createEventDispatcher();
-
-  let isActive = false;
-  let elapsedTime = 0;
-  let todayTime = 0;
+  let elapsedTime = $state(0); // in seconds
+  let strokeDashoffset = $state(351.858); // 2 * PI * 56
   let interval: number | null = null;
   let longPressTimer: number | null = null;
   let isLongPressTriggered = false;
 
-  $: activeTimerLog = $activeTimeLogs.find(t => t.timer_id === timer.id);
-  $: isActive = activeTimerLog !== undefined;
+  let activeTimeLog = $derived($activeTimeLogs.find(t => t.timer_id === timer.id));
+  let isActive = $state(false);
 
-  // Calculate elapsed time for active timer
-  $: if (isActive && activeTimerLog) {
-    const startTime = new Date(activeTimerLog.start_timestamp).getTime();
-    elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-  }
+  let todayTime = $state(0); // in minutes
 
-  // Calculate today's total time from completed timelogs
-  $: {
+  $effect(() => {
+    activeTimeLog = $activeTimeLogs.find(t => t.timer_id === timer.id);
+    // Calculate elapsed time for active timer
+    if (activeTimeLog) {
+      isActive = true;
+      updateProgress();
+    } else {
+      isActive = false;
+      elapsedTime = 0;
+      strokeDashoffset = 351.858; // reset
+    }
+  });
+
+  $effect(() => {
+    // Calculate today's total time from completed timelogs
     const today = dayjs().format('YYYY-MM-DD');
-    const todayLogs = $timeLogsStore.items.filter(tl => 
+    const todayLogs = $timers.filter(tl => 
       tl.timer_id === timer.id && tl.start_timestamp && tl.start_timestamp.startsWith(today)
     );
     
     // Sum up durations from completed logs
-    todayTime = 0;
+    let _todayTime = 0;
     for (const log of todayLogs) {
       if (log.end_timestamp && log.duration_minutes) {
-        todayTime += log.duration_minutes;
+        _todayTime += log.duration_minutes;
       } else if (log.end_timestamp) {
         // Calculate if duration wasn't stored
         const start = new Date(log.start_timestamp).getTime();
         const end = new Date(log.end_timestamp).getTime();
-        todayTime += Math.floor((end - start) / 60000);
+        _todayTime += Math.floor((end - start) / 60000);
       }
     }
     
     // Add time for currently active timer
-    if (isActive && activeTimerLog && activeTimerLog.start_timestamp.startsWith(today)) {
-      const start = new Date(activeTimerLog.start_timestamp).getTime();
-      todayTime += Math.floor((Date.now() - start) / 60000);
+    if (isActive && activeTimeLog && activeTimeLog.start_timestamp.startsWith(today)) {
+      const start = new Date(activeTimeLog.start_timestamp).getTime();
+      _todayTime += Math.floor((Date.now() - start) / 60000);
     }
-  }
+    todayTime = _todayTime;
+  });
 
   onMount(() => {
     // Update elapsed time every second for active timers
-    interval = setInterval(() => {
-      if (isActive && activeTimerLog) {
-        const startTime = new Date(activeTimerLog.start_timestamp).getTime();
-        elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-      }
-    }, 1000) as unknown as number;
+    interval = setInterval(updateProgress, 1000) as unknown as number;
   });
+
+  function updateProgress() {
+    if (isActive && activeTimeLog) {
+      const startTime = dayjs(activeTimeLog.start_timestamp).valueOf();
+      elapsedTime = Math.floor((dayjs().valueOf() - startTime) / 1000);
+      
+      // Calculate stroke-dashoffset directly for Firefox compatibility
+      const secProgress = (elapsedTime % 60) / 60;
+      const circumference = 351.858; // 2 * PI * 56
+      strokeDashoffset = circumference - (circumference * secProgress);
+    }
+  }
 
   onDestroy(() => {
     if (interval) clearInterval(interval);
@@ -74,7 +101,7 @@
     isLongPressTriggered = false;
     longPressTimer = setTimeout(() => {
       isLongPressTriggered = true;
-      dispatch('longpress', { timer, isActive });
+      longpress(timer, isActive);
     }, 500) as unknown as number;
   }
 
@@ -93,13 +120,13 @@
     }
 
     if (editMode) {
-      dispatch('edit');
+      edit(timer);
       return;
     }
 
-    if (isActive && activeTimerLog) {
+    if (isActive && activeTimeLog) {
       // Stop timer - dispatch event before stopping to allow parent to intercept
-      dispatch('timerstopped', { timer: activeTimerLog, button: timer });
+      timerstopped(activeTimeLog, timer);
     } else {
       if (toggleMode) {
         // Stop any other active timers first
@@ -123,17 +150,17 @@
 <div class="relative">
   {#if editMode}
     <button
-      on:click={handleDelete}
+      onclick={handleDelete}
       class="absolute -top-2 -right-2 z-10 w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center hover:bg-gray-600 icon-[si--edit-detailed-duotone]"
       aria-label="Edit button"
     ></button>
   {/if}
   
   <button
-    on:click={handleClick}
-    on:pointerdown={handlePointerDown}
-    on:pointerup={handlePointerUp}
-    on:pointerleave={handlePointerUp}
+    onclick={handleClick}
+    onpointerdown={handlePointerDown}
+    onpointerup={handlePointerUp}
+    onpointerleave={handlePointerUp}
     class="relative aspect-square p-4 transition-all duration-300 flex flex-col items-center justify-center text-white w-full overflow-visible min-w-[150px] min-h-[150px] rounded-full"
     class:has-pulse={isActive}
     style="--button-color: {timer.color || '#3B82F6'}; background-color: {timer.color || '#3B82F6'}"
@@ -145,7 +172,14 @@
 
     <!-- Circular progress indicator for seconds (when active) -->
     {#if isActive && !editMode}
-      <svg class="progress-ring-seconds" width="100%" height="100%" viewBox="0 0 120 120">
+      <svg 
+        class="progress-ring-seconds" 
+        width="100%" 
+        height="100%" 
+        viewBox="0 0 120 120"
+        preserveAspectRatio="xMidYMid meet"
+        role="presentation"
+      >
         <!-- Background circle -->
         <circle
           class="progress-ring-bg"
@@ -160,12 +194,12 @@
         <circle
           class="progress-ring-seconds-circle"
           stroke="rgba(255, 255, 255, 0.95)"
-          stroke-width="4"
+          stroke-width="3"
           fill="none"
           r="56"
           cx="60"
           cy="60"
-          style="--seconds-progress: {(elapsedTime % 60) / 60 * 100}"
+          stroke-dashoffset={strokeDashoffset}
         />
       </svg>
     {/if}
@@ -211,13 +245,27 @@
     top: 0;
     left: 0;
     transform: rotate(-90deg);
+    transform-origin: center;
     z-index: 5;
+    /* Ensure smooth rendering across browsers */
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .progress-ring-bg {
+    /* Ensure consistent rendering */
+    vector-effect: non-scaling-stroke;
   }
 
   .progress-ring-seconds-circle {
     stroke-dasharray: 351.858; /* 2 * PI * 56 */
-    stroke-dashoffset: calc(351.858 - (351.858 * var(--seconds-progress) / 100));
+    /* Cross-browser transitions */
     transition: stroke-dashoffset 0.1s linear;
+    -webkit-transition: stroke-dashoffset 0.1s linear;
+    -moz-transition: stroke-dashoffset 0.1s linear;
+    -ms-transition: stroke-dashoffset 0.1s linear;
+    -o-transition: stroke-dashoffset 0.1s linear;
     stroke-linecap: round;
   }
 

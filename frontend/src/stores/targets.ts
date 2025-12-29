@@ -19,8 +19,8 @@ const targetStoreConfig: BaseStoreConfig<TargetWithSpecs> = {
     delete: deleteTargetDB,
   },
   sync: {
-    queueUpsert: (target) => syncService.queueUpsertTarget(target),
-    queueDelete: (target) => syncService.queueDeleteTarget(target),
+    queueUpsert: syncService.queueUpsertTarget.bind(syncService),
+    queueDelete: syncService.queueDeleteTarget.bind(syncService),
     syncType: 'target',
   },
   hooks: {

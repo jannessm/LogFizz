@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import TimerButton from './TimerButton.svelte';
-import type { Timer, TimeLog } from '../types';
+import type { Timer, TimeLog } from '../../types';
 
 const { mockActiveTimeLogs, mockTimeLogsStore, mockTimersStore } = vi.hoisted(() => {
   const { writable } = require('svelte/store');

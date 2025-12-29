@@ -105,8 +105,8 @@ const timeLogStoreConfig: BaseStoreConfig<TimeLog> = {
     delete: deleteTimeLogDB,
   },
   sync: {
-    queueUpsert: syncService.queueUpsertTimeLog,
-    queueDelete: syncService.queueDeleteTimeLog,
+    queueUpsert: syncService.queueUpsertTimeLog.bind(syncService),
+    queueDelete: syncService.queueDeleteTimeLog.bind(syncService),
     syncType: 'timelog',
   },
   hooks: {
@@ -139,7 +139,7 @@ const timeLogStoreConfig: BaseStoreConfig<TimeLog> = {
       await recalculateBalancesForTimeLog(timeLog);
     },
   },
-  storeName: 'TimeLog',
+  storeName: 'timelogs',
 };
 
 const baseStore = createBaseStore<TimeLog>(timeLogStoreConfig);
@@ -151,15 +151,6 @@ const baseStore = createBaseStore<TimeLog>(timeLogStoreConfig);
 function createTimeLogsStore() {
   return {
     ...baseStore,
-
-    /**
-     * Load active timelogs (running timers)
-     * Currently handled by getAll which loads current month
-     */
-    async loadActive() {
-      // TODO: still needed?
-      // Active timers will be filtered from items
-    },
 
     /**
      * Create a new timelog entry
@@ -178,7 +169,7 @@ function createTimeLogsStore() {
         duration_minutes: undefined, // Let saveTimeLog calculate this
         timezone: timeLogData.timezone || userTimezone,
         apply_break_calculation: timeLogData.apply_break_calculation ?? false,
-        notes: timeLogData.notes,
+        notes: timeLogData.notes || '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
@@ -257,6 +248,11 @@ function createTimeLogsStore() {
 
 /** Main timelogs store - manages time tracking entries */
 export const timeLogsStore = createTimeLogsStore();
+
+export const timers = derived(
+  timeLogsStore,
+  $timeLogsStore => $timeLogsStore.items
+);
 
 /** Derived store for today's timelogs */
 export const todayTimeLogs = derived(

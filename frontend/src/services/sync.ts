@@ -19,11 +19,36 @@ import { timerApi, timeLogApi, targetApi, balanceApi, isOnline } from './api';
 import type { Timer, TimeLog } from '../types';
 import type { TargetWithSpecs } from '../types';
 
-export class SyncService {
-  private isSyncing = false;
-  private syncListeners: (() => void)[] = [];
+type SyncConfig = {
+  type: 'timer' | 'timelog' | 'target' | 'balance';
+  cursorKey: 'timers' | 'timelogs' | 'targets' | 'balances';
+  api: any;
+  dataKey: string;
+  save: (item: any) => Promise<void>;
+  delete: (item: any) => Promise<void>;
+  name: string;
+};
 
-  private syncConfigs = [
+export class SyncService {
+  private syncingLocks = {
+    timer: false,
+    timelog: false,
+    target: false,
+    balance: false,
+  };
+  private syncListeners: {
+    timer: (() => void)[];
+    timelog: (() => void)[];
+    target: (() => void)[];
+    balance: (() => void)[];
+  } = {
+    timer: [],
+    timelog: [],
+    target: [],
+    balance: [],
+  };
+
+  private syncConfigs: SyncConfig[] = [
       {
         type: 'timer',
         cursorKey: 'timers' as const,
@@ -77,7 +102,7 @@ export class SyncService {
     });
 
     await save(data);
-    this.notifyListeners();
+    this.notifyListeners(type);
   }
 
   // Timer queue operations
@@ -129,7 +154,17 @@ export class SyncService {
 
   // Alias for external calls
   async sync(type: 'all' | 'timer' | 'timelog' | 'target' | 'balance' = 'all'): Promise<void> {
-    if (this.isSyncing || !isOnline()) {
+    if (!isOnline()) {
+      return;
+    }
+
+    const types = type === 'all'
+      ? ['timer', 'timelog', 'target', 'balance']
+      : [type];
+
+    const notSyncing = types.filter(t => !this.syncingLocks[t as keyof typeof this.syncingLocks]);
+
+    if (notSyncing.length === 0) {
       return;
     }
 
@@ -139,17 +174,27 @@ export class SyncService {
       return;
     }
 
-    this.isSyncing = true;
+    console.log('Starting sync for types:', notSyncing);
+
+    for (const t of notSyncing) {
+      this.syncingLocks[t as keyof typeof this.syncingLocks] = true;
+    }
     try {
+      const configs = this.syncConfigs.filter(config => 
+        notSyncing.includes(config.type)
+      );
       // Phase 1: Push local changes to server
-      await this.pushLocalChanges(type);
+      await this.pushLocalChanges(configs);
       
       // Phase 2: Pull server changes since last sync
-      await this.pullServerChanges(type);
+      await this.pullServerChanges(configs);
       
-      this.notifyListeners();
+      notSyncing.forEach(t => this.notifyListeners(t as keyof typeof this.syncListeners));
     } finally {
-      this.isSyncing = false;
+      for (const t of notSyncing) {
+        this.syncingLocks[t as keyof typeof this.syncingLocks] = true;
+      }
+      console.log('Sync completed for types:', notSyncing);
     }
   }
 
@@ -223,62 +268,51 @@ export class SyncService {
   }
 
   // Push local queued changes to server
-  private async pushLocalChanges(type: 'all' | 'timer' | 'timelog' | 'target' | 'balance' = 'all'): Promise<void> {
+  private async pushLocalChanges(typeConfigs: SyncConfig[]): Promise<void> {
     const items = await getUnsyncedItems();
-
-    // Filter configs based on type parameter
-    const filteredConfigs = type === 'all' 
-      ? this.syncConfigs 
-      : this.syncConfigs.filter(config => config.type === type);
+    const promises = [];
 
     // Push changes for each type
-    for (const config of filteredConfigs) {
+    for (const config of typeConfigs) {
       const typeItems = items.filter(item => item.type === config.type);
       
       if (typeItems.length > 0) {
-        try {
-          await this.pushChanges(config.cursorKey, typeItems, config.api, config.save);
-        } catch (error) {
-          console.error(`Failed to push ${config.name} changes:`, error);
-        }
+        promises.push(
+          this.pushChanges(config.cursorKey, typeItems,
+            config.api, config.save)
+        );
       }
     }
+    await Promise.all(promises);
   }
 
   // Pull server changes since last cursor
-  private async pullServerChanges(type: 'all' | 'timer' | 'timelog' | 'target' | 'balance' = 'all'): Promise<void> {
-
-    // Filter configs based on type parameter
-    const filteredConfigs = type === 'all' 
-      ? this.syncConfigs 
-      : this.syncConfigs.filter(config => config.type === type);
-
+  private async pullServerChanges(typeConfigs: SyncConfig[]): Promise<void> {
     // Pull changes for each type
-    for (const config of filteredConfigs) {
-      try {
-        await this.pullChanges(
-          config.cursorKey,
-          config.api,
-          config.dataKey,
-          config.save,
-          config.delete
-        );
-      } catch (error) {
-        console.error(`Failed to pull ${config.name} changes:`, error);
-      }
+    const promises = [];
+    for (const config of typeConfigs) {
+      promises.push(this.pullChanges(
+        config.cursorKey,
+        config.api,
+        config.dataKey,
+        config.save,
+        config.delete
+      ));
     }
+    await Promise.all(promises);
   }
 
   // Add listener for sync events
-  onSync(callback: () => void): () => void {
-    this.syncListeners.push(callback);
-    return () => {
-      this.syncListeners = this.syncListeners.filter(cb => cb !== callback);
-    };
+  afterSync(
+    type: 'timer' | 'timelog' | 'target' | 'balance',
+    callback: () => void
+  ) {
+    console.log('Registering sync listener for', type);
+    this.syncListeners[type].push(callback);
   }
 
-  private notifyListeners(): void {
-    this.syncListeners.forEach(callback => callback());
+  private notifyListeners(type: 'timer' | 'timelog' | 'target' | 'balance'): void {
+    this.syncListeners[type].forEach(callback => callback());
   }
 
   // Check if there are pending sync items
@@ -290,13 +324,3 @@ export class SyncService {
 
 // Export singleton instance
 export const syncService = new SyncService();
-
-// Auto-sync when coming online (if authenticated)
-if (typeof window !== 'undefined') {
-  window.addEventListener('online', async () => {
-    const user = await getUser();
-    if (user) {
-      syncService.sync('all');
-    }
-  });
-}

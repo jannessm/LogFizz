@@ -4,7 +4,7 @@ import type { Timer, TimeLog, User, SyncQueueItem, Balance } from '../../types';
 import type { TargetWithSpecs } from '../../types';
 import { dayjs, userTimezone } from '../../../../lib/utils/dayjs.js';
 
-interface ClockDB extends DBSchema {
+interface TapShiftDB extends DBSchema {
   timers: {
     key: string;
     value: Timer;
@@ -48,17 +48,17 @@ interface ClockDB extends DBSchema {
   }
 }
 
-const DB_NAME = 'tapshift-db';
-const DB_VERSION = 3;
+const DB_NAME = 'tapshift';
+const DB_VERSION = 1;
 
-let dbInstance: IDBPDatabase<ClockDB> | null = null;
+let dbInstance: IDBPDatabase<TapShiftDB> | null = null;
 
-export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
+export async function getDB(): Promise<IDBPDatabase<TapShiftDB>> {
   if (dbInstance) {
     return dbInstance;
   }
 
-  dbInstance = await openDB<ClockDB>(DB_NAME, DB_VERSION, {
+  dbInstance = await openDB<TapShiftDB>(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion) {
       // Timers store (formerly buttons)
       if (!db.objectStoreNames.contains('timers')) {

@@ -103,14 +103,25 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
     subscribe,
     updateWriteable: update,
 
+    syncCallbackRegistered: false,
+
     /**
      * Load items from local DB and sync with server if online
      */
-    async load() {
+    async load(sync: boolean = true) {
       update(state => ({ ...state, isLoading: true, error: null }));
+
+      if (!this.syncCallbackRegistered) {
+        syncService.afterSync(config.sync.syncType, async () => {
+          await this.load(false);
+        });
+        this.syncCallbackRegistered = true;
+      }
+
       try {
         // Load from local DB first
         const allItems = await config.db.getAll();
+        console.log(`Loaded ${allItems.length} items from local DB for ${config.storeName || 'Store'}`);
 
         // filter out deleted items and clean up old deleted items
         const items: T[] = [];
@@ -133,7 +144,7 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
         update(state => ({ ...state, items: finalItems, isLoading: false }));
 
         // Try to pull incremental changes from server if online
-        if (isOnline()) {
+        if (isOnline() && sync) {
           await syncService.sync(config.sync.syncType);
         }
       } catch (error: any) {

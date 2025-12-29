@@ -3,6 +3,7 @@ import type { User } from '../types';
 import { authApi } from '../services/api';
 import { saveUser, getUser, clearAllData } from '../lib/db';
 import type { HTTPError } from 'ky';
+import { syncService } from '../services/sync';
 
 interface AuthStore {
   user: User | null;

@@ -77,3 +77,13 @@ export const activeTimers = derived(
     return $store.items.filter(t => !runningTimerIds.has(t.id));
   }
 );
+
+export const nonArchivedTimers = derived(
+  timersStore,
+  ($store) => $store.items.filter(t => !t.archived)
+);
+
+export const archivedTimers = derived(
+  timersStore,
+  ($store) => $store.items.filter(t => t.archived)
+);

@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
   import type { Timer } from '../types';
   import { activeTimers } from '../stores/timers';
-  import TimerButton from './TimerButton.svelte';
+  import TimerButton from './Dashboard/TimerButton.svelte';
 
-  export let timers: Timer[];
-  export let editMode = false;
-
-  const dispatch = createEventDispatcher();
-
-  function handleEdit(timer: Timer) {
-    dispatch('edit', timer);
-  }
+  let {
+    timers,
+    editMode = false,
+    edit
+  }: {
+    timers: Timer[];
+    editMode?: boolean;
+    edit: (timer: Timer) => void;
+  } = $props();
 </script>
 
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 relative">
@@ -20,7 +20,7 @@
       <TimerButton 
         {timer}
         {editMode}
-        on:edit={() => handleEdit(timer)}
+        {edit}
       />
     </div>
   {/each}
