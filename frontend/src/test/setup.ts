@@ -1,6 +1,21 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// Set timezone to UTC for consistent test results
+process.env.TZ = 'UTC';
+
+// Mock Intl.DateTimeFormat to return UTC timezone
+const OriginalDateTimeFormat = Intl.DateTimeFormat;
+(Intl as any).DateTimeFormat = function (...args: any[]) {
+  const instance = new OriginalDateTimeFormat(...args);
+  const originalResolvedOptions = instance.resolvedOptions.bind(instance);
+  instance.resolvedOptions = function () {
+    const options = originalResolvedOptions();
+    return { ...options, timeZone: 'UTC' };
+  };
+  return instance;
+};
+
 // Mock crypto.randomUUID for testing
 if (!globalThis.crypto) {
   globalThis.crypto = {} as Crypto;
