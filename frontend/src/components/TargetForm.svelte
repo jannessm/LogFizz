@@ -111,6 +111,25 @@
     } else {
       // Creating new spec
       specFormState = createEmptySpecForm();
+      
+      // If there are existing specs, find the latest ending_at date and use it as starting_from
+      if (targetSpecs.length > 0) {
+        // Sort specs by starting_from to find the last one
+        const sortedSpecs = [...targetSpecs].sort((a, b) => {
+          const dateA = a.starting_from ? new Date(a.starting_from).getTime() : 0;
+          const dateB = b.starting_from ? new Date(b.starting_from).getTime() : 0;
+          return dateB - dateA;
+        });
+        
+        const lastSpec = sortedSpecs[0];
+        
+        // If the last spec has an ending_at, use it as the new starting_from
+        if (lastSpec.ending_at) {
+          // Add one day to the ending date to start the next day
+          const nextDay = dayjs(lastSpec.ending_at).add(1, 'day');
+          specFormState.startingFrom = nextDay.format('YYYY-MM-DD');
+        }
+      }
     }
     
     showSpecForm = true;
@@ -400,17 +419,25 @@
                       >
                         <span class="icon-[si--edit-line] w-4 h-4"></span>
                       </button>
-                      <button
-                        type="button"
-                        on:click={() => deleteSpec(index)}
-                        class="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Delete"
-                        disabled={targetSpecs.length === 1}
-                        class:opacity-50={targetSpecs.length === 1}
-                        class:cursor-not-allowed={targetSpecs.length === 1}
-                      >
-                        <span class="icon-[si--delete-2-line] w-4 h-4"></span>
-                      </button>
+                      {#if targetSpecs.length > 1}
+                        <button
+                          type="button"
+                          on:click={() => deleteSpec(index)}
+                          class="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Delete schedule"
+                        >
+                          <span class="icon-[si--delete-2-line] w-4 h-4"></span>
+                        </button>
+                      {:else}
+                        <button
+                          type="button"
+                          disabled
+                          class="p-1.5 text-gray-400 cursor-not-allowed rounded opacity-50"
+                          title="Cannot delete the only schedule - a target must have at least one"
+                        >
+                          <span class="icon-[si--delete-2-line] w-4 h-4"></span>
+                        </button>
+                      {/if}
                     </div>
                   </div>
                 </div>
