@@ -53,39 +53,3 @@ async function seedGermanStates() {
   console.log('✓ German states seeded');
 }
 
-/**
- * Seed German states into the database
- */
-async function seedGermanStates() {
-  const queryRunner = AppDataSource.createQueryRunner();
-  
-  try {
-    await queryRunner.query(`
-      INSERT INTO "states" ("country", "state", "code") VALUES
-      ('Germany', 'Baden-Württemberg', 'DE-BW'),
-      ('Germany', 'Bayern', 'DE-BY'),
-      ('Germany', 'Berlin', 'DE-BE'),
-      ('Germany', 'Brandenburg', 'DE-BB'),
-      ('Germany', 'Bremen', 'DE-HB'),
-      ('Germany', 'Hamburg', 'DE-HH'),
-      ('Germany', 'Hessen', 'DE-HE'),
-      ('Germany', 'Mecklenburg-Vorpommern', 'DE-MV'),
-      ('Germany', 'Niedersachsen', 'DE-NI'),
-      ('Germany', 'Nordrhein-Westfalen', 'DE-NW'),
-      ('Germany', 'Rheinland-Pfalz', 'DE-RP'),
-      ('Germany', 'Saarland', 'DE-SL'),
-      ('Germany', 'Sachsen', 'DE-SN'),
-      ('Germany', 'Sachsen-Anhalt', 'DE-ST'),
-      ('Germany', 'Schleswig-Holstein', 'DE-SH'),
-      ('Germany', 'Thüringen', 'DE-TH')
-      ON CONFLICT (code) DO NOTHING
-    `);
-    
-    console.log('✓ German states seeded');
-  } catch (error) {
-    console.error('Error seeding German states:', error);
-    throw error;
-  } finally {
-    await queryRunner.release();
-  }
-}
