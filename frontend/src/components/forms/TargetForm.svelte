@@ -1,16 +1,19 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { createEventDispatcher } from 'svelte';
-  import type { TargetWithSpecs, State, Timer, TargetSpec } from '../types';
-  import { targetsStore } from '../stores/targets';
-  import { statesStore } from '../stores/states';
-  import { timersStore } from '../stores/timers';
-  import { getActiveTargetSpec } from '../lib/utils/targetSpec';
-  import dayjs from '../../../lib/utils/dayjs';
+  import type { TargetWithSpecs, State, Timer, TargetSpec } from '../../types';
+  import { targetsStore } from '../../stores/targets';
+  import { statesStore } from '../../stores/states';
+  import { timersStore } from '../../stores/timers';
+  import dayjs from '../../../../lib/utils/dayjs';
 
-  export let target: TargetWithSpecs | null = null;
+  let {
+    target = null,
+    close,
 
-  const dispatch = createEventDispatcher();
+  }: {
+    target?: TargetWithSpecs | null;
+    close: () => void;
+  } = $props();
 
   let name = target?.name || '';
   
@@ -18,13 +21,41 @@
   let targetSpecs: TargetSpec[] = target?.target_specs?.length ? [...target.target_specs] : [];
   let editingSpecIndex: number | null = null;
   let showSpecForm = false;
+
+  $effect(() => {
+    if (!target && targetSpecs.length === 0 && !showSpecForm) {
+      // Use setTimeout to avoid updating during render
+      setTimeout(() => openSpecForm(null), 0);
+    }
+
+    if ($timersStore.items) {
+      availableButtons = $timersStore.items;
+      
+      // If editing a target, pre-select buttons that are already assigned to this target
+      if (target?.id && availableButtons.length > 0 && selectedButtonIds.length === 0) {
+        selectedButtonIds = availableButtons
+          .filter(b => b.target_id === target.id)
+          .map(b => b.id);
+      }
+    }
+
+    if ($statesStore.states) {
+      availableStates = $statesStore.states;
+      
+      // Extract unique countries from states
+      const countries = new Set(availableStates.map(s => s.country));
+      availableCountries = Array.from(countries).sort();
+    }
+
   
-  // If creating a new target and no specs exist, show the form
-  $: if (!target && targetSpecs.length === 0 && !showSpecForm) {
-    // Use setTimeout to avoid updating during render
-    setTimeout(() => openSpecForm(null), 0);
-  }
-  
+    if (specFormState.selectedCountry) {
+      filteredStates = availableStates.filter(s => s.country === specFormState.selectedCountry)
+        .sort((a, b) => a.state.localeCompare(b.state));
+    } else {
+      filteredStates = [];
+    }
+  });
+
   // Form state for current spec being edited/created
   let specFormState = createEmptySpecForm();
   
@@ -47,34 +78,6 @@
       startingFrom: undefined as string | undefined,
       endingAt: undefined as string | undefined,
     };
-  }
-
-  $: if ($timersStore.items) {
-    availableButtons = $timersStore.items;
-    
-    // If editing a target, pre-select buttons that are already assigned to this target
-    if (target?.id && availableButtons.length > 0 && selectedButtonIds.length === 0) {
-      selectedButtonIds = availableButtons
-        .filter(b => b.target_id === target.id)
-        .map(b => b.id);
-    }
-  }
-
-  $: if ($statesStore.states) {
-    availableStates = $statesStore.states;
-    
-    // Extract unique countries from states
-    const countries = new Set(availableStates.map(s => s.country));
-    availableCountries = Array.from(countries).sort();
-  }
-
-  $: {
-    if (specFormState.selectedCountry) {
-      filteredStates = availableStates.filter(s => s.country === specFormState.selectedCountry)
-        .sort((a, b) => a.state.localeCompare(b.state));
-    } else {
-      filteredStates = [];
-    }
   }
 
   function handleCountryChange() {
@@ -303,30 +306,26 @@
       // Update button assignments
       await updateButtonAssignments(savedTargetId);
 
-      dispatch('close');
+      close();
     } catch (error: any) {
       errorMessage = error.message || 'Failed to save target';
     } finally {
       isLoading = false;
     }
   }
-
-  function handleClose() {
-    dispatch('close');
-  }
 </script>
 
 <div 
   class="fixed inset-0 z-50 flex items-center justify-center p-4" 
-  on:click={handleClose}
-  on:keydown={(e) => e.key === 'Escape' && handleClose()}
+  onclick={close}
+  onkeydown={(e) => e.key === 'Escape' && close()}
   role="button"
   tabindex="0"
 >
   <div 
     class="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
-    on:click|stopPropagation
-    on:keydown|stopPropagation
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.stopPropagation()}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
@@ -335,7 +334,7 @@
     <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
       <h2 class="text-xl font-semibold text-gray-800">{target ? 'Edit' : 'Add'} Daily Target</h2>
       <button
-        on:click={handleClose}
+        onclick={close}
         class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
         style="width: 28px; height: 28px;"
         aria-label="Close"
@@ -350,7 +349,7 @@
         </div>
       {/if}
 
-      <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+      <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-4">
         <!-- Name -->
         <div>
           <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
@@ -377,7 +376,7 @@
             </div>
             <button
               type="button"
-              on:click={() => openSpecForm(null)}
+              onclick={() => openSpecForm(null)}
               class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors flex items-center gap-1"
             >
               <span class="icon-[si--add-line] w-4 h-4"></span>
@@ -413,7 +412,7 @@
                     <div class="flex gap-1">
                       <button
                         type="button"
-                        on:click={() => openSpecForm(index)}
+                        onclick={() => openSpecForm(index)}
                         class="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
                         title="Edit"
                       >
@@ -422,7 +421,7 @@
                       {#if targetSpecs.length > 1}
                         <button
                           type="button"
-                          on:click={() => deleteSpec(index)}
+                          onclick={() => deleteSpec(index)}
                           class="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                           title="Delete schedule"
                         >
@@ -463,7 +462,7 @@
                 {#each availableButtons as button}
                   <button
                     type="button"
-                    on:click={() => toggleButton(button.id)}
+                    onclick={() => toggleButton(button.id)}
                     class="flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all duration-200 relative group"
                     class:border-blue-500={selectedButtonIds.includes(button.id)}
                     class:bg-blue-50={selectedButtonIds.includes(button.id)}
@@ -500,7 +499,7 @@
         <div class="flex gap-3 pt-4">
           <button
             type="button"
-            on:click={handleClose}
+            onclick={close}
             class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
           >
             Cancel
@@ -522,15 +521,15 @@
 {#if showSpecForm}
   <div 
     class="fixed inset-0 z-[60] flex items-center justify-center p-4" 
-    on:click={closeSpecForm}
-    on:keydown={(e) => e.key === 'Escape' && closeSpecForm()}
+    onclick={closeSpecForm}
+    onkeydown={(e) => e.key === 'Escape' && closeSpecForm()}
     role="button"
     tabindex="0"
   >
     <div 
       class="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
-      on:click|stopPropagation
-      on:keydown|stopPropagation
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
       role="dialog"
       aria-modal="true"
       tabindex="-1"
@@ -541,7 +540,7 @@
           {editingSpecIndex !== null ? 'Edit' : 'Add'} Schedule
         </h3>
         <button
-          on:click={closeSpecForm}
+          onclick={closeSpecForm}
           class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
           style="width: 24px; height: 24px;"
           aria-label="Close"
@@ -593,7 +592,7 @@
             {#each weekDays as day}
               <button
                 type="button"
-                on:click={() => toggleDay(day.value)}
+                onclick={() => toggleDay(day.value)}
                 class="px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 class:bg-blue-600={specFormState.weekdays.includes(day.value)}
                 class:text-white={specFormState.weekdays.includes(day.value)}
@@ -629,7 +628,7 @@
               {#if specFormState.startingFrom}
                 <button
                   type="button"
-                  on:click={() => specFormState.startingFrom = undefined}
+                  onclick={() => specFormState.startingFrom = undefined}
                   class="px-3 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 hover:text-red-600 transition-colors"
                   title="Clear date"
                 >
@@ -655,7 +654,7 @@
               {#if specFormState.endingAt}
                 <button
                   type="button"
-                  on:click={() => specFormState.endingAt = undefined}
+                  onclick={() => specFormState.endingAt = undefined}
                   class="px-3 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 hover:text-red-600 transition-colors"
                   title="Clear date"
                 >
@@ -693,7 +692,7 @@
               <select
                 id="spec-country"
                 bind:value={specFormState.selectedCountry}
-                on:change={handleCountryChange}
+                onchange={handleCountryChange}
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 <option value="">-- Select a country --</option>
@@ -728,14 +727,14 @@
         <div class="flex gap-3 pt-4">
           <button
             type="button"
-            on:click={closeSpecForm}
+            onclick={closeSpecForm}
             class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
             type="button"
-            on:click={saveSpec}
+            onclick={saveSpec}
             class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             {editingSpecIndex !== null ? 'Update' : 'Add'}

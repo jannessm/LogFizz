@@ -1,29 +1,29 @@
 <script lang="ts">
-  import dayjs from 'dayjs';
-  import utc from 'dayjs/plugin/utc';
-  import timezone from 'dayjs/plugin/timezone';
-  import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
-  import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
   import { onMount, onDestroy } from 'svelte';
   import SessionBox from './SessionBox.svelte';
-  import { computeIndentation } from '../../lib/utils/computeIndentation';
+  import { computeIndentation, type Session } from '../../lib/utils/computeIndentation';
   import { holidaysStore } from '../../stores/holidays';
   import type { Holiday } from '../../../../lib/types';
-
-  dayjs.extend(utc);
-  dayjs.extend(timezone);
-  dayjs.extend(isSameOrAfter);
-  dayjs.extend(isSameOrBefore);
+  import { dayjs } from '../../types/index';
 
   // Get user's timezone
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  export let selectedDate: dayjs.Dayjs;
-  export let timeLogs: any[];
-  export let buttons: any[];
-  export let onAddTimelog: () => void;
-  export let onEditTimelog: (session: any) => void;
-  export let countries: string[] = []; // Countries to check for holidays
+  let { 
+    selectedDate, 
+    timeLogs, 
+    buttons, 
+    addTimelog, 
+    editTimelog,
+    countries = []
+  }: {
+    selectedDate: dayjs.Dayjs;
+    timeLogs: any[];
+    buttons: any[];
+    addTimelog: () => void;
+    editTimelog: (session: any) => void;
+    countries: string[]; // Countries to check for holidays
+  } = $props();
 
   let sessions: any[] = [];
   let specialTypeSessions: any[] = [];
@@ -40,6 +40,7 @@
   let intervalId: number | undefined;
   let hourLabels: string[] = [];
   let currentHolidays: Holiday[] = [];
+  let displaySessions: Session[] = $state([]);
 
   const TYPE_LABELS: Record<string, string> = {
     'sick': 'Sick Leave',
@@ -184,35 +185,37 @@
     return labels;
   }
 
-  $: if (selectedDate || timeLogs || refreshTick) {
-    sessions = getSessionsForSelectedDate();
-    
-    // Split sessions into special types and normal
-    specialTypeSessions = sessions.filter(s => s.log?.type && s.log.type !== 'normal');
-    normalSessions = sessions.filter(s => !s.log?.type || s.log.type === 'normal');
-    
-    calculateTimeline(normalSessions);
+  $effect(() => {
+    if (selectedDate || timeLogs || refreshTick) {
+      sessions = getSessionsForSelectedDate();
+      
+      // Split sessions into special types and normal
+      specialTypeSessions = sessions.filter(s => s.log?.type && s.log.type !== 'normal');
+      normalSessions = sessions.filter(s => !s.log?.type || s.log.type === 'normal');
+      
+      calculateTimeline(normalSessions);
 
-    hourLabels = getHourLabels();
+      hourLabels = getHourLabels();
 
-    // Apply filter to both special and normal sessions
-    filteredSpecialTypeSessions = selectedButtonFilter 
-      ? specialTypeSessions.filter(s => s.timer_id === selectedButtonFilter)
-      : specialTypeSessions;
-    
-    filteredSessions = selectedButtonFilter 
-      ? normalSessions.filter(s => s.timer_id === selectedButtonFilter)
-      : normalSessions;
-    
-    uniqueButtons = Array.from(new Set(sessions.map(s => s.timer_id)))
-      .map(id => buttons.find(b => b.id === id))
-      .filter(b => b !== undefined);
+      // Apply filter to both special and normal sessions
+      filteredSpecialTypeSessions = selectedButtonFilter 
+        ? specialTypeSessions.filter(s => s.timer_id === selectedButtonFilter)
+        : specialTypeSessions;
+      
+      filteredSessions = selectedButtonFilter 
+        ? normalSessions.filter(s => s.timer_id === selectedButtonFilter)
+        : normalSessions;
+      
+      uniqueButtons = Array.from(new Set(sessions.map(s => s.timer_id)))
+        .map(id => buttons.find(b => b.id === id))
+        .filter(b => b !== undefined);
 
-    // Get all holidays for selected date from all configured countries
-    currentHolidays = getHolidaysForDate(selectedDate);
-  }
+      // Get all holidays for selected date from all configured countries
+      currentHolidays = getHolidaysForDate(selectedDate);
+    }
 
-  $: displaySessions = computeIndentation(filteredSessions || []);
+    displaySessions = computeIndentation(filteredSessions || []);
+  })
 
   // Check if there are any running sessions
   function hasRunningSessions(): boolean {
@@ -247,7 +250,7 @@
       {/if}
     </h2>
     <button
-      on:click={onAddTimelog}
+      onclick={addTimelog}
       class="rounded-full bg-blue-500 hover:bg-blue-700 transition-colors flex items-center gap-1 icon-[si--add-circle-duotone]"
       style="width: 32px; height: 32px;"
       aria-label="Add time entry"
@@ -291,7 +294,7 @@
           : startDate ? startDate.format('MMM D, YYYY') : ''}
         {#if button}
           <button
-            on:click={() => onEditTimelog(session)}
+            onclick={() => editTimelog(session)}
             class="w-full flex items-center gap-3 p-4 rounded-lg border-2 hover:shadow-md transition-all text-left"
             style="border-color: {typeColor}20; background-color: {typeColor}10;"
           >
@@ -373,7 +376,7 @@
         {#each displaySessions as session}
           {@const button = buttons.find(b => b.id === session.timer_id)}
           {#if button}
-            <SessionBox {session} {button} {timelineStart} {timelineEnd} {timelineHeight} indentLevel={session.indentLevel} onEdit={onEditTimelog} />
+            <SessionBox {session} {button} {timelineStart} {timelineEnd} {timelineHeight} indentLevel={session.indentLevel} edit={editTimelog} />
           {/if}
         {/each}
       </div>

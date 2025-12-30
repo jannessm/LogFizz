@@ -1,21 +1,32 @@
 <script lang="ts">
-  import { onMount, onDestroy, createEventDispatcher } from 'svelte';
-  import 'emoji-picker-element';
+  import { onMount, onDestroy } from 'svelte';
 
-  export let value = '';
+  let {
+    value = '',
+    select,
+    clear
+  }: {
+    value: string;
+    select?: (emoji: string) => void;
+    clear?: () => void;
+  } = $props();
 
-  const dispatch = createEventDispatcher<{
-    select: { emoji: string };
-    clear: void;
-  }>();
-
-  let showPicker = false;
+  let showPicker = $state(false);
   let containerRef: HTMLElement | null = null;
+
+  $effect(() => {
+    if (showPicker) {
+      // Lazy load the emoji picker library
+      setTimeout(() => {
+        document.querySelector('emoji-picker')?.addEventListener('emoji-click', (e: any) => handleEmojiClick(e));
+      }, 100);
+    }
+  });
 
   function handleEmojiClick(event: CustomEvent) {
     const emoji = event.detail?.unicode || '';
     value = emoji;
-    dispatch('select', { emoji });
+    select && select(emoji);
     showPicker = false;
   }
 
@@ -31,7 +42,7 @@
 
   function clearEmoji() {
     value = '';
-    dispatch('clear');
+    clear && clear();
   }
 
   onMount(() => {
@@ -47,7 +58,7 @@
   <div class="flex gap-2 items-center">
     <button
       type="button"
-      on:click={togglePicker}
+      onclick={togglePicker}
       class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-lg min-w-[50px] min-h-[42px] flex items-center justify-center"
       aria-label={value ? 'Change emoji' : 'Select emoji'}
     >
@@ -60,7 +71,7 @@
     {#if value}
       <button
         type="button"
-        on:click={clearEmoji}
+        onclick={clearEmoji}
         class="text-gray-400 hover:text-gray-600 transition-colors"
         aria-label="Clear emoji"
       >
@@ -71,7 +82,7 @@
   
   {#if showPicker}
     <div class="absolute z-50 mt-2 shadow-lg rounded-lg">
-      <emoji-picker on:emoji-click={handleEmojiClick}></emoji-picker>
+      <emoji-picker></emoji-picker>
     </div>
   {/if}
 </div>

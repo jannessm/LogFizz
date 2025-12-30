@@ -5,13 +5,11 @@
   import { authStore } from '../stores/auth';
   import { snackbar } from '../stores/snackbar';
   import { authApi } from '../services/api';
-  import TimerGraph from '../components/Dashboard/TimerGraph.svelte';
-  import TimerForm from '../components/TimerForm.svelte';
-  import TimelogForm from '../components/TimelogForm.svelte';
+  import { EditOverview, TimerGraph } from '../components/dashboard';
+
+  import { TargetForm, TimelogForm, TimerForm } from '../components/forms';
   import DailyTargets from '../components/DailyTargets.svelte';
-  import TargetForm from '../components/TargetForm.svelte';
   import BottomNav from '../components/BottomNav.svelte';
-  import EditOverview from '../components/EditOverview.svelte';
   import AddSelector from '../components/AddSelector.svelte';
   import dayjs from 'dayjs';
   import type { Timer, TargetWithSpecs, TimeLog } from '../types';
@@ -85,9 +83,9 @@
     showAddSelector = false;
   }
 
-  function handleAddSelectorSelect(event: CustomEvent<{ type: 'button' | 'target' }>) {
+  function handleAddSelectorSelect(type: 'button' | 'target') {
     showAddSelector = false;
-    if (event.detail.type === 'button') {
+    if (type === 'button') {
       handleAddButton();
     } else {
       handleAddTarget();
@@ -164,9 +162,16 @@
     editingTimelog = null;
   }
 
-  async function handleSaveTimelog(event: CustomEvent) {
-    const { timer_id, type, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
-    
+  async function handleSaveTimelog(data: {
+    timer_id: string;
+    type: 'normal' | 'sick' | 'holiday' | 'business-trip' | 'child-sick';
+    startTimestamp: string;
+    endTimestamp?: string | null;
+    notes?: string;
+    existingLog?: { log: TimeLog };
+  }) {
+    const { timer_id, type, startTimestamp, endTimestamp, notes, existingLog } = data;
+
     // If this is a timer being stopped (timerToStop is set), stop it with the notes and custom end time
     if (timerToStop) {
       await timeLogsStore.stopTimer(timerToStop, notes || undefined, endTimestamp || undefined);
@@ -308,19 +313,19 @@
   <!-- Edit Overview Modal -->
   {#if showEditOverview}
     <EditOverview 
-      onEditButton={handleEditButton}
-      onEditTarget={handleEditTarget}
-      onAddButton={handleAddButton}
-      onAddTarget={handleAddTarget}
-      on:close={handleCloseEditOverview}
+      editButton={handleEditButton}
+      editTarget={handleEditTarget}
+      addButton={handleAddButton}
+      addTarget={handleAddTarget}
+      close={handleCloseEditOverview}
     />
   {/if}
 
   <!-- Timer Form Modal -->
   {#if showButtonForm}
     <TimerForm 
-      button={editingButton}
-      on:close={handleCloseForm}
+      timer={editingButton}
+      close={handleCloseForm}
     />
   {/if}
 
@@ -328,15 +333,15 @@
   {#if showTargetForm}
     <TargetForm 
       target={editingTarget}
-      on:close={handleCloseTargetForm}
+      close={handleCloseTargetForm}
     />
   {/if}
 
   <!-- Add Selector Modal -->
   {#if showAddSelector}
     <AddSelector 
-      on:close={handleAddSelectorClose}
-      on:select={handleAddSelectorSelect}
+      close={handleAddSelectorClose}
+      select={handleAddSelectorSelect}
     />
   {/if}
 
@@ -346,9 +351,9 @@
       selectedDate={dayjs()}
       existingLog={editingTimelog}
       isTimerStop={!!timerToStop}
-      on:save={handleSaveTimelog}
-      on:close={timerToStop ? handleCloseTimelogFormWithoutSave : handleCloseTimelogForm}
-      on:delete={handleDeleteTimelog}
+      save={handleSaveTimelog}
+      close={timerToStop ? handleCloseTimelogFormWithoutSave : handleCloseTimelogForm}
+      del={handleDeleteTimelog}
     />
   {/if}
 </div>

@@ -1,21 +1,23 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-  import type { Timer } from '../types';
-  import { timersStore } from '../stores/timers';
-  import { targetsStore } from '../stores/targets';
+  import type { Timer } from '../../types';
+  import { timersStore } from '../../stores/timers';
   import EmojiPicker from './EmojiPicker.svelte';
 
-  export let button: Timer | null = null;
+  let {
+    timer = null,
+    close
+  }: {
+    timer?: Timer | null;
+    close: () => void;
+  } = $props();
 
-  const dispatch = createEventDispatcher();
-
-  let name = button?.name || '';
-  let emoji = button?.emoji || '';
-  let color = button?.color || '#3B82F6';
-  let autoSubtractBreaks = button?.auto_subtract_breaks ?? false;
-  let archived = button?.archived ?? false;
-  let isLoading = false;
-  let errorMessage = '';
+  let name = $derived(timer?.name || '');
+  let emoji = $derived(timer?.emoji || '');
+  let color = $derived(timer?.color || '#3B82F6');
+  let autoSubtractBreaks = $derived(timer?.auto_subtract_breaks ?? false);
+  let archived = $derived(timer?.archived ?? false);
+  let isLoading = $state(false);
+  let errorMessage = $state('');
 
   const colorPresets = [
     '#3B82F6', '#EF4444', '#10B981', '#F59E0B', 
@@ -40,45 +42,41 @@
         archived,
       };
 
-      if (button) {
-        await timersStore.update(button.id, timerData);
+      if (timer) {
+        await timersStore.update(timer.id, timerData);
       } else {
         await timersStore.create(timerData);
       }
 
-      dispatch('close');
+      close();
     } catch (error: any) {
       errorMessage = error.message || 'Failed to save timer';
     } finally {
       isLoading = false;
     }
   }
-
-  function handleClose() {
-    dispatch('close');
-  }
 </script>
 
 <div 
   class="fixed inset-0 z-50 flex items-center justify-center p-4" 
-  on:click={handleClose}
-  on:keydown={(e) => e.key === 'Escape' && handleClose()}
+  onclick={close}
+  onkeydown={(e) => e.key === 'Escape' && close()}
   role="button"
   tabindex="0"
 >
   <div 
     class="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
-    on:click|stopPropagation
-    on:keydown|stopPropagation
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.stopPropagation()}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
   >
     <!-- Header -->
     <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-800">{button ? 'Edit' : 'Add'} Button</h2>
+      <h2 class="text-xl font-semibold text-gray-800">{timer ? 'Edit' : 'Add'} Timer</h2>
       <button
-        on:click={handleClose}
+        onclick={close}
         class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
         style="width: 28px; height: 28px;"
         aria-label="Close"
@@ -93,11 +91,11 @@
         </div>
       {/if}
 
-      <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+      <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-4">
 
         <!-- Emoji -->
         <div>
-          <EmojiPicker bind:value={emoji} />
+          <EmojiPicker value={emoji} />
         </div>
 
         <!-- Name -->
@@ -124,7 +122,7 @@
             {#each colorPresets as preset}
               <button
                 type="button"
-                on:click={() => color = preset}
+                onclick={() => color = preset}
                 class="w-10 h-10 rounded-lg border-2 transition-all"
                 class:border-gray-800={color === preset}
                 class:border-gray-300={color !== preset}
@@ -179,7 +177,7 @@
         <div class="flex gap-3 pt-4">
           <button
             type="button"
-            on:click={handleClose}
+            onclick={close}
             class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
           >
             Cancel
@@ -189,7 +187,7 @@
             disabled={isLoading}
             class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Saving...' : button ? 'Update' : 'Create'}
+            {isLoading ? 'Saving...' : timer ? 'Update' : 'Create'}
           </button>
         </div>
       </form>

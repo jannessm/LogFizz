@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import TargetForm from './TargetForm.svelte';
-import type { TargetWithSpecs, State, Timer } from '../types';
+import type { TargetWithSpecs, State, Timer } from '../../types';
 
 const { mockTimersStore, mockStatesStore, mockTargetsStore } = vi.hoisted(() => {
   const { writable } = require('svelte/store');

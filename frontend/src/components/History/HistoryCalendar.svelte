@@ -12,12 +12,14 @@
   // Get user's timezone
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  export let currentMonth: dayjs.Dayjs;
-  export let selectedDate: dayjs.Dayjs;
-  export let buttons: any[];
-  export let timeLogs: any[];
-  export let onSelectDate: (date: dayjs.Dayjs) => void;
-  export let countries: string[] = []; // Countries to check for holidays
+  let { currentMonth, selectedDate, buttons, timeLogs, onSelectDate, countries = [] }: {
+    currentMonth: dayjs.Dayjs;
+    selectedDate: dayjs.Dayjs;
+    buttons: any[];
+    timeLogs: any[];
+    onSelectDate: (date: dayjs.Dayjs) => void;
+    countries: string[];
+  } = $props();
 
   let calendarDays: dayjs.Dayjs[];
   let weekNumbers: number[];
@@ -58,14 +60,15 @@
     return weeks;
   }
 
-  $: if (currentMonth && selectedDate) {
-    calendarDays = getCalendarDays();
-    weekNumbers = getWeekNumbers();
-  }
-
-  $: if (timeLogs.length > 0) {
-    buttonColors = getButtonColorsMap();
-  }
+  $effect(() => {
+    if (currentMonth && selectedDate) {
+      calendarDays = getCalendarDays();
+      weekNumbers = getWeekNumbers();
+    }
+    if (timeLogs.length > 0) {
+      buttonColors = getButtonColorsMap();
+    }
+  });
 
   function getButtonColorsMap(): Map<string, string[]> {
     const colorMap = new Map<string, string[]>();
@@ -262,7 +265,7 @@
         {@const multiDayRange = getMultiDayRange(day)}
         {@const isHoliday = isPublicHoliday(day)}
         <button
-          on:click={() => onSelectDate(day)}
+          onclick={() => onSelectDate(day)}
           class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 py-1"
           class:text-gray-400={!currentMonthDay}
           class:text-gray-800={currentMonthDay && !selected}

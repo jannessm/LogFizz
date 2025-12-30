@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 
-type Session = {
+export type Session = {
   startTime: string;
   endTime?: string | null;
   [key: string]: any;

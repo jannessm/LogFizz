@@ -3,6 +3,7 @@
  */
 import type { TargetSpec } from '../../../lib/types/index.js';
 
+export { dayjs } from '../../../lib/utils/dayjs';
 export type {
   User,
   State,

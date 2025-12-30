@@ -2,12 +2,12 @@
   import { onMount } from 'svelte';
   import BottomNav from '../components/BottomNav.svelte';
   import DailyBalance from '../components/DailyBalance.svelte';
-  import TimelogForm from '../components/TimelogForm.svelte';
-  import HistoryCharts from '../components/History/HistoryCharts.svelte';
-  import HistoryCalendar from '../components/History/HistoryCalendar.svelte';
-  import HistoryLogs from '../components/History/HistoryLogs.svelte';
-  import MonthlyBalance from '../components/History/MonthlyBalance.svelte';
-  import ImportTimelogsModal from '../components/History/ImportTimelogsModal.svelte';
+  import TimelogForm from '../components/forms/TimelogForm.svelte';
+
+  import {
+    HistoryCharts, HistoryCalendar,
+    HistoryLogs, MonthlyBalance, ImportTimelogsModal
+  } from '../components/history';
   import { timeLogsStore } from '../stores/timelogs';
   import { timersStore, timers } from '../stores/timers';
   import { targetsStore, targets } from '../stores/targets';
@@ -105,7 +105,6 @@
 
     await Promise.all([
       timeLogsStore.load(),
-      timeLogsStore.loadActive(),
     ]);
 
     // Sync holidays for the initial month

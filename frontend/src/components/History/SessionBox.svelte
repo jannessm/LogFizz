@@ -1,14 +1,24 @@
 <script lang="ts">
-  import dayjs from 'dayjs';
+  import { dayjs } from '../../types';
   import { formatMinutesCompact as formatMinutes } from '../../../../lib/utils/timeFormat.js';
-  export let session: any;
-  export let button: any;
-  // timeline bounds provided by parent so the component can calculate its own position
-  export let timelineStart: any = null;
-  export let timelineEnd: any = null;
-  export let timelineHeight: number = 400;
-  export let onEdit: (s: any) => void = () => {};
-  export let indentLevel: number = 0;
+
+  let {
+    session,
+    button,
+    timelineStart = null,
+    timelineEnd = null,
+    timelineHeight = 400,
+    edit,
+    indentLevel = 0
+  }: {
+    session: any;
+    button: any;
+    timelineStart?: dayjs.Dayjs | null;
+    timelineEnd?: dayjs.Dayjs | null;
+    timelineHeight?: number;
+    edit?: (s: any) => void;
+    indentLevel?: number;
+  } = $props();
 
   // computed style for absolute positioning within the timeline
   let style = '';
@@ -41,22 +51,24 @@
     return `top: ${topPercent}%; height: ${finalHeightPercent}%; min-height: 60px; background-color: ${color}; margin-top: 12px; left: ${leftPx}px; right: ${rightPx}px;`;
   }
 
-  $: if (style || timelineStart || timelineEnd) style = computeStyle();
+  $effect(() => {
+    if (style || timelineStart || timelineEnd) style = computeStyle();
+  });
 
   function handleClick() {
-    onEdit(session);
+    edit(session);
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') onEdit(session);
+    if (e.key === 'Enter') edit(session);
   }
 </script>
 
 <div
   class="absolute left-2 right-2 rounded-lg p-2 cursor-pointer transition-all hover:shadow-lg group"
   style={style}
-  on:click={handleClick}
-  on:keydown={handleKeydown}
+  onclick={handleClick}
+  onkeydown={handleKeydown}
   role="button"
   tabindex="0"
 >
@@ -85,7 +97,7 @@
     <!-- Action buttons (visible on hover) -->
     <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
       <button
-        on:click|stopPropagation={() => onEdit(session)}
+        onclick={(e) => {e.stopPropagation(); return edit && edit(session);}}
         class="p-1 bg-white rounded icon-[si--edit-detailed-duotone] text-white"
         style="width: 20px; height: 20px;"
         aria-label="Edit entry"

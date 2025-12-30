@@ -12,8 +12,7 @@
   } from '../../lib/db';
   import { formatMinutes, formatHours, getBalanceColor } from '../../../../lib/utils/timeFormat.js';
 
-  export let year: number;
-  export let month: number; // 1-12
+  let { year, month }: { year: number; month: number; } = $props();
 
   let balances: Balance[] = [];
   let targetsWithoutStartingFrom: TargetWithSpecs[] = [];
@@ -80,9 +79,11 @@
   }
 
   // Load balances when year or month changes
-  $: if (year && month || refreshTick) {
-    loadBalances();
-  }
+  $effect(() => {
+    if (year && month || refreshTick) {
+      loadBalances();
+    }
+  });
 
   // Check if there are any running sessions in current workspace
   async function hasRunningSessions(): Promise<boolean> {

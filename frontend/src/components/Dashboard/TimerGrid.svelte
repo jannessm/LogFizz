@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { Timer } from '../types';
-  import { activeTimers } from '../stores/timers';
-  import TimerButton from './Dashboard/TimerButton.svelte';
+  import type { Timer } from '../../types';
+  import { activeTimers } from '../../stores/timers';
+  import TimerButton from './TimerButton.svelte';
 
   let {
     timers,

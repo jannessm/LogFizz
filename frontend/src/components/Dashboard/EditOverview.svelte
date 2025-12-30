@@ -1,30 +1,24 @@
 <script lang="ts">
-  import { timersStore } from '../stores/timers';
-  import { targetsStore } from '../stores/targets';
-  import { timeLogsStore } from '../stores/timelogs';
-  import type { Timer, TargetWithSpecs } from '../types';
+  import { timersStore } from '../../stores/timers';
+  import { targetsStore } from '../../stores/targets';
+  import { timeLogsStore } from '../../stores/timelogs';
+  import type { Timer, TargetWithSpecs } from '../../types';
   import dayjs from 'dayjs';
-  import { createEventDispatcher } from 'svelte';
-  import { getActiveTargetSpec, isTargetEnded, getWeekdayNames } from '../lib/utils/targetSpec';
+  import { getActiveTargetSpec, isTargetEnded, getWeekdayNames } from '../../lib/utils/targetSpec';
 
-  const dispatch = createEventDispatcher();
-
-  export let onEditButton: (button: Timer) => void;
-  export let onEditTarget: (target: TargetWithSpecs) => void;
-  export let onAddButton: () => void;
-  export let onAddTarget: () => void;
-
-  function handleClose() {
-    dispatch('close');
-  }
-
-  function handleShowAddTarget() {
-    onAddTarget();
-  }
-
-  function handleShowAddButton() {
-    onAddButton();
-  }
+  let {
+    editButton,
+    editTarget,
+    addButton,
+    addTarget,
+    close
+  }: {
+    editButton: (button: Timer) => void;
+    editTarget: (target: TargetWithSpecs) => void;
+    addButton: () => void;
+    addTarget: () => void;
+    close: () => void;
+  } = $props();
 
   async function handleDeleteButton(button: Timer) {
     if (confirm(`Delete button "${button.name}"?`)) {
@@ -100,31 +94,54 @@
   }
 
   // Get active targets (not ended)
-  $: activeTargets = $targetsStore.items.filter(t => !isTargetEnded(t));
-  
-  // Get ended/archived targets
-  $: archivedTargets = $targetsStore.items.filter(t => isTargetEnded(t));
+  let activeTargets: TargetWithSpecs[] = $state([]);
+  let archivedTargets: TargetWithSpecs[] = $state([]);
+  let activeButtons: Timer[] = $state([]);
+  let archivedButtons: Timer[] = $state([]);
 
-  // Get active buttons (not linked to ended targets)
-  $: activeButtons = $timersStore.items.filter(b => !b.archived);
 
-  // Get archived buttons (linked to ended targets)
-  $: archivedButtons = $timersStore.items.filter(b => b.archived);
+  $effect(() => {
+    const _archivedTargets: TargetWithSpecs[] = [];
+    const _activeTargets: TargetWithSpecs[] = [];
+
+    $targetsStore.items.forEach(t => {
+      if (isTargetEnded(t)) {
+        _archivedTargets.push(t);
+      } else {
+        _activeTargets.push(t);
+      }
+    });
+    activeTargets = _activeTargets;
+    archivedTargets = _archivedTargets;
+
+    const _archivedButtons: Timer[] = [];
+    const _activeButtons: Timer[] = [];
+    $timersStore.items.forEach(b => {
+      const linkedTarget = $targetsStore.items.find(t => t.id === b.target_id);
+      if (linkedTarget && isTargetEnded(linkedTarget)) {
+        _archivedButtons.push(b);
+      } else {
+        _activeButtons.push(b);
+      }
+    });
+    archivedButtons = _archivedButtons;
+    activeButtons = _activeButtons;
+  });
 </script>
 
 <!-- Modal Overlay -->
 <div 
   class="fixed inset-0 z-50 flex items-center justify-center p-4"
-  on:click={handleClose}
-  on:keydown={(e) => e.key === 'Escape' && handleClose()}
+  onclick={close}
+  onkeydown={(e) => e.key === 'Escape' && close()}
   role="button"
   tabindex="0"
 >
   <!-- Modal Content -->
   <div 
     class="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
-    on:click|stopPropagation
-    on:keydown|stopPropagation
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.stopPropagation()}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
@@ -134,7 +151,7 @@
       <h2 class="text-xl font-semibold text-gray-800">Edit Buttons & Targets</h2>
       <div class="flex gap-2">
         <button
-          on:click={handleClose}
+          onclick={close}
           class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
           style="width: 28px; height: 28px;"
           aria-label="Close"
@@ -152,7 +169,7 @@
               Targets
             </h3>
             <button
-                on:click={handleShowAddTarget}
+                onclick={addTarget}
                 class="icon-[si--add-circle-duotone] bg-blue-400 hover:bg-blue-600"
                 aria-label="Add"
                 style="width: 24px; height: 24px;"
@@ -170,13 +187,13 @@
                   <h4 class="font-medium text-gray-800">{target.name}</h4>
                   <div class="flex gap-1">
                     <button
-                      on:click={() => onEditTarget(target)}
+                      onclick={() => editTarget(target)}
                       class="p-1 text-blue-600 hover:text-blue-700 icon-[si--edit-detailed-duotone]"
                       style="width: 20px; height: 20px;"
                       aria-label="Edit Target"
                     ></button>
                     <button
-                      on:click={() => handleDeleteTarget(target)}
+                      onclick={() => handleDeleteTarget(target)}
                       class="p-1 text-red-600 hover:text-red-700 icon-[si--bin-duotone]"
                       style="width: 20px; height: 20px;"
                       aria-label="Delete Target"
@@ -216,7 +233,7 @@
               Buttons
             </h3>
             <button
-                on:click={handleShowAddButton}
+                onclick={addButton}
                 class="icon-[si--add-circle-duotone] bg-blue-400 hover:bg-blue-600"
                 aria-label="Add"
                 style="width: 24px; height: 24px;"
@@ -260,13 +277,13 @@
                   </div>
                   <div class="flex gap-1">
                     <button
-                      on:click={() => onEditButton(button)}
+                      onclick={() => editButton(button)}
                       class="p-1 text-blue-600 hover:text-blue-700 icon-[si--edit-detailed-duotone]"
                       style="width: 20px; height: 20px;"
                       aria-label="Edit Button"
                     ></button>
                     <button
-                      on:click={() => handleDeleteButton(button)}
+                      onclick={() => handleDeleteButton(button)}
                       class="p-1 text-red-600 hover:text-red-700 icon-[si--bin-duotone]"
                       style="width: 20px; height: 20px;"
                       aria-label="Delete Button"
@@ -298,13 +315,13 @@
                       <h4 class="font-medium text-gray-700">{target.name}</h4>
                       <div class="flex gap-1">
                         <button
-                          on:click={() => onEditTarget(target)}
+                          onclick={() => editTarget(target)}
                           class="p-1 text-blue-600 hover:text-blue-700 icon-[si--edit-detailed-duotone]"
                           style="width: 20px; height: 20px;"
                           aria-label="Edit Target"
                         ></button>
                         <button
-                          on:click={() => handleDeleteTarget(target)}
+                          onclick={() => handleDeleteTarget(target)}
                           class="p-1 text-red-600 hover:text-red-700 icon-[si--bin-duotone]"
                           style="width: 20px; height: 20px;"
                           aria-label="Delete Target"
@@ -366,13 +383,13 @@
                       </div>
                       <div class="flex gap-1">
                         <button
-                          on:click={() => onEditButton(button)}
+                          onclick={() => editButton(button)}
                           class="p-1 text-blue-600 hover:text-blue-700 icon-[si--edit-detailed-duotone]"
                           style="width: 20px; height: 20px;"
                           aria-label="Edit Button"
                         ></button>
                         <button
-                          on:click={() => handleDeleteButton(button)}
+                          onclick={() => handleDeleteButton(button)}
                           class="p-1 text-red-600 hover:text-red-700 icon-[si--bin-duotone]"
                           style="width: 20px; height: 20px;"
                           aria-label="Delete Button"

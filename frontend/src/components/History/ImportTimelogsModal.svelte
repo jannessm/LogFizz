@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-  import { timersStore } from '../../stores/timers';
-  import TimerForm from '../TimerForm.svelte';
+  import { timers } from '../../stores/timers';
+  import { TimerForm } from '../forms';
   import {
     parseCSV,
     autoDetectColumns,
@@ -17,7 +16,25 @@
     type DetectedProject,
   } from '../../../../lib/utils/csvImport.js';
 
-  const dispatch = createEventDispatcher();
+  let {
+    onimport,
+    close
+  }: {
+    onimport: (event: {
+      timerId: string;
+      timelogs: Array<{
+        start_timestamp: string;
+        end_timestamp: string;
+        notes?: string;
+        duration_minutes?: number;
+        timer_id?: string;
+      }>;
+      skippedCount: number;
+      errors: string[];
+      hasProjectMappings?: boolean;
+    }) => void;
+    close: () => void;
+  } = $props();
 
   // Constants
   const MAX_DISPLAYED_ERRORS = 5;
@@ -34,27 +51,21 @@
   let notesColumn: string = '';
   let projectColumn: string = '';
   let detectedProjects: DetectedProject[] = [];
-  let projectMappings: Map<string, { action: 'assign' | 'ignore' | 'create'; buttonId?: string }> = new Map();
-  let selectedButtonId: string = '';
+  let projectMappings: Map<string, { action: 'assign' | 'ignore' | 'create'; timerId?: string }> = new Map();
+  let selectedTimerId: string = '';
   let previewLogs: { start: string; end: string; isValid: boolean }[] = [];
   let errorMessage: string = '';
   let warningMessage: string = '';
   let validationErrors: string[] = [];
   let showErrorDetails = false;
-  let showButtonForm = false;
-  let currentProjectForButton: string | null = null;
+  let showTimerForm = false;
+  let currentProjectForTimer: string | null = null;
 
   function detectFileType(fileName: string): 'csv' | 'pdf' | null {
     const extension = fileName.toLowerCase().split('.').pop();
     if (extension === 'csv') return 'csv';
     if (extension === 'pdf') return 'pdf';
     return null;
-  }
-
-  $: buttons = $timersStore.items;
-
-  function handleClose() {
-    dispatch('close');
   }
 
   function handleFileSelect(event: Event) {
@@ -263,9 +274,11 @@
     });
   }
 
-  $: if (startTimeColumn || endTimeColumn || dateColumn) {
-    updatePreview();
-  }
+  $effect(() => {
+    if (startTimeColumn || endTimeColumn || dateColumn) {
+      updatePreview();
+    }
+  });
 
   function goToProjectMapping() {
     errorMessage = '';
@@ -292,7 +305,7 @@
     if (projectColumn) {
       detectedProjects = detectProjectsInCSV(parsedData, headers, projectColumn);
       
-      // Initialize mappings with default values (all set to assign to first button or ignore)
+      // Initialize mappings with default values (all set to assign to first timer or ignore)
       projectMappings = new Map();
       detectedProjects.forEach(project => {
         projectMappings.set(project.name, { action: 'assign' });
@@ -300,9 +313,9 @@
       
       step = 'project-mapping';
     } else {
-      // No project column, require button selection
-      if (!selectedButtonId) {
-        errorMessage = '❌ No button selected.\n\nPlease select which button/category to assign these timelogs to.';
+      // No project column, require timer selection
+      if (!selectedTimerId) {
+        errorMessage = '❌ No timer selected.\n\nPlease select which timer/category to assign these timelogs to.';
         return;
       }
       step = 'confirm';
@@ -318,15 +331,15 @@
     if (projectColumn && detectedProjects.length > 0) {
       const unmappedProjects = detectedProjects.filter(project => {
         const mapping = projectMappings.get(project.name);
-        return mapping?.action === 'assign' && !mapping.buttonId;
+        return mapping?.action === 'assign' && !mapping.timerId;
       });
 
       if (unmappedProjects.length > 0) {
-        errorMessage = `❌ Please assign buttons to all projects or mark them as ignore.\n\nUnmapped projects: ${unmappedProjects.map(p => p.name).join(', ')}`;
+        errorMessage = `❌ Please assign timers to all projects or mark them as ignore.\n\nUnmapped projects: ${unmappedProjects.map(p => p.name).join(', ')}`;
         return;
       }
-    } else if (!selectedButtonId) {
-      errorMessage = '❌ No button selected.\n\nPlease select which button/category to assign these timelogs to.';
+    } else if (!selectedTimerId) {
+      errorMessage = '❌ No timer selected.\n\nPlease select which timer/category to assign these timelogs to.';
       return;
     }
 
@@ -345,45 +358,45 @@
     const mapping = projectMappings.get(projectName) || { action: 'assign' };
     
     if (action === 'create') {
-      currentProjectForButton = projectName;
-      showButtonForm = true;
+      currentProjectForTimer = projectName;
+      showTimerForm = true;
     } else {
       mapping.action = action;
       if (action === 'ignore') {
-        mapping.buttonId = undefined;
+        mapping.timerId = undefined;
       }
       projectMappings.set(projectName, mapping);
       projectMappings = projectMappings; // Trigger reactivity
     }
   }
 
-  function handleProjectButtonSelect(projectName: string, buttonId: string) {
+  function handleProjectTimerSelect(projectName: string, timerId: string) {
     const mapping = projectMappings.get(projectName) || { action: 'assign' };
-    mapping.buttonId = buttonId;
+    mapping.timerId = timerId;
     projectMappings.set(projectName, mapping);
     projectMappings = projectMappings; // Trigger reactivity
   }
 
-  function handleButtonFormClose() {
+  function handleTimerFormClose() {
     // After button is created (or form closed), refresh and auto-select the newest button for the project
-    if (currentProjectForButton) {
+    if (currentProjectForTimer) {
       // Get the most recently created button (last in the list after sorting)
-      const sortedButtons = [...$timersStore.items].sort((a, b) => 
+      const sortedTimers = [...$timers].sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       
-      if (sortedButtons.length > 0) {
-        const newButton = sortedButtons[0];
-        const mapping = projectMappings.get(currentProjectForButton) || { action: 'assign' };
+      if (sortedTimers.length > 0) {
+        const newTimer = sortedTimers[0];
+        const mapping = projectMappings.get(currentProjectForTimer) || { action: 'assign' };
         mapping.action = 'assign';
-        mapping.buttonId = newButton.id;
-        projectMappings.set(currentProjectForButton, mapping);
+        mapping.timerId = newTimer.id;
+        projectMappings.set(currentProjectForTimer, mapping);
         projectMappings = projectMappings; // Trigger reactivity
       }
     }
     
-    showButtonForm = false;
-    currentProjectForButton = null;
+    showTimerForm = false;
+    currentProjectForTimer = null;
   }
 
   async function handleImport() {
@@ -424,9 +437,9 @@
       // If we have project mappings, process and dispatch with mappings
       if (projectColumn && detectedProjects.length > 0) {
         const projectIndex = headers.indexOf(projectColumn);
-        
-        // Build timelogs with their button assignments based on project
-        const timelogsWithButtons: Array<typeof result.valid[0] & { timer_id: string }> = [];
+
+        // Build timelogs with their timer assignments based on project
+        const timelogsWithTimers: Array<typeof result.valid[0] & { timer_id: string }> = [];
         let ignoredCount = 0;
 
         result.valid.forEach((timelog, index) => {
@@ -439,31 +452,31 @@
             return;
           }
 
-          const buttonId = mapping?.buttonId;
-          if (!buttonId) return; // Should not happen due to validation
+          const timerId = mapping?.timerId;
+          if (!timerId) return; // Should not happen due to validation
 
-          timelogsWithButtons.push({
+          timelogsWithTimers.push({
             ...timelog,
-            timer_id: buttonId,
+            timer_id: timerId,
           });
         });
 
         // Show warning if some rows were skipped or ignored
         const totalSkipped = result.errors.length + ignoredCount;
         if (totalSkipped > 0) {
-          warningMessage = `⚠️ ${totalSkipped} row${totalSkipped !== 1 ? 's' : ''} will be skipped (${result.errors.length} errors, ${ignoredCount} ignored).\n\nImporting ${timelogsWithButtons.length} valid timelog${timelogsWithButtons.length !== 1 ? 's' : ''}.`;
+          warningMessage = `⚠️ ${totalSkipped} row${totalSkipped !== 1 ? 's' : ''} will be skipped (${result.errors.length} errors, ${ignoredCount} ignored).\n\nImporting ${timelogsWithTimers.length} valid timelog${timelogsWithTimers.length !== 1 ? 's' : ''}.`;
         }
 
-        // Dispatch single import event with timelogs that already have timer_id
-        dispatch('import', {
-          buttonId: '', // Not used - timer_id is on each timelog
-          timelogs: timelogsWithButtons,
+        // Dispatch single import event with timelogs that already have timerId
+        onimport({
+          timerId: '',
+          timelogs: timelogsWithTimers,
           skippedCount: totalSkipped,
           errors: result.errors,
           hasProjectMappings: true,
         });
 
-        handleClose();
+        close();
       } else {
         // No project mapping - use single button
         // Show warning if some rows were skipped
@@ -471,8 +484,8 @@
           warningMessage = `⚠️ ${result.errors.length} row${result.errors.length !== 1 ? 's' : ''} will be skipped due to errors.\n\nImporting ${result.valid.length} valid timelog${result.valid.length !== 1 ? 's' : ''}.`;
         }
 
-        dispatch('import', {
-          buttonId: selectedButtonId,
+        onimport({
+          timerId: selectedTimerId,
           timelogs: result.valid,
           skippedCount: parsedData.length - result.valid.length,
           errors: result.errors,
@@ -517,16 +530,16 @@
 <!-- Modal Overlay -->
 <div 
   class="import-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
-  on:click={handleClose}
-  on:keydown={(e) => e.key === 'Escape' && handleClose()}
+  onclick={close}
+  onkeydown={(e) => e.key === 'Escape' && close()}
   role="button"
   tabindex="0"
 >
   <!-- Modal Content -->
   <div 
     class="bg-white rounded-lg shadow-2xl w-full max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col"
-    on:click|stopPropagation
-    on:keydown|stopPropagation
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.stopPropagation()}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
@@ -537,7 +550,7 @@
         Import Timelogs{#if fileType} from {fileType.toUpperCase()}{/if}
       </h2>
       <button
-        on:click={handleClose}
+        onclick={close}
         class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
         style="width: 28px; height: 28px;"
         aria-label="Close"
@@ -601,10 +614,10 @@
         <!-- File Upload Step -->
         <div
           class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
-          on:drop={handleDrop}
-          on:dragover={handleDragOver}
-          on:click={() => fileInput.click()}
-          on:keydown={(e) => e.key === 'Enter' && fileInput.click()}
+          ondrop={handleDrop}
+          ondragover={handleDragOver}
+          onclick={() => fileInput.click()}
+          onkeydown={(e) => e.key === 'Enter' && fileInput.click()}
           role="button"
           tabindex="0"
         >
@@ -612,7 +625,7 @@
             bind:this={fileInput}
             type="file"
             accept=".csv,text/csv,.pdf,application/pdf"
-            on:change={handleFileSelect}
+            onchange={handleFileSelect}
             class="hidden"
           />
           <span class="icon-[si--file-upload-duotone] text-gray-400 mx-auto mb-4" style="width: 48px; height: 48px;"></span>
@@ -640,13 +653,13 @@
 
         <div class="mt-6 flex justify-end gap-3">
           <button
-            on:click={handleClose}
+            onclick={close}
             class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
-            on:click={parseFile}
+            onclick={parseFile}
             disabled={!file}
             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
@@ -736,30 +749,30 @@
               bind:value={projectColumn}
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="">None (assign all to one button)</option>
+              <option value="">None (assign all to one timer)</option>
               {#each headers as header}
                 <option value={header}>{header}</option>
               {/each}
             </select>
             <p class="text-xs text-gray-500 mt-1">
-              Select if your CSV has different projects to map to different buttons
+              Select if your CSV has different projects to map to different timers
             </p>
           </div>
 
           {#if !projectColumn}
             <div>
-              <label for="button-select" class="block text-sm font-medium text-gray-700 mb-1">
-                Assign to Button *
+              <label for="timer-select" class="block text-sm font-medium text-gray-700 mb-1">
+                Assign to Timer *
               </label>
               <select
-                id="button-select"
-                bind:value={selectedButtonId}
+                id="timer-select"
+                bind:value={selectedTimerId}
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">Select a button...</option>
-                {#each buttons as button}
-                  <option value={button.id}>
-                    {button.emoji ? button.emoji + ' ' : ''}{button.name}
+                <option value="">Select a timer...</option>
+                {#each $timers as timer}
+                  <option value={timer.id}>
+                    {timer.emoji ? timer.emoji + ' ' : ''}{timer.name}
                   </option>
                 {/each}
               </select>
@@ -813,14 +826,14 @@
 
           <div class="mt-6 flex justify-end gap-3">
             <button
-              on:click={handleClose}
+              onclick={close}
               class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
             <button
-              on:click={goToProjectMapping}
-              disabled={!startTimeColumn || !endTimeColumn || (!projectColumn && !selectedButtonId)}
+              onclick={goToProjectMapping}
+              disabled={!startTimeColumn || !endTimeColumn || (!projectColumn && !selectedTimerId)}
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               Continue
@@ -832,7 +845,7 @@
         <!-- Project Mapping Step -->
         <div class="space-y-4">
           <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <h3 class="text-sm font-medium text-blue-800 mb-1">Map Projects to Buttons</h3>
+            <h3 class="text-sm font-medium text-blue-800 mb-1">Map Projects to Timers</h3>
             <p class="text-sm text-blue-700">
               Found {detectedProjects.length} project{detectedProjects.length !== 1 ? 's' : ''} in your CSV.
               Choose how to handle each one:
@@ -859,11 +872,11 @@
                         name="action-{project.name}"
                         value="assign"
                         checked={mapping.action === 'assign'}
-                        on:change={() => handleProjectActionChange(project.name, 'assign')}
+                        onchange={() => handleProjectActionChange(project.name, 'assign')}
                         class="sr-only peer"
                       />
                       <div class="px-3 py-2 border border-gray-300 rounded-lg cursor-pointer text-center text-sm peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 hover:bg-gray-50">
-                        Assign to Button
+                        Assign to Timer
                       </div>
                     </label>
                     <label class="flex-1">
@@ -872,11 +885,11 @@
                         name="action-{project.name}"
                         value="create"
                         checked={mapping.action === 'create'}
-                        on:change={() => handleProjectActionChange(project.name, 'create')}
+                        onchange={() => handleProjectActionChange(project.name, 'create')}
                         class="sr-only peer"
                       />
                       <div class="px-3 py-2 border border-gray-300 rounded-lg cursor-pointer text-center text-sm peer-checked:border-green-500 peer-checked:bg-green-50 peer-checked:text-green-700 hover:bg-gray-50">
-                        Create Button
+                        Create Timer
                       </div>
                     </label>
                     <label class="flex-1">
@@ -885,7 +898,7 @@
                         name="action-{project.name}"
                         value="ignore"
                         checked={mapping.action === 'ignore'}
-                        on:change={() => handleProjectActionChange(project.name, 'ignore')}
+                        onchange={() => handleProjectActionChange(project.name, 'ignore')}
                         class="sr-only peer"
                       />
                       <div class="px-3 py-2 border border-gray-300 rounded-lg cursor-pointer text-center text-sm peer-checked:border-gray-500 peer-checked:bg-gray-100 peer-checked:text-gray-700 hover:bg-gray-50">
@@ -896,14 +909,14 @@
 
                   {#if mapping.action === 'assign'}
                     <select
-                      bind:value={mapping.buttonId}
-                      on:change={(e) => handleProjectButtonSelect(project.name, e.currentTarget.value)}
+                      bind:value={mapping.timerId}
+                      onchange={(e) => handleProjectTimerSelect(project.name, e.currentTarget.value)}
                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                     >
-                      <option value="">Select a button...</option>
-                      {#each buttons as button}
-                        <option value={button.id}>
-                          {button.emoji ? button.emoji + ' ' : ''}{button.name}
+                      <option value="">Select a timer...</option>
+                      {#each $timers as timer}
+                        <option value={timer.id}>
+                          {timer.emoji ? timer.emoji + ' ' : ''}{timer.name}
                         </option>
                       {/each}
                     </select>
@@ -927,13 +940,13 @@
 
           <div class="mt-6 flex justify-end gap-3">
             <button
-              on:click={goBackToMapping}
+              onclick={goBackToMapping}
               class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Back
             </button>
             <button
-              on:click={goToConfirm}
+              onclick={goToConfirm}
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Continue
@@ -962,8 +975,8 @@
                 <strong>{getValidLogCount()}</strong> timelogs will be imported and assigned to:
               </p>
               <p class="text-blue-800 font-medium mt-1">
-                {#each buttons.filter(b => b.id === selectedButtonId) as button}
-                  {button.emoji ? button.emoji + ' ' : ''}{button.name}
+                {#each $timers.filter(b => b.id === selectedTimerId) as timer}
+                  {timer.emoji ? timer.emoji + ' ' : ''}{timer.name}
                 {/each}
               </p>
             {/if}
@@ -998,11 +1011,11 @@
                 {#each detectedProjects as project}
                   {@const mapping = projectMappings.get(project.name)}
                   {#if mapping?.action !== 'ignore'}
-                    {@const button = buttons.find(b => b.id === mapping?.buttonId)}
+                    {@const timer = $timers.find(b => b.id === mapping?.timerId)}
                     <li class="flex items-center justify-between py-1 border-b border-gray-200 last:border-0">
                       <span class="font-medium">{project.name}</span>
                       <span class="text-gray-500">
-                        → {button?.emoji ? button.emoji + ' ' : ''}{button?.name || 'Unknown'}
+                        → {timer?.emoji ? timer.emoji + ' ' : ''}{timer?.name || 'Unknown'}
                         <span class="text-xs ml-1">({project.count})</span>
                       </span>
                     </li>
@@ -1042,13 +1055,13 @@
 
           <div class="mt-6 flex justify-end gap-3">
             <button
-              on:click={projectColumn ? goBackToProjectMapping : goBackToMapping}
+              onclick={projectColumn ? goBackToProjectMapping : goBackToMapping}
               class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Back
             </button>
             <button
-              on:click={handleImport}
+              onclick={handleImport}
               disabled={getValidLogCount() === 0}
               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
@@ -1061,8 +1074,8 @@
   </div>
 </div>
 
-{#if showButtonForm}
-  <TimerForm on:close={handleButtonFormClose} />
+{#if showTimerForm}
+  <TimerForm close={handleTimerFormClose} />
 {/if}
 
 <style>

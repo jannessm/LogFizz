@@ -1,9 +1,8 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
   import dayjs from 'dayjs';
   import utc from 'dayjs/plugin/utc';
   import timezone from 'dayjs/plugin/timezone';
-  import { timersStore } from '../stores/timers';
+  import { timers } from '../../stores/timers';
 
   dayjs.extend(utc);
   dayjs.extend(timezone);
@@ -11,47 +10,60 @@
   // Get user's timezone
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  export let selectedDate: dayjs.Dayjs;
-  export let existingLog: any = null;
-  export let isTimerStop: boolean = false;
+  let {
+    selectedDate,
+    existingLog = null,
+    isTimerStop = false,
+    save,
+    close,
+    del
+  }: {
+    selectedDate: dayjs.Dayjs;
+    existingLog: any;
+    isTimerStop: boolean;
+    save: (data: any) => void;
+    close: () => void;
+    del: (data: any) => void;
+  } = $props();
 
-  const dispatch = createEventDispatcher();
-
-  let buttonId = existingLog?.timer_id || '';
-  let type = existingLog?.log?.type || 'normal';
+  let buttonId = $derived(existingLog?.timer_id || '');
+  let type = $derived(existingLog?.log?.type || 'normal');
   
   // When editing, convert from stored timezone to user's local timezone
-  let startDate = existingLog?.startTime 
+  let startDate = $derived(existingLog?.startTime 
     ? dayjs.utc(existingLog.startTime).tz(userTimezone).format('YYYY-MM-DD') 
-    : selectedDate.format('YYYY-MM-DD');
-  let startTime = existingLog?.startTime 
+    : selectedDate.format('YYYY-MM-DD'));
+  let startTime = $derived(existingLog?.startTime 
     ? dayjs.utc(existingLog.startTime).tz(userTimezone).format('HH:mm') 
-    : '';
-  
+    : '');
+
   // When stopping a timer, pre-populate end time with current time
   const now = dayjs();
-  let endDate = existingLog?.endTime 
+  let endDate = $derived(existingLog?.endTime 
     ? dayjs.utc(existingLog.endTime).tz(userTimezone).format('YYYY-MM-DD') 
-    : (isTimerStop ? now.format('YYYY-MM-DD') : selectedDate.format('YYYY-MM-DD'));
-  let endTime = existingLog?.endTime 
+    : (isTimerStop ? now.format('YYYY-MM-DD') : selectedDate.format('YYYY-MM-DD')));
+  let endTime = $derived(existingLog?.endTime 
     ? dayjs.utc(existingLog.endTime).tz(userTimezone).format('HH:mm') 
-    : (isTimerStop ? now.format('HH:mm') : '');
-  
-  let notes = existingLog?.log?.notes || '';
-  let isRunning = !existingLog?.endTime && !isTimerStop; // When stopping timer, it should not be running
-  let errorMessage: string = '';
-  let showDeleteConfirm = false;
+    : (isTimerStop ? now.format('HH:mm') : ''));
+
+  let notes = $derived(existingLog?.log?.notes || '');
+  let isRunning = $derived(!existingLog?.endTime && !isTimerStop); // When stopping timer, it should not be running
+  let errorMessage: string = $state('');
+  let showDeleteConfirm = $state(false);
 
   // When type changes, reset date range validation
-  $: if (type !== 'normal') {
-    // For non-normal types, ensure endDate is set to at least startDate
-    if (!endDate || endDate < startDate) {
-      endDate = startDate;
+  $effect(() => {
+    if (type !== 'normal') {
+      // For non-normal types, ensure endDate is set to at least startDate
+      if (!endDate || endDate < startDate) {
+        endDate = startDate;
+      }
     }
-  }
+  });
 
-  $: buttons = $timersStore.items;
-  $: hasDateError = errorMessage === 'End time must be after start time';
+  function hasDateError() {
+    return errorMessage === 'End time must be after start time';
+  }
 
   const DAY_START_TIME = '00:00:00';
   const DAY_END_TIME = '23:59:59';
@@ -81,7 +93,7 @@
       const startTimestamp = `${startDate}T${DAY_START_TIME}`;
       const endTimestamp = `${endDate}T${DAY_END_TIME}`;
       
-      dispatch('save', {
+      save({
         timer_id: buttonId,
         type,
         startTimestamp,
@@ -118,7 +130,7 @@
       endTimestamp = null;
     }
 
-    dispatch('save', {
+    save({
       timer_id: buttonId,
       type,
       startTimestamp,
@@ -128,16 +140,12 @@
     });
   }
 
-  function handleClose() {
-    dispatch('close');
-  }
-
   function handleDeleteClick() {
     showDeleteConfirm = true;
   }
 
   function handleDeleteConfirm() {
-    dispatch('delete', { session: existingLog });
+    del({ session: existingLog });
     showDeleteConfirm = false;
   }
 
@@ -149,16 +157,16 @@
 <!-- Modal Overlay -->
 <div 
   class="fixed inset-0 z-50 flex items-center justify-center p-4"
-  on:click={handleClose}
-  on:keydown={(e) => e.key === 'Escape' && handleClose()}
+  onclick={close}
+  onkeydown={(e) => e.key === 'Escape' && close()}
   role="button"
   tabindex="0"
 >
   <!-- Modal Content -->
   <div 
     class="bg-white rounded-lg shadow-2xl w-full max-w-[500px] max-h-[90vh] overflow-hidden flex flex-col"
-    on:click|stopPropagation
-    on:keydown|stopPropagation
+    onclick={(e) => e.stopPropagation()}
+    onkeydown={(e) => e.stopPropagation()}
     role="dialog"
     aria-modal="true"
     tabindex="-1"
@@ -174,7 +182,7 @@
           {/if}
         </h2>
         <button
-          on:click={handleClose}
+          onclick={close}
           class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
           style="width: 28px; height: 28px;"
           aria-label="Close"
@@ -188,22 +196,22 @@
     </div>
 
     <!-- Scrollable Content -->
-    <form on:submit|preventDefault={handleSubmit} class="overflow-y-auto flex-1 p-6 space-y-4">
-      <!-- Button Selection -->
+    <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="overflow-y-auto flex-1 p-6 space-y-4">
+      <!-- Timer Selection -->
       <div>
-        <label for="button" class="block text-sm font-medium text-gray-700 mb-1">
-          Button *
+        <label for="timer" class="block text-sm font-medium text-gray-700 mb-1">
+          Timer *
         </label>
         <select
-          id="button"
+          id="timer"
           bind:value={buttonId}
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           required
         >
-          <option value="">Select a button</option>
-          {#each buttons as button}
-            <option value={button.id}>
-              {button.emoji ? button.emoji + ' ' : ''}{button.name}
+          <option value="">Select a timer</option>
+          {#each $timers as timer}
+            <option value={timer.id}>
+              {timer.emoji ? timer.emoji + ' ' : ''}{timer.name}
             </option>
           {/each}
         </select>
@@ -236,7 +244,7 @@
               id="running"
               type="checkbox"
               bind:checked={isRunning}
-              on:change={() => {
+              onchange={() => {
                 if (isRunning) {
                   endDate = '';
                   endTime = '';
@@ -368,7 +376,7 @@
         <div class="flex gap-3">
           <button
             type="button"
-            on:click={handleClose}
+            onclick={close}
             class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             {isTimerStop ? 'Keep Running' : 'Cancel'}
@@ -385,7 +393,7 @@
         {#if existingLog}
           <button
             type="button"
-            on:click={handleDeleteClick}
+            onclick={handleDeleteClick}
             class="w-full px-4 py-2 border-2 border-red-300 text-red-600 rounded-lg hover:bg-red-50 hover:border-red-400 transition-colors flex items-center justify-center gap-2"
           >
             <span class="icon-[si--bin-duotone]" style="width: 20px; height: 20px;"></span>
@@ -401,16 +409,16 @@
 {#if showDeleteConfirm}
   <div 
     class="fixed inset-0 z-[60] flex items-center justify-center p-4"
-    on:click={handleDeleteCancel}
-    on:keydown={(e) => e.key === 'Escape' && handleDeleteCancel()}
+    onclick={handleDeleteCancel}
+    onkeydown={(e) => e.key === 'Escape' && handleDeleteCancel()}
     role="button"
     tabindex="0"
   >
     <!-- Modal Content -->
     <div 
       class="bg-white rounded-lg shadow-2xl w-full max-w-[400px] overflow-hidden flex flex-col"
-      on:click|stopPropagation
-      on:keydown|stopPropagation
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
       role="dialog"
       aria-modal="true"
       tabindex="-1"
@@ -419,7 +427,7 @@
       <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
         <h3 class="text-xl font-semibold text-gray-800">Delete Time Entry?</h3>
         <button
-          on:click={handleDeleteCancel}
+          onclick={handleDeleteCancel}
           class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
           style="width: 28px; height: 28px;"
           aria-label="Close"
@@ -431,13 +439,13 @@
         <p class="text-gray-600">This action cannot be undone. Are you sure you want to delete this time entry?</p>
         <div class="flex gap-3">
           <button
-            on:click={handleDeleteCancel}
+            onclick={handleDeleteCancel}
             class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
-            on:click={handleDeleteConfirm}
+            onclick={handleDeleteConfirm}
             class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Delete
