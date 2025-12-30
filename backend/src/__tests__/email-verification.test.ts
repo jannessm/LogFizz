@@ -8,9 +8,20 @@ import crypto from 'crypto';
 // Mock email service
 class MockEmailService extends EmailService {
   public lastWelcomeEmail: { email: string; token: string; name: string } | null = null;
+  public lastSecurityNoticeEmail: { email: string; token: string; name: string; attemptedBy: string } | null = null;
 
   async sendWelcomeEmail(email: string, token: string, name: string): Promise<void> {
     this.lastWelcomeEmail = { email, token, name };
+    // Don't actually send email in tests
+  }
+
+  async sendVerificationWithSecurityNotice(
+    email: string, 
+    token: string, 
+    name: string, 
+    attemptedByEmail: string
+  ): Promise<void> {
+    this.lastSecurityNoticeEmail = { email, token, name, attemptedBy: attemptedByEmail };
     // Don't actually send email in tests
   }
 }
@@ -42,7 +53,9 @@ describe('Email Verification', () => {
   beforeEach(async () => {
     // Clean up test users
     await userRepo.delete({ email: 'verify@example.com' });
+    await userRepo.delete({ email: 'verify2@example.com' });
     mockEmailService.lastWelcomeEmail = null;
+    mockEmailService.lastSecurityNoticeEmail = null;
   });
 
   describe('User Registration', () => {
@@ -84,7 +97,7 @@ describe('Email Verification', () => {
   });
 
   describe('Email Verification', () => {
-    it('should verify email with valid token', async () => {
+    it('should verify email with valid token for authenticated user', async () => {
       // Register user
       const user = await authService.register(
         'verify@example.com',
@@ -95,8 +108,8 @@ describe('Email Verification', () => {
       const token = user.email_verification_token!;
       expect(token).toBeDefined();
 
-      // Verify email
-      const success = await authService.verifyEmail(token);
+      // Verify email with correct user
+      const success = await authService.verifyEmail(token, user.id);
       expect(success).toBe(true);
 
       // Check user is now verified
@@ -110,7 +123,7 @@ describe('Email Verification', () => {
 
     it('should fail with invalid token', async () => {
       // Register user
-      await authService.register(
+      const user = await authService.register(
         'verify@example.com',
         'password123',
         'Test User'
@@ -118,14 +131,14 @@ describe('Email Verification', () => {
 
       // Try with wrong token
       const invalidToken = crypto.randomBytes(32).toString('hex');
-      const success = await authService.verifyEmail(invalidToken);
+      const success = await authService.verifyEmail(invalidToken, user.id);
       expect(success).toBe(false);
 
       // User should still be unverified
-      const user = await userRepo.findOne({ 
+      const unverifiedUser = await userRepo.findOne({ 
         where: { email: 'verify@example.com' } 
       });
-      expect(user.email_verified_at).toBeNull();
+      expect(unverifiedUser.email_verified_at).toBeNull();
     });
 
     it('should fail with expired token', async () => {
@@ -141,7 +154,7 @@ describe('Email Verification', () => {
       await userRepo.save(user);
 
       const token = user.email_verification_token!;
-      const success = await authService.verifyEmail(token);
+      const success = await authService.verifyEmail(token, user.id);
       expect(success).toBe(false);
 
       // User should still be unverified
@@ -151,25 +164,53 @@ describe('Email Verification', () => {
       expect(unverifiedUser.email_verified_at).toBeNull();
     });
 
-    it('should work without being logged in', async () => {
-      // Register user (simulating no session)
-      const user = await authService.register(
+    it('should fail when token belongs to different user', async () => {
+      // Register first user
+      const user1 = await authService.register(
         'verify@example.com',
         'password123',
-        'Test User'
+        'Test User 1'
       );
 
-      const token = user.email_verification_token!;
+      // Register second user
+      const user2 = await authService.register(
+        'verify2@example.com',
+        'password456',
+        'Test User 2'
+      );
 
-      // Verify email without any authentication context
-      const success = await authService.verifyEmail(token);
-      expect(success).toBe(true);
+      const token = user1.email_verification_token!;
+      const originalToken = token;
 
-      // Verification should succeed
-      const verifiedUser = await userRepo.findOne({ 
+      // Clear the mock to track new emails
+      mockEmailService.lastSecurityNoticeEmail = null;
+
+      // Try to verify user1's token while logged in as user2
+      const result = await authService.verifyEmail(token, user2.id);
+      
+      // Should return wrong_user with masked email
+      expect(result).toHaveProperty('error', 'wrong_user');
+      
+      // User1 should still be unverified
+      const unverifiedUser1 = await userRepo.findOne({ 
         where: { email: 'verify@example.com' } 
       });
-      expect(verifiedUser.email_verified_at).toBeDefined();
+      expect(unverifiedUser1.email_verified_at).toBeNull();
+      
+      // A new verification token should have been generated for user1
+      expect(unverifiedUser1.email_verification_token).not.toBeNull();
+      expect(unverifiedUser1.email_verification_token).not.toBe(originalToken);
+      
+      // Security notice email should have been sent
+      const securityEmail = mockEmailService.lastSecurityNoticeEmail as { email: string; token: string; name: string; attemptedBy: string } | null;
+      expect(securityEmail).toBeDefined();
+      expect(securityEmail!.email).toBe('verify@example.com');
+      expect(securityEmail!.name).toBe('Test User 1');
+      expect(securityEmail!.attemptedBy).toBe('verify2@example.com');
+      expect(securityEmail!.token).toBe(unverifiedUser1.email_verification_token);
+      
+      // Clean up user2
+      await userRepo.delete({ email: 'verify2@example.com' });
     });
   });
 
@@ -224,7 +265,7 @@ describe('Email Verification', () => {
         'Test User'
       );
 
-      await authService.verifyEmail(user.email_verification_token!);
+      await authService.verifyEmail(user.email_verification_token!, user.id);
       
       // Clear mock
       mockEmailService.lastWelcomeEmail = null;
@@ -254,8 +295,8 @@ describe('Email Verification', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
       expect(mockEmailService.lastWelcomeEmail).toBeDefined();
 
-      // Step 3: User clicks verification link (no login required)
-      const verificationSuccess = await authService.verifyEmail(verificationToken);
+      // Step 3: User clicks verification link (must be logged in as the same user)
+      const verificationSuccess = await authService.verifyEmail(verificationToken, user.id);
       expect(verificationSuccess).toBe(true);
 
       // Step 4: User is now verified and can login

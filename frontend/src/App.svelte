@@ -14,6 +14,7 @@
   import { currentPath, navigate } from './lib/navigation';
   import { loadData } from './services/data';
     import { getDB } from './lib/db';
+    import { snackbar } from './stores/snackbar';
 
   let isLoading = true;
 
@@ -47,6 +48,14 @@
 
     if (!isLoading && auth.isAuthenticated) {
       loadData(true); // ensure data is loaded when authenticated
+    }
+
+    // Redirect to dashboard if authenticated and on a public route
+    if (!isLoading && auth.isAuthenticated && isPublicRoute(path)) {
+      if (path === '/reset-password') {
+        snackbar.info('To reset your password, logout first.', 6000);
+      }
+      navigate('/', { replace: true });
     }
   }
 </script>

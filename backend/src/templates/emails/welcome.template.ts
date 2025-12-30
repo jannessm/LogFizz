@@ -4,19 +4,30 @@ export interface WelcomeEmailData {
   userName: string;
   verificationUrl: string;
   appUrl: string;
+  securityNotice?: string;
 }
 
 /**
  * Generates the welcome email HTML content
  */
 export function generateWelcomeEmailContent(data: WelcomeEmailData): string {
-  const { userName, verificationUrl } = data;
+  const { userName, verificationUrl, securityNotice } = data;
   
   return `
     <h1>Welcome to TapShift!</h1>
     <p>Hi ${userName},</p>
     <p>Thank you for signing up! We're excited to have you on board.</p>
     <p>TapShift helps you track your time efficiently with customizable buttons, automatic logging, and insightful statistics.</p>
+    
+    ${securityNotice ? `
+    <div class="divider"></div>
+    <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; margin: 16px 0;">
+      <p style="margin: 0; color: #92400e;">
+        <strong>🔒 Security Notice:</strong><br>
+        ${securityNotice}
+      </p>
+    </div>
+    ` : ''}
     
     <div class="divider"></div>
     
@@ -52,6 +63,8 @@ export function generateWelcomeEmail(data: WelcomeEmailData): { html: string; te
     appUrl: data.appUrl,
   };
   
+  const securityNoticeText = data.securityNotice ? `\n\n🔒 SECURITY NOTICE:\n${data.securityNotice}\n` : '';
+  
   return {
     html: generateEmailTemplate(templateData),
     text: generatePlainTextEmail({
@@ -62,7 +75,7 @@ Hi ${data.userName},
 Thank you for signing up! We're excited to have you on board.
 
 Clock App helps you track your time efficiently with customizable buttons, automatic logging, and insightful statistics.
-
+${securityNoticeText}
 Please verify your email address by clicking the link below:
 ${data.verificationUrl}
 

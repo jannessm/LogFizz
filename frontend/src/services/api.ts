@@ -85,7 +85,10 @@ export const authApi = {
 
   async resetPassword(token: string, newPassword: string, email: string): Promise<{ message: string }> {
     const hashedPassword = await hashPasswordForTransport(newPassword, email);
-    return api.post('api/auth/reset-password', { json: { token, newPassword: hashedPassword, email } }).json();
+    return api.post('api/auth/reset-password', { json: {
+      token,
+      newPassword: hashedPassword,
+    } }).json();
   },
 
   async verifyEmail(token: string): Promise<{ message: string }> {

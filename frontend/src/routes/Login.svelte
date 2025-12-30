@@ -74,7 +74,12 @@
         navigate('/');
       }
     } catch (error: any) {
-      errorMessage = error.message || 'Authentication failed';
+      // Check for rate limiting (429 Too Many Requests)
+      if (error.response?.status === 429) {
+        errorMessage = 'Too many attempts. Please wait 1 minute before trying again.';
+      } else {
+        errorMessage = error.message || 'Authentication failed';
+      }
       // Reset hCaptcha on error
       if (hcaptchaComponent?.reset) {
         hcaptchaComponent.reset();

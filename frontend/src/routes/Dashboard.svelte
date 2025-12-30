@@ -59,7 +59,12 @@
             await authApi.resendVerification(user.email);
             snackbar.success('Verification email sent! Please check your inbox.', 6000);
           } catch (error: any) {
-            snackbar.error('Failed to send verification email. Please try again later.', 5000);
+            // Check for rate limiting (429 Too Many Requests)
+            if (error.response?.status === 429) {
+              snackbar.error('Too many verification requests. Please wait 15 minutes before trying again.', 8000);
+            } else {
+              snackbar.error('Failed to send verification email. Please try again later.', 5000);
+            }
           }
         },
         10000 // 10s
