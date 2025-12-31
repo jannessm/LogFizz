@@ -34,6 +34,10 @@
     state_code: undefined,
   });
 
+  // Separate hours and minutes for each day
+  let durationHours: number[] = $state([0, 0, 0, 0, 0, 0, 0]);
+  let durationMins: number[] = $state([0, 0, 0, 0, 0, 0, 0]);
+
   const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   
   let availableStates: State[] = $derived($statesStore.states || []);
@@ -91,9 +95,25 @@
         state_code: undefined,
       };
     }
+    
+    // Convert duration_minutes to hours and minutes
+    syncHoursMinutesFromDuration();
+  }
+
+  function syncHoursMinutesFromDuration() {
+    durationHours = tempSpec.duration_minutes.map(mins => Math.floor(mins / 60));
+    durationMins = tempSpec.duration_minutes.map(mins => mins % 60);
+  }
+
+  function syncDurationFromHoursMinutes() {
+    tempSpec.duration_minutes = durationHours.map((hours, index) => 
+      hours * 60 + durationMins[index]
+    );
   }
 
   function handleSave() {
+    // Ensure duration is synced before saving
+    syncDurationFromHoursMinutes();
     saveSpec(tempSpec);
     if (!targetSpec) {
       // Reset for creating another spec
@@ -178,15 +198,31 @@
       <div class="grid grid-cols-7 gap-1">
         {#each tempSpec.duration_minutes as duration, index}
           <div class="flex flex-col items-center gap-1">
-            <input
-              type="number"
-              min="0"
-              max="1440"
-              step="15"
-              class="w-full text-center border border-gray-300 rounded px-1 py-1 text-sm"
-              class:bg-blue-50={duration > 0}
-              bind:value={tempSpec.duration_minutes[index]}
-            />
+            <!-- Hours input -->
+            <div class="flex items-center gap-0.5">
+              <input
+                type="number"
+                min="0"
+                max="24"
+                placeholder="h"
+                class="w-10 text-center border border-gray-300 rounded px-0.5 py-1 text-xs"
+                class:bg-blue-50={duration > 0}
+                bind:value={durationHours[index]}
+                oninput={() => syncDurationFromHoursMinutes()}
+              />
+              <span class="text-xs text-gray-500">:</span>
+              <input
+                type="number"
+                min="0"
+                max="59"
+                step="15"
+                placeholder="m"
+                class="w-10 text-center border border-gray-300 rounded px-0.5 py-1 text-xs"
+                class:bg-blue-50={duration > 0}
+                bind:value={durationMins[index]}
+                oninput={() => syncDurationFromHoursMinutes()}
+              />
+            </div>
             <div class="text-xs text-gray-500">{weekdayNames[index]}</div>
           </div>
         {/each}
