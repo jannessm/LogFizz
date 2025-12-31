@@ -3,7 +3,7 @@
   import { targetsStore } from '../../stores/targets';
   import { timeLogsStore } from '../../stores/timelogs';
   import type { Timer, TargetWithSpecs } from '../../types';
-  import { getActiveTargetSpec, isTargetEnded, getWeekdayNames } from '../../lib/utils/targetSpec';
+  import { getActiveTargetSpec, isTargetEnded } from '../../lib/utils/targetSpec';
   import { dayjs } from '../../types';
 
   let {
@@ -72,8 +72,7 @@
     // Get active target spec for today
     const activeSpec = getActiveTargetSpec(target);
     const today = dayjs().day(); // 0 (Sun) to 6 (Sat)
-    const todayIndex = activeSpec?.weekdays.indexOf(today) ?? -1;
-    const targetDuration = todayIndex >= 0 && activeSpec ? activeSpec.duration_minutes[todayIndex] : (activeSpec?.duration_minutes[0] || 60);
+    const targetDuration = activeSpec?.duration_minutes[today] || 60;
     
     const percentage = Math.min(100, Math.round((totalMinutes / targetDuration) * 100));
     
@@ -93,11 +92,21 @@
     }
   }
 
-  // Get active targets (not ended)
-  let activeTargets: TargetWithSpecs[] = $state([]);
-  let archivedTargets: TargetWithSpecs[] = $state([]);
-  let activeTimers: Timer[] = $state([]);
-  let archivedTimers: Timer[] = $state([]);
+  function getActiveWeekdays(spec: any): string {
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const activeDays = spec.duration_minutes
+      .map((duration: number, index: number) => duration > 0 ? dayNames[index] : null)
+      .filter((day: string | null) => day !== null);
+    return activeDays.join(', ');
+  }
+
+  function getActiveWeekdays(spec: any): string {
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const activeDays = spec.duration_minutes
+      .map((duration: number, index: number) => duration > 0 ? dayNames[index] : null)
+      .filter((day: string | null) => day !== null);
+    return activeDays.join(', ');
+  }
 
 
   $effect(() => {
@@ -215,7 +224,7 @@
                   </span>
                   {#each [getActiveTargetSpec(target)] as activeSpec}
                     {#if activeSpec}
-                      <span class="text-gray-400">{getWeekdayNames(activeSpec.weekdays)}</span>
+                      <span class="text-gray-400">{getActiveWeekdays(activeSpec)}</span>
                     {/if}
                   {/each}
                 </div>
@@ -332,7 +341,7 @@
                     <div class="flex justify-between items-center text-xs text-gray-500">
                       {#each [getActiveTargetSpec(target)] as latestSpec}
                         {#if latestSpec}
-                          <span>{getWeekdayNames(latestSpec.weekdays)}</span>
+                          <span>{getActiveWeekdays(latestSpec)}</span>
                           {#if latestSpec.ending_at}
                             <span class="text-red-600 font-medium">Ended: {dayjs(latestSpec.ending_at).format('MMM D, YYYY')}</span>
                           {/if}
