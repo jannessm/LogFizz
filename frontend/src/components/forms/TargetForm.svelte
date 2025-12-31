@@ -18,24 +18,14 @@
   
   // Manage multiple target specs
   let targetSpecs: (TargetSpec | null)[] = $state([]);
-
-  // Form state for current spec being edited/created
-  // let specFormState = createEmptySpecForm();
   
   let isLoading = false;
   let errorMessage = '';
-  // let availableStates: State[] = [];
-  // let filteredStates: State[] = [];
-  // let availableCountries: string[] = [];
   let availableTimers: Timer[] = [];
   let selectedTimerIds: string[] = [];
 
   $effect(() => {
-    targetSpecs = target?.target_specs?.length ? [...target.target_specs] : [];
-    // if (!target && targetSpecs.length === 0 && !showSpecForm) {
-    //   // Use setTimeout to avoid updating during render
-    //   setTimeout(() => openSpecForm(null), 0);
-    // }
+    targetSpecs = target?.target_specs?.length ? [...target.target_specs] : [null];
 
     if ($timersStore.items) {
       availableTimers = $timersStore.items;
@@ -47,180 +37,48 @@
           .map(b => b.id);
       }
     }
-
-    // if ($statesStore.states) {
-    //   availableStates = $statesStore.states;
-      
-    //   // Extract unique countries from states
-    //   const countries = new Set(availableStates.map(s => s.country));
-    //   availableCountries = Array.from(countries).sort();
-    // }
-
-  
-    // if (specFormState.selectedCountry) {
-    //   filteredStates = availableStates.filter(s => s.country === specFormState.selectedCountry)
-    //     .sort((a, b) => a.state.localeCompare(b.state));
-    // } else {
-    //   filteredStates = [];
-    // }
   });
 
   function addSpec() {
-    targetSpecs.unshift(null);
+    targetSpecs = [...targetSpecs, null];
   }
-  
-  // function createEmptySpecForm() {
-  //   return {
-  //     durationHours: 1,
-  //     durationMinutes: 30,
-  //     weekdays: [1, 2, 3, 4, 5] as number[],
-  //     excludeHolidays: false,
-  //     stateCode: '',
-  //     selectedCountry: '',
-  //     startingFrom: undefined as string | undefined,
-  //     endingAt: undefined as string | undefined,
-  //   };
-  // }
 
-  // function handleCountryChange() {
-  //   // Reset state selection when country changes
-  //   specFormState.stateCode = '';
-  // }
+  function saveSpecHandler(spec: TargetSpec) {
+    // Find if this spec already exists (by id)
+    const existingIndex = targetSpecs.findIndex(s => s?.id === spec.id);
+    
+    if (existingIndex !== -1) {
+      // Update existing spec
+      targetSpecs[existingIndex] = spec;
+    } else {
+      // Find the null placeholder and replace it, or add to the end
+      const nullIndex = targetSpecs.findIndex(s => s === null);
+      if (nullIndex !== -1) {
+        targetSpecs[nullIndex] = spec;
+      } else {
+        targetSpecs = [...targetSpecs, spec];
+      }
+    }
+    
+    // Trigger reactivity
+    targetSpecs = [...targetSpecs];
+  }
 
-  // function openSpecForm(index: number | null = null) {
-  //   editingSpecIndex = index;
+  function deleteSpecHandler(spec: TargetSpec) {
+    if (targetSpecs.filter(s => s !== null).length <= 1) {
+      errorMessage = 'Cannot delete the last specification. A target must have at least one.';
+      return;
+    }
     
-  //   if (index !== null && targetSpecs[index]) {
-  //     // Editing existing spec
-  //     const spec = targetSpecs[index];
-  //     const firstDuration = spec.duration_minutes?.[0] || 90;
-      
-  //     specFormState = {
-  //       durationHours: Math.floor(firstDuration / 60),
-  //       durationMinutes: firstDuration % 60,
-  //       weekdays: [...spec.weekdays],
-  //       excludeHolidays: spec.exclude_holidays || false,
-  //       stateCode: spec.state_code || '',
-  //       selectedCountry: '',
-  //       startingFrom: spec.starting_from ? spec.starting_from.split('T')[0] : undefined,
-  //       endingAt: spec.ending_at ? spec.ending_at.split('T')[0] : undefined,
-  //     };
-      
-  //     // Find country for state code
-  //     if (spec.state_code && availableStates.length > 0) {
-  //       const targetState = availableStates.find(s => s.code === spec.state_code);
-  //       if (targetState) {
-  //         specFormState.selectedCountry = targetState.country;
-  //       }
-  //     }
-  //   } else {
-  //     // Creating new spec
-  //     specFormState = createEmptySpecForm();
-      
-  //     // If there are existing specs, find the latest ending_at date and use it as starting_from
-  //     if (targetSpecs.length > 0) {
-  //       // Sort specs by starting_from to find the last one
-  //       const sortedSpecs = [...targetSpecs].sort((a, b) => {
-  //         const dateA = a.starting_from ? new Date(a.starting_from).getTime() : 0;
-  //         const dateB = b.starting_from ? new Date(b.starting_from).getTime() : 0;
-  //         return dateB - dateA;
-  //       });
-        
-  //       const lastSpec = sortedSpecs[0];
-        
-  //       // If the last spec has an ending_at, use it as the new starting_from
-  //       if (lastSpec.ending_at) {
-  //         // Add one day to the ending date to start the next day
-  //         const nextDay = dayjs(lastSpec.ending_at).add(1, 'day');
-  //         specFormState.startingFrom = nextDay.format('YYYY-MM-DD');
-  //       }
-  //     }
-  //   }
-    
-  //   showSpecForm = true;
-  // }
-
-  // function closeSpecForm() {
-  //   showSpecForm = false;
-  //   editingSpecIndex = null;
-  //   specFormState = createEmptySpecForm();
-  // }
-
-  // function saveSpec() {
-  //   const totalMinutes = specFormState.durationHours * 60 + specFormState.durationMinutes;
-    
-  //   if (totalMinutes <= 0) {
-  //     errorMessage = 'Duration must be greater than 0';
-  //     return;
-  //   }
-    
-  //   if (specFormState.weekdays.length === 0) {
-  //     errorMessage = 'Please select at least one day';
-  //     return;
-  //   }
-    
-  //   const newSpec: TargetSpec = {
-  //     id: editingSpecIndex !== null && targetSpecs[editingSpecIndex]?.id 
-  //       ? targetSpecs[editingSpecIndex].id 
-  //       : crypto.randomUUID(),
-  //     user_id: target?.user_id || '',
-  //     target_id: target?.id || '',
-  //     duration_minutes: specFormState.weekdays.map(() => totalMinutes),
-  //     weekdays: specFormState.weekdays,
-  //     exclude_holidays: specFormState.excludeHolidays,
-  //     state_code: specFormState.stateCode || undefined,
-  //     starting_from: specFormState.startingFrom 
-  //       ? new Date(specFormState.startingFrom).toISOString() 
-  //       : dayjs().toISOString(), // Default to now if not specified
-  //     ending_at: specFormState.endingAt ? new Date(specFormState.endingAt).toISOString() : undefined,
-  //   };
-    
-  //   if (editingSpecIndex !== null) {
-  //     // Update existing spec
-  //     targetSpecs[editingSpecIndex] = newSpec;
-  //     targetSpecs = [...targetSpecs];
-  //   } else {
-  //     // Add new spec
-  //     targetSpecs = [...targetSpecs, newSpec];
-  //   }
-    
-  //   closeSpecForm();
-  //   errorMessage = '';
-  // }
-
-  // function deleteSpec(index: number) {
-  //   if (targetSpecs.length === 1) {
-  //     errorMessage = 'Cannot delete the last target spec. A target must have at least one specification.';
-  //     return;
-  //   }
-    
-  //   if (confirm('Are you sure you want to delete this target specification?')) {
-  //     targetSpecs = targetSpecs.filter((_, i) => i !== index);
-  //     errorMessage = '';
-  //   }
-  // } 
+    if (confirm('Delete this schedule?')) {
+      targetSpecs = targetSpecs.filter(s => s?.id !== spec.id);
+      errorMessage = '';
+    }
+  } 
 
   onMount(async () => {
     await statesStore.load();
   });
-
-  const weekDays = [
-    { value: 0, label: 'Sun' },
-    { value: 1, label: 'Mon' },
-    { value: 2, label: 'Tue' },
-    { value: 3, label: 'Wed' },
-    { value: 4, label: 'Thu' },
-    { value: 5, label: 'Fri' },
-    { value: 6, label: 'Sat' },
-  ];
-
-  // function toggleDay(day: number) {
-  //   if (specFormState.weekdays.includes(day)) {
-  //     specFormState.weekdays = specFormState.weekdays.filter(d => d !== day);
-  //   } else {
-  //     specFormState.weekdays = [...specFormState.weekdays, day].sort();
-  //   }
-  // }
 
   function toggleTimer(timerId: string) {
     if (selectedTimerIds.includes(timerId)) {
@@ -258,7 +116,10 @@
       return;
     }
 
-    if (targetSpecs.length === 0) {
+    // Filter out null specs (placeholders)
+    const validSpecs = targetSpecs.filter((s): s is TargetSpec => s !== null);
+
+    if (validSpecs.length === 0) {
       errorMessage = 'Please add at least one target specification';
       return;
     }
@@ -269,7 +130,13 @@
     try {
       const targetData: Partial<TargetWithSpecs> = {
         name: name.trim(),
-        // target_specs: targetSpecs,
+        target_specs: validSpecs.map(spec => ({
+          ...spec,
+          user_id: target?.user_id || '',
+          target_id: target?.id || '',
+          starting_from: new Date(spec.starting_from).toISOString(),
+          ending_at: spec.ending_at ? new Date(spec.ending_at).toISOString() : undefined,
+        })),
       };
 
       let savedTargetId: string;
@@ -371,10 +238,13 @@
             </div>
           {:else}
             <div class="space-y-2">
-              {#each targetSpecs as targetSpec, index}
+              {#each targetSpecs as targetSpec, index (targetSpec?.id || `null-${index}`)}
                 <TargetSpecItem
                   {targetSpec}
-                  lastSpec={index === targetSpecs.length - 1} />
+                  lastSpec={targetSpecs.filter(s => s !== null).length <= 1}
+                  saveSpec={saveSpecHandler}
+                  deleteSpec={deleteSpecHandler}
+                />
               {/each}
             </div>
           {/if}
