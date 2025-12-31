@@ -4,7 +4,7 @@
     select
   }: {
     close: () => void;
-    select: (type: 'button' | 'target') => void;
+    select: (type: 'timer' | 'target') => void;
   } = $props();
 </script>
 
@@ -39,7 +39,7 @@
     <!-- Options -->
     <div class="p-6 space-y-3">
       <button
-        onclick={() => select('button')}
+        onclick={() => select('timer')}
         class="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-4 group"
       >
         <div class="w-12 h-12 rounded-full bg-blue-100 group-hover:bg-blue-500 flex items-center justify-center transition-colors">

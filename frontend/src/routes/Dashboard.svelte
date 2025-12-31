@@ -15,13 +15,13 @@
   import type { Timer, TargetWithSpecs, TimeLog } from '../types';
   import { getSetting } from '../lib/db';
 
-  let showButtonForm = false;
+  let showTimerForm = false;
   let showTimelogForm = false;
   let showTargetForm = false;
   let showEditOverview = false;
   let showAddSelector = false;
   let editMode = false;
-  let editingButton: Timer | null = null;
+  let editingTimer: Timer | null = null;
   let editingTimelog: any = null;
   let editingTarget: TargetWithSpecs | null = null;
   let toggleMode = true;
@@ -83,30 +83,30 @@
     showAddSelector = false;
   }
 
-  function handleAddSelectorSelect(type: 'button' | 'target') {
+  function handleAddSelectorSelect(type: 'timer' | 'target') {
     showAddSelector = false;
-    if (type === 'button') {
-      handleAddButton();
+    if (type === 'timer') {
+      handleAddTimer();
     } else {
       handleAddTarget();
     }
   }
 
-  function handleAddButton() {
-    editingButton = null;
-    showButtonForm = true;
+  function handleAddTimer() {
+    editingTimer = null;
+    showTimerForm = true;
   }
 
-  function handleEditButton(timer: Timer) {
-    console.log('Editing button:', timer, editMode);
-    editingButton = timer;
-    showButtonForm = true;
+  function handleEditTimer(timer: Timer) {
+    console.log('Editing timer:', timer, editMode);
+    editingTimer = timer;
+    showTimerForm = true;
     showEditOverview = false;
   }
 
   function handleCloseForm() {
-    showButtonForm = false;
-    editingButton = null;
+    showTimerForm = false;
+    editingTimer = null;
   }
 
   function handleAddTarget() {
@@ -152,8 +152,8 @@
         showTimelogForm = true;
       }
     } else {
-      // Open ButtonForm to edit button
-      handleEditButton(timer);
+      // Open TimerForm to edit timer
+      handleEditTimer(timer);
     }
   }
 
@@ -288,7 +288,7 @@
         buttons={$timers}
         {editMode}
         {toggleMode}
-        edit={handleEditButton}
+        edit={handleEditTimer}
         longpress={handleLongPress}
         timerstopped={handleTimerStopped}
       />
@@ -313,18 +313,18 @@
   <!-- Edit Overview Modal -->
   {#if showEditOverview}
     <EditOverview 
-      editButton={handleEditButton}
+      editTimer={handleEditTimer}
       editTarget={handleEditTarget}
-      addButton={handleAddButton}
+      addTimer={handleAddTimer}
       addTarget={handleAddTarget}
       close={handleCloseEditOverview}
     />
   {/if}
 
   <!-- Timer Form Modal -->
-  {#if showButtonForm}
+  {#if showTimerForm}
     <TimerForm 
-      timer={editingButton}
+      timer={editingTimer}
       close={handleCloseForm}
     />
   {/if}
