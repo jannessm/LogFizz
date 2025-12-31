@@ -527,8 +527,7 @@ describe('Integration Tests - Data Migration', () => {
         {
           id: 'spec-1',
           target_id: 'target-1',
-          duration_minutes: [480, 480, 480, 480, 480],
-          weekdays: [1, 2, 3, 4, 5],
+          duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Sun-Sat
           exclude_holidays: true,
           state_code: 'DE-BY',
           starting_from: '2024-01-01',
@@ -540,7 +539,6 @@ describe('Integration Tests - Data Migration', () => {
           id: 'spec-2',
           target_id: 'target-1',
           duration_minutes: [240, 240, 240, 240, 240],
-          weekdays: [1, 2, 3, 4, 5],
           exclude_holidays: true,
           state_code: 'DE-BY',
           starting_from: '2024-07-01',

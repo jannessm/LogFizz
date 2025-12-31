@@ -67,8 +67,7 @@ only used in the backend. the frontend gets a nested datastructure and therefore
 - target_id!
 - starting_from!
 - ending_at?
-- duration_minutes[]
-- weekdays[]
+- duration_minutes[] (7-entry array for Sun-Sat, indices 0-6)
 - exclude_holidays
 - state_code
 - created_at

@@ -175,8 +175,7 @@ describe('Balance Calculation Utilities', () => {
         target_id: 'target-1',
         starting_from: spec.starting_from || '2024-01-01',
         ending_at: spec.ending_at || undefined,
-        duration_minutes: spec.duration_minutes || [480, 480, 480, 480, 480],
-        weekdays: spec.weekdays || [1, 2, 3, 4, 5],
+        duration_minutes: spec.duration_minutes || [0, 480, 480, 480, 480, 480, 0], // Sun-Sat
         exclude_holidays: spec.exclude_holidays !== undefined ? spec.exclude_holidays : false,
         state_code: spec.state_code || undefined,
       })),
@@ -187,8 +186,7 @@ describe('Balance Calculation Utilities', () => {
     it('should return due minutes for workdays', () => {
       const target = createTarget([{
         starting_from: '2024-01-01',
-        weekdays: [1, 2, 3, 4, 5], // Mon-Fri
-        duration_minutes: [480, 480, 480, 480, 480],
+        duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Sun-Sat: Mon-Fri = 480
       }]);
       
       // Monday, June 17, 2024
@@ -200,8 +198,7 @@ describe('Balance Calculation Utilities', () => {
     it('should return 0 for weekends', () => {
       const target = createTarget([{
         starting_from: '2024-01-01',
-        weekdays: [1, 2, 3, 4, 5], // Mon-Fri only
-        duration_minutes: [480, 480, 480, 480, 480],
+        duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Sun-Sat: Mon-Fri only
       }]);
       
       // Saturday, June 15, 2024
@@ -213,8 +210,7 @@ describe('Balance Calculation Utilities', () => {
     it('should return 0 for holidays when exclude_holidays is true', () => {
       const target = createTarget([{
         starting_from: '2024-01-01',
-        weekdays: [1, 2, 3, 4, 5],
-        duration_minutes: [480, 480, 480, 480, 480],
+        duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Mon-Fri
         exclude_holidays: true,
       }]);
       
@@ -229,13 +225,11 @@ describe('Balance Calculation Utilities', () => {
         {
           starting_from: '2024-01-01',
           ending_at: '2024-06-30',
-          weekdays: [1, 2, 3, 4, 5],
-          duration_minutes: [480, 480, 480, 480, 480],
+          duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Mon-Fri = 480
         },
         {
           starting_from: '2024-07-01',
-          weekdays: [1, 2, 3, 4, 5],
-          duration_minutes: [360, 360, 360, 360, 360],
+          duration_minutes: [0, 360, 360, 360, 360, 360, 0], // Mon-Fri = 360
         },
       ]);
       

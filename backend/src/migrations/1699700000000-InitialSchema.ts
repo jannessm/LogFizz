@@ -82,7 +82,6 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "user_id" uuid NOT NULL,
                 "target_id" uuid NOT NULL,
                 "duration_minutes" text NOT NULL,
-                "weekdays" text NOT NULL,
                 "exclude_holidays" boolean NOT NULL DEFAULT false,
                 "state_code" character varying,
                 "starting_from" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,

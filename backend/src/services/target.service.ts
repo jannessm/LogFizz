@@ -14,7 +14,6 @@ interface TargetWithSpecs {
     target_id: string;
     user_id: string;
     duration_minutes: number[];
-    weekdays: number[];
     exclude_holidays: boolean;
     state_code?: string;
     starting_from: Date;
@@ -85,10 +84,9 @@ export class TargetService {
         order: { starting_from: 'ASC' },
       });
 
-      // Convert weekdays and duration_minutes from string[] to number[]
+      // Convert duration_minutes from string[] to number[]
       const convertedSpecs = targetSpecs.map(spec => ({
         ...spec,
-        weekdays: spec.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
         duration_minutes: spec.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
       }));
 
@@ -178,7 +176,6 @@ export class TargetService {
           ...savedTarget,
           target_specs: savedSpecs.map(s => ({
             ...s,
-            weekdays: s.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
             duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
           })),
           updated_at: maxUpdatedAt,
@@ -234,7 +231,6 @@ export class TargetService {
           ...savedTarget,
           target_specs: savedSpecs.map(s => ({
             ...s,
-            weekdays: s.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
             duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
           })),
           updated_at: maxUpdatedAt,
@@ -266,7 +262,6 @@ export class TargetService {
           const convertedSpecs = existingSpecs
             .map(spec => ({
               ...spec,
-              weekdays: spec.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
               duration_minutes: spec.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
             }))
             .sort((a, b) => a.starting_from.getTime() - b.starting_from.getTime());
@@ -341,11 +336,6 @@ export class TargetService {
             specNeedsUpdate = true;
           }
           
-          if (JSON.stringify(specData.weekdays) !== JSON.stringify(existingSpec.weekdays.map((d: any) => typeof d === 'string' ? parseInt(d, 10) : d))) {
-            existingSpec.weekdays = specData.weekdays;
-            specNeedsUpdate = true;
-          }
-          
           if (specData.exclude_holidays !== existingSpec.exclude_holidays) {
             existingSpec.exclude_holidays = specData.exclude_holidays;
             specNeedsUpdate = true;
@@ -408,7 +398,6 @@ export class TargetService {
         ...existingTarget,
         target_specs: savedSpecs.map(s => ({
           ...s,
-          weekdays: s.weekdays.map((day: any) => typeof day === 'string' ? parseInt(day, 10) : day),
           duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
         })),
         updated_at: maxUpdatedAt,

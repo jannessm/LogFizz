@@ -124,9 +124,8 @@
     // Get duration for today's weekday
     // Get active target spec for today
     const activeSpec = getActiveTargetSpec(target);
-    const today = new Date().getDay();
-    const todayIndex = activeSpec?.weekdays.indexOf(today) ?? -1;
-    const targetDuration = todayIndex >= 0 && activeSpec ? activeSpec.duration_minutes[todayIndex] : (activeSpec?.duration_minutes[0] || 60);
+    const today = new Date().getDay(); // 0=Sunday, 6=Saturday
+    const targetDuration = activeSpec?.duration_minutes[today] ?? 60;
     
     const percentage = Math.min(100, Math.round((totalMinutes / targetDuration) * 100));
     const completed = totalMinutes >= targetDuration;

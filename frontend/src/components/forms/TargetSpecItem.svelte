@@ -4,8 +4,7 @@
 
   type PartialTargetSpec = Partial<TargetSpec> & { 
     id: string;
-    duration_minutes: number[];
-    weekdays: number[];
+    duration_minutes: number[]; // 7-entry array for Sun-Sat
     starting_from: string;
     ending_at?: string;
     exclude_holidays: boolean;
@@ -27,8 +26,7 @@
   let editMode: boolean = $state(false);
   let tempSpec: PartialTargetSpec = $state({
     id: '',
-    duration_minutes: [],
-    weekdays: [],
+    duration_minutes: [0, 0, 0, 0, 0, 0, 0], // 7-entry array for Sun-Sat
     starting_from: dayjs().format('YYYY-MM-DD'),
     ending_at: undefined,
     exclude_holidays: false,
@@ -50,21 +48,14 @@
 
   function resetTempSpec() {
     if (targetSpec !== null) {
-      const duration_minutes = [0, 0, 0, 0, 0, 0, 0];
-      const weekdays = [0, 1, 2, 3, 4, 5, 6];
-      targetSpec.weekdays.forEach((day, index) => {
-        duration_minutes[day] = targetSpec.duration_minutes[index];
-      });
       tempSpec = {
         ...targetSpec,
-        duration_minutes: duration_minutes,
-        weekdays: weekdays
+        duration_minutes: [...targetSpec.duration_minutes] // Copy array
       };
     } else {
       tempSpec = {
         id: crypto.randomUUID(),
-        duration_minutes: [0, 480, 480, 480, 480, 480, 0],
-        weekdays: [0, 1, 2, 3, 4, 5, 6],
+        duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Sun-Sat
         starting_from: dayjs().format('YYYY-MM-DD'),
         ending_at: undefined,
         exclude_holidays: false,
@@ -83,7 +74,7 @@
             class:bg-blue-200={duration > 0}
           >
             <div class="text-sm text-gray-700">{Math.floor(duration / 60)}:{String(duration % 60).padStart(2, '0')}</div>
-            <div class="text-xs text-gray-500">{weekdayNames[tempSpec.weekdays[index]]}</div>
+            <div class="text-xs text-gray-500">{weekdayNames[index]}</div>
           </div>
         {/each}
       </div>
@@ -100,7 +91,7 @@
               class="w-16 text-center border border-gray-300 rounded px-1 py-0.5"
               bind:value={tempSpec.duration_minutes[index]}
             />
-            <div class="text-xs text-gray-500">{weekdayNames[tempSpec.weekdays[index]]}</div>
+            <div class="text-xs text-gray-500">{weekdayNames[index]}</div>
           </div>
         {/each}
         <div class="flex flex-col justify-end gap-1 col-span-4 mt-2">

@@ -8,8 +8,7 @@ const targetService = new TargetService();
 // Schema for target spec without timestamps (for API responses)
 const TargetSpecSchema = Type.Object({
   id: Type.String(),
-  duration_minutes: Type.Array(Type.Number()),
-  weekdays: Type.Array(Type.Number()),
+  duration_minutes: Type.Array(Type.Number()), // 7-entry array for Sun-Sat
   exclude_holidays: Type.Boolean(),
   state_code: Type.Optional(Type.String()),
   starting_from: Type.String(),
@@ -28,8 +27,7 @@ const TargetWithSpecsSchema = Type.Object({
 // Schema for input (with optional fields for specs)
 const TargetSpecInputSchema = Type.Object({
   id: Type.String(),
-  duration_minutes: Type.Array(Type.Integer()),
-  weekdays: Type.Array(Type.Integer()),
+  duration_minutes: Type.Array(Type.Integer()), // 7-entry array for Sun-Sat
   exclude_holidays: Type.Optional(Type.Boolean()),
   state_code: Type.Optional(Type.String()),
   starting_from: Type.String(),
@@ -93,7 +91,6 @@ export async function targetRoutes(fastify: FastifyInstance) {
         target_specs: t.target_specs.map(s => ({
           id: s.id,
           duration_minutes: s.duration_minutes,
-          weekdays: s.weekdays,
           exclude_holidays: s.exclude_holidays,
           state_code: s.state_code,
           starting_from: s.starting_from.toISOString(),
@@ -175,7 +172,6 @@ export async function targetRoutes(fastify: FastifyInstance) {
           target_specs: c.serverVersion.target_specs.map(s => ({
             id: s.id,
             duration_minutes: s.duration_minutes,
-            weekdays: s.weekdays,
             exclude_holidays: s.exclude_holidays,
             state_code: s.state_code,
             starting_from: s.starting_from.toISOString(),
@@ -194,7 +190,6 @@ export async function targetRoutes(fastify: FastifyInstance) {
         target_specs: t.target_specs.map(s => ({
           id: s.id,
           duration_minutes: s.duration_minutes,
-          weekdays: s.weekdays,
           exclude_holidays: s.exclude_holidays,
           state_code: s.state_code,
           starting_from: s.starting_from.toISOString(),

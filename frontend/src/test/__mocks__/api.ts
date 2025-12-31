@@ -34,8 +34,7 @@ export const mockTarget: TargetWithSpecs = {
     user_id: '1',
     target_id: 'target-1',
     starting_from: '2024-01-01',
-    duration_minutes: [480, 480, 480, 480, 480], // 8 hours for each weekday
-    weekdays: [1, 2, 3, 4, 5], // Mon-Fri
+    duration_minutes: [0, 480, 480, 480, 480, 480, 0], // 8 hours for each weekday // Mon-Fri
     exclude_holidays: false,
   }],
   created_at: '2024-01-01T00:00:00Z',

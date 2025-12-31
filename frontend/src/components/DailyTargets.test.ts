@@ -59,7 +59,6 @@ describe('DailyTargets Component', () => {
       target_specs: [{
         id: 'spec1',
         target_id: 'target1',
-        weekdays: [1, 2, 3, 4, 5],
         duration_minutes: [480, 480, 480, 480, 480],
         exclude_holidays: false,
         state_code: null,
@@ -86,7 +85,6 @@ describe('DailyTargets Component', () => {
       target_specs: [{
         id: 'spec1',
         target_id: 'target1',
-        weekdays: [1, 2, 3, 4, 5],
         duration_minutes: [240, 240, 240, 240, 240], // 4 hours
         exclude_holidays: false,
         state_code: null,
@@ -135,7 +133,6 @@ describe('DailyTargets Component', () => {
       target_specs: [{
         id: 'spec1',
         target_id: 'target1',
-        weekdays: [1, 2, 3, 4, 5],
         duration_minutes: [480, 480, 480, 480, 480],
         exclude_holidays: false,
         state_code: null,
@@ -164,7 +161,6 @@ describe('DailyTargets Component', () => {
       target_specs: [{
         id: 'spec1',
         target_id: 'target1',
-        weekdays: [1, 2, 3, 4, 5],
         duration_minutes: [480, 480, 480, 480, 480],
         exclude_holidays: false,
         state_code: null,
@@ -192,7 +188,6 @@ describe('DailyTargets Component', () => {
       target_specs: [{
         id: 'spec1',
         target_id: 'target1',
-        weekdays: [1, 2, 3, 4, 5],
         duration_minutes: [90, 90, 90, 90, 90], // 1h 30m
         exclude_holidays: false,
         state_code: null,

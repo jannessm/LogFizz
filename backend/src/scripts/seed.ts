@@ -83,8 +83,7 @@ async function seed() {
     const workSpec = targetSpecRepo.create({
       user_id: demoUser.id,
       target_id: workTarget.id,
-      duration_minutes: [480, 480, 480, 480, 480], // 8 hours per day
-      weekdays: [1, 2, 3, 4, 5], // Monday to Friday
+      duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Sun-Sat: 0, 8h, 8h, 8h, 8h, 8h, 0
       starting_from: workStartingFrom,
       exclude_holidays: false,
     });
@@ -104,8 +103,7 @@ async function seed() {
     const studySpec = targetSpecRepo.create({
       user_id: demoUser.id,
       target_id: studyTarget.id,
-      duration_minutes: [120, 120], // 2 hours per day
-      weekdays: [2, 4], // Tuesday and Thursday
+      duration_minutes: [0, 0, 120, 0, 120, 0, 0], // Sun-Sat: 0, 0, 2h, 0, 2h, 0, 0
       starting_from: studyStartingFrom,
       exclude_holidays: false,
     });
@@ -126,8 +124,7 @@ async function seed() {
     const exerciseSpec = targetSpecRepo.create({
       user_id: demoUser.id,
       target_id: exerciseTarget.id,
-      duration_minutes: [60, 60, 60], // 1 hour per day
-      weekdays: [1, 3, 5], // Monday, Wednesday, Friday
+      duration_minutes: [0, 60, 0, 60, 0, 60, 0], // Sun-Sat: 0, 1h, 0, 1h, 0, 1h, 0
       starting_from: exerciseStartingFrom,
       ending_at: exerciseEndingAt,
       exclude_holidays: false,

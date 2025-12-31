@@ -54,8 +54,7 @@ export interface TargetSpec {
   target_id: string;
   starting_from: string;
   ending_at?: string;
-  duration_minutes: number[];
-  weekdays: number[];
+  duration_minutes: number[]; // 7-entry array for Sun-Sat (indices 0-6)
   exclude_holidays: boolean;
   state_code?: string;
 }

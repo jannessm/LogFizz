@@ -380,8 +380,7 @@ describe('TimeLog Sync Routes', () => {
             name: 'Work Week',
             target_specs: [{
               id: specId,
-              weekdays: [1, 2, 3, 4, 5], // Monday to Friday
-              duration_minutes: [480, 480, 480, 480, 480], // 8 hours per day
+              duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Sun-Sat: Mon-Fri 8h
               exclude_holidays: false,
               starting_from: '2024-01-01T00:00:00Z',
             }],
@@ -596,7 +595,7 @@ describe('TimeLog Sync Routes', () => {
       const body = JSON.parse(response.body);
       expect(body.saved).toHaveLength(1);
       expect(body.saved[0].type).toBe('sick');
-      // Duration should be 0 because Saturday is not in the target weekdays
+      // Duration should be 0 because Saturday has 0 duration in the target
       expect(body.saved[0].duration_minutes).toBe(0);
     });
 

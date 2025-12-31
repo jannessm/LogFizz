@@ -218,14 +218,8 @@ export function calculateDueMinutes(
       return 0;
     }
     
-    // Check if this weekday is in the target weekdays
-    const weekdayIndex = spec.weekdays.indexOf(weekday);
-    if (weekdayIndex === -1) {
-      return 0; // Not a work day
-    }
-    
-    // Return the duration for this weekday
-    return spec.duration_minutes[weekdayIndex] || 0;
+    // Return the duration for this weekday (0=Sun, 6=Sat)
+    return spec.duration_minutes[weekday] || 0;
   }
   
   return 0; // No applicable spec found

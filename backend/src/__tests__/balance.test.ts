@@ -72,8 +72,7 @@ describe('Monthly Balance Service - Sync Only', () => {
           name: 'Test Target',
           target_specs: [{
             id: '550e8400-e29b-41d4-a716-446655440002',
-            duration_minutes: [480],
-            weekdays: [1],
+            duration_minutes: [0, 480, 0, 0, 0, 0, 0], // Sun-Sat: Only Monday has 480
             exclude_holidays: false,
             starting_from: '2025-01-01T00:00:00.000Z',
           }],

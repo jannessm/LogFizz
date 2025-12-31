@@ -115,7 +115,8 @@ export const todayTargets = derived(
         if (today.isBefore(startDate, 'day')) continue;
         if (endDate && today.isAfter(endDate, 'day')) continue;
         
-        if (spec.weekdays.includes(todayWeekday)) {
+        // Check if today has a duration > 0 in this spec
+        if (spec.duration_minutes[todayWeekday] > 0) {
           return true;
         }
       }
