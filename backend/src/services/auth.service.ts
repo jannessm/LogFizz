@@ -26,12 +26,18 @@ export class AuthService {
     const verificationExpiresAt = new Date();
     verificationExpiresAt.setHours(verificationExpiresAt.getHours() + 24); // 24 hours expiry
 
+    // Set trial end date to 2 months from now
+    const trialEndDate = new Date();
+    trialEndDate.setMonth(trialEndDate.getMonth() + 2);
+
     const user = this.userRepository.create({
       email,
       password_hash,
       name,
       email_verification_token: verificationToken,
       email_verification_expires_at: verificationExpiresAt,
+      subscription_status: 'trial',
+      trial_end_date: trialEndDate,
     });
 
     await this.userRepository.save(user);
