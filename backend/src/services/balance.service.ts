@@ -1,6 +1,7 @@
 import { AppDataSource } from '../config/database.js';
 import { Balance } from '../entities/Balance.js';
 import { MoreThan } from 'typeorm';
+import dayjs from '../../../lib/utils/dayjs.js';
 
 export class BalanceService {
   private balanceRepository = AppDataSource.getRepository(Balance);
@@ -49,8 +50,9 @@ export class BalanceService {
         if (existing) {
           // Conflict detection: Check if server version is newer than client version
           if (change.updated_at) {
-            const clientTimestamp = new Date(change.updated_at);
-            if (existing.updated_at > clientTimestamp) {
+            const clientTimestamp = dayjs(change.updated_at);
+            const serverTimestamp = dayjs(existing.updated_at);
+            if (serverTimestamp.isAfter(clientTimestamp)) {
               // Server has newer data - conflict detected
               conflicts.push({
                 clientVersion: change,
@@ -68,13 +70,18 @@ export class BalanceService {
           savedBalances.push(balance);
         } else {
           // Balance doesn't exist, create new one with client-provided UUID
+          
           const balance = this.balanceRepository.create({
             ...change,
             user_id: userId,
             id: change.id, // Use client-generated UUID
           });
+          console.log('Creating new balance with ID:', balance);
           // Remove updated_at to let TypeORM set it
-          delete (balance as any).updated_at;
+          delete (change as any).updated_at;
+          if (!balance.next_balance_id) {
+            delete (balance as any).next_balance_id;
+          }
           const saved = await this.balanceRepository.save(balance);
           savedBalances.push(saved);
         }

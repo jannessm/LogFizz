@@ -121,6 +121,8 @@ export async function balanceRoutes(fastify: FastifyInstance) {
       const processedBalances = balances.map((b: any) => ({
         ...b,
         updated_at: b.updated_at ? dayjs(b.updated_at).toDate() : undefined,
+        created_at: b.created_at ? dayjs(b.created_at).toDate() : undefined,
+        deleted_at: b.deleted_at ? dayjs(b.deleted_at).toDate() : undefined,
       }));
 
       const result = await balanceService.pushBalanceChanges(userId, processedBalances);
