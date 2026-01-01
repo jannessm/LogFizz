@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { timers } from '../../stores/timers';
   import { dayjs, type TimeLog } from '../../types';
-  import { userTimezone } from '../../../../lib/dist/utils/dayjs';
+  import { userTimezone } from '../../../../lib/utils/dayjs';
 
   let {
     selectedDate,

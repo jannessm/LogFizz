@@ -1,7 +1,9 @@
 <script lang="ts">
   import { navigate } from '../lib/navigation';
 
-  export let currentTab: 'timer' | 'history' | 'settings' = 'timer';
+  let { currentTab = 'timer' }: {
+    currentTab?: 'timer' | 'history' | 'settings';
+  } = $props();
 
   function handleNavigate(path: string) {
     navigate(path);

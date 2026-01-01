@@ -56,11 +56,11 @@
   });
 
   function handleClick() {
-    edit(session);
+    if (edit) edit(session);
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') edit(session);
+    if (e.key === 'Enter' && edit) edit(session);
   }
 </script>
 

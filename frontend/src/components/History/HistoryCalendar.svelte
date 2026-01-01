@@ -21,21 +21,11 @@
     countries: string[];
   } = $props();
 
-  let calendarDays: dayjs.Dayjs[];
-  let weekNumbers: number[];
-  let buttonColors: Map<string, string[]> = new Map();
-
-  // Get calendar days for current month - ensure we have exactly 6 weeks (42 days)
-  function getCalendarDays() {
+  let calendarDays = $derived.by(() => {
     const firstDay = currentMonth.startOf('month');
-
-    // Get the day of week for the first day (0 = Sunday, 6 = Saturday)
     const firstDayOfWeek = firstDay.day();
-    
-    // Calculate how many days to show before the first of the month
     const startDate = firstDay.subtract(firstDayOfWeek, 'day');
     
-    // Always show 6 weeks (42 days) for consistent layout
     const days = [];
     let current = startDate;
     
@@ -45,29 +35,19 @@
     }
     
     return days;
-  }
+  });
 
-  // Get week numbers for the calendar (6 weeks)
-  function getWeekNumbers() {
+  let weekNumbers = $derived.by(() => {
     const weeks = [];
-    const days = getCalendarDays();
-    
-    // Get week number for the first day of each week (every 7 days)
     for (let i = 0; i < 42; i += 7) {
-      weeks.push(days[i].week());
+      weeks.push(calendarDays[i].week());
     }
-    
     return weeks;
-  }
+  });
+  let buttonColors = $state<Map<string, string[]>>(new Map());
 
   $effect(() => {
-    if (currentMonth && selectedDate) {
-      calendarDays = getCalendarDays();
-      weekNumbers = getWeekNumbers();
-    }
-    if (timeLogs.length > 0) {
-      buttonColors = getButtonColorsMap();
-    }
+    buttonColors = getButtonColorsMap();
   });
 
   function getButtonColorsMap(): Map<string, string[]> {

@@ -7,7 +7,7 @@
   import {
     HistoryCharts, HistoryCalendar,
     HistoryLogs, MonthlyBalance, ImportTimelogsModal
-  } from '../components/history';
+  } from '../components/History';
   import { timeLogsStore } from '../stores/timelogs';
   import { timersStore, timers } from '../stores/timers';
   import { targetsStore, targets } from '../stores/targets';

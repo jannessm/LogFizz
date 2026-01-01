@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { TargetSpec, State } from "../../types";
   import { statesStore } from '../../stores/states';
-  import { onlyUnique } from "../../../../lib/dist/utils/helper";
+  import { onlyUnique } from "../../../../lib/utils/helper";
 
   type PartialTargetSpec = {
     id: string;
