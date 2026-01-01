@@ -158,6 +158,11 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   });
 
   // Admin: Toggle paywall (requires admin authentication)
+  // NOTE: This currently allows any authenticated user to toggle the paywall.
+  // In a production system, you should:
+  // 1. Add an 'is_admin' or 'role' field to the User entity
+  // 2. Check if request.session.userId belongs to an admin
+  // 3. Return 403 Forbidden if the user is not an admin
   fastify.post('/admin/toggle-paywall', {
     schema: {
       tags: ['Payment'],
@@ -178,8 +183,6 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       },
     },
   }, async (request, reply) => {
-    // TODO: Add admin authentication check
-    // For now, we'll require any authenticated user
     if (!request.session?.userId) {
       return reply.code(401).send({ error: 'Unauthorized' });
     }

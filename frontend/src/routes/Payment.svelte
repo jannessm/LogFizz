@@ -203,7 +203,7 @@
             </ul>
 
             <button
-              onclick={handleSubscribe}
+              on:click={handleSubscribe}
               disabled={processingCheckout}
               class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -222,7 +222,7 @@
           <h2 class="text-xl font-semibold mb-4">Manage Subscription</h2>
           
           <button
-            onclick={handleCancelSubscription}
+            on:click={handleCancelSubscription}
             class="w-full bg-red-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-red-700 transition"
           >
             Cancel Subscription
@@ -237,7 +237,7 @@
 
     <div class="mt-6 text-center">
       <button
-        onclick={() => navigate('/settings')}
+        on:click={() => navigate('/settings')}
         class="text-blue-600 hover:text-blue-800 font-medium"
       >
         ← Back to Settings
