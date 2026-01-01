@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { nonArchivedTimers } from '../stores/timers';
-  import { timeLogsStore, activeTimeLogs } from '../stores/timelogs';
+  import { timeLogsStore } from '../stores/timelogs';
   import { authStore } from '../stores/auth';
   import { snackbar } from '../stores/snackbar';
   import { authApi } from '../services/api';
@@ -15,22 +15,23 @@
   import type { Timer, TargetWithSpecs, TimeLog } from '../types';
   import { getSetting } from '../lib/db';
 
-  let showTimerForm = false;
-  let showTimelogForm = false;
-  let showTargetForm = false;
-  let showEditOverview = false;
-  let showAddSelector = false;
-  let editMode = false;
-  let editingTimer: Timer | null = null;
-  let editingTimelog: any = null;
-  let editingTarget: TargetWithSpecs | null = null;
-  let toggleMode = true;
-  let verificationReminderShown = false;
-  let editOnStopEnabled = true;
-  let timerToStop: any = null;
+  let showTimerForm = $state(false);
+  let showTimelogForm = $state(false);
+  let showTargetForm = $state(false);
+  let showEditOverview = $state(false);
+  let showAddSelector = $state(false);
+  let editMode = $state(false);
+  let editingTimer: Timer | null = $state(null);
+  let editingTimelog: TimeLog | null = $state(null);
+  let editingTarget: TargetWithSpecs | null = $state(null);
+  let editFromOverview = $state(false);
+  let toggleMode = $state(true);
+  let verificationReminderShown = $state(false);
+  let editOnStopEnabled = $state(true);
+  let timerToStop: any = $state(null);
 
-  $: timers = nonArchivedTimers;
-  $: user = $authStore.user;
+  let timers = nonArchivedTimers;
+  let user = $authStore.user;
 
   onMount(async () => {
     // Load edit-on-stop setting
@@ -71,9 +72,11 @@
   }
 
   // Watch for user changes to re-check verification status
-  $: if (user && !verificationReminderShown) {
-    checkEmailVerification();
-  }
+  $effect(() => {
+    if (user && !verificationReminderShown) {
+      checkEmailVerification();
+    }
+  });
 
   function handleShowAddSelector() {
     showAddSelector = true;
@@ -101,16 +104,18 @@
     console.log('Editing timer:', timer, editMode);
     editingTimer = timer;
     showTimerForm = true;
-    showEditOverview = false;
+    if (showEditOverview) {
+      editFromOverview = true;
+      showEditOverview = false;
+    }
   }
 
   function handleCloseForm() {
-    const wasEditingFromOverview = editingTimer !== null;
     showTimerForm = false;
     editingTimer = null;
     
     // If we were editing a timer (not creating), reopen the edit overview
-    if (wasEditingFromOverview) {
+    if (editFromOverview) {
       showEditOverview = true;
     }
   }
@@ -121,18 +126,22 @@
   }
 
   function handleEditTarget(target: TargetWithSpecs) {
+    if (showEditOverview) {
+      editFromOverview = true;
+      showEditOverview = false;
+    }
+
     editingTarget = target;
     showTargetForm = true;
     showEditOverview = false;
   }
 
   function handleCloseTargetForm() {
-    const wasEditingFromOverview = editingTarget !== null;
     showTargetForm = false;
     editingTarget = null;
     
     // If we were editing a target (not creating), reopen the edit overview
-    if (wasEditingFromOverview) {
+    if (editFromOverview) {
       showEditOverview = true;
     }
   }
@@ -149,20 +158,11 @@
     toggleMode = !toggleMode;
   }
 
-  function handleLongPress(timer: Timer, isActive: boolean) {
-    if (isActive) {
-      // Find the active timelog for this timer
-      const activeTimer = $activeTimeLogs?.find(t => t.timer_id === timer.id);
-      if (activeTimer) {
-        // Open TimelogForm to edit active timelog
-        editingTimelog = {
-          timer_id: timer.id,
-          startTime: activeTimer.start_timestamp,
-          endTime: null,
-          log: activeTimer
-        };
-        showTimelogForm = true;
-      }
+  function handleLongPress(timer: Timer, timelog: TimeLog | undefined, isActive: boolean) {
+    if (isActive && timelog) {
+      // Open TimelogForm to edit active timelog
+      editingTimelog = timelog;
+      showTimelogForm = true;
     } else {
       // Open TimerForm to edit timer
       handleEditTimer(timer);
@@ -180,7 +180,7 @@
     startTimestamp: string;
     endTimestamp?: string | null;
     notes?: string;
-    existingLog?: { log: TimeLog };
+    existingLog?: TimeLog;
   }) {
     const { timer_id, type, startTimestamp, endTimestamp, notes, existingLog } = data;
 
@@ -188,9 +188,9 @@
     if (timerToStop) {
       await timeLogsStore.stopTimer(timerToStop, notes || undefined, endTimestamp || undefined);
       timerToStop = null;
-    } else if (existingLog && existingLog.log) {
+    } else if (existingLog) {
       // Editing existing timelog
-      await timeLogsStore.update(existingLog.log.id, {
+      await timeLogsStore.update(existingLog.id, {
         timer_id,
         type,
         start_timestamp: startTimestamp,
@@ -212,10 +212,9 @@
     editingTimelog = null;
   }
 
-  function handleDeleteTimelog(event: CustomEvent) {
-    const { session } = event.detail;
-    if (session?.log) {
-      timeLogsStore.delete(session.log);
+  function handleDeleteTimelog(timelog?: TimeLog) {
+    if (timelog && timelog.id) {
+      timeLogsStore.delete(timelog);
     }
     showTimelogForm = false;
     editingTimelog = null;
@@ -226,13 +225,7 @@
     if (editOnStopEnabled) {
       // Open TimelogForm to allow editing before stopping (optional)
       // Timer will continue running until user saves the form
-      editingTimelog = {
-        timer_id: timer.id,
-        startTime: timelog.start_timestamp,
-        endTime: null,
-        log: timelog, // Pass the actual timelog, not timer
-        pendingStop: true // Flag to indicate this is a pending stop
-      };
+      editingTimelog = {...timelog};
       timerToStop = timelog;
       showTimelogForm = true;
     } else {
@@ -358,7 +351,7 @@
   {/if}
 
   <!-- Timelog Form Modal -->
-  {#if showTimelogForm}
+  {#if showTimelogForm && editingTimelog !== null}
     <TimelogForm
       selectedDate={dayjs()}
       existingLog={editingTimelog}

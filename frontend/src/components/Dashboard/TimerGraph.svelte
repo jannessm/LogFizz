@@ -1,9 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { TimeLog, Timer } from '../../types';
+  import type { Timer } from '../../types';
   import { timeLogsStore } from '../../stores/timelogs';
   import { computeTimerLayout } from '../../lib/timerLayout';
-  import TimerButton from './TimerButton.svelte';
+  import TimerButton, {
+    type ButtonEditCallback,
+    type ButtonLongpressCallback,
+    type ButtonTimerStoppedCallback
+  } from './TimerButton.svelte';
 
   let { 
     buttons,
@@ -16,9 +20,9 @@
     buttons: Timer[];
     editMode?: boolean;
     toggleMode?: boolean;
-    edit?: (timer: Timer) => void;
-    longpress?: (timer: Timer, isActive: boolean) => void;
-    timerstopped?: (timelog: TimeLog, timer: Timer) => void;
+    edit?: ButtonEditCallback;
+    longpress?: ButtonLongpressCallback;
+    timerstopped?: ButtonTimerStoppedCallback;
   } = $props();
 
   const timerSize = 150; // Base size of each timer in pixels

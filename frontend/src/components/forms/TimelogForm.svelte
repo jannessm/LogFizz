@@ -1,161 +1,120 @@
 <script lang="ts">
-  import dayjs from 'dayjs';
-  import utc from 'dayjs/plugin/utc';
-  import timezone from 'dayjs/plugin/timezone';
+  import { onMount } from 'svelte';
   import { timers } from '../../stores/timers';
-
-  dayjs.extend(utc);
-  dayjs.extend(timezone);
-
-  // Get user's timezone
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  import { dayjs, type TimeLog } from '../../types';
+  import { userTimezone } from '../../../../lib/dist/utils/dayjs';
 
   let {
     selectedDate,
-    existingLog = null,
+    existingLog = undefined,
     isTimerStop = false,
     save,
     close,
     del
   }: {
     selectedDate: dayjs.Dayjs;
-    existingLog: any;
-    isTimerStop: boolean;
+    existingLog?: TimeLog;
+    isTimerStop?: boolean;
     save: (data: any) => void;
     close: () => void;
-    del: (data: any) => void;
+    del: (data: any) => void
   } = $props();
 
-  let buttonId = $state(existingLog?.timer_id || '');
-  let type = $state(existingLog?.log?.type || 'normal');
+  let timerId = $state('');
+  let timezone = userTimezone;
+  let type = $state('normal');
+  let isRunning = $state(false); // When stopping timer, it should not be running
+  let isWholeDay = $state(false);
   
   // When editing, convert from stored timezone to user's local timezone
   // For new entries, use selectedDate and current time as defaults
-  const now = dayjs();
-  let startDate = $state(existingLog?.startTime 
-    ? dayjs.utc(existingLog.startTime).tz(userTimezone).format('YYYY-MM-DD') 
-    : selectedDate.format('YYYY-MM-DD'));
-  let startTime = $state(existingLog?.startTime 
-    ? dayjs.utc(existingLog.startTime).tz(userTimezone).format('HH:mm') 
-    : (!isTimerStop ? now.format('HH:mm') : ''));
+  const now = dayjs.utc(selectedDate);
+  
+  // Initialize start timestamp
+  let startTimestamp = $state(dayjs());
 
-  // When stopping a timer, pre-populate end time with current time
-  // For new entries (not editing, not running), initialize with 1 minute after start time
-  let endDate = $state(existingLog?.endTime 
-    ? dayjs.utc(existingLog.endTime).tz(userTimezone).format('YYYY-MM-DD') 
-    : (isTimerStop ? now.format('YYYY-MM-DD') : selectedDate.format('YYYY-MM-DD')));
-  let endTime = $state(existingLog?.endTime 
-    ? dayjs.utc(existingLog.endTime).tz(userTimezone).format('HH:mm') 
-    : (isTimerStop ? now.format('HH:mm') : (!existingLog ? now.add(1, 'minute').format('HH:mm') : '')));
+  // Initialize end timestamp - using a derived value to avoid the warning
+  let endTimestamp = $state(dayjs());
 
-  let notes = $state(existingLog?.log?.notes || '');
-  let isRunning = $state(!existingLog?.endTime && !isTimerStop); // When stopping timer, it should not be running
+  let notes = $state('');
   let errorMessage: string = $state('');
   let showDeleteConfirm = $state(false);
 
-  // When type changes, reset date range validation
-  $effect(() => {
-    if (type !== 'normal') {
-      // For non-normal types, ensure endDate is set to at least startDate
-      if (!endDate || endDate < startDate) {
-        endDate = startDate;
-      }
-    }
-  });
+  onMount(() => {
+    if (existingLog) {
+      startTimestamp = !!existingLog.start_timestamp
+        ? dayjs.utc(existingLog.start_timestamp)
+        : now;
 
-  // When isRunning becomes false (user unchecks "Running"), initialize end time with at least 1 minute duration
-  $effect(() => {
-    if (!isRunning && !existingLog && startTime && !endTime) {
-      // Calculate 1 minute after start time
-      const start = dayjs(`${startDate} ${startTime}`);
-      const end = start.add(1, 'minute');
-      endDate = end.format('YYYY-MM-DD');
-      endTime = end.format('HH:mm');
+      endTimestamp = existingLog.end_timestamp
+        ? dayjs.utc(existingLog.end_timestamp)
+        : now;
+      
+      if (!existingLog.whole_day && endTimestamp.diff(startTimestamp) < 1000 * 60) {
+        endTimestamp = startTimestamp.add(1, 'minute');
+      }
+
+      timerId = existingLog.timer_id || '';
+      type = existingLog.type || 'normal';
+      isRunning = !existingLog.end_timestamp && !isTimerStop; // When stopping timer, it should not be running
+      isWholeDay = existingLog.whole_day || false;
+      notes = existingLog.notes || '';
+      timezone = existingLog.timezone || userTimezone;
     }
-  });
+  })
+
+  function setTimestamp(value: dayjs.Dayjs, input: string, type: 'start' | 'end') {
+    if (input.includes(':')) {
+      const [hours, minutes] = input.split(':').map(Number);
+      value = value.tz(timezone).set('hour', hours).set('minutes', minutes);
+    } else if (input.includes('-')) {
+      const [year, month, date] = input.split('-').map(Number);
+      value = value.tz(timezone).set('year', year).set('month', month - 1).set('date', date);
+    }
+
+    if (type === 'start') {
+      startTimestamp = value.utc();
+    } else {
+      endTimestamp = value.utc();
+    }
+    console.log(`Set ${type} timestamp to:`, value.format());
+  }
 
   function hasDateError() {
     return errorMessage === 'End time must be after start time' || errorMessage === 'Duration must be at least 1 minute';
   }
 
-  const DAY_START_TIME = '00:00:00';
-  const DAY_END_TIME = '23:59:59';
-
   function handleSubmit() {
     errorMessage = '';
 
-    if (!buttonId || !startDate) {
+    if (!timerId || !startTimestamp) {
       errorMessage = 'Please fill all required fields';
       return;
     }
 
-    // For special types (non-normal), we don't need start/end times, but we need date range
-    if (type !== 'normal') {
-      if (!endDate) {
-        errorMessage = 'Please provide an end date';
-        return;
-      }
-
+    if (!isRunning && !isWholeDay) {
       // Validate end date is not before start date
-      if (endDate < startDate) {
-        errorMessage = 'End date must be on or after start date';
-        return;
-      }
-
-      // Use start of first day and end of last day for the range
-      const startTimestamp = `${startDate}T${DAY_START_TIME}`;
-      const endTimestamp = `${endDate}T${DAY_END_TIME}`;
-      
-      save({
-        timer_id: buttonId,
-        type,
-        startTimestamp,
-        endTimestamp,
-        notes,
-        existingLog
-      });
-      return;
-    }
-
-    // For normal type, validate time fields
-    if (!startTime) {
-      errorMessage = 'Please fill all required fields';
-      return;
-    }
-
-    const startTimestamp = `${startDate}T${startTime}:00`;
-    let endTimestamp: string | null = null;
-
-    if (!isRunning) {
-      if (!endDate || !endTime) {
-        errorMessage = 'Please provide end date and time for paired entry';
-        return;
-      }
-      endTimestamp = `${endDate}T${endTime}:00`;
-
-      // Validate end is after start
-      if (new Date(endTimestamp) <= new Date(startTimestamp)) {
-        errorMessage = 'End time must be after start time';
+      if (endTimestamp.isBefore(startTimestamp)) {
+        errorMessage = 'End date must be after start date';
         return;
       }
 
       // Validate minimum duration of 1 minute
-      const durationMs = new Date(endTimestamp).getTime() - new Date(startTimestamp).getTime();
+      const durationMs = endTimestamp.diff(startTimestamp);
       const durationMinutes = durationMs / (1000 * 60);
       if (durationMinutes < 1) {
         errorMessage = 'Duration must be at least 1 minute';
         return;
       }
-    } else {
-      // ensure paired value is removed when running
-      endTimestamp = null;
     }
 
+    // is not TimeLog type
     save({
-      timer_id: buttonId,
+      timer_id: timerId,
       type,
-      startTimestamp,
-      endTimestamp,
+      whole_day: isWholeDay,
+      startTimestamp: startTimestamp.toISOString(),
+      endTimestamp: endTimestamp.toISOString(),
       notes,
       existingLog
     });
@@ -166,7 +125,7 @@
   }
 
   function handleDeleteConfirm() {
-    del({ session: existingLog });
+    del(existingLog);
     showDeleteConfirm = false;
   }
 
@@ -225,7 +184,7 @@
         </label>
         <select
           id="timer"
-          bind:value={buttonId}
+          bind:value={timerId}
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           required
         >
@@ -258,17 +217,16 @@
       </div>
 
       <!-- Entry Type (hide when stopping timer or for non-normal types) -->
-      {#if !isTimerStop && type === 'normal'}
+      {#if !isTimerStop}
         <div>
           <label class="flex items-center gap-2">
             <input
               id="running"
               type="checkbox"
               bind:checked={isRunning}
+              disabled={isWholeDay}
               onchange={() => {
                 if (isRunning) {
-                  endDate = '';
-                  endTime = '';
                   errorMessage = '';
                 }
               }}
@@ -279,66 +237,60 @@
         </div>
       {/if}
 
-      <!-- For special types, show date range -->
-      {#if type !== 'normal'}
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">
-              Start Date *
-            </label>
-            <input
-              id="startDate"
-              type="date"
-              bind:value={startDate}
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
-          <div>
-            <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">
-              End Date *
-            </label>
-            <input
-              id="endDate"
-              type="date"
-              bind:value={endDate}
-              min={startDate}
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
+      <!-- Whole Day Checkbox -->
+      <div>
+        <label class="flex items-center gap-2">
+          <input
+            id="wholeDay"
+            type="checkbox"
+            bind:checked={isWholeDay}
+            onchange={() => {
+              if (isWholeDay) {
+                isRunning = false;
+                errorMessage = '';
+                startTimestamp = startTimestamp.startOf('day');
+                endTimestamp = startTimestamp.startOf('day');
+              }
+            }}
+            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          />
+          <span class="text-sm font-medium text-gray-700">Whole Day</span>
+        </label>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">
+            Start Date *
+          </label>
+          <input
+            id="startDate"
+            type="date"
+            bind:value={
+              () => startTimestamp.tz(timezone).format('YYYY-MM-DD'),
+              (value) => {setTimestamp(startTimestamp, value, 'start')}
+            }
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            required
+          />
         </div>
-        <p class="text-sm text-gray-500">
-          Duration will be calculated based on your daily targets for each day in this range
-        </p>
-      {:else}
-        <!-- Start Date and Time (for normal type) -->
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">
-              Start Date *
-            </label>
-            <input
-              id="startDate"
-              type="date"
-              bind:value={startDate}
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
-          <div>
-            <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">
-              Start Time *
-            </label>
-            <input
-              id="startTime"
-              type="time"
-              bind:value={startTime}
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              required
-            />
-          </div>
+        <div>
+          <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">
+            Start Time *
+          </label>
+          <input
+            id="startTime"
+            type="time"
+            bind:value={
+              () => startTimestamp.tz(timezone).format('HH:mm'),
+              (value) => {setTimestamp(startTimestamp, value, 'start')}
+            }
+            disabled={isWholeDay}
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            required
+          />
         </div>
+      </div>
 
         <!-- End Date and Time (shown when not running OR when stopping timer) -->
         {#if !isRunning || isTimerStop}
@@ -350,8 +302,11 @@
               <input
                 id="endDate"
                 type="date"
-                bind:value={endDate}
-                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                bind:value={
+                  () => endTimestamp.tz(timezone).format('YYYY-MM-DD'),
+                  (value) => {setTimestamp(endTimestamp, value, 'end')}
+                }
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 class:border-gray-300={!hasDateError}
                 class:border-red-500={hasDateError}
                 required
@@ -364,15 +319,18 @@
               <input
                 id="endTime"
                 type="time"
-                bind:value={endTime}
-                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              bind:value={
+                () => endTimestamp.tz(timezone).format('HH:mm'),
+                (value) => {setTimestamp(endTimestamp, value, 'end')}
+              }
+                disabled={isWholeDay}
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 class:border-gray-300={!hasDateError}
                 class:border-red-500={hasDateError}
                 required
               />
             </div>
           </div>
-        {/if}
       {/if}
 
       <!-- Notes Field -->

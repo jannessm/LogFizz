@@ -228,6 +228,10 @@ export async function getAllTimeLogs(): Promise<TimeLog[]> {
 }
 
 export async function deleteTimeLog(timelog: TimeLog): Promise<void> {
+  if (!timelog || !timelog.id) {
+    console.error('Cannot delete timelog: invalid or missing id', timelog);
+    throw new Error('Cannot delete timelog: invalid or missing id');
+  }
   const db = await getDB();
   await db.delete('timelogs', timelog.id);
 }
