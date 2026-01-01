@@ -121,7 +121,6 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
       try {
         // Load from local DB first
         const allItems = await config.db.getAll();
-        console.log(`Loaded ${allItems.length} items from local DB for ${config.storeName || 'Store'}`);
 
         // filter out deleted items and clean up old deleted items
         const items: T[] = [];

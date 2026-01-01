@@ -222,6 +222,11 @@ export async function getTimeLogsByYearMonth(year: number, month: number): Promi
   return db.getAllFromIndex('timelogs', 'by-year-month', [year, month]);
 }
 
+export async function getAllTimeLogs(): Promise<TimeLog[]> {
+  const db = await getDB();
+  return db.getAll('timelogs');
+}
+
 export async function deleteTimeLog(timelog: TimeLog): Promise<void> {
   const db = await getDB();
   await db.delete('timelogs', timelog.id);
@@ -362,6 +367,11 @@ export async function getBalance(id: string): Promise<Balance | undefined> {
 export async function getAllBalances(): Promise<Balance[]> {
   const db = await getDB();
   return db.getAll('balances');
+}
+
+export async function getBalancesCount(): Promise<number> {
+  const db = await getDB();
+  return db.count('balances');
 }
 
 export async function getBalancesByDate(date: string): Promise<Balance[]> {

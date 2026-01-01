@@ -67,12 +67,15 @@ function createHolidaysStore() {
         await tx.store.delete(old.id);
       }
       
-      // Add new holidays with cacheKey
+      await tx.done;
+      
+      // Add new holidays with cacheKey in a new transaction
+      const addTx = db.transaction('holidays', 'readwrite');
       for (const holiday of holidays) {
-        await db.add('holidays', { ...holiday, cacheKey });
+        await addTx.store.put({ ...holiday, cacheKey });
       }
       
-      await tx.done;
+      await addTx.done;
     } catch (error) {
       console.error('Failed to save holidays to cache:', error);
     }

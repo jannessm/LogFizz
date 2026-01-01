@@ -214,14 +214,16 @@ export class SyncService {
     const result = await api.getSyncChanges(cursor);
 
     // Update local DB with server changes
+    const promises = [];
     for (const item of result[dataKey]) {
       if ((item as any).deleted_at) {
         // Item was deleted on server - pass full item to delete helper
-        await deleteItem(item);
+        promises.push(deleteItem(item));
       } else {
-        await save(item);
+        promises.push(save(item));
       }
     }
+    await Promise.all(promises);
 
     // Save new cursor
     await saveSyncCursor(cursorKey, result.cursor);
