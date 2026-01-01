@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/svelte';
 import BarChart from './BarChart.svelte';
-import dayjs from 'dayjs';
+import dayjs from '../../../../lib/utils/dayjs.js';
 
 // Mock Chart.js
 const { MockChart } = vi.hoisted(() => {

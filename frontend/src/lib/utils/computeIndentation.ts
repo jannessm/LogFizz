@@ -1,4 +1,4 @@
-import dayjs from 'dayjs';
+import dayjs from '../../../../lib/utils/dayjs.js';
 
 export type Session = {
   startTime: string;

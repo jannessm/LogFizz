@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import SessionBox from './SessionBox.svelte';
-import dayjs from 'dayjs';
+import dayjs from '../../../../lib/utils/dayjs.js';
 
 vi.mock('../../../../lib/utils/timeFormat.js', () => ({
   formatMinutesCompact: (minutes: number) => {
