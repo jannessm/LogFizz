@@ -1,24 +1,28 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  let {
+    onsubmit,
+    onerror
+  }: {
+    onsubmit: (currentPassword: string, newPassword: string) => Promise<void>;
+    onerror?: (message: string) => void;
+  } = $props();
 
-  const dispatch = createEventDispatcher();
-
-  let currentPassword = '';
-  let newPassword = '';
-  let confirmPassword = '';
+  let currentPassword = $state('');
+  let newPassword = $state('');
+  let confirmPassword = $state('');
 
   async function handlePasswordChange() {
     if (newPassword !== confirmPassword) {
-      dispatch('error', 'New passwords do not match');
+      onerror?.('New passwords do not match');
       return;
     }
 
     if (newPassword.length < 8) {
-      dispatch('error', 'Password must be at least 8 characters');
+      onerror?.('Password must be at least 8 characters');
       return;
     }
 
-    dispatch('submit', { currentPassword, newPassword });
+    await onsubmit(currentPassword, newPassword);
     
     // Clear fields after submission (parent will handle success/error)
     currentPassword = '';
@@ -70,7 +74,7 @@
     </div>
 
     <button
-      on:click={handlePasswordChange}
+      onclick={handlePasswordChange}
       class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
     >
       <span class="w-5 h-5 icon-[si--key-line]"></span>

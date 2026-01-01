@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import BottomNav from '../components/BottomNav.svelte';
-  import AlertMessage from '../components/settings/AlertMessage.svelte';
   import ProfileSection from '../components/settings/ProfileSection.svelte';
   import PasswordSection from '../components/settings/PasswordSection.svelte';
   import SyncStatusSection from '../components/settings/SyncStatusSection.svelte';
@@ -9,19 +8,18 @@
   import { syncService } from '../services/sync';
   import { navigate } from '../lib/navigation';
   import { getSetting, saveSetting } from '../lib/db';
+  import { snackbar } from '../stores/snackbar';
   // Import version from frontend package.json
   // Vite allows importing JSON files directly
   import pkg from '../../package.json';
 
-  let name = '';
-  let originalName = '';
-  let hasPendingSync = false;
-  let errorMessage = '';
-  let successMessage = '';
-  let editOnStopEnabled = true;
+  let name = $state('');
+  let originalName = $state('');
+  let hasPendingSync = $state(false);
+  let editOnStopEnabled = $state(true);
 
-  $: user = $authStore.user;
-  $: isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+  let user = $derived($authStore.user);
+  let isOnline = $derived(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
   onMount(async () => {
     if (user) {
@@ -33,42 +31,40 @@
     editOnStopEnabled = setting !== false; // default true
   });
 
-  async function handleProfileUpdate(event: CustomEvent) {
-    errorMessage = '';
-    successMessage = '';
-    
-    const { name: updatedName } = event.detail;
+  async function handleProfileUpdate(event: { name: string }) {
+    const { name: updatedName } = event;
     
     try {
       const updatedUser = await authStore.updateProfile({ 
         name: updatedName
       });
-      successMessage = 'Profile updated successfully';
+      snackbar.success('Profile updated successfully');
       // Update local state with the server response
       name = updatedUser.name;
       originalName = updatedUser.name;
     } catch (error: any) {
-      errorMessage = error.message;
+      snackbar.error(error.message);
     }
   }
 
-  async function handlePasswordChange(event: CustomEvent) {
-    errorMessage = '';
-    successMessage = '';
-    
-    const { currentPassword, newPassword } = event.detail;
-
+  async function handlePasswordChange(currentPassword: string, newPassword: string) {
     try {
       await authStore.changePassword(currentPassword, newPassword);
-      successMessage = 'Password changed successfully';
+      snackbar.success('Password changed successfully');
     } catch (error: any) {
-      errorMessage = error.message;
+      snackbar.error(error.message);
     }
   }
 
   async function handleSync() {
-    await syncService.sync('all');
-    hasPendingSync = await syncService.hasPendingSync();
+    try {
+      snackbar.info('Syncing...', 2000);
+      await syncService.sync('all');
+      hasPendingSync = await syncService.hasPendingSync();
+      snackbar.success('Sync completed successfully');
+    } catch (error: any) {
+      snackbar.error(error.message || 'Sync failed. Please try again.');
+    }
   }
 
   async function handleLogout() {
@@ -76,9 +72,8 @@
     navigate('/login');
   }
 
-  function handleError(event: CustomEvent) {
-    errorMessage = event.detail;
-    successMessage = '';
+  function handleError(message: string) {
+    snackbar.error(message);
   }
 
   async function handleToggleEditOnStop() {
@@ -94,26 +89,23 @@
       <!-- Header -->
       <h1 class="text-2xl font-bold text-gray-800 mb-6">Settings</h1>
 
-      <AlertMessage type="error" message={errorMessage} />
-      <AlertMessage type="success" message={successMessage} />
-
       <ProfileSection
         email={user?.email || ''}
         bind:name
         {originalName}
-        on:submit={handleProfileUpdate}
-        on:error={handleError}
+        onsubmit={handleProfileUpdate}
+        onerror={handleError}
       />
 
       <PasswordSection
-        on:submit={handlePasswordChange}
-        on:error={handleError}
+        onsubmit={handlePasswordChange}
+        onerror={handleError}
       />
 
       <SyncStatusSection
         {hasPendingSync}
         {isOnline}
-        on:sync={handleSync}
+        onsync={handleSync}
       />
 
       <!-- Timer Behavior -->
@@ -123,7 +115,7 @@
           <input
             type="checkbox"
             bind:checked={editOnStopEnabled}
-            on:change={handleToggleEditOnStop}
+            onchange={handleToggleEditOnStop}
             class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
           />
           <span class="text-gray-700">Open edit form when stopping timers</span>
@@ -136,7 +128,7 @@
       <!-- Logout -->
       <div class="bg-white rounded-lg shadow-md p-6">
         <button
-          on:click={handleLogout}
+          onclick={handleLogout}
           class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
         >
           <span class="w-5 h-5 icon-[si--sign-out-line]"></span>

@@ -192,7 +192,7 @@ export class SyncService {
       notSyncing.forEach(t => this.notifyListeners(t as keyof typeof this.syncListeners));
     } finally {
       for (const t of notSyncing) {
-        this.syncingLocks[t as keyof typeof this.syncingLocks] = true;
+        this.syncingLocks[t as keyof typeof this.syncingLocks] = false;
       }
       console.log('Sync completed for types:', notSyncing);
     }
