@@ -105,7 +105,8 @@ export class PaymentService {
 
     user.subscription_status = 'active';
     user.stripe_subscription_id = subscription.id;
-    // Access current_period_end safely
+    // Note: current_period_end exists in Stripe API but may not be in type definitions
+    // Using type assertion to access it safely
     const periodEnd = (subscription as any).current_period_end;
     if (periodEnd) {
       user.subscription_end_date = new Date(periodEnd * 1000);
@@ -120,7 +121,8 @@ export class PaymentService {
     if (!user) return;
 
     user.subscription_status = subscription.status === 'active' ? 'active' : 'expired';
-    // Access current_period_end safely
+    // Note: current_period_end exists in Stripe API but may not be in type definitions
+    // Using type assertion to access it safely
     const periodEnd = (subscription as any).current_period_end;
     if (periodEnd) {
       user.subscription_end_date = new Date(periodEnd * 1000);
@@ -139,7 +141,8 @@ export class PaymentService {
   }
 
   private async handlePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
-    // Access subscription safely
+    // Note: subscription property exists in Stripe API but may not be in type definitions
+    // Using type assertion to access it safely
     const subscriptionId = (invoice as any).subscription as string;
     if (!subscriptionId) return;
 
@@ -153,7 +156,8 @@ export class PaymentService {
   }
 
   private async handlePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
-    // Access subscription safely
+    // Note: subscription property exists in Stripe API but may not be in type definitions
+    // Using type assertion to access it safely
     const subscriptionId = (invoice as any).subscription as string;
     if (!subscriptionId) return;
 
