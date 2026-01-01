@@ -14,6 +14,7 @@ import {
   aggregateToMonthly,
   aggregateToYearly,
   type Target as BalanceTarget,
+  type WholeDayCounters,
 } from '../../../lib/utils/balance.js';
 
 /**
@@ -128,9 +129,11 @@ function calculateBalanceData(
   // For special days, add due_minutes to worked_minutes (as per docs)
   let adjustedWorked = workedMinutes;
   if (counters.sick_days > 0 || counters.holidays > 0 || 
-      counters.business_trip > 0 || counters.child_sick > 0) {
+      counters.business_trip > 0 || counters.child_sick > 0 || counters.normal > 0) {
     adjustedWorked += dueMinutes;
   }
+
+  delete((counters as Partial<WholeDayCounters>).normal);
 
   return {
     date,

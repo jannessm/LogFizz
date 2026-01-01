@@ -1,5 +1,5 @@
-import { derived, get } from 'svelte/store';
-import type { TimeLog } from '../types';
+import { derived } from 'svelte/store';
+import type { TimeLog, Timer } from '../types';
 import { 
   getTimeLogsByYearMonth,
   saveTimeLog as saveTimeLogDB,
@@ -9,9 +9,6 @@ import { syncService } from '../services/sync';
 import { createBaseStore, type BaseStoreConfig } from './base-store';
 import { dayjs, userTimezone } from '../../../lib/utils/dayjs.js';
 import { recalculateBalancesForTimeLog } from '../utils/balance-recalculation';
-import { balancesStore } from './balances';
-import { targetsStore } from './targets';
-
 /**
  * Check if a timelog started before the given timestamp
  */
@@ -76,10 +73,10 @@ const timeLogStoreConfig: BaseStoreConfig<TimeLog> = {
       return timeLog;
     },
     afterUpdate: async (timeLog) => {
-      await recalculateBalancesForTimeLog(timeLog, { balancesStore, targetsStore });
+      await recalculateBalancesForTimeLog(timeLog);
     },
     afterDelete: async (timeLog) => {
-      await recalculateBalancesForTimeLog(timeLog, { balancesStore, targetsStore });
+      await recalculateBalancesForTimeLog(timeLog);
     },
   },
   storeName: 'timelogs',
@@ -107,14 +104,14 @@ function createTimeLogsStore() {
         timer_id: timeLogData.timer_id || '',
         type: timeLogData.type || 'normal',
         whole_day: timeLogData.whole_day ?? false,
-        start_timestamp: timeLogData.start_timestamp || new Date().toISOString(),
+        start_timestamp: timeLogData.start_timestamp || dayjs().toISOString(),
         end_timestamp: timeLogData.end_timestamp,
         duration_minutes: undefined, // Let saveTimeLog calculate this
         timezone: timeLogData.timezone || userTimezone,
         apply_break_calculation: timeLogData.apply_break_calculation ?? false,
         notes: timeLogData.notes || '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: dayjs().toISOString(),
+        updated_at: dayjs().toISOString(),
       });
     },
 
@@ -150,18 +147,18 @@ function createTimeLogsStore() {
      * @param timerId - ID of the timer to start
      * @returns Created timelog with no end_timestamp
      */
-    async startTimer(timerId: string) {
+    async startTimer(timer: Timer) {
       const timeLog = await baseStore.create({
         id: crypto.randomUUID(),
         user_id: '', // Will be set by backend
-        timer_id: timerId,
+        timer_id: timer.id,
         type: 'normal',
         whole_day: false,
-        start_timestamp: new Date().toISOString(),
+        start_timestamp: dayjs().toISOString(),
         timezone: userTimezone,
-        apply_break_calculation: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        apply_break_calculation: timer.auto_subtract_breaks || false,
+        created_at: dayjs().toISOString(),
+        updated_at: dayjs().toISOString(),
       });
 
       return timeLog;
@@ -175,7 +172,7 @@ function createTimeLogsStore() {
      * @returns Updated timelog with end_timestamp
      */
     async stopTimer(timelog: TimeLog, notes?: string, endTimestamp?: string) {
-      const now = new Date();
+      const now = dayjs();
       const endTime = endTimestamp || now.toISOString();
       
       const updatedTimeLog = await baseStore.update(timelog.id, {
@@ -192,7 +189,7 @@ function createTimeLogsStore() {
 /** Main timelogs store - manages time tracking entries */
 export const timeLogsStore = createTimeLogsStore();
 
-export const timers = derived(
+export const timerlogs = derived(
   timeLogsStore,
   $timeLogsStore => $timeLogsStore.items
 );
@@ -201,7 +198,7 @@ export const timers = derived(
 export const todayTimeLogs = derived(
   timeLogsStore,
   $timeLogsStore => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = dayjs().toISOString().split('T')[0];
     return $timeLogsStore.items.filter(tl => 
       tl.start_timestamp && tl.start_timestamp.startsWith(today)
     );

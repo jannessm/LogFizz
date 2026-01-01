@@ -22,13 +22,13 @@
 
   async function handleDeleteTimer(timer: Timer) {
     if (confirm(`Delete timer "${timer.name}"?`)) {
-      await timersStore.delete(timer);
+      await timersStore.delete($state.snapshot(timer));
     }
   }
 
   async function handleDeleteTarget(target: TargetWithSpecs) {
     if (confirm(`Delete target "${target.name}"?`)) {
-      await targetsStore.delete(target);
+      await targetsStore.delete($state.snapshot(target));
     }
   }
 

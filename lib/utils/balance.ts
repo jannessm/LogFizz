@@ -33,9 +33,10 @@ export type Balance = BaseBalance;
 export type BalanceGranularity = 'daily' | 'monthly' | 'yearly';
 
 /**
- * Counters for special timelog types
+ * Counters for whole day timelog types
  */
-export interface SpecialDayCounters {
+export interface WholeDayCounters {
+  normal: number;
   sick_days: number;
   holidays: number;
   business_trip: number;
@@ -47,7 +48,7 @@ export interface SpecialDayCounters {
  */
 export interface WorkedCalculation {
   worked_minutes: number;
-  counters: SpecialDayCounters;
+  counters: WholeDayCounters;
 }
 
 /**
@@ -142,7 +143,8 @@ export function calculateWorkedMinutesForDate(
   timelogs: TimeLog[]
 ): WorkedCalculation {
   let worked = 0;
-  const counters: SpecialDayCounters = {
+  const counters: WholeDayCounters = {
+    normal: 0,
     sick_days: 0,
     holidays: 0,
     business_trip: 0,
@@ -152,10 +154,11 @@ export function calculateWorkedMinutesForDate(
   for (const timelog of timelogs) {
     const duration = calculateTimelogDuration(timelog);
     
-    // Whole day entries (duration < 0) only increment counters
+    // Whole day entries (duration < 0) increment counters only 
     if (duration < 0) {
       const type = timelog.type || 'normal';
-      if (type === 'sick') counters.sick_days++;
+      if (type === 'normal') counters.normal++;
+      else if (type === 'sick') counters.sick_days++;
       else if (type === 'holiday') counters.holidays++;
       else if (type === 'business-trip') counters.business_trip++;
       else if (type === 'child-sick') counters.child_sick++;
@@ -243,7 +246,7 @@ export function aggregateToMonthly(
   const first = dailyBalances[0];
   let totalDue = 0;
   let totalWorked = 0;
-  const counters: SpecialDayCounters = {
+  const counters: WholeDayCounters = {
     sick_days: 0,
     holidays: 0,
     business_trip: 0,
@@ -307,7 +310,7 @@ export function aggregateToYearly(
   const first = monthlyBalances[0];
   let totalDue = 0;
   let totalWorked = 0;
-  const counters: SpecialDayCounters = {
+  const counters: WholeDayCounters = {
     sick_days: 0,
     holidays: 0,
     business_trip: 0,

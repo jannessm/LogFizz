@@ -1,11 +1,13 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import type { Timer, TimeLog } from '../../types';
-  import { timeLogsStore, timers, activeTimeLogs } from '../../stores/timelogs';
+  import { dayjs, type Timer, type TimeLog } from '../../types';
+  import { timeLogsStore, timerlogs, activeTimeLogs } from '../../stores/timelogs';
   import { timersStore } from '../../stores/timers';
-  import dayjs from 'dayjs';
   import { formatTime } from '../../../../lib/utils/timeFormat.js';
-    import type { C } from 'node_modules/vitest/dist/chunks/worker.d.5JNaocaN';
+
+  export type ButtonEditCallback = (timer: Timer) => void;
+  export type ButtonLongpressCallback = (timer: Timer, timelog: TimeLog | undefined, isActive: boolean) => void;
+  export type ButtonTimerStoppedCallback = (timelog: TimeLog, timer: Timer) => void;
 
   let {
     timer,
@@ -18,9 +20,9 @@
     timer: Timer;
     editMode?: boolean;
     toggleMode?: boolean;
-    edit?: (timer: Timer) => void;
-    longpress?: (timer: Timer, isActive: boolean) => void;
-    timerstopped?: (timelog: TimeLog, timer: Timer) => void;
+    edit?: ButtonEditCallback;
+    longpress?: ButtonLongpressCallback;
+    timerstopped?: ButtonTimerStoppedCallback;
   } = $props();
 
   let elapsedTime = $state(0); // in seconds
@@ -50,7 +52,7 @@
   $effect(() => {
     // Calculate today's total time from completed timelogs
     const today = dayjs().format('YYYY-MM-DD');
-    const todayLogs = $timers.filter(tl => 
+    const todayLogs = $timerlogs.filter(tl => 
       tl.timer_id === timer.id && tl.start_timestamp && tl.start_timestamp.startsWith(today)
     );
     
@@ -101,7 +103,7 @@
     isLongPressTriggered = false;
     longPressTimer = setTimeout(() => {
       isLongPressTriggered = true;
-      longpress(timer, isActive);
+      longpress(timer, activeTimeLog, isActive);
     }, 500) as unknown as number;
   }
 
@@ -136,7 +138,7 @@
         }
       }
       // Start timer
-      await timeLogsStore.startTimer(timer.id);
+      await timeLogsStore.startTimer(timer);
     }
   }
 
