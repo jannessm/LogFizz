@@ -9,7 +9,8 @@
   import TimerGraph from '../components/Dashboard/TimerGraph.svelte';
 
   import { TargetForm, TimelogForm, TimerForm } from '../components/forms';
-  import DailyTargets from '../components/DailyTargets.svelte';
+  import { paymentApi, type SubscriptionStatus } from '../services/payment';
+  import { navigate } from '../lib/navigation';
   import BottomNav from '../components/BottomNav.svelte';
   import AddSelector from '../components/AddSelector.svelte';
   import dayjs from 'dayjs';
@@ -30,6 +31,8 @@
   let verificationReminderShown = $state(false);
   let editOnStopEnabled = $state(true);
   let timerToStop: any = $state(null);
+  let subscriptionStatus: SubscriptionStatus | null = $state(null);
+  let paywallEnabled = $state(false);
 
   let timers = nonArchivedTimers;
   let user = $authStore.user;
@@ -41,7 +44,42 @@
 
     // Check if email is verified and show reminder
     checkEmailVerification();
+
+    // Check subscription status
+    checkSubscription();
   });
+
+  async function checkSubscription() {
+    try {
+      const paywallStatus = await paymentApi.getPaywallStatus();
+      paywallEnabled = paywallStatus.enabled;
+
+      if (paywallEnabled) {
+        subscriptionStatus = await paymentApi.getSubscriptionStatus();
+        
+        // Show warning if access will expire soon (within 7 days)
+        if (subscriptionStatus.status === 'trial' && subscriptionStatus.trialEndDate) {
+          const daysRemaining = Math.ceil((new Date(subscriptionStatus.trialEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          if (daysRemaining <= 7 && daysRemaining > 0) {
+            snackbar.withAction(
+              `Your trial expires in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}. Subscribe to continue using TapShift.`,
+              'warning',
+              'Subscribe',
+              () => navigate('/payment'),
+              0 // Don't auto-dismiss
+            );
+          }
+        }
+
+        // Redirect to payment if no access
+        if (!subscriptionStatus.hasAccess) {
+          navigate('/payment');
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to check subscription status:', error);
+    }
+  }
 
   function checkEmailVerification() {
     if (!user || verificationReminderShown) return;
