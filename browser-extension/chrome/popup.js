@@ -284,8 +284,16 @@ async function refresh() {
   await checkAuthAndLoadData();
 }
 
-function openWebapp() {
-  const url = elements.apiUrl.value || 'http://localhost:3000';
+async function openWebapp() {
+  // Get the URL from settings or use stored value
+  let url;
+  try {
+    const result = await browserAPI.storage.sync.get(['apiUrl']);
+    url = result.apiUrl || 'http://localhost:3000';
+  } catch (error) {
+    url = 'http://localhost:3000';
+  }
+  
   browserAPI.tabs.query({ url: url + '/*' }, (tabs) => {
     if (tabs.length > 0) {
       // Focus existing tab
@@ -336,10 +344,21 @@ function showMessage(message) {
 
 // Helper function to get contrasting text color
 function getContrastColor(hexColor) {
+  // Ensure color has # prefix
+  if (!hexColor || !hexColor.startsWith('#')) {
+    return '#FFFFFF'; // Default to white text
+  }
+  
+  // Expand shorthand hex colors (e.g., #fff -> #ffffff)
+  let color = hexColor;
+  if (color.length === 4) {
+    color = '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3];
+  }
+  
   // Convert hex to RGB
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
+  const r = parseInt(color.slice(1, 3), 16);
+  const g = parseInt(color.slice(3, 5), 16);
+  const b = parseInt(color.slice(5, 7), 16);
   
   // Calculate relative luminance
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;

@@ -1,24 +1,29 @@
-// Background service worker for Chrome extension
+// Background script for Safari extension
 // This runs in the background and can be used for additional features
 
-chrome.runtime.onInstalled.addListener(() => {
+// Safari uses the browser API (same as Firefox)
+const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+
+browserAPI.runtime.onInstalled.addListener(() => {
   console.log('TapShift extension installed');
   
   // Set default API URL
-  chrome.storage.sync.get(['apiUrl'], (result) => {
+  browserAPI.storage.sync.get(['apiUrl']).then((result) => {
     if (!result.apiUrl) {
-      chrome.storage.sync.set({ apiUrl: 'http://localhost:3000' });
+      browserAPI.storage.sync.set({ apiUrl: 'http://localhost:3000' });
     }
+  }).catch(() => {
+    // Fallback for older APIs
+    browserAPI.storage.sync.get(['apiUrl'], (result) => {
+      if (!result.apiUrl) {
+        browserAPI.storage.sync.set({ apiUrl: 'http://localhost:3000' });
+      }
+    });
   });
 });
 
-// Handle extension icon click (optional - popup handles this by default)
-chrome.action.onClicked.addListener((tab) => {
-  console.log('Extension icon clicked');
-});
-
 // Listen for messages from popup or content scripts
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+browserAPI.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Message received:', request);
   sendResponse({ received: true });
 });
