@@ -118,6 +118,7 @@ describe('Monthly Balance Service - Sync Only', () => {
           balances: [{
             id: balanceId,
             target_id: targetId,
+            next_balance_id: null,
             date: '2025-01',
             due_minutes: 9600,
             worked_minutes: 9000,
@@ -156,6 +157,7 @@ describe('Monthly Balance Service - Sync Only', () => {
           balances: [{
             id: balanceId,
             target_id: targetId,
+            next_balance_id: null,
             date: '2025-02',
             due_minutes: 9600,
             worked_minutes: 8000,
@@ -181,6 +183,7 @@ describe('Monthly Balance Service - Sync Only', () => {
           balances: [{
             id: balanceId,
             target_id: targetId,
+            next_balance_id: null,
             date: '2025-02',
             due_minutes: 9600,
             worked_minutes: 9500, // Changed
@@ -216,6 +219,7 @@ describe('Monthly Balance Service - Sync Only', () => {
           balances: [{
             id: balanceId,
             target_id: targetId,
+            next_balance_id: null,
             date: '2025-03',
             due_minutes: 9600,
             worked_minutes: 8000,
@@ -243,6 +247,7 @@ describe('Monthly Balance Service - Sync Only', () => {
           balances: [{
             id: balanceId,
             target_id: targetId,
+            next_balance_id: null,
             date: '2025-03',
             due_minutes: 9600,
             worked_minutes: 7000, // Different value

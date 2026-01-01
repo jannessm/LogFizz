@@ -9,7 +9,7 @@ const balanceService = new BalanceService();
 const BalanceInputSchema = Type.Object({
   id: Type.Optional(Type.String()),
   target_id: Type.String(),
-  next_balance_id: Type.Optional(Type.String()),
+  next_balance_id: Type.Union([Type.String(), Type.Null()]),
   date: Type.String(),
   due_minutes: Type.Integer(),
   worked_minutes: Type.Integer(),
@@ -27,7 +27,7 @@ const BalanceSchema = Type.Object({
   id: Type.String(),
   user_id: Type.String(),
   target_id: Type.String(),
-  next_balance_id: Type.Optional(Type.String()),
+  next_balance_id: Type.Union([Type.String(), Type.Null()]),
   date: Type.String(),
   due_minutes: Type.Integer(),
   worked_minutes: Type.Integer(),
