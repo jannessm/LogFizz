@@ -11,9 +11,9 @@ export class PaymentService {
     if (!stripeSecretKey) {
       console.warn('STRIPE_SECRET_KEY not configured. Payment features will not work.');
       // Initialize with a dummy key to prevent errors, but payments won't work
-      this.stripe = new Stripe('sk_test_dummy', { apiVersion: '2024-12-18.acacia' });
+      this.stripe = new Stripe('sk_test_dummy', { apiVersion: '2025-12-15.clover' });
     } else {
-      this.stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-12-18.acacia' });
+      this.stripe = new Stripe(stripeSecretKey, { apiVersion: '2025-12-15.clover' });
     }
   }
 
@@ -105,7 +105,11 @@ export class PaymentService {
 
     user.subscription_status = 'active';
     user.stripe_subscription_id = subscription.id;
-    user.subscription_end_date = new Date(subscription.current_period_end * 1000);
+    // Access current_period_end safely
+    const periodEnd = (subscription as any).current_period_end;
+    if (periodEnd) {
+      user.subscription_end_date = new Date(periodEnd * 1000);
+    }
     await this.userRepository.save(user);
   }
 
@@ -116,7 +120,11 @@ export class PaymentService {
     if (!user) return;
 
     user.subscription_status = subscription.status === 'active' ? 'active' : 'expired';
-    user.subscription_end_date = new Date(subscription.current_period_end * 1000);
+    // Access current_period_end safely
+    const periodEnd = (subscription as any).current_period_end;
+    if (periodEnd) {
+      user.subscription_end_date = new Date(periodEnd * 1000);
+    }
     await this.userRepository.save(user);
   }
 
@@ -131,7 +139,8 @@ export class PaymentService {
   }
 
   private async handlePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
-    const subscriptionId = invoice.subscription as string;
+    // Access subscription safely
+    const subscriptionId = (invoice as any).subscription as string;
     if (!subscriptionId) return;
 
     const user = await this.userRepository.findOne({ 
@@ -144,7 +153,8 @@ export class PaymentService {
   }
 
   private async handlePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
-    const subscriptionId = invoice.subscription as string;
+    // Access subscription safely
+    const subscriptionId = (invoice as any).subscription as string;
     if (!subscriptionId) return;
 
     const user = await this.userRepository.findOne({ 
