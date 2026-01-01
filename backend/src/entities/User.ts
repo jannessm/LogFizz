@@ -39,6 +39,21 @@ export class User implements UserEntity {
   @Column('timestamptz', { nullable: true })
   reset_token_expires_at?: Date;
 
+  @Column('varchar', { nullable: true, default: 'trial' })
+  subscription_status?: 'trial' | 'active' | 'expired' | 'canceled';
+
+  @Column('timestamptz', { nullable: true })
+  subscription_end_date?: Date;
+
+  @Column('timestamptz', { nullable: true })
+  trial_end_date?: Date;
+
+  @Column('varchar', { nullable: true })
+  stripe_customer_id?: string;
+
+  @Column('varchar', { nullable: true })
+  stripe_subscription_id?: string;
+
   @OneToMany('Button', 'user')
   buttons?: any[];
 
