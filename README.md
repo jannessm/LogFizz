@@ -19,6 +19,7 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - Account management (password, name, email changes)
 - Automatic logging to backend
 - Docker-based deployment for both frontend and backend
+- Browser extensions for Chrome, Firefox, and Safari
 - iOS app with widgets and Live Activities for lock screen timer control
 
 ---
@@ -460,6 +461,7 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 1. See [Developer Guide](docs/DEVELOPER_GUIDE.md) for complete setup instructions
 2. Backend is fully implemented - see [Backend README](backend/README.md)
 3. Frontend development is next on the roadmap
+4. Browser extensions are available - see [Browser Extensions README](browser-extension/README.md)
 
 **Documentation:**
 - 📖 [Developer Guide](docs/DEVELOPER_GUIDE.md) - Setup, workflow, and common tasks
@@ -468,6 +470,7 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - 🛠️ [Framework Decisions](docs/frameworks.md) - Technology choices
 - 📡 [Backend API](backend/README.md) - API documentation
 - 🔒 [hCaptcha Setup](docs/HCAPTCHA.md) - Bot protection configuration
+- 🧩 [Browser Extensions](browser-extension/README.md) - Chrome, Firefox, and Safari extensions
 
 **Backend Status:** ✅ Complete
 - 25+ REST API endpoints
@@ -476,6 +479,14 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - Swagger documentation
 - Session-based authentication
 - Offline-first sync support
+
+**Browser Extensions Status:** ✅ Complete
+- Chrome extension (Manifest V3)
+- Firefox extension (WebExtensions API)
+- Safari extension (requires Xcode build)
+- Start/stop timers from browser toolbar
+- Navigate to webapp in new or existing tab
+- Configurable server URL
 
 **Next Steps:**
 1. Build the **Web Frontend** (Section 3) to consume the API
