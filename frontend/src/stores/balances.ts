@@ -195,7 +195,7 @@ function createBalancesStore() {
         id: crypto.randomUUID(),
         user_id: '',
         target_id: balanceData.target_id || '',
-        next_balance_id: balanceData.next_balance_id || '',
+        next_balance_id: balanceData.next_balance_id || null,
         date: balanceData.date || dayjs().format('YYYY-MM-DD'),
         due_minutes: balanceData.due_minutes || 0,
         worked_minutes: balanceData.worked_minutes || 0,
