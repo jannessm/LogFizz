@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import HistoryCharts from './HistoryCharts.svelte';
-import dayjs from 'dayjs';
+import dayjs from '../../../../lib/utils/dayjs.js';
 
 describe('HistoryCharts Component', () => {
   let mockButtons: any[];

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/svelte';
 import HistoryCalendar from './HistoryCalendar.svelte';
-import dayjs from 'dayjs';
+import dayjs from '../../../../lib/utils/dayjs.js';
 
 const { mockHolidaysStore } = vi.hoisted(() => {
   const { writable } = require('svelte/store');
