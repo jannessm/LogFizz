@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TapShift Timer</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>TapShift</h1>
+      <button id="settingsBtn" class="icon-btn" title="Settings">⚙️</button>
+    </header>
+
+    <div id="notAuthenticated" class="section hidden">
+      <p class="message">Please log in to the TapShift webapp first.</p>
+      <button id="openWebappBtn" class="btn btn-primary">Open TapShift</button>
+    </div>
+
+    <div id="authenticated" class="section hidden">
+      <div id="userInfo" class="user-info">
+        <span id="userName"></span>
+        <button id="logoutBtn" class="btn-text">Logout</button>
+      </div>
+
+      <div id="activeTimer" class="active-timer hidden">
+        <div class="timer-info">
+          <div class="timer-button-name" id="activeButtonName"></div>
+          <div class="timer-duration" id="timerDuration">00:00:00</div>
+        </div>
+        <button id="stopTimerBtn" class="btn btn-danger">Stop Timer</button>
+      </div>
+
+      <div id="buttons" class="buttons-grid">
+        <!-- Buttons will be dynamically loaded here -->
+      </div>
+
+      <div class="actions">
+        <button id="refreshBtn" class="btn btn-secondary">Refresh</button>
+        <button id="openWebappBtnAuth" class="btn btn-secondary">Open Webapp</button>
+      </div>
+    </div>
+
+    <div id="settings" class="section hidden">
+      <h2>Settings</h2>
+      <div class="form-group">
+        <label for="apiUrl">TapShift URL:</label>
+        <input type="text" id="apiUrl" placeholder="http://localhost:3000">
+        <small>Enter the URL where TapShift is hosted</small>
+      </div>
+      <div class="form-actions">
+        <button id="saveSettingsBtn" class="btn btn-primary">Save</button>
+        <button id="cancelSettingsBtn" class="btn btn-secondary">Cancel</button>
+      </div>
+    </div>
+
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+    </div>
+
+    <div id="error" class="error hidden"></div>
+  </div>
+
+  <script src="api.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

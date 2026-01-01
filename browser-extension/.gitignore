@@ -1,0 +1,41 @@
+# Node.js
+node_modules/
+*.log
+
+# Build artifacts
+*.zip
+*.xpi
+*.crx
+
+# macOS
+.DS_Store
+
+# Xcode (for Safari extension)
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+# Safari extension build
+safari/*.xcodeproj/
+safari/*.xcworkspace/
+safari/build/
+safari/DerivedData/
+
+# Temporary files
+*.tmp
+*.temp
+.idea/
+.vscode/
+
+# Generated icons (keep placeholders for now, replace with real icons later)
+# Uncomment when real icons are added:
+# !icons/icon*.png
