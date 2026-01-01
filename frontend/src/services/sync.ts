@@ -236,7 +236,11 @@ export class SyncService {
     save: (item: any) => Promise<void>,
   ): Promise<void> {
     // data is an array of SyncQueueItem objects
-    const payload = data.map((qi: any) => qi.data);
+    // Remove user_id from payload as server sets it from session
+    const payload = data.map((qi: any) => {
+      const { user_id, ...rest } = qi.data;
+      return rest;
+    });
 
     const result = await api.pushSyncChanges(payload);
 
