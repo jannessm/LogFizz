@@ -58,9 +58,19 @@
 
   async function handleSync() {
     try {
-      snackbar.info('Syncing...', 2000);
+      let syncingSnackbarId: string | null = null;
+      const showSyncingTimeout = setTimeout(() => {
+        syncingSnackbarId = snackbar.info('Syncing...', 2000);
+      }, 1000);
+
       await syncService.sync('all');
       hasPendingSync = await syncService.hasPendingSync();
+      
+      clearTimeout(showSyncingTimeout);
+      if (syncingSnackbarId) {
+        snackbar.dismiss(syncingSnackbarId);
+      }
+      
       snackbar.success('Sync completed successfully');
     } catch (error: any) {
       snackbar.error(error.message || 'Sync failed. Please try again.');
