@@ -83,7 +83,7 @@ export class HolidayCrawlerService {
       
       return data.map((holiday) => ({
         country: country.toUpperCase(),
-        global: !!holiday.types && "Public" in holiday.types,
+        global: !!holiday.types && holiday.types.includes("Public"),
         counties: holiday.counties || [],
         date: new Date(holiday.date),
         name: holiday.name,
