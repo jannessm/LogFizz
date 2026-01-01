@@ -24,15 +24,6 @@ export class StateService {
   }
 
   /**
-   * Get a state by ID
-   */
-  async getStateById(id: string): Promise<State | null> {
-    return this.stateRepository.findOne({
-      where: { id },
-    });
-  }
-
-  /**
    * Get a state by code (e.g., 'DE-BW')
    */
   async getStateByCode(code: string): Promise<State | null> {

@@ -20,6 +20,9 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         200: Type.Object({
           url: Type.String(),
         }),
+        400: Type.Object({
+          error: Type.String(),
+        }),
         401: Type.Object({
           error: Type.String(),
         }),
@@ -54,6 +57,9 @@ export async function paymentRoutes(fastify: FastifyInstance) {
           subscriptionEndDate: Type.Optional(Type.String()),
           hasAccess: Type.Boolean(),
         }),
+        400: Type.Object({
+          error: Type.String(),
+        }),
         401: Type.Object({
           error: Type.String(),
         }),
@@ -85,6 +91,9 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         200: Type.Object({
           message: Type.String(),
         }),
+        400: Type.Object({
+          error: Type.String(),
+        }),
         401: Type.Object({
           error: Type.String(),
         }),
@@ -104,11 +113,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   });
 
   // Stripe webhook handler
-  fastify.post('/webhook', {
-    config: {
-      rawBody: true, // Needed for Stripe signature verification
-    },
-  }, async (request, reply) => {
+  fastify.post('/webhook', async (request, reply) => {
     const signature = request.headers['stripe-signature'] as string;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -118,9 +123,13 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     }
 
     try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2024-12-18.acacia' });
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-12-15.clover' });
+      
+      // Get the raw body as string
+      const payload = JSON.stringify(request.body);
+      
       const event = stripe.webhooks.constructEvent(
-        request.rawBody as Buffer,
+        payload,
         signature,
         webhookSecret
       );
@@ -159,6 +168,9 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         200: Type.Object({
           message: Type.String(),
           enabled: Type.Boolean(),
+        }),
+        400: Type.Object({
+          error: Type.String(),
         }),
         401: Type.Object({
           error: Type.String(),
