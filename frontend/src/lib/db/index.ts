@@ -94,7 +94,7 @@ export async function getDB(): Promise<IDBPDatabase<TapShiftDB>> {
 
       // States store
       if (!db.objectStoreNames.contains('states')) {
-        db.createObjectStore('states', { keyPath: 'id' });
+        db.createObjectStore('states', { keyPath: 'code' });
       }
 
       // Balances store (unified for daily/monthly/yearly)

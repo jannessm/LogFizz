@@ -3,7 +3,7 @@
   import { targetsStore } from '../../stores/targets';
   import { timeLogsStore } from '../../stores/timelogs';
   import type { Timer, TargetWithSpecs } from '../../types';
-  import { getActiveTargetSpec, isTargetEnded } from '../../lib/utils/targetSpec';
+  import { getActiveTargetSpec, isTargetArchived } from '../../lib/utils/targetSpec';
   import { dayjs } from '../../types';
 
   let {
@@ -100,21 +100,17 @@
     return activeDays.join(', ');
   }
 
-  function getActiveWeekdays(spec: any): string {
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const activeDays = spec.duration_minutes
-      .map((duration: number, index: number) => duration > 0 ? dayNames[index] : null)
-      .filter((day: string | null) => day !== null);
-    return activeDays.join(', ');
-  }
-
+  let activeTargets: TargetWithSpecs[] = $state([]);
+  let archivedTargets: TargetWithSpecs[] = $state([]);
+  let activeTimers: Timer[] = $state([]);
+  let archivedTimers: Timer[] = $state([]);
 
   $effect(() => {
     const _archivedTargets: TargetWithSpecs[] = [];
     const _activeTargets: TargetWithSpecs[] = [];
 
     $targetsStore.items.forEach(t => {
-      if (isTargetEnded(t)) {
+      if (isTargetArchived(t)) {
         _archivedTargets.push(t);
       } else {
         _activeTargets.push(t);
@@ -127,7 +123,7 @@
     const _activeTimers: Timer[] = [];
     $timersStore.items.forEach(b => {
       const linkedTarget = $targetsStore.items.find(t => t.id === b.target_id);
-      if (linkedTarget && isTargetEnded(linkedTarget)) {
+      if (linkedTarget && isTargetArchived(linkedTarget)) {
         _archivedTimers.push(b);
       } else {
         _activeTimers.push(b);

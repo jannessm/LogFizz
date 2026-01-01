@@ -2,15 +2,16 @@
   import type { TargetSpec, State } from "../../types";
   import { dayjs } from "../../types";
   import { statesStore } from '../../stores/states';
+  import { onlyUnique } from "../../../../lib/dist/utils/helper";
 
-  type PartialTargetSpec = Partial<TargetSpec> & { 
+  type PartialTargetSpec = {
     id: string;
     duration_minutes: number[]; // 7-entry array for Sun-Sat
-    starting_from: string;
-    ending_at?: string;
     exclude_holidays: boolean;
     state_code?: string;
-   };
+    user_id?: string;
+    target_id?: string;
+  };
 
   let {
     targetSpec,
@@ -20,7 +21,7 @@
   }: {
     targetSpec: TargetSpec | null,
     lastSpec?: boolean,
-    deleteSpec: (spec: PartialTargetSpec) => void,
+    deleteSpec: () => void,
     saveSpec: (spec: PartialTargetSpec) => void
   } = $props();
 
@@ -28,8 +29,6 @@
   let tempSpec: PartialTargetSpec = $state({
     id: '',
     duration_minutes: [0, 0, 0, 0, 0, 0, 0], // 7-entry array for Sun-Sat
-    starting_from: dayjs().format('YYYY-MM-DD'),
-    ending_at: undefined,
     exclude_holidays: false,
     state_code: undefined,
   });
@@ -44,11 +43,25 @@
   let availableCountries: string[] = $derived(
     Array.from(new Set(availableStates.map(s => s.country))).sort()
   );
-  let selectedCountry: string = $state('');
+  let selectedCountry: string = $derived(
+    tempSpec.state_code 
+      ? (availableStates.find(s => s.code === tempSpec.state_code)?.country || '') 
+      : availableStates.map(s => s.country).filter(onlyUnique).length === 1
+        ? availableStates[0].country
+        : ''
+  );
   let filteredStates: State[] = $derived(
     selectedCountry 
       ? availableStates.filter(s => s.country === selectedCountry).sort((a, b) => a.state.localeCompare(b.state))
       : []
+  );
+  let specCountry = $derived(tempSpec.state_code 
+    ? (availableStates.find(s => s.code === tempSpec.state_code)?.country || '') 
+    : ''
+  );
+  let specState = $derived(tempSpec.state_code 
+    ? (availableStates.find(s => s.code === tempSpec.state_code)?.state || '') 
+    : ''
   );
 
   $effect(() => {
@@ -82,15 +95,11 @@
       tempSpec = {
         ...targetSpec,
         duration_minutes: [...targetSpec.duration_minutes], // Copy array
-        starting_from: targetSpec.starting_from ? targetSpec.starting_from.split('T')[0] : dayjs().format('YYYY-MM-DD'), // Extract date portion
-        ending_at: targetSpec.ending_at ? targetSpec.ending_at.split('T')[0] : undefined,
       };
     } else {
       tempSpec = {
         id: crypto.randomUUID(),
         duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Sun-Sat
-        starting_from: dayjs().format('YYYY-MM-DD'),
-        ending_at: undefined,
         exclude_holidays: false,
         state_code: undefined,
       };
@@ -106,6 +115,8 @@
   }
 
   function syncDurationFromHoursMinutes() {
+    durationHours = durationHours.map(h => Math.max(0, Math.min(23, Number(h) || 0)));
+    durationMins = durationMins.map(m => Math.max(0, Math.min(59, Number(m) || 0)));
     tempSpec.duration_minutes = durationHours.map((hours, index) => 
       hours * 60 + durationMins[index]
     );
@@ -134,9 +145,9 @@
     <div class="flex justify-between items-start gap-3">
       <div class="flex-1">
         <!-- Duration Grid -->
-        <div class="grid grid-cols-7 gap-1 mb-3">
+        <div class="flex flex-row flex-wrap gap-1 justify-evenly">
           {#each tempSpec.duration_minutes as duration, index}
-            <div class="flex flex-col border rounded p-2 border-gray-200 items-center"
+            <div class="flex flex-1 flex-col border rounded p-2 border-gray-200 items-center"
               class:bg-blue-200={duration > 0}
             >
               <div class="text-sm text-gray-700">{Math.floor(duration / 60)}:{String(duration % 60).padStart(2, '0')}</div>
@@ -147,14 +158,10 @@
         
         <!-- Info -->
         <div class="text-xs text-gray-600 space-y-1">
-          <div>From: {dayjs(tempSpec.starting_from).format('MMM D, YYYY')}</div>
-          {#if tempSpec.ending_at}
-            <div>Until: {dayjs(tempSpec.ending_at).format('MMM D, YYYY')}</div>
-          {/if}
           {#if tempSpec.exclude_holidays}
-            <div class="flex items-center gap-1 text-orange-600">
+            <div class="flex items-center gap-1 text-grey-400">
               <span class="icon-[si--sun-set-duotone] w-3 h-3"></span>
-              Excludes holidays{#if tempSpec.state_code} ({tempSpec.state_code}){/if}
+              Excludes holidays {#if tempSpec.state_code && specState && specCountry} ({specState}, {specCountry}){/if}
             </div>
           {/if}
         </div>
@@ -173,7 +180,7 @@
         {#if !lastSpec}
           <button
             type="button"
-            onclick={() => deleteSpec(tempSpec)}
+            onclick={() => deleteSpec()}
             class="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
             title="Delete schedule"
           >
@@ -195,58 +202,36 @@
     <!-- Edit Mode -->
     <div class="space-y-3">
       <!-- Duration Grid -->
-      <div class="grid grid-cols-7 gap-1">
+      <div class="flex flex-row justify-center flex-wrap gap-1">
         {#each tempSpec.duration_minutes as duration, index}
-          <div class="flex flex-col items-center gap-1">
+          <div class="flex flex-col items-center gap-1 p-2 border border-gray-300 rounded"
+            class:bg-blue-100={duration > 0}
+          >
             <!-- Hours input -->
             <div class="flex items-center gap-0.5">
               <input
                 type="number"
                 min="0"
-                max="24"
+                max="23"
                 placeholder="h"
-                class="w-10 text-center border border-gray-300 rounded px-0.5 py-1 text-xs"
-                class:bg-blue-50={duration > 0}
+                class="w-15 text-center border border-gray-300 rounded px-0.5 py-1 text-xs"
                 bind:value={durationHours[index]}
-                oninput={() => syncDurationFromHoursMinutes()}
+                onblur={() => syncDurationFromHoursMinutes()}
               />
               <span class="text-xs text-gray-500">:</span>
               <input
                 type="number"
                 min="0"
                 max="59"
-                step="15"
                 placeholder="m"
-                class="w-10 text-center border border-gray-300 rounded px-0.5 py-1 text-xs"
-                class:bg-blue-50={duration > 0}
+                class="w-15 text-center border border-gray-300 rounded px-0.5 py-1 text-xs"
                 bind:value={durationMins[index]}
-                oninput={() => syncDurationFromHoursMinutes()}
+                onblur={() => syncDurationFromHoursMinutes()}
               />
             </div>
             <div class="text-xs text-gray-500">{weekdayNames[index]}</div>
           </div>
         {/each}
-      </div>
-
-      <!-- Date Range -->
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">From *</label>
-          <input
-            type="date"
-            bind:value={tempSpec.starting_from}
-            required
-            class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Until</label>
-          <input
-            type="date"
-            bind:value={tempSpec.ending_at}
-            class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
       </div>
 
       <!-- Holiday Exclusion -->
@@ -264,7 +249,7 @@
       {#if tempSpec.exclude_holidays}
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1">Country</label>
+            <label class="block text-xs font-medium text-gray-700 mb-1" for="country">Country</label>
             <select
               bind:value={selectedCountry}
               onchange={handleCountryChange}
@@ -277,7 +262,7 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1">State</label>
+            <label class="block text-xs font-medium text-gray-700 mb-1" for="state">State</label>
             <select
               bind:value={tempSpec.state_code}
               disabled={!selectedCountry}

@@ -8,6 +8,7 @@ import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { hashPassword } from '../utils/password.js';
 import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.js';
+import { HolidayCrawlerService } from '../services/holiday-crawler.service.js';
 
 /**
  * Seed script for development environment
@@ -30,8 +31,25 @@ async function seed() {
     if (process.env.NODE_ENV !== 'production') {
       console.log('🧹 Clearing existing data...');
       // Use raw SQL to truncate with CASCADE to handle foreign key constraints
-      await AppDataSource.query('TRUNCATE TABLE time_logs, timers, target_specs, targets, holidays, users RESTART IDENTITY CASCADE');
+      await AppDataSource.query('TRUNCATE TABLE time_logs, timers, target_specs, targets, holidays, holiday_metadata, users RESTART IDENTITY CASCADE');
       console.log('✅ Existing data cleared');
+    }
+
+    // Fetch holidays for German states used in seed data
+    console.log('🎄 Fetching holiday data...');
+    const holidayCrawler = new HolidayCrawlerService();
+    
+    // Fetch holidays for 2025 and 2026 for Germany
+    const years = [2025, 2026];
+    for (const year of years) {
+      const result = await holidayCrawler.crawlHolidays('DE', year, true);
+      if (result.success) {
+        console.log(`✅ Fetched ${result.holidayCount} holidays for Germany ${year}`);
+      } else {
+        console.warn(`⚠️  Failed to fetch holidays for Germany ${year}: ${result.message}`);
+      }
+      // Small delay between requests
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     // Create sample users
@@ -71,24 +89,53 @@ async function seed() {
     const targetRepo = AppDataSource.getRepository(Target);
     const targetSpecRepo = AppDataSource.getRepository(TargetSpec);
     
-    // Create work target with spec starting from October 2025 (to test cumulative balance)
-    const workStartingFrom = new Date(Date.UTC(2025, 9, 1)); // October 1, 2025
+    // Create work target with MULTIPLE specs at different times to test the new UI
     const workTarget = targetRepo.create({
       user_id: demoUser.id,
       name: 'Work Target',
-      target_spec_ids: [], // Will be updated after creating spec
+      target_spec_ids: [], // Will be updated after creating specs
     });
     await targetRepo.save(workTarget);
     
-    const workSpec = targetSpecRepo.create({
+    // Current spec: January 2026 onwards (back to 8h, with holidays)
+    // This is created first since specs should be sorted descending by start date
+    const workSpecCurrent = targetSpecRepo.create({
       user_id: demoUser.id,
       target_id: workTarget.id,
       duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Sun-Sat: 0, 8h, 8h, 8h, 8h, 8h, 0
-      starting_from: workStartingFrom,
+      starting_from: new Date(Date.UTC(2026, 0, 1)), // January 1, 2026
+      // No ending_at - this is the current active spec
+      exclude_holidays: true,
+      state_code: 'DE-BY', // Bavaria
+    });
+    await targetSpecRepo.save(workSpecCurrent);
+    
+    // Middle spec: December 2025 (7h workdays - reduced hours)
+    // ending_at is 1 day before next spec starts (Dec 31, 2025)
+    const workSpecMiddle = targetSpecRepo.create({
+      user_id: demoUser.id,
+      target_id: workTarget.id,
+      duration_minutes: [0, 420, 420, 420, 420, 420, 0], // Sun-Sat: 0, 7h, 7h, 7h, 7h, 7h, 0
+      starting_from: new Date(Date.UTC(2025, 11, 1)), // December 1, 2025
+      ending_at: new Date(Date.UTC(2025, 11, 31)), // December 31, 2025 (1 day before Jan 1)
+      exclude_holidays: true,
+      state_code: 'DE-BW', // Baden-Württemberg
+    });
+    await targetSpecRepo.save(workSpecMiddle);
+    
+    // Oldest spec: October-November 2025 (8h workdays)
+    // ending_at is 1 day before next spec starts (Nov 30, 2025)
+    const workSpecOld = targetSpecRepo.create({
+      user_id: demoUser.id,
+      target_id: workTarget.id,
+      duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Sun-Sat: 0, 8h, 8h, 8h, 8h, 8h, 0
+      starting_from: new Date(Date.UTC(2025, 9, 1)), // October 1, 2025
+      ending_at: new Date(Date.UTC(2025, 10, 30)), // November 30, 2025 (1 day before Dec 1)
       exclude_holidays: false,
     });
-    await targetSpecRepo.save(workSpec);
-    workTarget.target_spec_ids = [workSpec.id];
+    await targetSpecRepo.save(workSpecOld);
+    
+    workTarget.target_spec_ids = [workSpecOld.id, workSpecMiddle.id, workSpecCurrent.id];
     await targetRepo.save(workTarget);
 
     // Create study target with spec starting from November 2025
@@ -134,7 +181,7 @@ async function seed() {
     await targetRepo.save(exerciseTarget);
 
     console.log('✅ Created 3 sample targets with specs');
-    console.log('   - Work Target: starting from Oct 2025, Mon-Fri 8h');
+    console.log('   - Work Target: 3 specs (Oct-Nov 2025: 8h, Dec 2025: 7h+DE-BW holidays, Jan 2026+: 8h+DE-BY holidays)');
     console.log('   - Study Target: starting from Nov 2025, Tue/Thu 2h');
     console.log('   - Exercise Target (Ended): Sep-Oct 2025, Mon/Wed/Fri 1h');
 
@@ -569,6 +616,7 @@ async function seed() {
 
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\n📝 Summary:');
+    console.log('   - German holidays fetched for 2025-2026');
     console.log('   - 2 users created (demo@example.com, test@example.com)');
     console.log('   - 3 targets created:');
     console.log('     * Work: Mon-Fri 8h, starting Oct 2025');

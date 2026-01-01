@@ -5,6 +5,7 @@
   import { statesStore } from '../../stores/states';
   import { timersStore } from '../../stores/timers';
   import TargetSpecItem from './TargetSpecItem.svelte';
+  import { dayjs } from '../../types';
 
   let {
     target = null,
@@ -14,66 +15,129 @@
     close: () => void;
   } = $props();
 
-  let name = target?.name || '';
+  let name = $state('');
   
-  // Manage multiple target specs
-  let targetSpecs: (TargetSpec | null)[] = $state([]);
+  // Manage multiple target specs with their start dates
+  type SpecWithDate = {
+    spec: TargetSpec | null;
+    startDate: string;
+  };
+  let targetSpecs: SpecWithDate[] = $state([]);
   
-  let isLoading = false;
-  let errorMessage = '';
-  let availableTimers: Timer[] = [];
-  let selectedTimerIds: string[] = [];
+  let isLoading = $state(false);
+  let errorMessage = $state('');
+  let availableTimers = $state<Timer[]>([]);
+  let selectedTimerIds = $state<string[]>([]);
+  let initialized = $state(false);
+  let showAllSpecs = $state(false);
+  let archiveDate = $state<string | null>(null);
+  let isArchived = $derived(
+    archiveDate !== null && archiveDate !== ''
+  );
+  
+  // Get all targets for displaying which target a timer is assigned to
+  let allTargets = $derived($targetsStore.items || []);
 
+  // Effect for initializing form data from target prop
   $effect(() => {
-    targetSpecs = target?.target_specs?.length ? [...target.target_specs] : [null];
+    // Only run when target prop changes
+    const targetId = target?.id;
+    
+    name = target?.name || '';
+    
+    if (target?.target_specs?.length) {
+      // Sort specs by start date descending (newest first)
+      const sortedSpecs = [...target.target_specs].sort((a, b) => 
+        dayjs(b.starting_from).valueOf() - dayjs(a.starting_from).valueOf()
+      );
+      
+      targetSpecs = sortedSpecs.map(spec => ({
+        spec: spec,
+        startDate: dayjs(spec.starting_from).format('YYYY-MM-DD')
+      }));
+    } else {
+      targetSpecs = [{
+        spec: null,
+        startDate: dayjs().format('YYYY-MM-DD')
+      }];
+    }
+    
+    // Set archive date from the first (newest) spec's ending_at if it exists
+    if (target?.target_specs?.length) {
+      const newestSpec = [...target.target_specs].sort((a, b) => 
+        dayjs(b.starting_from).valueOf() - dayjs(a.starting_from).valueOf()
+      )[0]; // Newest spec (at index 0 after descending sort)
+      
+      if (newestSpec?.ending_at) {
+        archiveDate = dayjs(newestSpec.ending_at).format('YYYY-MM-DD');
+      } else {
+        archiveDate = null;
+      }
+    } else {
+      archiveDate = null;
+    }
+    
+    initialized = false;
+  });
 
+  // Separate effect for timers to avoid circular dependencies
+  $effect(() => {
     if ($timersStore.items) {
       availableTimers = $timersStore.items;
       
-      // If editing a target, pre-select timers that are already assigned to this target
-      if (target?.id && availableTimers.length > 0 && selectedTimerIds.length === 0) {
+      // Only pre-select on initial load
+      if (target?.id && !initialized) {
         selectedTimerIds = availableTimers
           .filter(b => b.target_id === target.id)
           .map(b => b.id);
+        initialized = true;
       }
     }
   });
 
   function addSpec() {
-    targetSpecs = [...targetSpecs, null];
+    targetSpecs = [{
+      spec: null,
+      startDate: dayjs().format('YYYY-MM-DD')
+    }, ...targetSpecs];
+    showAllSpecs = true;
   }
 
-  function saveSpecHandler(spec: TargetSpec) {
-    // Find if this spec already exists (by id)
-    const existingIndex = targetSpecs.findIndex(s => s?.id === spec.id);
+  function saveSpecHandler(spec: any, index: number) {
+    // Create a proper TargetSpec from the partial spec
+    const fullSpec: TargetSpec = {
+      id: spec.id,
+      user_id: spec.user_id || target?.user_id || '',
+      target_id: spec.target_id || target?.id || '',
+      duration_minutes: spec.duration_minutes,
+      exclude_holidays: spec.exclude_holidays,
+      state_code: spec.state_code,
+      starting_from: targetSpecs[index].startDate,
+      ending_at: undefined, // Will be calculated in handleSubmit
+    };
     
-    if (existingIndex !== -1) {
-      // Update existing spec
-      targetSpecs[existingIndex] = spec;
-    } else {
-      // Find the null placeholder and replace it, or add to the end
-      const nullIndex = targetSpecs.findIndex(s => s === null);
-      if (nullIndex !== -1) {
-        targetSpecs[nullIndex] = spec;
-      } else {
-        targetSpecs = [...targetSpecs, spec];
-      }
-    }
+    // Update the spec at the given index
+    targetSpecs[index].spec = fullSpec;
     
     // Trigger reactivity
     targetSpecs = [...targetSpecs];
   }
 
-  function deleteSpecHandler(spec: TargetSpec) {
-    if (targetSpecs.filter(s => s !== null).length <= 1) {
+  function deleteSpecHandler(index: number) {
+    if (targetSpecs.filter(s => s.spec !== null).length <= 1) {
       errorMessage = 'Cannot delete the last specification. A target must have at least one.';
       return;
     }
     
     if (confirm('Delete this schedule?')) {
-      targetSpecs = targetSpecs.filter(s => s?.id !== spec.id);
+      targetSpecs = targetSpecs.filter((_, i) => i !== index);
       errorMessage = '';
     }
+  }
+
+  function handleStartDateChange(index: number, newDate: string) {
+    targetSpecs[index].startDate = newDate;
+    targetSpecs = [...targetSpecs];
   } 
 
   onMount(async () => {
@@ -117,7 +181,40 @@
     }
 
     // Filter out null specs (placeholders)
-    const validSpecs = targetSpecs.filter((s): s is TargetSpec => s !== null);
+    const validSpecs = targetSpecs
+      .filter((s): s is SpecWithDate & { spec: TargetSpec } => s.spec !== null)
+      .map((s, index, arr) => {
+        const spec = s.spec;
+        const startDate = dayjs(s.startDate);
+        
+        // Calculate end date based on position and archive date
+        let endDate: dayjs.Dayjs | undefined = undefined;
+        
+        if (index === 0 && archiveDate) {
+          // This is the newest (current) spec, use archive date if provided
+          endDate = dayjs(archiveDate);
+        } else if (index === 0 && !archiveDate) {
+          // No archive date, so no end date for current spec
+          endDate = undefined;
+        } else if (index < arr.length - 1) {
+          // There's a next (older) spec, use its start date - 1 day
+          const nextStartDate = dayjs(arr[index + 1].startDate);
+          endDate = nextStartDate.subtract(1, 'day');
+        }
+        // If this is the oldest spec and no archive date, no end date
+        
+        // Create a plain object to avoid proxy cloning issues
+        return {
+          id: spec.id,
+          user_id: spec.user_id,
+          target_id: spec.target_id,
+          duration_minutes: [...spec.duration_minutes], // Clone array
+          exclude_holidays: spec.exclude_holidays,
+          state_code: spec.state_code,
+          starting_from: startDate.toISOString(),
+          ending_at: endDate?.toISOString(),
+        };
+      });
 
     if (validSpecs.length === 0) {
       errorMessage = 'Please add at least one target specification';
@@ -134,8 +231,6 @@
           ...spec,
           user_id: target?.user_id || '',
           target_id: target?.id || '',
-          starting_from: new Date(spec.starting_from).toISOString(),
-          ending_at: spec.ending_at ? new Date(spec.ending_at).toISOString() : undefined,
         })),
       };
 
@@ -217,7 +312,7 @@
             <div>
               <h3 class="text-sm font-medium text-gray-700">Target Specifications *</h3>
               <p class="text-xs text-gray-500 mt-1">
-                Define work schedules for different time periods
+                Define work schedules for different time periods. Most recent first.
               </p>
             </div>
             <button
@@ -237,27 +332,134 @@
               <p class="text-gray-400 text-xs mt-1">Click "Add Schedule" to create one</p>
             </div>
           {:else}
-            <div class="space-y-2">
-              {#each targetSpecs as targetSpec, index (targetSpec?.id || `null-${index}`)}
-                <TargetSpecItem
-                  {targetSpec}
-                  lastSpec={targetSpecs.filter(s => s !== null).length <= 1}
-                  saveSpec={saveSpecHandler}
-                  deleteSpec={deleteSpecHandler}
-                />
+            <div class="space-y-0">
+              {#each targetSpecs as specWithDate, index (specWithDate.spec?.id || `null-${index}`)}
+                {@const isVisible = index === 0 || (index === 1 && !showAllSpecs) || showAllSpecs}
+                {@const isFaded = index === 1 && !showAllSpecs}
+                
+                {#if isVisible}
+                  <div 
+                    class="relative overflow-hidden transition-all duration-300"
+                    style={isFaded ? 'max-height: 80px;' : ''}
+                  >
+                    <!-- Gradient fade overlay for second item -->
+                    {#if isFaded}
+                      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white pointer-events-none z-20" style="background: linear-gradient(to bottom, transparent 0%, transparent 40%, white 100%);"></div>
+                    {/if}
+                    
+                    <!-- Timeline connector (except for last item) -->
+                    {#if index < targetSpecs.length - 1 && (showAllSpecs || index === 0)}
+                      <div class="absolute left-[70px] top-[80px] w-0.5 bg-blue-300 z-0" style="height: calc(100% - 80px);"></div>
+                    {/if}
+                    
+                    <div class="flex gap-2 items-start py-2 relative z-10">
+                      <!-- Date Input -->
+                      <div class="flex-shrink-0 relative" style="width: 140px;">
+                        <label class="block text-xs font-medium text-gray-700 mb-1" for="start-date-{index}">
+                          {#if index === 0 && !archiveDate}
+                            <span class="text-blue-600 font-semibold">● Current</span>
+                          {:else}
+                            Start Date
+                          {/if}
+                        </label>
+                        <input
+                          id="start-date-{index}"
+                          type="date"
+                          bind:value={specWithDate.startDate}
+                          onchange={() => handleStartDateChange(index, specWithDate.startDate)}
+                          class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                        {#if index < targetSpecs.length - 1}
+                          <p class="text-xs text-gray-500 mt-1">
+                            Ends: {dayjs(targetSpecs[index + 1].startDate).subtract(1, 'day').format('MMM D, YYYY')}
+                          </p>
+                        {:else if index === 0 && archiveDate}
+                          <p class="text-xs text-gray-500 mt-1">
+                            Ends: {dayjs(archiveDate).format('MMM D, YYYY')}
+                          </p>
+                        {:else}
+                          <p class="text-xs text-gray-500 mt-1">No end date</p>
+                        {/if}
+                      </div>
+                      
+                      <!-- Target Spec Component -->
+                      <div class="flex-1">
+                        <TargetSpecItem
+                          targetSpec={specWithDate.spec}
+                          lastSpec={targetSpecs.filter(s => s.spec !== null).length <= 1}
+                          saveSpec={(spec) => saveSpecHandler(spec, index)}
+                          deleteSpec={() => deleteSpecHandler(index)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                {/if}
               {/each}
+              
+              <!-- Show More/Less Button -->
+              {#if targetSpecs.length > 1}
+                <div class="flex justify-center pt-2 pb-1">
+                  <button
+                    type="button"
+                    onclick={() => showAllSpecs = !showAllSpecs}
+                    class="px-3 py-1.5 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors flex items-center gap-1"
+                  >
+                    {#if showAllSpecs}
+                      <span class="icon-[si--chevron-up-line] w-4 h-4"></span>
+                      Show Less ({targetSpecs.length - 1} hidden)
+                    {:else}
+                      <span class="icon-[si--chevron-down-line] w-4 h-4"></span>
+                      Show All ({targetSpecs.length - 1} more)
+                    {/if}
+                  </button>
+                </div>
+              {/if}
             </div>
           {/if}
+        </div>
+
+        <!-- Archive Target Section -->
+        <div class="border-t pt-4">
+          <p class="text-xs text-gray-500 mb-2">
+            Set an end date to archive this target. The current target ends on this date.
+          </p>
+          <div class="flex items-start gap-3">
+            <div class="flex-1">
+              <input
+                id="archive-date"
+                type="date"
+                bind:value={archiveDate}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Leave empty to keep target active"
+              />
+              {#if archiveDate}
+                <p class="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                  This target ends on {dayjs(archiveDate).format('MMM D, YYYY')}
+                </p>
+              {/if}
+            </div>
+            {#if archiveDate}
+              <button
+                type="button"
+                onclick={() => archiveDate = null}
+                class="px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors flex items-center gap-1"
+                title="Remove archive date"
+              >
+                <span class="icon-[si--close-line] w-4 h-4"></span>
+                Clear
+              </button>
+            {/if}
+          </div>
         </div>
 
         <!-- Button Assignment -->
         {#if target}
           <div class="border-t pt-4 mt-4">
             <div class="block text-sm font-medium text-gray-700 mb-3">
-              Assign Timers (Optional)
+              Assign Timers
             </div>
             <p class="text-xs text-gray-500 mb-3">
-              Select timers to track time towards this target
+              Select timers to track time towards this target. Selecting a timer that's already assigned to another target will reassign it to this target.
             </p>
             
             {#if availableTimers.length === 0}
@@ -265,6 +467,7 @@
             {:else}
               <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
                 {#each availableTimers as timer}
+                  {@const assignedTarget = timer.target_id ? allTargets.find(t => t.id === timer.target_id) : null}
                   <button
                     type="button"
                     onclick={() => toggleTimer(timer.id)}
@@ -290,8 +493,8 @@
 
                     <span class="text-sm font-medium text-gray-800 text-center line-clamp-2">{timer.name}</span>
 
-                    {#if timer.target_id && timer.target_id !== target?.id}
-                      <span class="text-[10px] text-orange-600 mt-1 text-center">assigned elsewhere</span>
+                    {#if assignedTarget && assignedTarget.id !== target?.id}
+                      <span class="text-[10px] text-orange-600 mt-1 text-center" title="Currently assigned to {assignedTarget.name}">assigned to: {assignedTarget.name}</span>
                     {/if}
                   </button>
                 {/each}

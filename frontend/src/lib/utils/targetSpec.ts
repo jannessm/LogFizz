@@ -64,6 +64,23 @@ export function getLatestTargetSpec(target: TargetWithSpecs): TargetSpec | undef
 }
 
 /**
+ * Check if a target is archived (has an ending_at date set)
+ * 
+ * @param target - Target with nested target_specs
+ * @returns true if target is archived (has ending_at), false otherwise
+ */
+export function isTargetArchived(target: TargetWithSpecs): boolean {
+  if (!target.target_specs || target.target_specs.length === 0) return false;
+  
+  // Check if the most recent spec (by starting_from) has an ending_at
+  const sorted = [...target.target_specs].sort((a, b) => {
+    return dayjs(b.starting_from).diff(dayjs(a.starting_from));
+  });
+  
+  return sorted[0]?.ending_at !== undefined;
+}
+
+/**
  * Check if a target has ended (all specs have ending_at in the past)
  * 
  * @param target - Target with nested target_specs

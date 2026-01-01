@@ -121,8 +121,14 @@
   }
 
   function handleCloseTargetForm() {
+    const wasEditingFromOverview = editingTarget !== null;
     showTargetForm = false;
     editingTarget = null;
+    
+    // If we were editing a target (not creating), reopen the edit overview
+    if (wasEditingFromOverview) {
+      showEditOverview = true;
+    }
   }
 
   function toggleEditMode() {
