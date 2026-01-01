@@ -1,6 +1,6 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
-import type { Timer, TimeLog, User, SyncQueueItem, Balance } from '../../types';
+import type { Timer, TimeLog, User, SyncQueueItem, Balance, Holiday } from '../../types';
 import type { TargetWithSpecs } from '../../types';
 import { dayjs, userTimezone } from '../../../../lib/utils/dayjs.js';
 
@@ -45,11 +45,19 @@ interface TapShiftDB extends DBSchema {
   states: {
     key: string;
     value: any;
-  }
+  };
+  holidays: {
+    key: string;
+    value: Holiday & { cacheKey: string }; // cacheKey = country-year
+    indexes: {
+      'by-country-year': string;
+      'by-date': string;
+    };
+  };
 }
 
 const DB_NAME = 'tapshift';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Incremented to add holidays store
 
 let dbInstance: IDBPDatabase<TapShiftDB> | null = null;
 
@@ -103,6 +111,13 @@ export async function getDB(): Promise<IDBPDatabase<TapShiftDB>> {
         balanceStore.createIndex('by-date', 'date');
         balanceStore.createIndex('by-target-id', 'target_id');
         balanceStore.createIndex('by-user-target-date', ['user_id', 'target_id', 'date']);
+      }
+
+      // Holidays store
+      if (!db.objectStoreNames.contains('holidays')) {
+        const holidayStore = db.createObjectStore('holidays', { keyPath: 'id' });
+        holidayStore.createIndex('by-country-year', 'cacheKey');
+        holidayStore.createIndex('by-date', 'date');
       }
     },
   });

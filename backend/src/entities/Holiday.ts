@@ -9,7 +9,7 @@ export class Holiday implements HolidayEntity {
   @Column('varchar')
   country!: string;
 
-  @Column('varchar', { default: false })
+  @Column('boolean', { default: false })
   global!: boolean;
 
   @Column('varchar', { array: true })

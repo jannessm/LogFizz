@@ -105,8 +105,14 @@
   }
 
   function handleCloseForm() {
+    const wasEditingFromOverview = editingTimer !== null;
     showTimerForm = false;
     editingTimer = null;
+    
+    // If we were editing a timer (not creating), reopen the edit overview
+    if (wasEditingFromOverview) {
+      showEditOverview = true;
+    }
   }
 
   function handleAddTarget() {

@@ -26,7 +26,7 @@
 
   async function handleSubmit() {
     if (!name.trim()) {
-      errorMessage = 'Please enter a button name';
+      errorMessage = 'Please enter a timer name';
       return;
     }
 
@@ -166,11 +166,11 @@
             class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           />
           <label for="archived" class="ml-2 text-sm text-gray-700">
-            Archive this button
+            Archive this timer
           </label>
         </div>
         <div class="text-xs text-gray-500 pl-6">
-          <p>Archived buttons are hidden from the main view but can still be accessed in reports</p>
+          <p>Archived timers are hidden from the main view but can still be accessed in reports</p>
         </div>
 
         <!-- Actions -->

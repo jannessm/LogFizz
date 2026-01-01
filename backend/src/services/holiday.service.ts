@@ -9,8 +9,7 @@ export class HolidayService {
     const endDate = new Date(year + 1, 0, 1);
 
     return this.holidayRepository.createQueryBuilder('h')
-                    .where('h.global = true')
-                    .orWhere(':state = ANY (h.counties)', { state: state_code })
+                    .where('(h.global = true OR :state = ANY (h.counties))', { state: state_code })
                     .andWhere('h.date BETWEEN :startDate AND :endDate', { startDate, endDate })
                     .orderBy('h.date', 'ASC')
                     .getMany();

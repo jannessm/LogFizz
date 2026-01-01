@@ -2,12 +2,14 @@ import { writable } from 'svelte/store';
 import type { Holiday } from '../../../lib/types';
 import { holidayApi } from '../services/api';
 import { onlyUnique } from '../../../lib/utils/helper.js';
+import { getDB } from '../lib/db';
 
 interface HolidaysState {
   holidays: Holiday[];
   loading: boolean;
   error: string | null;
   loadedYears: Set<string>; // Track loaded country-year combinations
+  initialized: boolean; // Track if we've loaded from IndexedDB
 }
 
 
@@ -17,19 +19,79 @@ function createHolidaysStore() {
     loading: false,
     error: null,
     loadedYears: new Set(),
+    initialized: false,
   });
+
+  // Load holidays from IndexedDB on initialization
+  async function loadFromCache(): Promise<void> {
+    try {
+      const db = await getDB();
+      const cachedHolidays = await db.getAll('holidays');
+      
+      if (cachedHolidays.length > 0) {
+        const loadedKeys = new Set<string>();
+        const holidays: Holiday[] = cachedHolidays.map(h => {
+          loadedKeys.add(h.cacheKey);
+          // Remove cacheKey before returning
+          const { cacheKey, ...holiday } = h;
+          return holiday as Holiday;
+        });
+        
+        update(state => ({
+          ...state,
+          holidays,
+          loadedYears: loadedKeys,
+          initialized: true,
+        }));
+      } else {
+        update(state => ({ ...state, initialized: true }));
+      }
+    } catch (error) {
+      console.error('Failed to load holidays from cache:', error);
+      update(state => ({ ...state, initialized: true }));
+    }
+  }
+
+  // Save holidays to IndexedDB
+  async function saveToCache(country: string, year: number, holidays: Holiday[]): Promise<void> {
+    try {
+      const db = await getDB();
+      const cacheKey = `${country}-${year}`;
+      
+      // Delete old holidays for this country-year
+      const tx = db.transaction('holidays', 'readwrite');
+      const index = tx.store.index('by-country-year');
+      const oldHolidays = await index.getAll(cacheKey);
+      
+      for (const old of oldHolidays) {
+        await tx.store.delete(old.id);
+      }
+      
+      // Add new holidays with cacheKey
+      for (const holiday of holidays) {
+        await db.add('holidays', { ...holiday, cacheKey });
+      }
+      
+      await tx.done;
+    } catch (error) {
+      console.error('Failed to save holidays to cache:', error);
+    }
+  }
+
+  // Initialize on creation
+  loadFromCache();
 
   return {
     subscribe,
 
     /**
      * Fetch holidays for a specific country and year
-     * Caches results to avoid redundant API calls
+     * Caches results to avoid redundant API calls and stores in IndexedDB
      */
     async fetchHolidays(country: string, year: number): Promise<void> {
       const key = `${country}-${year}`;
       
-      // Check if already loaded
+      // Check if already loaded in memory
       let shouldFetch = false;
       update(state => {
         if (!state.loadedYears.has(key)) {
@@ -46,6 +108,9 @@ function createHolidaysStore() {
       try {
         const newHolidays = await holidayApi.getHolidays(country, year);
         
+        // Save to IndexedDB cache
+        await saveToCache(country, year, newHolidays);
+        
         update(state => {
           // Add new holidays to the store (keep existing ones for other countries/years)
           const existingHolidays = state.holidays.filter(
@@ -53,6 +118,7 @@ function createHolidaysStore() {
           );
           
           return {
+            ...state,
             holidays: [...existingHolidays, ...newHolidays],
             loading: false,
             error: null,
@@ -153,14 +219,22 @@ function createHolidaysStore() {
     },
 
     /**
-     * Clear all cached holidays
+     * Clear all cached holidays from memory and IndexedDB
      */
-    clear(): void {
+    async clear(): Promise<void> {
+      try {
+        const db = await getDB();
+        await db.clear('holidays');
+      } catch (error) {
+        console.error('Failed to clear holidays cache:', error);
+      }
+      
       set({
         holidays: [],
         loading: false,
         error: null,
         loadedYears: new Set(),
+        initialized: true,
       });
     },
   };

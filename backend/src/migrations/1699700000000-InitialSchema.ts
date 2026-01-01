@@ -164,6 +164,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
             CREATE TABLE IF NOT EXISTS "holiday_metadata" (
                 "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
                 "country" character varying NOT NULL,
+                "state" character varying,
                 "year" integer NOT NULL,
                 "last_updated" TIMESTAMP NOT NULL,
                 "created_at" TIMESTAMP NOT NULL DEFAULT now(),
