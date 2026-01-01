@@ -26,28 +26,30 @@
     del: (data: any) => void;
   } = $props();
 
-  let buttonId = $derived(existingLog?.timer_id || '');
-  let type = $derived(existingLog?.log?.type || 'normal');
+  let buttonId = $state(existingLog?.timer_id || '');
+  let type = $state(existingLog?.log?.type || 'normal');
   
   // When editing, convert from stored timezone to user's local timezone
-  let startDate = $derived(existingLog?.startTime 
+  // For new entries, use selectedDate and current time as defaults
+  const now = dayjs();
+  let startDate = $state(existingLog?.startTime 
     ? dayjs.utc(existingLog.startTime).tz(userTimezone).format('YYYY-MM-DD') 
     : selectedDate.format('YYYY-MM-DD'));
-  let startTime = $derived(existingLog?.startTime 
+  let startTime = $state(existingLog?.startTime 
     ? dayjs.utc(existingLog.startTime).tz(userTimezone).format('HH:mm') 
-    : '');
+    : (!isTimerStop ? now.format('HH:mm') : ''));
 
   // When stopping a timer, pre-populate end time with current time
-  const now = dayjs();
-  let endDate = $derived(existingLog?.endTime 
+  // For new entries (not editing, not running), initialize with 1 minute after start time
+  let endDate = $state(existingLog?.endTime 
     ? dayjs.utc(existingLog.endTime).tz(userTimezone).format('YYYY-MM-DD') 
     : (isTimerStop ? now.format('YYYY-MM-DD') : selectedDate.format('YYYY-MM-DD')));
-  let endTime = $derived(existingLog?.endTime 
+  let endTime = $state(existingLog?.endTime 
     ? dayjs.utc(existingLog.endTime).tz(userTimezone).format('HH:mm') 
-    : (isTimerStop ? now.format('HH:mm') : ''));
+    : (isTimerStop ? now.format('HH:mm') : (!existingLog ? now.add(1, 'minute').format('HH:mm') : '')));
 
-  let notes = $derived(existingLog?.log?.notes || '');
-  let isRunning = $derived(!existingLog?.endTime && !isTimerStop); // When stopping timer, it should not be running
+  let notes = $state(existingLog?.log?.notes || '');
+  let isRunning = $state(!existingLog?.endTime && !isTimerStop); // When stopping timer, it should not be running
   let errorMessage: string = $state('');
   let showDeleteConfirm = $state(false);
 
@@ -61,8 +63,19 @@
     }
   });
 
+  // When isRunning becomes false (user unchecks "Running"), initialize end time with at least 1 minute duration
+  $effect(() => {
+    if (!isRunning && !existingLog && startTime && !endTime) {
+      // Calculate 1 minute after start time
+      const start = dayjs(`${startDate} ${startTime}`);
+      const end = start.add(1, 'minute');
+      endDate = end.format('YYYY-MM-DD');
+      endTime = end.format('HH:mm');
+    }
+  });
+
   function hasDateError() {
-    return errorMessage === 'End time must be after start time';
+    return errorMessage === 'End time must be after start time' || errorMessage === 'Duration must be at least 1 minute';
   }
 
   const DAY_START_TIME = '00:00:00';
@@ -123,6 +136,14 @@
       // Validate end is after start
       if (new Date(endTimestamp) <= new Date(startTimestamp)) {
         errorMessage = 'End time must be after start time';
+        return;
+      }
+
+      // Validate minimum duration of 1 minute
+      const durationMs = new Date(endTimestamp).getTime() - new Date(startTimestamp).getTime();
+      const durationMinutes = durationMs / (1000 * 60);
+      if (durationMinutes < 1) {
+        errorMessage = 'Duration must be at least 1 minute';
         return;
       }
     } else {
