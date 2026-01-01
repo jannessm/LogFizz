@@ -3,6 +3,7 @@
   import BottomNav from '../components/BottomNav.svelte';
   import DailyBalance from '../components/DailyBalance.svelte';
   import TimelogForm from '../components/forms/TimelogForm.svelte';
+  import Modal from '../components/Modal.svelte';
 
   import {
     HistoryCharts, HistoryCalendar,
@@ -292,7 +293,7 @@
       <div class="flex justify-between items-center mb-1">
         <h1 class="text-2xl font-bold text-gray-800">History</h1>
         <button
-          on:click={handleImportClick}
+          onclick={handleImportClick}
           class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--file-upload-duotone]"
           style="width: 28px; height: 28px;"
           aria-label="Import timelogs"
@@ -306,14 +307,14 @@
       <div class="flex items-center gap-2">
         <!-- Month Navigation -->
         <button
-          on:click={previousMonth}
+          onclick={previousMonth}
           class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-left-alt-duotone]"
           aria-label="Previous month"
         ></button>
         
         <!-- Month Dropdown -->
         <select
-          on:change={changeMonth}
+          onchange={changeMonth}
           value={currentMonth.month()}
           class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
           aria-label="Select month"
@@ -325,7 +326,7 @@
         
         <!-- Year Dropdown -->
         <select
-          on:change={changeYear}
+          onchange={changeYear}
           value={currentMonth.year()}
           class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
           aria-label="Select year"
@@ -336,14 +337,14 @@
         </select>
         
         <button
-          on:click={nextMonth}
+          onclick={nextMonth}
           class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-right-alt-duotone]"
           aria-label="Next month"
         ></button>
         
         <!-- Today Button -->
         <button
-          on:click={goToToday}
+          onclick={goToToday}
           class="px-3 py-1 text-sm font-medium text-white hover:bg-blue-600 rounded-lg transition-colors"
           class:bg-blue-500={!selectedDate.isSame(dayjs(), 'day')}
           class:bg-gray-300={selectedDate.isSame(dayjs(), 'day')}
@@ -411,54 +412,25 @@
 
   <!-- Delete Confirmation Modal -->
   {#if showDeleteConfirm}
-    <!-- Modal Overlay -->
-    <div 
-      class="fixed inset-0 z-50 flex items-center justify-center p-4"
-      on:click={cancelDelete}
-      on:keydown={(e) => e.key === 'Escape' && cancelDelete()}
-      role="button"
-      tabindex="0"
-    >
-      <!-- Modal Content -->
-      <div 
-        class="bg-white rounded-lg shadow-2xl w-full max-w-[400px] overflow-hidden flex flex-col"
-        on:click|stopPropagation
-        on:keydown|stopPropagation
-        role="dialog"
-        aria-modal="true"
-        tabindex="-1"
-      >
-        <!-- Header -->
-        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-          <h3 class="text-xl font-semibold text-gray-800">Delete Time Entry?</h3>
+    <Modal title="Delete Time Entry?" maxWidth="max-w-[400px]" onclose={cancelDelete}>
+      {#snippet children()}
+        <p class="text-gray-600 mb-6">This action cannot be undone.</p>
+        <div class="flex gap-3">
           <button
-            on:click={cancelDelete}
-            class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
-            style="width: 28px; height: 28px;"
-            aria-label="Close"
-          ></button>
+            onclick={cancelDelete}
+            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onclick={handleDelete}
+            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Delete
+          </button>
         </div>
-
-        <!-- Content -->
-        <div class="p-6 space-y-6">
-          <p class="text-gray-600">This action cannot be undone.</p>
-          <div class="flex gap-3">
-            <button
-              on:click={cancelDelete}
-              class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              on:click={handleDelete}
-              class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      {/snippet}
+    </Modal>
   {/if}
 
   <!-- Import Timelogs Modal -->
@@ -470,10 +442,3 @@
   {/if}
 </div>
 
-<style>
-  /* Add backdrop blur effect */
-  div[role="button"] {
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-  }
-</style>

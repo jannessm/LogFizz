@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Modal from '../Modal.svelte';
   import { timersStore } from '../../stores/timers';
   import { targetsStore } from '../../stores/targets';
   import { timeLogsStore } from '../../stores/timelogs';
@@ -134,38 +135,9 @@
   });
 </script>
 
-<!-- Modal Overlay -->
-<div 
-  class="fixed inset-0 z-50 flex items-center justify-center p-4"
-  onclick={close}
-  onkeydown={(e) => e.key === 'Escape' && close()}
-  role="button"
-  tabindex="0"
->
-  <!-- Modal Content -->
-  <div 
-    class="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
-    onclick={(e) => e.stopPropagation()}
-    onkeydown={(e) => e.stopPropagation()}
-    role="dialog"
-    aria-modal="true"
-    tabindex="-1"
-  >
-    <!-- Header -->
-    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-800">Edit Timers & Targets</h2>
-      <div class="flex gap-2">
-        <button
-          onclick={close}
-          class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
-          style="width: 28px; height: 28px;"
-          aria-label="Close"
-        ></button>
-      </div>
-    </div>
-
-    <!-- Scrollable Content -->
-    <div class="overflow-y-auto flex-1 p-6 space-y-6">
+<Modal title="Edit Timers & Targets" maxWidth="max-w-2xl" maxHeight="max-h-[80vh]" onclose={close}>
+  {#snippet children()}
+    <div class="space-y-6">
       <!-- Targets Section -->
       <div>
         <div class="flex justify-between items-center mb-2">
@@ -409,13 +381,5 @@
         </div>
       {/if}
     </div>
-  </div>
-</div>
-
-<style>
-  /* Add backdrop blur effect */
-  div[role="button"] {
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-  }
-</style>
+  {/snippet}
+</Modal>
