@@ -1,8 +1,11 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import SessionBox from './SessionBox.svelte';
+  import TimelogForm from '../forms/TimelogForm.svelte';
+  import Modal from '../Modal.svelte';
   import { computeIndentation, type Session } from '../../lib/utils/computeIndentation';
   import { holidaysStore } from '../../stores/holidays';
+  import { timeLogsStore } from '../../stores/timelogs';
   import type { Holiday } from '../../../../lib/types';
   import { dayjs } from '../../types/index';
 
@@ -13,17 +16,19 @@
     selectedDate, 
     timeLogs, 
     buttons, 
-    addTimelog, 
-    editTimelog,
     countries = []
   }: {
     selectedDate: dayjs.Dayjs;
     timeLogs: any[];
     buttons: any[];
-    addTimelog: () => void;
-    editTimelog: (session: any) => void;
     countries: string[]; // Countries to check for holidays
   } = $props();
+
+  // Internal state for timelog management
+  let showTimelogForm = $state(false);
+  let editingTimelog: any = $state(null);
+  let showDeleteConfirm = $state(false);
+  let deleteTarget: any = $state(null);
 
   let sessions: any[] = [];
   let specialTypeSessions: any[] = [];
@@ -239,6 +244,71 @@
       window.clearInterval(intervalId);
     }
   });
+
+  // Timelog management handlers
+  function handleAddTimelog() {
+    editingTimelog = null;
+    showTimelogForm = true;
+  }
+
+  function handleEditTimelog(session: any) {
+    editingTimelog = session;
+    showTimelogForm = true;
+  }
+
+  async function handleSaveTimelog(data: { timer_id: string; type: string; startTimestamp: string; endTimestamp?: string; notes?: string; existingLog?: any }) {
+    const { timer_id, type, startTimestamp, endTimestamp, notes, existingLog } = data;
+    
+    if (existingLog && existingLog.log) {
+      // Editing existing timelog session - update it
+      await timeLogsStore.update(existingLog.log.id, {
+        timer_id,
+        type,
+        start_timestamp: startTimestamp,
+        end_timestamp: endTimestamp || undefined,
+        notes: notes || undefined,
+      });
+    } else {
+      // Creating new timelog session
+      await timeLogsStore.create({
+        timer_id,
+        type,
+        start_timestamp: startTimestamp,
+        end_timestamp: endTimestamp || undefined,
+        notes: notes || undefined,
+      });
+    }
+    
+    showTimelogForm = false;
+    editingTimelog = null;
+  }
+
+  function handleCloseForm() {
+    showTimelogForm = false;
+    editingTimelog = null;
+  }
+
+  function confirmDelete(session: any) {
+    deleteTarget = session;
+    showDeleteConfirm = true;
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    
+    // Delete the timelog session
+    if (deleteTarget.log) {
+      await timeLogsStore.delete(deleteTarget.log);
+    }
+    
+    showDeleteConfirm = false;
+    deleteTarget = null;
+  }
+
+  function cancelDelete() {
+    showDeleteConfirm = false;
+    deleteTarget = null;
+  }
 </script>
 
 <div class="bg-white rounded-lg shadow-md p-6">
@@ -250,7 +320,7 @@
       {/if}
     </h2>
     <button
-      onclick={addTimelog}
+      onclick={handleAddTimelog}
       class="rounded-full bg-blue-500 hover:bg-blue-700 transition-colors flex items-center gap-1 icon-[si--add-circle-duotone]"
       style="width: 32px; height: 32px;"
       aria-label="Add time entry"
@@ -294,7 +364,7 @@
           : startDate ? startDate.format('MMM D, YYYY') : ''}
         {#if button}
           <button
-            onclick={() => editTimelog(session)}
+            onclick={() => handleEditTimelog(session)}
             class="w-full flex items-center gap-3 p-4 rounded-lg border-2 hover:shadow-md transition-all text-left"
             style="border-color: {typeColor}20; background-color: {typeColor}10;"
           >
@@ -376,7 +446,7 @@
         {#each displaySessions as session}
           {@const button = buttons.find(b => b.id === session.timer_id)}
           {#if button}
-            <SessionBox {session} {button} {timelineStart} {timelineEnd} {timelineHeight} indentLevel={session.indentLevel} edit={editTimelog} />
+            <SessionBox {session} {button} {timelineStart} {timelineEnd} {timelineHeight} indentLevel={session.indentLevel} edit={handleEditTimelog} />
           {/if}
         {/each}
       </div>
@@ -387,3 +457,41 @@
     <p class="text-gray-500 text-center py-8">No activities on this date</p>
   {/if}
 </div>
+
+<!-- Timelog Form Modal -->
+{#if showTimelogForm}
+  <TimelogForm
+    {selectedDate}
+    existingLog={editingTimelog}
+    save={handleSaveTimelog}
+    close={handleCloseForm}
+    del={(session: any) => {
+      showTimelogForm = false;
+      deleteTarget = session;
+      showDeleteConfirm = true;
+    }}
+  />
+{/if}
+
+<!-- Delete Confirmation Modal -->
+{#if showDeleteConfirm}
+  <Modal title="Delete Time Entry?" maxWidth="max-w-[400px]" onclose={cancelDelete}>
+    {#snippet children()}
+      <p class="text-gray-600 mb-6">This action cannot be undone.</p>
+      <div class="flex gap-3">
+        <button
+          onclick={cancelDelete}
+          class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onclick={handleDelete}
+          class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+        >
+          Delete
+        </button>
+      </div>
+    {/snippet}
+  </Modal>
+{/if}

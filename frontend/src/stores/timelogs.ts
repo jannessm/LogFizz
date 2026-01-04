@@ -89,8 +89,93 @@ const baseStore = createBaseStore<TimeLog>(timeLogStoreConfig);
  * @returns Enhanced timelog store with timer start/stop and CRUD operations
  */
 function createTimeLogsStore() {
+  // Track which year-month combinations have been loaded
+  const loadedMonths = new Set<string>();
+  // initialize with current month as loaded by store (month() + 1 because dayjs months are 0-indexed)
+  loadedMonths.add(`${dayjs().tz(userTimezone).year()}-${dayjs().tz(userTimezone).month() + 1}`);
+
+  /**
+   * Reload all previously loaded months (used after sync)
+   */
+  async function reloadAllLoadedMonths(): Promise<void> {
+    const months = Array.from(loadedMonths);
+    const allTimeLogs: TimeLog[] = [];
+    
+    for (const monthKey of months) {
+      const [yearStr, monthStr] = monthKey.split('-');
+      const year = parseInt(yearStr);
+      const month = parseInt(monthStr);
+      
+      const logs = await getTimeLogsByYearMonth(year, month);
+      allTimeLogs.push(...logs);
+    }
+    
+    // Update the store with all loaded timelogs
+    baseStore.updateWriteable(state => ({
+      ...state,
+      items: allTimeLogs,
+      isLoading: false
+    }));
+  }
+
   return {
     ...baseStore,
+
+    /**
+     * Get the set of loaded month keys for external access
+     */
+    getLoadedMonths(): Set<string> {
+      return new Set(loadedMonths);
+    },
+
+    /**
+     * Reload all previously loaded months (used after sync)
+     */
+    reloadAllLoadedMonths,
+
+    /**
+     * Override load to register custom afterSync callback
+     */
+    async load(sync: boolean = true) {
+      baseStore.updateWriteable(state => ({ ...state, isLoading: true, error: null }));
+
+      // Register custom afterSync callback that reloads all loaded months
+      if (!baseStore.syncCallbackRegistered) {
+        syncService.afterSync(timeLogStoreConfig.sync.syncType, async () => {
+          await reloadAllLoadedMonths();
+        });
+        baseStore.syncCallbackRegistered = true;
+      }
+
+      try {
+        // Load current month from local DB
+        const currentYear = dayjs().tz(userTimezone).year();
+        const currentMonth = dayjs().tz(userTimezone).month() + 1;
+        const allItems = await getTimeLogsByYearMonth(currentYear, currentMonth);
+
+        // filter out deleted items and clean up old deleted items
+        const items: TimeLog[] = [];
+        for (const item of allItems) {
+          if (!item.deleted_at) {
+            items.push(item);
+          }
+        }
+
+        baseStore.updateWriteable(state => ({ ...state, items, isLoading: false }));
+
+        // Sync with server if requested
+        if (sync) {
+          await syncService.sync('timelog');
+        }
+      } catch (error) {
+        baseStore.updateWriteable(state => ({ 
+          ...state, 
+          isLoading: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        }));
+        throw error;
+      }
+    },
 
     /**
      * Create a new timelog entry
@@ -112,19 +197,38 @@ function createTimeLogsStore() {
         notes: timeLogData.notes || '',
         created_at: dayjs().toISOString(),
         updated_at: dayjs().toISOString(),
+        year: (dayjs(timeLogData.start_timestamp || dayjs()).tz(userTimezone).year()),
+        month: (dayjs(timeLogData.start_timestamp || dayjs()).tz(userTimezone).month() + 1),
       });
     },
 
     /**
      * Load timelogs for a specific year and month
      * @param year - Year to load (e.g., 2024)
-     * @param month - Month to load (1-12)
+     * @param month - Month to load (1-12, same as dayjs.month() + 1)
      * @returns Array of timelogs for that month
      */
     async loadLogsByYearMonth(year: number, month: number): Promise<TimeLog[]> {
+      const key = `${year}-${month}`;
+      console.log(`Loading timelogs for ${year}-${month}...`);
+      
+      // Skip if already loaded
+      if (loadedMonths.has(key)) {
+        const existingLogs = baseStore.getState().items.filter((tl: TimeLog) => {
+          // Use year/month properties if available, otherwise parse from start_timestamp
+          const logYear = tl.year ?? dayjs(tl.start_timestamp).tz(userTimezone).year();
+          const logMonth = tl.month ?? (dayjs(tl.start_timestamp).tz(userTimezone).month() + 1);
+          return logYear === year && logMonth === month;
+        });
+        console.log('found', existingLogs.length, 'existing logs for', year, month, baseStore.getState().items.length, 'total logs in store');
+        return existingLogs;
+      }
+
       baseStore.updateWriteable(state => ({ ...state, isLoading: true, error: null }));
       try {
-        const timeLogs = await getTimeLogsByYearMonth(year, month);
+        const timeLogs = await getTimeLogsByYearMonth(year, month); // month is already 1-12
+        loadedMonths.add(key);
+        console.log('loaded', timeLogs.length, 'logs for', year, month);
         baseStore.updateWriteable(state => ({
           ...state,
           items: [...timeLogs, ...state.items],
@@ -212,3 +316,51 @@ export const activeTimeLogs = derived(
     return $timeLogsStore.items.filter(tl => !tl.end_timestamp);
   }
 );
+
+/**
+ * Create a derived store that provides timelogs for a specific month range
+ * Useful for calendar views that need to show timelogs across multiple months
+ * @param year - Year to filter
+ * @param month - Month to filter (1-12)
+ * @param range - Number of months before and after to include (default 1)
+ */
+export function getTimeLogsForMonthRange(year: number, month: number, range: number = 1) {
+  return derived(
+    timeLogsStore,
+    $timeLogsStore => {
+      const logs: TimeLog[] = [];
+      for (let i = -range; i <= range; i++) {
+        // Use the 1st of the month to avoid day-of-month overflow issues
+        const targetDate = dayjs().year(year).month(month - 1).date(1).add(i, 'month');
+        const targetYear = targetDate.year();
+        const targetMonth = targetDate.month() + 1;
+        
+        const monthLogs = $timeLogsStore.items.filter((tl: TimeLog) => {
+          const logYear = tl.year ?? dayjs(tl.start_timestamp).tz(userTimezone).year();
+          const logMonth = tl.month ?? (dayjs(tl.start_timestamp).tz(userTimezone).month() + 1);
+          return logYear === targetYear && logMonth === targetMonth;
+        });
+        logs.push(...monthLogs);
+      }
+      return logs;
+    }
+  );
+}
+
+/**
+ * Create a derived store that provides timelogs for a specific date
+ * @param date - Date string in YYYY-MM-DD format
+ */
+export function getTimeLogsForDate(date: string) {
+  return derived(
+    timeLogsStore,
+    $timeLogsStore => {
+      return $timeLogsStore.items.filter(tl => {
+        if (!tl.start_timestamp) return false;
+        const logTimezone = tl.timezone || userTimezone;
+        const logDate = dayjs.utc(tl.start_timestamp).tz(logTimezone);
+        return logDate.format('YYYY-MM-DD') === date;
+      });
+    }
+  );
+}

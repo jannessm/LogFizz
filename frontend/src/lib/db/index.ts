@@ -197,7 +197,7 @@ export async function saveTimeLog(timelog: TimeLog): Promise<void> {
     }
     
     finalTimelog = {
-      ...timelog,
+      ...finalTimelog,
       duration_minutes: Math.max(0, minutes),
       apply_break_calculation: applyBreaks,
     };

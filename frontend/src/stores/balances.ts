@@ -306,6 +306,8 @@ function createBalancesStore() {
     /**
      * Recalculate all balances for a target (or all targets)
      * Marks existing balances as deleted before recalculation
+     * Iterates over all target specs and their timespans to cover all days
+     * Calculates until today if last spec has no ending_at, otherwise until ending_at
      */
     async recalculateBalances(targetId?: string): Promise<void> {
       const _targets = get(targets) as TargetWithSpecs[];
@@ -324,25 +326,54 @@ function createBalancesStore() {
       }
 
       for (const target of targetsToProcess) {
-        // Calculate daily balances for current year
-        const currentYear = dayjs().year();
-        const currentMonth = dayjs().month() + 1;
-
-        for (let month = 1; month <= currentMonth; month++) {
-          await this.calculateDailyBalances(target.id, currentYear, month);
+        // Find the earliest starting_from date across all target specs
+        if (!target.target_specs || target.target_specs.length === 0) {
+          continue;
         }
 
-        // Calculate monthly balances
-        let cumulativePrev = 0;
-        for (let month = 1; month <= currentMonth; month++) {
-          const monthlyBalance = await this.calculateMonthlyBalance(target.id, currentYear, month, cumulativePrev);
-          if (monthlyBalance) {
-            cumulativePrev = monthlyBalance.cumulative_minutes;
+        const sortedSpecs = [...target.target_specs].sort((a, b) => 
+          dayjs(a.starting_from).unix() - dayjs(b.starting_from).unix()
+        );
+
+        const earliestDate = dayjs(sortedSpecs[0].starting_from);
+        const lastSpec = sortedSpecs[sortedSpecs.length - 1];
+        
+        // Calculate until ending_at of last spec, or today if no ending_at
+        const endDate = lastSpec.ending_at ? dayjs(lastSpec.ending_at) : dayjs();
+        
+        const startMonth = earliestDate.month() + 1;
+        const startYear = earliestDate.year();
+        const endMonth = endDate.month() + 1;
+        const endYear = endDate.year();
+
+        // Calculate daily balances for all months from earliest spec to end date
+        for (let year = startYear; year <= endYear; year++) {
+          const firstMonth = year === startYear ? startMonth : 1;
+          const lastMonth = year === endYear ? endMonth : 12;
+
+          for (let month = firstMonth; month <= lastMonth; month++) {
+            await this.calculateDailyBalances(target.id, year, month);
           }
         }
 
-        // Calculate yearly balance
-        await this.calculateYearlyBalance(target.id, currentYear);
+        // Calculate monthly balances for all months
+        let cumulativePrev = 0;
+        for (let year = startYear; year <= endYear; year++) {
+          const firstMonth = year === startYear ? startMonth : 1;
+          const lastMonth = year === endYear ? endMonth : 12;
+
+          for (let month = firstMonth; month <= lastMonth; month++) {
+            const monthlyBalance = await this.calculateMonthlyBalance(target.id, year, month, cumulativePrev);
+            if (monthlyBalance) {
+              cumulativePrev = monthlyBalance.cumulative_minutes;
+            }
+          }
+        }
+
+        // Calculate yearly balances for all years
+        for (let year = startYear; year <= endYear; year++) {
+          await this.calculateYearlyBalance(target.id, year);
+        }
       }
     },
 

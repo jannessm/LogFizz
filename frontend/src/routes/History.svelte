@@ -1,80 +1,54 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import BottomNav from '../components/BottomNav.svelte';
   import DailyBalance from '../components/DailyBalance.svelte';
-  import TimelogForm from '../components/forms/TimelogForm.svelte';
-  import Modal from '../components/Modal.svelte';
 
   import {
     HistoryCharts, HistoryCalendar,
     HistoryLogs, MonthlyBalance, ImportTimelogsModal
   } from '../components/History';
   import { timeLogsStore } from '../stores/timelogs';
-  import { timersStore, timers } from '../stores/timers';
-  import { targetsStore, targets } from '../stores/targets';
-  import { holidaysStore } from '../stores/holidays';
+  import { timers } from '../stores/timers';
+  import { targets } from '../stores/targets';
   import { snackbar } from '../stores/snackbar';
-  import dayjs from 'dayjs';
+  import { dayjs, type TimeLog } from '../types'; // ensure consistent dayjs instance
+  import { onMount } from 'svelte';
+  import { createCalendarStore, loadCalendarMonth } from '../services/calendar';
 
-  // Initialize from URL query parameters if available
-  function getInitialDates() {
-    const params = new URLSearchParams(window.location.search);
-    const dateParam = params.get('date');
-    const monthParam = params.get('month');
-    
-    let selected = dayjs();
-    let current = dayjs();
-    
-    if (dateParam) {
-      const parsed = dayjs(dateParam);
-      if (parsed.isValid()) {
-        selected = parsed;
-      }
-    }
-    
-    if (monthParam) {
-      const parsed = dayjs(monthParam);
-      if (parsed.isValid()) {
-        current = parsed;
-      }
-    } else if (dateParam) {
-      // If no month param but date param exists, set current month to selected date's month
-      current = selected.startOf('month');
-    }
-    
-    return { selected, current };
-  }
-
-  const initialDates = getInitialDates();
-  let selectedDate = $state(initialDates.selected);
-  let currentMonth = $state(initialDates.current);
-  let showTimelogForm = $state(false);
-  let editingTimelog: any = $state(null);
-  let showDeleteConfirm = $state(false);
-  let deleteTarget: any = $state(null);
+  let selectedDate = $state(dayjs()); // actual selected date, updates daily details view
+  let currentMonth = $state(dayjs());  // month being viewed in calendar, updates yearly/monthly balance views
   let showImportModal = $state(false);
 
-  // Update URL when dates change
-  function updateURL() {
-    const params = new URLSearchParams();
-    params.set('date', selectedDate.format('YYYY-MM-DD'));
-    params.set('month', currentMonth.format('YYYY-MM'));
+  // Create calendar store that reactively updates based on currentMonth and timers
+  let calendarStore = $derived(
+    createCalendarStore(currentMonth.year(), currentMonth.month() + 1, 1, $timers)
+  );
+  let calendarData = $derived($calendarStore);
+
+  onMount(async () => {
+    // Load initial month range on mount
+    await loadCalendarMonth(currentMonth.year(), currentMonth.month() + 1);
+  });
+
+  // Handle date changes from the calendar
+  function handleDateChange(newSelectedDate: dayjs.Dayjs, newCurrentMonth: dayjs.Dayjs) {
+    const monthChanged = !currentMonth.isSame(newCurrentMonth, 'month');
+    selectedDate = newSelectedDate;
+    currentMonth = newCurrentMonth;
     
-    const newURL = `${window.location.pathname}?${params.toString()}`;
-    window.history.replaceState({}, '', newURL);
+    if (monthChanged) {
+      loadCalendarMonth(currentMonth.year(), currentMonth.month() + 1);
+    }
   }
 
-  let timeLogs = $derived($timeLogsStore.items.filter(tl => 
-    dayjs(tl.start_timestamp).month() === currentMonth.month() && 
-    dayjs(tl.start_timestamp).year() === currentMonth.year()
-  ));
-  let allTimers = $derived($timers);
-  let allTargets = $derived($targets);
+  // Handle date selection from charts (only changes selected date, not the current month)
+  function selectDate(date: dayjs.Dayjs) {
+    selectedDate = date;
+  }
 
-  // Get unique state codes from all daily targets
+  // Get unique state codes from all daily targets (for HistoryLogs component)
   function getTargetCountries(): string[] {
     const countries: string[] = [];
-    for (const t of allTargets) {
+    for (const t of $targets) {
       for (const spec of t.target_specs || []) {
         if (spec.state_code) {
           countries.push(spec.state_code);
@@ -82,172 +56,6 @@
       }
     }
     return Array.from(new Set(countries)); // Remove duplicates
-  }
-
-  // Sync holidays for all countries in targets
-  async function syncHolidays() {
-    const countries = getTargetCountries();
-    if (countries.length === 0) {
-      // Fallback to user's country from browser locale if no targets have state codes
-      const locale = navigator.language || 'en-US';
-      const country = locale.split('-')[1]?.toUpperCase() || 'US';
-      countries.push(country);
-    }
-    
-    const year = currentMonth.year();
-    await holidaysStore.fetchHolidaysForStates(countries, year);
-  }
-
-  onMount(async () => {
-    await Promise.all([
-      timersStore.load(),
-      targetsStore.load(),
-    ]);
-
-    await Promise.all([
-      timeLogsStore.load(),
-    ]);
-
-    // Sync holidays for the initial month
-    await syncHolidays();
-  });
-
-  // Sync holidays when the month/year changes
-  $effect(() => {
-    if (currentMonth) {
-      syncHolidays();
-    }
-  });
-
-  function previousMonth() {
-    currentMonth = currentMonth.subtract(1, 'month');
-  }
-
-  function nextMonth() {
-    currentMonth = currentMonth.add(1, 'month');
-  }
-
-  function goToToday() {
-    currentMonth = dayjs();
-    selectedDate = dayjs();
-  }
-
-  function changeMonth(event: Event) {
-    const target = event.target as HTMLSelectElement;
-    const newMonth = parseInt(target.value);
-    currentMonth = currentMonth.month(newMonth);
-  }
-
-  function changeYear(event: Event) {
-    const target = event.target as HTMLSelectElement;
-    const newYear = parseInt(target.value);
-    currentMonth = currentMonth.year(newYear);
-  }
-
-  // Generate month options (0-11 for dayjs)
-  function getMonthOptions() {
-    return [
-      { value: 0, label: 'January' },
-      { value: 1, label: 'February' },
-      { value: 2, label: 'March' },
-      { value: 3, label: 'April' },
-      { value: 4, label: 'May' },
-      { value: 5, label: 'June' },
-      { value: 6, label: 'July' },
-      { value: 7, label: 'August' },
-      { value: 8, label: 'September' },
-      { value: 9, label: 'October' },
-      { value: 10, label: 'November' },
-      { value: 11, label: 'December' }
-    ];
-  }
-
-  // Generate year options (current year ± 5 years)
-  function getYearOptions() {
-    const currentYear = dayjs().year();
-    const years = [];
-    for (let i = currentYear - 5; i <= currentYear + 5; i++) {
-      years.push(i);
-    }
-    return years;
-  }
-
-  let monthOptions = $derived(getMonthOptions());
-  let yearOptions = $derived(getYearOptions());
-
-  function selectDate(date: dayjs.Dayjs) {
-    selectedDate = date;
-  }
-
-  // Watch for date changes and update URL
-  $effect(() => {
-    if (selectedDate && currentMonth) {
-      updateURL();
-    }
-  });
-
-  function handleAddTimelog() {
-    editingTimelog = null;
-    showTimelogForm = true;
-  }
-
-  function handleEditTimelog(session: any) {
-    editingTimelog = session;
-    showTimelogForm = true;
-  }
-
-  async function handleSaveTimelog(data: { timer_id: string; type: string; startTimestamp: string; endTimestamp?: string; notes?: string; existingLog?: any }) {
-    const { timer_id, type, startTimestamp, endTimestamp, notes, existingLog } = data;
-    
-    if (existingLog && existingLog.log) {
-      // Editing existing timelog session - update it
-      await timeLogsStore.update(existingLog.log.id, {
-        timer_id,
-        type,
-        start_timestamp: startTimestamp,
-        end_timestamp: endTimestamp || undefined,
-        notes: notes || undefined,
-      });
-    } else {
-      // Creating new timelog session
-      await timeLogsStore.create({
-        timer_id,
-        type,
-        start_timestamp: startTimestamp,
-        end_timestamp: endTimestamp || undefined,
-        notes: notes || undefined,
-      });
-    }
-    
-    showTimelogForm = false;
-    editingTimelog = null;
-  }
-
-  function handleCloseForm() {
-    showTimelogForm = false;
-    editingTimelog = null;
-  }
-
-  function confirmDelete(session: any) {
-    deleteTarget = session;
-    showDeleteConfirm = true;
-  }
-
-  async function handleDelete() {
-    if (!deleteTarget) return;
-    
-    // Delete the timelog session
-    if (deleteTarget.log) {
-      await timeLogsStore.delete(deleteTarget.log);
-    }
-    
-    showDeleteConfirm = false;
-    deleteTarget = null;
-  }
-
-  function cancelDelete() {
-    showDeleteConfirm = false;
-    deleteTarget = null;
   }
 
   function handleImportClick() {
@@ -308,67 +116,13 @@
     <!-- Left section: Calendar + Monthly Balances -->
     <div class="w-full lg:w-1/2 flex flex-col px-4 py-4 min-h-full">
       <div class="w-full max-w-lg mx-auto flex flex-col">
-        <!-- Month Navigation -->
-        <div class="flex justify-between items-center mb-4">
-          <div class="flex items-center gap-2">
-            <button
-              onclick={previousMonth}
-              class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-left-alt-duotone]"
-              aria-label="Previous month"
-            ></button>
-            
-            <!-- Month Dropdown -->
-            <select
-              onchange={changeMonth}
-              value={currentMonth.month()}
-              class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label="Select month"
-            >
-              {#each monthOptions as month}
-                <option value={month.value}>{month.label}</option>
-              {/each}
-            </select>
-            
-            <!-- Year Dropdown -->
-            <select
-              onchange={changeYear}
-              value={currentMonth.year()}
-              class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label="Select year"
-            >
-              {#each yearOptions as year}
-                <option value={year}>{year}</option>
-              {/each}
-            </select>
-            
-            <button
-              onclick={nextMonth}
-              class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-right-alt-duotone]"
-              aria-label="Next month"
-            ></button>
-            
-            <!-- Today Button -->
-            <button
-              onclick={goToToday}
-              class="px-3 py-1 text-sm font-medium text-white hover:bg-blue-600 rounded-lg transition-colors"
-              class:bg-blue-500={!selectedDate.isSame(dayjs(), 'day')}
-              class:bg-gray-300={selectedDate.isSame(dayjs(), 'day')}
-              disabled={selectedDate.isSame(dayjs(), 'day')}
-              aria-label="Go to today"
-            >
-              Today
-            </button>
-          </div>
-        </div>
-
-        <!-- Calendar Component -->
+        <!-- Calendar Component (now with built-in navigation) -->
         <HistoryCalendar
-          {currentMonth}
-          {selectedDate}
-          buttons={allTimers}
-          {timeLogs}
-          countries={getTargetCountries()}
-          onSelectDate={selectDate}
+          timers={$timers}
+          timeLogs={Array.from(calendarData.timeLogsByDate.values()).flat()}
+          calendarData={calendarData}
+          targets={$targets}
+          onDateChange={handleDateChange}
         />
 
         <!-- Monthly Balance Component -->
@@ -378,12 +132,12 @@
         />
 
         <!-- Charts Component -->
-        <HistoryCharts
-          buttons={allTimers}
+        <!-- <HistoryCharts
+          timers={$timers}
           {timeLogs}
           {currentMonth}
-          onDateSelect={selectDate}
-        />
+          dateSelect={selectDate}
+        /> -->
       </div>
     </div>
 
@@ -398,14 +152,12 @@
         <DailyBalance />
 
         <!-- Daily Logs with Filter -->
-        <HistoryLogs
+        <!-- <HistoryLogs
           {selectedDate}
           {timeLogs}
-          buttons={allTimers}
+          buttons={$timers}
           countries={getTargetCountries()}
-          onAddTimelog={handleAddTimelog}
-          onEditTimelog={handleEditTimelog}
-        />
+        /> -->
       </div>
     </div>
 
@@ -413,48 +165,10 @@
 
   <BottomNav currentTab="history" />
 
-  <!-- Timelog Form Modal -->
-  {#if showTimelogForm}
-    <TimelogForm
-      {selectedDate}
-      existingLog={editingTimelog}
-      onsave={handleSaveTimelog}
-      onclose={handleCloseForm}
-      ondelete={(session) => {
-        showTimelogForm = false;
-        deleteTarget = session;
-        showDeleteConfirm = true;
-      }}
-    />
-  {/if}
-
-  <!-- Delete Confirmation Modal -->
-  {#if showDeleteConfirm}
-    <Modal title="Delete Time Entry?" maxWidth="max-w-[400px]" onclose={cancelDelete}>
-      {#snippet children()}
-        <p class="text-gray-600 mb-6">This action cannot be undone.</p>
-        <div class="flex gap-3">
-          <button
-            onclick={cancelDelete}
-            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onclick={handleDelete}
-            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Delete
-          </button>
-        </div>
-      {/snippet}
-    </Modal>
-  {/if}
-
   <!-- Import Timelogs Modal -->
   {#if showImportModal}
     <ImportTimelogsModal
-      onclose={handleImportClose}
+      close={handleImportClose}
       onimport={handleImportConfirm}
     />
   {/if}

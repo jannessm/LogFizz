@@ -117,6 +117,8 @@ export class SyncService {
 
   // TimeLog queue operations
   async queueUpsertTimeLog(timeLog: TimeLog): Promise<void> {
+    delete (timeLog as any).year; // only for local use
+    delete (timeLog as any).month; // only for local use
     await this.queueOperation('timelog', timeLog, saveTimeLog);
   }
 

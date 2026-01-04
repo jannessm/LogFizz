@@ -1,25 +1,180 @@
 <script lang="ts">
-  import dayjs from 'dayjs';
-  import weekOfYear from 'dayjs/plugin/weekOfYear';
-  import utc from 'dayjs/plugin/utc';
-  import timezone from 'dayjs/plugin/timezone';
+  import { onMount } from 'svelte';
   import { holidaysStore } from '../../stores/holidays';
-
-  dayjs.extend(weekOfYear);
-  dayjs.extend(utc);
-  dayjs.extend(timezone);
+  import { dayjs, type TargetWithSpecs, type TimeLog, type Timer } from '../../types';
+  import { getMultiDayRange, hasSpecialType, type CalendarTimeLogData } from '../../services/calendar';
 
   // Get user's timezone
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  let { currentMonth, selectedDate, buttons, timeLogs, onSelectDate, countries = [] }: {
-    currentMonth: dayjs.Dayjs;
-    selectedDate: dayjs.Dayjs;
-    buttons: any[];
-    timeLogs: any[];
-    onSelectDate: (date: dayjs.Dayjs) => void;
-    countries: string[];
+  let {
+    timers,
+    timeLogs,
+    calendarData,
+    targets,
+    onDateChange
+  }: {
+    timers: Timer[];
+    timeLogs: TimeLog[];
+    calendarData: CalendarTimeLogData;
+    targets: TargetWithSpecs[];
+    onDateChange?: (selectedDate: dayjs.Dayjs, currentMonth: dayjs.Dayjs) => void;
   } = $props();
+
+  // Initialize from URL query parameters if available
+  function getInitialDates() {
+    const params = new URLSearchParams(window.location.search);
+    const dateParam = params.get('date');
+    const monthParam = params.get('month');
+    
+    let selected = dayjs();
+    let current = dayjs();
+    
+    if (dateParam) {
+      const parsed = dayjs(dateParam);
+      if (parsed.isValid()) {
+        selected = parsed;
+      }
+    }
+    
+    if (monthParam) {
+      const parsed = dayjs(monthParam);
+      if (parsed.isValid()) {
+        current = parsed;
+      }
+    } else if (dateParam) {
+      // If no month param but date param exists, set current month to selected date's month
+      current = selected.startOf('month');
+    }
+    
+    return { selected, current };
+  }
+
+  const initialDates = getInitialDates();
+  let selectedDate = $state(initialDates.selected); // actual selected date
+  let currentMonth = $state(initialDates.current);  // month being viewed in calendar
+
+  // Update URL when dates change
+  function updateURL() {
+    const params = new URLSearchParams();
+    params.set('date', selectedDate.format('YYYY-MM-DD'));
+    params.set('month', currentMonth.format('YYYY-MM'));
+    
+    const newURL = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, '', newURL);
+  }
+
+  // Watch for date changes and update URL + notify parent
+  $effect(() => {
+    if (selectedDate && currentMonth) {
+      updateURL();
+      if (onDateChange) {
+        onDateChange(selectedDate, currentMonth);
+      }
+    }
+  });
+
+  // Get unique state codes from all daily targets
+  function getTargetCountries(): string[] {
+    const countries: string[] = [];
+    for (const t of targets) {
+      for (const spec of t.target_specs || []) {
+        if (spec.state_code) {
+          countries.push(spec.state_code);
+        }
+      }
+    }
+    return Array.from(new Set(countries)); // Remove duplicates
+  }
+
+  let countries = $derived(getTargetCountries());
+
+  // Sync holidays for all countries in targets
+  async function syncHolidays() {
+    const countryList = getTargetCountries();
+    if (countryList.length === 0) {
+      // Fallback to user's country from browser locale if no targets have state codes
+      const locale = navigator.language || 'en-US';
+      const country = locale.split('-')[1]?.toUpperCase() || 'US';
+      countryList.push(country);
+    }
+    
+    const year = currentMonth.year();
+    await holidaysStore.fetchHolidaysForStates(countryList, year);
+  }
+
+  onMount(async () => {
+    // Sync holidays for the initial month
+    await syncHolidays();
+  });
+
+  // Sync holidays when the month/year changes
+  $effect(() => {
+    if (currentMonth) {
+      syncHolidays();
+    }
+  });
+
+  // Month navigation functions
+  function previousMonth() {
+    currentMonth = currentMonth.subtract(1, 'month');
+  }
+
+  function nextMonth() {
+    currentMonth = currentMonth.add(1, 'month');
+  }
+
+  function goToToday() {
+    currentMonth = dayjs();
+    selectedDate = dayjs();
+  }
+
+  function changeMonth(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    const newMonth = parseInt(target.value);
+    currentMonth = currentMonth.month(newMonth);
+  }
+
+  function changeYear(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    const newYear = parseInt(target.value);
+    currentMonth = currentMonth.year(newYear);
+  }
+
+  // Generate month options (0-11 for dayjs)
+  function getMonthOptions() {
+    return [
+      { value: 0, label: 'January' },
+      { value: 1, label: 'February' },
+      { value: 2, label: 'March' },
+      { value: 3, label: 'April' },
+      { value: 4, label: 'May' },
+      { value: 5, label: 'June' },
+      { value: 6, label: 'July' },
+      { value: 7, label: 'August' },
+      { value: 8, label: 'September' },
+      { value: 9, label: 'October' },
+      { value: 10, label: 'November' },
+      { value: 11, label: 'December' }
+    ];
+  }
+
+  // Generate year options (current year ± 5 years)
+  function getYearOptions() {
+    const currentYear = dayjs().year();
+    const years = [];
+    for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+      years.push(i);
+    }
+    return years;
+  }
+
+  let monthOptions = $derived(getMonthOptions());
+  let yearOptions = $derived(getYearOptions());
+
+  function selectDate(date: dayjs.Dayjs) {
+    selectedDate = date;
+  }
 
   let calendarDays = $derived.by(() => {
     const firstDay = currentMonth.startOf('month');
@@ -44,150 +199,27 @@
     }
     return weeks;
   });
-  let buttonColors = $state<Map<string, string[]>>(new Map());
 
-  $effect(() => {
-    buttonColors = getButtonColorsMap();
-  });
-
-  function getButtonColorsMap(): Map<string, string[]> {
-    const colorMap = new Map<string, string[]>();
-    for (const day of calendarDays) {
-      const colors = getButtonColorsForDate(day);
-      colorMap.set(day.format('YYYY-MM-DD'), colors); 
-    }
-    return colorMap;
-  }
-
-  // Get timelog type colors
-  function getTypeColor(type: string): string | null {
-    switch(type) {
-      case 'sick': return '#EF4444'; // Red
-      case 'holiday': return '#10B981'; // Green
-      case 'business-trip': return '#F59E0B'; // Orange/Amber
-      case 'child-sick': return '#EC4899'; // Pink
-      case 'normal':
-      default: return null; // null means use button color
-    }
-  }
-
-  // Get button colors for date (for dots display)
-  // Always use button colors for dots
-  function getButtonColorsForDate(date: dayjs.Dayjs): string[] {
-    const dateStr = date.format('YYYY-MM-DD');
-    const dateTimeLogs = timeLogs.filter(tl => {
-      if (!tl.start_timestamp) return false;
-      
-      // Convert UTC timestamp to user's timezone for comparison
-      const logTimezone = tl.timezone || userTimezone;
-      const logDate = dayjs.utc(tl.start_timestamp).tz(logTimezone);
-      return logDate.format('YYYY-MM-DD') === dateStr;
-    });
-    
-    // Group by button and use button colors
-    const colorMap = new Map<string, string>();
-    
-    for (const tl of dateTimeLogs) {
-      if (!colorMap.has(tl.timer_id)) {
-        const button = buttons.find(b => b.id === tl.timer_id);
-        colorMap.set(tl.timer_id, button?.color || '#3B82F6');
-      }
-    }
-    
-    return Array.from(colorMap.values()).slice(0, 3);
-  }
-
-  // Check if date is within a multi-day timelog range
-  function getMultiDayRange(date: dayjs.Dayjs): { 
-    isInRange: boolean; 
-    isStart: boolean; 
-    isEnd: boolean; 
-    color: string | null;
-    isMiddle: boolean;
-  } {
-    const dateStr = date.format('YYYY-MM-DD');
-    
-    for (const tl of timeLogs) {
-      if (!tl.type || tl.type === 'normal') continue;
-      if (!tl.start_timestamp || !tl.end_timestamp) continue;
-      
-      // Convert timestamps to user's timezone
-      const logTimezone = tl.timezone || userTimezone;
-      const start = dayjs.utc(tl.start_timestamp).tz(logTimezone);
-      const end = dayjs.utc(tl.end_timestamp).tz(logTimezone);
-      
-      // Check if this is a multi-day log (more than 1 day)
-      const daysDiff = end.diff(start, 'day');
-      if (daysDiff >= 1) {
-        const current = date.startOf('day');
-        const rangeStart = start.startOf('day');
-        const rangeEnd = end.startOf('day');
-        
-        if (current.isSame(rangeStart, 'day')) {
-          return { 
-            isInRange: true, 
-            isStart: true, 
-            isEnd: false, 
-            isMiddle: false,
-            color: getTypeColor(tl.type) 
-          };
-        } else if (current.isSame(rangeEnd, 'day')) {
-          return { 
-            isInRange: true, 
-            isStart: false, 
-            isEnd: true,
-            isMiddle: false, 
-            color: getTypeColor(tl.type) 
-          };
-        } else if (current.isAfter(rangeStart) && current.isBefore(rangeEnd)) {
-          return { 
-            isInRange: true, 
-            isStart: false, 
-            isEnd: false,
-            isMiddle: true, 
-            color: getTypeColor(tl.type) 
-          };
-        }
-      }
-    }
-    
-    return { isInRange: false, isStart: false, isEnd: false, isMiddle: false, color: null };
-  }
+  // Use the pre-computed data from calendar service
+  let timeLogsByDate = $derived(calendarData.timeLogsByDate);
+  let dotColors = $derived(calendarData.dotColors);
+  let multiDayRanges = $derived(calendarData.multiDayRanges);
 
   // Check if date has any special type timelogs (non-normal) - single day only
-  function hasSpecialType(date: dayjs.Dayjs): { hasSpecial: boolean; color: string | null } {
-    // First check if it's part of a multi-day range
-    const multiDay = getMultiDayRange(date);
-    if (multiDay.isInRange) {
-      return { hasSpecial: false, color: null }; // Will be handled by range display
-    }
-    
+  function hasSpecialTypeForDate(date: dayjs.Dayjs): { hasSpecial: boolean; color: string | null } {
+    return hasSpecialType(date, timeLogsByDate, timeLogs);
+  }
+
+  // Check if date is within a multi-day timelog range - use pre-computed data
+  function getMultiDayRangeForDate(date: dayjs.Dayjs) {
     const dateStr = date.format('YYYY-MM-DD');
-    const dateTimeLogs = timeLogs.filter(tl => {
-      if (!tl.start_timestamp) return false;
-      
-      // Convert UTC timestamp to user's timezone for comparison
-      const logTimezone = tl.timezone || userTimezone;
-      const logDate = dayjs.utc(tl.start_timestamp).tz(logTimezone);
-      return logDate.format('YYYY-MM-DD') === dateStr;
-    });
-    
-    for (const tl of dateTimeLogs) {
-      if (tl.type && tl.type !== 'normal') {
-        // Make sure it's not a multi-day log
-        if (tl.end_timestamp) {
-          const logTimezone = tl.timezone || userTimezone;
-          const start = dayjs.utc(tl.start_timestamp).tz(logTimezone);
-          const end = dayjs.utc(tl.end_timestamp).tz(logTimezone);
-          const daysDiff = end.diff(start, 'day');
-          if (daysDiff < 1) {
-            return { hasSpecial: true, color: getTypeColor(tl.type) };
-          }
-        }
-      }
-    }
-    
-    return { hasSpecial: false, color: null };
+    return multiDayRanges.get(dateStr) || {
+      isInRange: false,
+      isStart: false,
+      isEnd: false,
+      isMiddle: false,
+      color: null,
+    };
   }
 
   function isToday(date: dayjs.Dayjs): boolean {
@@ -213,7 +245,61 @@
   }
 </script>
 
+<!-- Month Navigation -->
+<div class="flex justify-between items-center mb-4">
+  <div class="flex items-center gap-2">
+    <button
+      onclick={previousMonth}
+      class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-left-alt-duotone]"
+      aria-label="Previous month"
+    ></button>
+    
+    <!-- Month Dropdown -->
+    <select
+      onchange={changeMonth}
+      value={currentMonth.month()}
+      class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+      aria-label="Select month"
+    >
+      {#each monthOptions as month}
+        <option value={month.value}>{month.label}</option>
+      {/each}
+    </select>
+    
+    <!-- Year Dropdown -->
+    <select
+      onchange={changeYear}
+      value={currentMonth.year()}
+      class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+      aria-label="Select year"
+    >
+      {#each yearOptions as year}
+        <option value={year}>{year}</option>
+      {/each}
+    </select>
+    
+    <button
+      onclick={nextMonth}
+      class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-right-alt-duotone]"
+      aria-label="Next month"
+    ></button>
+    
+    <!-- Today Button -->
+    <button
+      onclick={goToToday}
+      class="px-3 py-1 text-sm font-medium text-white hover:bg-blue-600 rounded-lg transition-colors"
+      class:bg-blue-500={!selectedDate.isSame(dayjs(), 'day')}
+      class:bg-gray-300={selectedDate.isSame(dayjs(), 'day')}
+      disabled={selectedDate.isSame(dayjs(), 'day')}
+      aria-label="Go to today"
+    >
+      Today
+    </button>
+  </div>
+</div>
+
 <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+
   <div>
     <!-- Calendar header (day names) -->
     <div class="grid gap-1 mb-2" style="grid-template-columns: 32px repeat(7, 1fr);">
@@ -237,15 +323,15 @@
         
         <!-- Days of the week -->
         {#each calendarDays.slice(weekIndex * 7, (weekIndex + 1) * 7) as day}
-        {@const _buttonColors = buttonColors.get(day.format('YYYY-MM-DD')) || []}
+        {@const _timelogsColors = dotColors.get(day.format('YYYY-MM-DD')) || []}
         {@const today = isToday(day)}
         {@const selected = isSelected(day)}
         {@const currentMonthDay = isCurrentMonth(day)}
-        {@const specialType = hasSpecialType(day)}
-        {@const multiDayRange = getMultiDayRange(day)}
+        {@const specialType = hasSpecialTypeForDate(day)}
+        {@const multiDayRange = getMultiDayRangeForDate(day)}
         {@const isHoliday = isPublicHoliday(day)}
         <button
-          onclick={() => onSelectDate(day)}
+          onclick={() => selectDate(day)}
           class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 py-1"
           class:text-gray-400={!currentMonthDay}
           class:text-gray-800={currentMonthDay && !selected}
@@ -257,25 +343,25 @@
             {#if multiDayRange.isStart && multiDayRange.isEnd}
               <!-- Single day range (shouldn't happen but handle it) -->
               <div 
-                class="absolute inset-0 rounded-full border-2 opacity-30"
+                class="absolute inset-1 rounded-full border-2 opacity-30"
                 style="background-color: {multiDayRange.color}; border-color: {multiDayRange.color};"
               ></div>
             {:else if multiDayRange.isStart}
               <!-- Start of range -->
               <div 
-                class="absolute inset-y-0 left-0 right-0 border-2 opacity-30 rounded-l-full"
+                class="absolute top-1 bottom-1 left-1 right-0 border-2 opacity-30 rounded-l-full"
                 style="background-color: {multiDayRange.color}; border-color: {multiDayRange.color};"
               ></div>
             {:else if multiDayRange.isEnd}
               <!-- End of range -->
               <div 
-                class="absolute inset-y-0 left-0 right-0 border-2 opacity-30 rounded-r-full"
+                class="absolute top-1 bottom-1 left-0 right-1 border-2 opacity-30 rounded-r-full"
                 style="background-color: {multiDayRange.color}; border-color: {multiDayRange.color};"
               ></div>
             {:else if multiDayRange.isMiddle}
               <!-- Middle of range -->
               <div 
-                class="absolute inset-y-0 left-0 right-0 border-2 opacity-30"
+                class="absolute top-1 bottom-1 left-0 right-0 border-2 opacity-30"
                 style="background-color: {multiDayRange.color}; border-color: {multiDayRange.color}; border-radius: 0;"
               ></div>
             {/if}
@@ -283,10 +369,10 @@
           
           <!-- Holiday indicator (subtle purple background) -->
           {#if isHoliday && currentMonthDay && !selected}
-            <div class="absolute inset-0 rounded-full bg-purple-100 border border-purple-300 opacity-50"></div>
+            <div class="absolute inset-1 rounded-full bg-purple-100 border border-purple-300 opacity-50"></div>
           {/if}
 
-          <!-- Today indicator (light blue circle behind) -->
+          <!-- Today indicator (light blue circle behind) - FULL SIZE -->
           {#if today && !selected}
             <div class="absolute inset-0 rounded-full bg-blue-100 border-2 border-blue-300"></div>
           {/if}
@@ -294,14 +380,14 @@
           <!-- Special type indicator (colored circle behind, not today and not selected) - single day only -->
           {#if specialType.hasSpecial && !today && !selected && specialType.color}
             <div 
-              class="absolute inset-0 rounded-full border-2 opacity-30"
+              class="absolute inset-1 rounded-full border-2 opacity-30"
               style="background-color: {specialType.color}; border-color: {specialType.color};"
             ></div>
           {/if}
           
           <!-- Selected indicator (solid blue circle) -->
           {#if selected}
-            <div class="absolute inset-0 rounded-full bg-blue-600 shadow-lg"></div>
+            <div class="absolute inset-1 rounded-full bg-blue-600 shadow-lg"></div>
           {/if}
           
           <!-- Date number -->
@@ -310,9 +396,9 @@
           </span>
           
           <!-- Activity dots -->
-          {#if _buttonColors && _buttonColors.length > 0}
+          {#if _timelogsColors && _timelogsColors.length > 0}
             <div class="relative flex gap-0.5 z-10">
-              {#each _buttonColors as color}
+              {#each _timelogsColors as color}
                 <div 
                   class="w-1 h-1 rounded-full"
                   style="background-color: {color};"
@@ -357,7 +443,7 @@
           <div class="w-1 h-1 rounded-full bg-green-600"></div>
           <div class="w-1 h-1 rounded-full bg-purple-600"></div>
         </div>
-        <span class="text-gray-600">Activity dots (buttons)</span>
+        <span class="text-gray-600">Activity dots (timers)</span>
       </div>
     </div>
   </div>
