@@ -305,12 +305,23 @@ function createBalancesStore() {
 
     /**
      * Recalculate all balances for a target (or all targets)
+     * Marks existing balances as deleted before recalculation
      */
     async recalculateBalances(targetId?: string): Promise<void> {
       const _targets = get(targets) as TargetWithSpecs[];
       const targetsToProcess = targetId 
         ? _targets.filter(t => t.id === targetId)
         : _targets;
+
+      // First, mark all existing balances as deleted for syncing
+      const state = baseStore.getState();
+      const balancesToDelete = targetId
+        ? state.items.filter(b => b.target_id === targetId)
+        : state.items;
+
+      for (const balance of balancesToDelete) {
+        await baseStore.delete(balance);
+      }
 
       for (const target of targetsToProcess) {
         // Calculate daily balances for current year
@@ -338,6 +349,7 @@ function createBalancesStore() {
     /**
      * Recalculate a single daily balance for a specific date
      * Completely recalculates from timelogs (doesn't use differences)
+     * Creates next balance (monthly) if missing and date is not today
      * 
      * @param targetId - Target to calculate for
      * @param date - Date in YYYY-MM-DD format
@@ -354,11 +366,39 @@ function createBalancesStore() {
       const balanceData = calculateBalanceData(date, balanceTarget, timelogs, holidaysSet);
       const state = baseStore.getState();
 
-      return await upsertBalance(this, targetId, date, balanceData, state);
+      const balance = await upsertBalance(this, targetId, date, balanceData, state);
+
+      // If next_balance_id is null and date is not today, create the monthly balance
+      const today = dayjs().format('YYYY-MM-DD');
+      if (!balance.next_balance_id && date !== today) {
+        const monthStr = dateObj.format('YYYY-MM');
+        const existingMonthlyBalance = state.items.find(
+          b => b.target_id === targetId && b.date === monthStr
+        );
+
+        if (!existingMonthlyBalance) {
+          // Create monthly balance
+          const monthlyBalance = await this.recalculateMonthlyBalance(targetId, year, month);
+          if (monthlyBalance) {
+            // Link daily to monthly
+            await baseStore.update(balance.id, {
+              next_balance_id: monthlyBalance.id,
+            });
+          }
+        } else {
+          // Link to existing monthly balance
+          await baseStore.update(balance.id, {
+            next_balance_id: existingMonthlyBalance.id,
+          });
+        }
+      }
+
+      return balance;
     },
 
     /**
      * Recalculate monthly balance and propagate cumulations
+     * Creates next balance (yearly) if missing and month is not current month
      * 
      * @param targetId - Target to calculate for
      * @param year - Year
@@ -387,6 +427,31 @@ function createBalancesStore() {
 
       // Propagate cumulations through next_balance_id chain
       await this.propagateCumulation(monthlyBalance);
+
+      // If next_balance_id is null and month is not current month, create yearly balance
+      const currentMonth = dayjs().format('YYYY-MM');
+      if (!monthlyBalance.next_balance_id && monthStr !== currentMonth) {
+        const yearStr = `${year}`;
+        const existingYearlyBalance = state.items.find(
+          b => b.target_id === targetId && b.date === yearStr
+        );
+
+        if (!existingYearlyBalance) {
+          // Create yearly balance
+          const yearlyBalance = await this.recalculateYearlyBalance(targetId, year);
+          if (yearlyBalance) {
+            // Link monthly to yearly
+            await baseStore.update(monthlyBalance.id, {
+              next_balance_id: yearlyBalance.id,
+            });
+          }
+        } else {
+          // Link to existing yearly balance
+          await baseStore.update(monthlyBalance.id, {
+            next_balance_id: existingYearlyBalance.id,
+          });
+        }
+      }
 
       return monthlyBalance;
     },
@@ -427,11 +492,13 @@ function createBalancesStore() {
     /**
      * Propagate cumulation changes through the next_balance_id chain
      * As per docs/balances.md: Updates cumulative_minutes for all linked balances
+     * If next_balance_id is null and the balance is not the most up-to-date, creates the next balance
      * 
      * @param balance - Starting balance to propagate from
      */
     async propagateCumulation(balance: Balance): Promise<void> {
       let cumulative = balance.cumulative_minutes;
+      let currentBalance = balance;
       let currentBalanceId = balance.next_balance_id;
 
       while (currentBalanceId) {
@@ -447,7 +514,64 @@ function createBalancesStore() {
 
         // Calculate new cumulative for the chain
         cumulative = updatedBalance.cumulative_minutes + updatedBalance.worked_minutes - updatedBalance.due_minutes;
+        currentBalance = updatedBalance;
         currentBalanceId = updatedBalance.next_balance_id;
+      }
+
+      // If no next balance exists, check if current balance is the most up-to-date
+      if (!currentBalanceId && currentBalance) {
+        const granularity = getGranularity(currentBalance.date);
+        const today = dayjs();
+        const balanceDate = dayjs(currentBalance.date);
+
+        let shouldCreateNext = false;
+        let nextYear: number | undefined;
+        let nextMonth: number | undefined;
+
+        if (granularity === 'daily') {
+          // Check if this is not today
+          const todayStr = today.format('YYYY-MM-DD');
+          if (currentBalance.date !== todayStr) {
+            shouldCreateNext = true;
+            nextYear = balanceDate.year();
+            nextMonth = balanceDate.month() + 1;
+          }
+        } else if (granularity === 'monthly') {
+          // Check if this is not the current month
+          const currentMonthStr = today.format('YYYY-MM');
+          if (currentBalance.date !== currentMonthStr) {
+            shouldCreateNext = true;
+            nextYear = balanceDate.year();
+          }
+        }
+        // Note: yearly balances don't create next balances automatically
+
+        if (shouldCreateNext) {
+          if (granularity === 'daily' && nextYear && nextMonth) {
+            // Create monthly balance
+            const monthlyBalance = await this.recalculateMonthlyBalance(
+              currentBalance.target_id,
+              nextYear,
+              nextMonth
+            );
+            if (monthlyBalance) {
+              await baseStore.update(currentBalance.id, {
+                next_balance_id: monthlyBalance.id,
+              });
+            }
+          } else if (granularity === 'monthly' && nextYear) {
+            // Create yearly balance
+            const yearlyBalance = await this.recalculateYearlyBalance(
+              currentBalance.target_id,
+              nextYear
+            );
+            if (yearlyBalance) {
+              await baseStore.update(currentBalance.id, {
+                next_balance_id: yearlyBalance.id,
+              });
+            }
+          }
+        }
       }
     },
   };

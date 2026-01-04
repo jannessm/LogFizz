@@ -46,13 +46,13 @@
   }
 
   const initialDates = getInitialDates();
-  let selectedDate = initialDates.selected;
-  let currentMonth = initialDates.current;
-  let showTimelogForm = false;
-  let editingTimelog: any = null;
-  let showDeleteConfirm = false;
-  let deleteTarget: any = null;
-  let showImportModal = false;
+  let selectedDate = $state(initialDates.selected);
+  let currentMonth = $state(initialDates.current);
+  let showTimelogForm = $state(false);
+  let editingTimelog: any = $state(null);
+  let showDeleteConfirm = $state(false);
+  let deleteTarget: any = $state(null);
+  let showImportModal = $state(false);
 
   // Update URL when dates change
   function updateURL() {
@@ -64,12 +64,12 @@
     window.history.replaceState({}, '', newURL);
   }
 
-  $: timeLogs = $timeLogsStore.items.filter(tl => 
+  let timeLogs = $derived($timeLogsStore.items.filter(tl => 
     dayjs(tl.start_timestamp).month() === currentMonth.month() && 
     dayjs(tl.start_timestamp).year() === currentMonth.year()
-  );
-  $: allTimers = $timers;
-  $: allTargets = $targets;
+  ));
+  let allTimers = $derived($timers);
+  let allTargets = $derived($targets);
 
   // Get unique state codes from all daily targets
   function getTargetCountries(): string[] {
@@ -113,9 +113,11 @@
   });
 
   // Sync holidays when the month/year changes
-  $: if (currentMonth) {
-    syncHolidays();
-  }
+  $effect(() => {
+    if (currentMonth) {
+      syncHolidays();
+    }
+  });
 
   function previousMonth() {
     currentMonth = currentMonth.subtract(1, 'month');
@@ -170,17 +172,19 @@
     return years;
   }
 
-  $: monthOptions = getMonthOptions();
-  $: yearOptions = getYearOptions();
+  let monthOptions = $derived(getMonthOptions());
+  let yearOptions = $derived(getYearOptions());
 
   function selectDate(date: dayjs.Dayjs) {
     selectedDate = date;
   }
 
   // Watch for date changes and update URL
-  $: if (selectedDate && currentMonth) {
-    updateURL();
-  }
+  $effect(() => {
+    if (selectedDate && currentMonth) {
+      updateURL();
+    }
+  });
 
   function handleAddTimelog() {
     editingTimelog = null;
@@ -192,8 +196,8 @@
     showTimelogForm = true;
   }
 
-  async function handleSaveTimelog(event: CustomEvent) {
-    const { timer_id, type, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
+  async function handleSaveTimelog(data: { timer_id: string; type: string; startTimestamp: string; endTimestamp?: string; notes?: string; existingLog?: any }) {
+    const { timer_id, type, startTimestamp, endTimestamp, notes, existingLog } = data;
     
     if (existingLog && existingLog.log) {
       // Editing existing timelog session - update it
@@ -254,13 +258,13 @@
     showImportModal = false;
   }
 
-  async function handleImportConfirm(event: CustomEvent<{ 
+  async function handleImportConfirm(data: { 
     timerId: string; 
     timelogs: Array<{ start_timestamp: string; end_timestamp: string; notes?: string; timer_id?: string }>; 
     skippedCount: number;
     hasProjectMappings?: boolean;
-  }>) {
-    const { timerId, timelogs, skippedCount, hasProjectMappings } = event.detail;
+  }) {
+    const { timerId, timelogs, skippedCount, hasProjectMappings } = data;
     
     // Create all timelogs concurrently for better performance
     const createPromises = timelogs.map(log => 
@@ -285,112 +289,126 @@
 </script>
 
 <div class="flex flex-col h-screen bg-gray-50">
-  <!-- Make content take full width and be scrollable horizontally and vertically -->
-  <div class="w-full px-4 py-6 flex-1 overflow-auto">
-    <!-- Inner centered container to preserve original max-width layout -->
-    <div class="w-full max-w-lg mx-auto">
-      <!-- Header -->
-      <div class="flex justify-between items-center mb-1">
-        <h1 class="text-2xl font-bold text-gray-800">History</h1>
-        <button
-          onclick={handleImportClick}
-          class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--file-upload-duotone]"
-          style="width: 28px; height: 28px;"
-          aria-label="Import timelogs"
-        ></button>
-      </div>
+  <!-- Header spanning full width -->
+  <div class="w-full px-4 pt-6 pb-2">
+    <div class="w-full max-w-7xl mx-auto flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-gray-800">History</h1>
+      <button
+        onclick={handleImportClick}
+        class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--file-upload-duotone]"
+        style="width: 28px; height: 28px;"
+        aria-label="Import timelogs"
+      ></button>
+    </div>
+  </div>
+
+  <!-- Main content area with flex layout -->
+  <div class="w-full flex-1 flex flex-col lg:flex-row overflow-y-auto min-h-0">
     
-    <DailyBalance />
-
-
-    <div class="flex justify-between items-center mt-6 mb-6">
-      <div class="flex items-center gap-2">
+    <!-- Left section: Calendar + Monthly Balances -->
+    <div class="w-full lg:w-1/2 flex flex-col px-4 py-4 min-h-full">
+      <div class="w-full max-w-lg mx-auto flex flex-col">
         <!-- Month Navigation -->
-        <button
-          onclick={previousMonth}
-          class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-left-alt-duotone]"
-          aria-label="Previous month"
-        ></button>
-        
-        <!-- Month Dropdown -->
-        <select
-          onchange={changeMonth}
-          value={currentMonth.month()}
-          class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-          aria-label="Select month"
-        >
-          {#each monthOptions as month}
-            <option value={month.value}>{month.label}</option>
-          {/each}
-        </select>
-        
-        <!-- Year Dropdown -->
-        <select
-          onchange={changeYear}
-          value={currentMonth.year()}
-          class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-          aria-label="Select year"
-        >
-          {#each yearOptions as year}
-            <option value={year}>{year}</option>
-          {/each}
-        </select>
-        
-        <button
-          onclick={nextMonth}
-          class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-right-alt-duotone]"
-          aria-label="Next month"
-        ></button>
-        
-        <!-- Today Button -->
-        <button
-          onclick={goToToday}
-          class="px-3 py-1 text-sm font-medium text-white hover:bg-blue-600 rounded-lg transition-colors"
-          class:bg-blue-500={!selectedDate.isSame(dayjs(), 'day')}
-          class:bg-gray-300={selectedDate.isSame(dayjs(), 'day')}
-          disabled={selectedDate.isSame(dayjs(), 'day')}
-          aria-label="Go to today"
-        >
-          Today
-        </button>
+        <div class="flex justify-between items-center mb-4">
+          <div class="flex items-center gap-2">
+            <button
+              onclick={previousMonth}
+              class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-left-alt-duotone]"
+              aria-label="Previous month"
+            ></button>
+            
+            <!-- Month Dropdown -->
+            <select
+              onchange={changeMonth}
+              value={currentMonth.month()}
+              class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Select month"
+            >
+              {#each monthOptions as month}
+                <option value={month.value}>{month.label}</option>
+              {/each}
+            </select>
+            
+            <!-- Year Dropdown -->
+            <select
+              onchange={changeYear}
+              value={currentMonth.year()}
+              class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Select year"
+            >
+              {#each yearOptions as year}
+                <option value={year}>{year}</option>
+              {/each}
+            </select>
+            
+            <button
+              onclick={nextMonth}
+              class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-right-alt-duotone]"
+              aria-label="Next month"
+            ></button>
+            
+            <!-- Today Button -->
+            <button
+              onclick={goToToday}
+              class="px-3 py-1 text-sm font-medium text-white hover:bg-blue-600 rounded-lg transition-colors"
+              class:bg-blue-500={!selectedDate.isSame(dayjs(), 'day')}
+              class:bg-gray-300={selectedDate.isSame(dayjs(), 'day')}
+              disabled={selectedDate.isSame(dayjs(), 'day')}
+              aria-label="Go to today"
+            >
+              Today
+            </button>
+          </div>
+        </div>
+
+        <!-- Calendar Component -->
+        <HistoryCalendar
+          {currentMonth}
+          {selectedDate}
+          buttons={allTimers}
+          {timeLogs}
+          countries={getTargetCountries()}
+          onSelectDate={selectDate}
+        />
+
+        <!-- Monthly Balance Component -->
+        <MonthlyBalance
+          year={currentMonth.year()}
+          month={currentMonth.month() + 1}
+        />
+
+        <!-- Charts Component -->
+        <HistoryCharts
+          buttons={allTimers}
+          {timeLogs}
+          {currentMonth}
+          onDateSelect={selectDate}
+        />
       </div>
     </div>
-    
-    <!-- Monthly Balance Component -->
-    <MonthlyBalance
-      year={currentMonth.year()}
-      month={currentMonth.month() + 1}
-    />
 
-    <!-- Charts Component -->
-    <HistoryCharts
-      buttons={allTimers}
-      {timeLogs}
-      {currentMonth}
-      onDateSelect={selectDate}
-    />
+    <!-- Right section: Daily Details -->
+    <div class="w-full lg:w-1/2 flex flex-col px-4 py-4 bg-gray-100 lg:bg-gray-50 min-h-full">
+      <div class="w-full max-w-lg mx-auto flex flex-col">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">
+          {selectedDate.format('MMMM D, YYYY')}
+        </h2>
 
+        <!-- Daily Balance -->
+        <DailyBalance />
 
-    <!-- Calendar Component -->
-    <HistoryCalendar
-      {currentMonth}
-      {selectedDate}
-      buttons={allTimers}
-      {timeLogs}
-      countries={getTargetCountries()}
-      onSelectDate={selectDate}
-    />
-
-      <!-- Logs Component with Filter -->
-      <HistoryLogs
-        {selectedDate}
-        {timeLogs}
-        buttons={allTimers}
-        countries={getTargetCountries()}
-        onAddTimelog={handleAddTimelog}
-        onEditTimelog={handleEditTimelog}
-      />
+        <!-- Daily Logs with Filter -->
+        <HistoryLogs
+          {selectedDate}
+          {timeLogs}
+          buttons={allTimers}
+          countries={getTargetCountries()}
+          onAddTimelog={handleAddTimelog}
+          onEditTimelog={handleEditTimelog}
+        />
+      </div>
     </div>
+
   </div>
 
   <BottomNav currentTab="history" />
@@ -400,11 +418,11 @@
     <TimelogForm
       {selectedDate}
       existingLog={editingTimelog}
-      on:save={handleSaveTimelog}
-      on:close={handleCloseForm}
-      on:delete={(e) => {
+      onsave={handleSaveTimelog}
+      onclose={handleCloseForm}
+      ondelete={(session) => {
         showTimelogForm = false;
-        deleteTarget = e.detail.session;
+        deleteTarget = session;
         showDeleteConfirm = true;
       }}
     />
@@ -436,8 +454,8 @@
   <!-- Import Timelogs Modal -->
   {#if showImportModal}
     <ImportTimelogsModal
-      on:close={handleImportClose}
-      on:import={handleImportConfirm}
+      onclose={handleImportClose}
+      onimport={handleImportConfirm}
     />
   {/if}
 </div>

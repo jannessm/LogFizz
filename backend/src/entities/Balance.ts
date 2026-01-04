@@ -13,8 +13,8 @@ export class Balance implements BalanceEntity {
   @Column('uuid')
   target_id!: string;
 
-  @Column('uuid', { default: null })
-  next_balance_id: string;
+  @Column('uuid', { nullable: true, default: null })
+  next_balance_id: string | null;
 
 
   @Column('varchar') // year, year-month, or year-month-date

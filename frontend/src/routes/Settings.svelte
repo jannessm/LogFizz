@@ -9,6 +9,7 @@
   import { navigate } from '../lib/navigation';
   import { getSetting, saveSetting } from '../lib/db';
   import { snackbar } from '../stores/snackbar';
+  import { balancesStore } from '../stores/balances';
   // Import version from frontend package.json
   // Vite allows importing JSON files directly
   import pkg from '../../package.json';
@@ -17,6 +18,7 @@
   let originalName = $state('');
   let hasPendingSync = $state(false);
   let editOnStopEnabled = $state(true);
+  let isRecalculating = $state(false);
 
   let user = $derived($authStore.user);
   let isOnline = $derived(typeof navigator !== 'undefined' ? navigator.onLine : true);
@@ -77,6 +79,23 @@
     }
   }
 
+  async function handleRecalculateBalances() {
+    if (isRecalculating) return;
+    
+    try {
+      isRecalculating = true;
+      snackbar.info('Recalculating all balances...', 3000);
+      
+      await balancesStore.recalculateBalances();
+      
+      snackbar.success('Balances recalculated successfully');
+    } catch (error: any) {
+      snackbar.error(error.message || 'Failed to recalculate balances');
+    } finally {
+      isRecalculating = false;
+    }
+  }
+
   async function handleLogout() {
     await authStore.logout();
     navigate('/login');
@@ -132,6 +151,27 @@
         </label>
         <p class="text-sm text-gray-500 mt-2 ml-6">
           When enabled, stopping a timer will open the edit form so you can add notes immediately.
+        </p>
+      </div>
+
+      <!-- Maintenance -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Maintenance</h3>
+        <button
+          onclick={handleRecalculateBalances}
+          disabled={isRecalculating}
+          class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {#if isRecalculating}
+            <span class="w-5 h-5 icon-[svg-spinners--3-dots-fade]"></span>
+            Recalculating...
+          {:else}
+            <span class="w-5 h-5 icon-[mdi--calculator]"></span>
+            Recalculate All Balances
+          {/if}
+        </button>
+        <p class="text-sm text-gray-500 mt-2">
+          Recalculates all balance data from timelogs. This will mark existing balances as deleted and create new ones.
         </p>
       </div>
 

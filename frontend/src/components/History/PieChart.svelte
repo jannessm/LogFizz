@@ -23,7 +23,7 @@
 
   // Update chart when data changes
   $effect(() => {
-    if (canvas && (timeLogs.length > 0 || refreshTick)) {
+    if (canvas && timers && (timeLogs.length > 0 || refreshTick)) {
       labels = [];
       data = [];
       colors = [];

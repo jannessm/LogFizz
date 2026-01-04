@@ -66,6 +66,10 @@ export class BalanceService {
           Object.assign(existing, change);
           // Remove updated_at from client to let TypeORM auto-update it
           delete (existing as any).updated_at;
+          // Convert empty string to null for next_balance_id
+          if (existing.next_balance_id === '') {
+            existing.next_balance_id = null;
+          }
           const balance = await this.balanceRepository.save(existing);
           savedBalances.push(balance);
         } else {
@@ -79,8 +83,9 @@ export class BalanceService {
           console.log('Creating new balance with ID:', balance);
           // Remove updated_at to let TypeORM set it
           delete (change as any).updated_at;
-          if (!balance.next_balance_id) {
-            delete (balance as any).next_balance_id;
+          // Convert empty string to null for next_balance_id
+          if (balance.next_balance_id === '') {
+            balance.next_balance_id = null;
           }
           const saved = await this.balanceRepository.save(balance);
           savedBalances.push(saved);
