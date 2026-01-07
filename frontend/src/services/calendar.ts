@@ -62,6 +62,8 @@ export function createCalendarStore(
 
     // Filter timelogs for the target months
     const relevantLogs = $timeLogsStore.items.filter((tl: TimeLog) => {
+      if (tl.deleted_at) return false;
+    
       const logYear = tl.year ?? dayjs(tl.start_timestamp).tz(userTimezone).year();
       const logMonth = tl.month ?? dayjs(tl.start_timestamp).tz(userTimezone).month() + 1;
       

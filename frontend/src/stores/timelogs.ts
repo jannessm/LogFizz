@@ -298,17 +298,6 @@ export const timerlogs = derived(
   $timeLogsStore => $timeLogsStore.items
 );
 
-/** Derived store for today's timelogs */
-export const todayTimeLogs = derived(
-  timeLogsStore,
-  $timeLogsStore => {
-    const today = dayjs().toISOString().split('T')[0];
-    return $timeLogsStore.items.filter(tl => 
-      tl.start_timestamp && tl.start_timestamp.startsWith(today)
-    );
-  }
-);
-
 /** Derived store for active timelogs (running timers - no end_timestamp) */
 export const activeTimeLogs = derived(
   timeLogsStore,

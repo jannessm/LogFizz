@@ -4,6 +4,9 @@
   import type { Timer } from '../../../../lib/types';
   import type { Session } from '../../lib/utils/computeIndentation';
 
+  // Get user's timezone
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
   let {
     session,
     timer,
@@ -26,6 +29,10 @@
 
   // computed style for absolute positioning within the timeline
   let style = $state('');
+
+  // Get log timezone and check if it differs from user timezone
+  let logTimezone = $derived(session.log?.timezone || userTimezone);
+  let isDifferentTimezone = $derived(logTimezone !== userTimezone);
 
   // Determine if session is clipped at start or end
   let isClippedAtStart = $derived(() => {
@@ -135,6 +142,9 @@
           {/if}
         {:else}
           - Running
+        {/if}
+        {#if isDifferentTimezone}
+          <span class="text-xs opacity-75 ml-1">({logTimezone})</span>
         {/if}
       </div>
     </div>

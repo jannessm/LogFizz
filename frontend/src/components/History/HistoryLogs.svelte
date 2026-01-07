@@ -32,8 +32,6 @@
   // Internal state for timelog management
   let showTimelogForm = $state(false);
   let editingTimelog: Session | null = $state(null);
-  let showDeleteConfirm = $state(false);
-  let deleteTarget: Session | null = $state(null);
 
   let sessionsData: SessionData = $derived(getSessionsForSelectedDate(selectedDate, timeLogs));
   let sessions: Session[] = $derived(sessionsData.sessions);
@@ -147,26 +145,10 @@
     editingTimelog = null;
   }
 
-  function confirmDelete(session: Session) {
-    deleteTarget = session;
-    showDeleteConfirm = true;
-  }
-
-  async function handleDelete() {
-    if (!deleteTarget) return;
-    
-    // Delete the timelog session
-    if (deleteTarget.log) {
-      await timeLogsStore.delete(deleteTarget.log);
-    }
-    
-    showDeleteConfirm = false;
-    deleteTarget = null;
-  }
-
-  function cancelDelete() {
-    showDeleteConfirm = false;
-    deleteTarget = null;
+  async function handleDelete(log: TimeLog) {
+    console.log('Deleting session:', log);
+    await timeLogsStore.delete(log);
+    showTimelogForm = false;
   }
 </script>
 
@@ -215,12 +197,14 @@
         {@const typeLabel = TYPE_LABELS[type] || type}
         {@const typeColor = TYPE_COLORS[type] || '#6B7280'}
         {@const logTimezone = session.log?.timezone || userTimezone}
+        {@const isDifferentTimezone = logTimezone !== userTimezone}
         {@const startDate = session.startTime ? dayjs.utc(session.startTime).tz(logTimezone) : null}
         {@const endDate = session.endTime ? dayjs.utc(session.endTime).tz(logTimezone) : null}
         {@const isMultiDay = startDate && endDate && endDate.diff(startDate, 'day') >= 1}
         {@const dateRangeText = isMultiDay && startDate && endDate 
           ? `${startDate.format('MMM D')} - ${endDate.format('MMM D, YYYY')}`
           : startDate ? startDate.format('MMM D, YYYY') : ''}
+        {@const timezoneText = isDifferentTimezone ? ` (${logTimezone})` : ''}
         {#if timer}
           <button
             onclick={() => handleEditTimelog(session)}
@@ -241,7 +225,11 @@
               </div>
               {#if isMultiDay}
                 <p class="text-xs text-gray-600 mb-1">
-                  📅 {dateRangeText}
+                  📅 {dateRangeText}{timezoneText}
+                </p>
+              {:else if isDifferentTimezone}
+                <p class="text-xs text-gray-600 mb-1">
+                  🌍 {timezoneText}
                 </p>
               {/if}
               {#if session.log?.notes}
@@ -333,33 +321,6 @@
     existingLog={editingTimelog?.log}
     save={handleSaveTimelog}
     close={handleCloseForm}
-    del={(session: Session) => {
-      showTimelogForm = false;
-      deleteTarget = session;
-      showDeleteConfirm = true;
-    }}
+    del={handleDelete}
   />
-{/if}
-
-<!-- Delete Confirmation Modal -->
-{#if showDeleteConfirm}
-  <Modal title="Delete Time Entry?" maxWidth="max-w-[400px]" onclose={cancelDelete}>
-    {#snippet children()}
-      <p class="text-gray-600 mb-6">This action cannot be undone.</p>
-      <div class="flex gap-3">
-        <button
-          onclick={cancelDelete}
-          class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onclick={handleDelete}
-          class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-        >
-          Delete
-        </button>
-      </div>
-    {/snippet}
-  </Modal>
 {/if}
