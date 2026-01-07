@@ -20,64 +20,66 @@
     del: (data: any) => void
   } = $props();
 
-  let timerId = $state('');
-  let timezone = userTimezone;
-  let type = $state('normal');
-  let isRunning = $state(false); // When stopping timer, it should not be running
-  let isWholeDay = $state(false);
-  
   // When editing, convert from stored timezone to user's local timezone
   // For new entries, use selectedDate and current time as defaults
-  const now = dayjs.utc(selectedDate);
+  const now = $derived(dayjs.utc(selectedDate));
+
+  let newLog: Partial<TimeLog> = $state({
+    timer_id: '',
+    type: 'normal',
+    whole_day: false,
+    apply_break_calculation: false,
+    start_timestamp: now.toISOString(),
+    end_timestamp: undefined,
+    timezone: userTimezone,
+    notes: ''
+  });
+  let isRunning = $derived(!newLog.end_timestamp); // When stopping timer, it should not be running
   
   // Initialize start timestamp
-  let startTimestamp = $state(dayjs());
+  let startTimestamp = $derived(newLog.start_timestamp ? dayjs.tz(newLog.start_timestamp, newLog.timezone || userTimezone) : now);
 
   // Initialize end timestamp - using a derived value to avoid the warning
-  let endTimestamp = $state(dayjs());
+  let endTimestamp = $derived(newLog.end_timestamp ? dayjs.tz(newLog.end_timestamp, newLog.timezone || userTimezone) : now);
 
-  let notes = $state('');
   let errorMessage: string = $state('');
   let showDeleteConfirm = $state(false);
 
   onMount(() => {
     if (existingLog) {
-      startTimestamp = !!existingLog.start_timestamp
-        ? dayjs.utc(existingLog.start_timestamp)
-        : now;
+      newLog = { ...existingLog };
+      newLog.timezone = existingLog.timezone || userTimezone;
 
-      endTimestamp = existingLog.end_timestamp
-        ? dayjs.utc(existingLog.end_timestamp)
-        : now;
-      
-      if (!existingLog.whole_day && endTimestamp.diff(startTimestamp) < 1000 * 60) {
-        endTimestamp = startTimestamp.add(1, 'minute');
+      if (isTimerStop) {
+        // For stopping timer, set end time to now if not set
+        newLog.end_timestamp = now.toISOString();
       }
 
-      timerId = existingLog.timer_id || '';
-      type = existingLog.type || 'normal';
-      isRunning = !existingLog.end_timestamp && !isTimerStop; // When stopping timer, it should not be running
-      isWholeDay = existingLog.whole_day || false;
-      notes = existingLog.notes || '';
-      timezone = existingLog.timezone || userTimezone;
+      const _startTimestamp = dayjs.tz(newLog.start_timestamp, newLog.timezone || userTimezone);
+      const _endTimestamp = newLog.end_timestamp
+        ? dayjs.tz(newLog.end_timestamp, newLog.timezone || userTimezone)
+        : undefined;
+
+      if (!newLog.whole_day && _endTimestamp && _endTimestamp.diff(_startTimestamp) < 1000 * 60) {
+        newLog.end_timestamp = _endTimestamp.add(1, 'minute').toISOString();
+      }
     }
   })
 
   function setTimestamp(value: dayjs.Dayjs, input: string, type: 'start' | 'end') {
     if (input.includes(':')) {
       const [hours, minutes] = input.split(':').map(Number);
-      value = value.tz(timezone).set('hour', hours).set('minutes', minutes);
+      value = value.tz(newLog.timezone).set('hour', hours).set('minutes', minutes);
     } else if (input.includes('-')) {
       const [year, month, date] = input.split('-').map(Number);
-      value = value.tz(timezone).set('year', year).set('month', month - 1).set('date', date);
+      value = value.tz(newLog.timezone).set('year', year).set('month', month - 1).set('date', date);
     }
 
     if (type === 'start') {
-      startTimestamp = value.utc();
+      newLog.start_timestamp = value.toISOString();
     } else {
-      endTimestamp = value.utc();
+      newLog.end_timestamp = value.toISOString();
     }
-    console.log(`Set ${type} timestamp to:`, value.format());
   }
 
   function hasDateError() {
@@ -87,12 +89,18 @@
   function handleSubmit() {
     errorMessage = '';
 
-    if (!timerId || !startTimestamp) {
+    if (!newLog.timer_id || !newLog.start_timestamp) {
       errorMessage = 'Please fill all required fields';
       return;
     }
 
-    if (!isRunning && !isWholeDay) {
+    if (isRunning && !isTimerStop) {
+      newLog.end_timestamp = undefined;
+    }
+
+    if (!isRunning && !newLog.whole_day) {
+      const endTimestamp = dayjs.tz(newLog.end_timestamp!, newLog.timezone || userTimezone);
+      
       // Validate end date is not before start date
       if (endTimestamp.isBefore(startTimestamp)) {
         errorMessage = 'End date must be after start date';
@@ -109,15 +117,7 @@
     }
 
     // is not TimeLog type
-    save({
-      timer_id: timerId,
-      type,
-      whole_day: isWholeDay,
-      startTimestamp: startTimestamp.toISOString(),
-      endTimestamp: endTimestamp.toISOString(),
-      notes,
-      existingLog
-    });
+    save(newLog);
   }
 
   function handleDeleteClick() {
@@ -184,7 +184,7 @@
         </label>
         <select
           id="timer"
-          bind:value={timerId}
+          bind:value={newLog.timer_id}
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           required
         >
@@ -204,7 +204,7 @@
         </label>
         <select
           id="type"
-          bind:value={type}
+          bind:value={newLog.type}
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           required
         >
@@ -224,7 +224,7 @@
               id="running"
               type="checkbox"
               bind:checked={isRunning}
-              disabled={isWholeDay}
+              disabled={newLog.whole_day}
               onchange={() => {
                 if (isRunning) {
                   errorMessage = '';
@@ -243,19 +243,33 @@
           <input
             id="wholeDay"
             type="checkbox"
-            bind:checked={isWholeDay}
+            bind:checked={newLog.whole_day}
             onchange={() => {
-              if (isWholeDay) {
-                isRunning = false;
+              if (newLog.whole_day) {
+                newLog.end_timestamp = newLog.start_timestamp;
                 errorMessage = '';
-                startTimestamp = startTimestamp.startOf('day');
-                endTimestamp = startTimestamp.startOf('day');
               }
             }}
             class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           />
           <span class="text-sm font-medium text-gray-700">Whole Day</span>
         </label>
+      </div>
+
+      <!-- Apply Break Calculation Checkbox -->
+      <div>
+        <label class="flex items-center gap-2">
+          <input
+            id="applyBreakCalculation"
+            type="checkbox"
+            bind:checked={newLog.apply_break_calculation}
+            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          />
+          <span class="text-sm font-medium text-gray-700">Apply Break Calculation</span>
+        </label>
+        <p class="text-xs text-gray-500 mt-1 ml-6">
+          Automatically deduct breaks based on German labor law: 30 min for 6-9 hours, 45 min for 9+ hours
+        </p>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -267,7 +281,7 @@
             id="startDate"
             type="date"
             bind:value={
-              () => startTimestamp.tz(timezone).format('YYYY-MM-DD'),
+              () => startTimestamp.tz(newLog.timezone).format('YYYY-MM-DD'),
               (value) => {setTimestamp(startTimestamp, value, 'start')}
             }
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -282,10 +296,10 @@
             id="startTime"
             type="time"
             bind:value={
-              () => startTimestamp.tz(timezone).format('HH:mm'),
+              () => startTimestamp.tz(newLog.timezone).format('HH:mm'),
               (value) => {setTimestamp(startTimestamp, value, 'start')}
             }
-            disabled={isWholeDay}
+            disabled={newLog.whole_day}
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             required
           />
@@ -303,7 +317,7 @@
                 id="endDate"
                 type="date"
                 bind:value={
-                  () => endTimestamp.tz(timezone).format('YYYY-MM-DD'),
+                  () => endTimestamp.tz(newLog.timezone).format('YYYY-MM-DD'),
                   (value) => {setTimestamp(endTimestamp, value, 'end')}
                 }
                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -320,10 +334,10 @@
                 id="endTime"
                 type="time"
               bind:value={
-                () => endTimestamp.tz(timezone).format('HH:mm'),
+                () => endTimestamp.tz(newLog.timezone).format('HH:mm'),
                 (value) => {setTimestamp(endTimestamp, value, 'end')}
               }
-                disabled={isWholeDay}
+                disabled={newLog.whole_day}
                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
                 class:border-gray-300={!hasDateError}
                 class:border-red-500={hasDateError}
@@ -340,7 +354,7 @@
         </label>
         <textarea
           id="notes"
-          bind:value={notes}
+          bind:value={newLog.notes}
           rows="3"
           placeholder="Add any notes about this time entry..."
           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"

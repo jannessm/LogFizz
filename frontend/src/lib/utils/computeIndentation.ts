@@ -3,6 +3,7 @@ import dayjs from '../../../../lib/utils/dayjs.js';
 export type Session = {
   startTime: string;
   endTime?: string | null;
+  multiDay?: boolean;
   [key: string]: any;
 };
 

@@ -4,6 +4,7 @@ import timezone from 'dayjs/plugin/timezone.js';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter.js';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore.js';
 import weekOfYear from 'dayjs/plugin/weekOfYear.js';
+import LocalizedFormat from 'dayjs/plugin/localizedFormat.js';
 
 // Extend dayjs with UTC and timezone plugins
 dayjs.extend(utc);
@@ -11,6 +12,7 @@ dayjs.extend(timezone);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 dayjs.extend(weekOfYear);
+dayjs.extend(LocalizedFormat)
 
 // Set default timezone to UTC for all operations
 dayjs.tz.setDefault('UTC');

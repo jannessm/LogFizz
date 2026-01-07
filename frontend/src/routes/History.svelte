@@ -1,11 +1,11 @@
 <script lang="ts">
   import BottomNav from '../components/BottomNav.svelte';
-  import DailyBalance from '../components/DailyBalance.svelte';
 
   import {
     HistoryCharts, HistoryCalendar,
-    HistoryLogs, MonthlyBalance, ImportTimelogsModal
-  } from '../components/History';
+    HistoryLogs, ImportTimelogsModal
+  } from '../components/history';
+  import BalancesOverview from '../components/history/BalancesOverview.svelte';
   import { timeLogsStore } from '../stores/timelogs';
   import { timers } from '../stores/timers';
   import { targets } from '../stores/targets';
@@ -110,13 +110,11 @@
     </div>
   </div>
 
-  <!-- Main content area with flex layout -->
-  <div class="w-full flex-1 flex flex-col lg:flex-row overflow-y-auto min-h-0">
-    
-    <!-- Left section: Calendar + Monthly Balances -->
-    <div class="w-full lg:w-1/2 flex flex-col px-4 py-4 min-h-full">
-      <div class="w-full max-w-lg mx-auto flex flex-col">
-        <!-- Calendar Component (now with built-in navigation) -->
+  <!-- Main content area: Calendar (slim) + Balances + Daily details/logs -->
+  <div class="w-full flex-1 overflow-y-auto min-h-0">
+    <div class="w-full p-4 grid grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)_minmax(0,1fr)] gap-4 items-start">
+      <!-- Column 1: Calendar (max width 400px) -->
+      <div class="w-full max-w-[400px] mx-auto">
         <HistoryCalendar
           timers={$timers}
           timeLogs={Array.from(calendarData.timeLogsByDate.values()).flat()}
@@ -124,43 +122,35 @@
           targets={$targets}
           onDateChange={handleDateChange}
         />
+      </div>
 
-        <!-- Monthly Balance Component -->
-        <MonthlyBalance
-          year={currentMonth.year()}
-          month={currentMonth.month() + 1}
+      <!-- Column 2: Yearly + Monthly balance -->
+      <div class="w-full flex flex-col gap-4">
+        <BalancesOverview
+          title="Balance Overview"
+          targets={$targets}
+          periods={{
+            day: { date: selectedDate.format('YYYY-MM-DD') },
+            month: { year: currentMonth.year(), month: currentMonth.month() + 1 },
+            year: { year: currentMonth.year() },
+          }}
         />
+      </div>
 
-        <!-- Charts Component -->
-        <!-- <HistoryCharts
-          timers={$timers}
-          {timeLogs}
-          {currentMonth}
-          dateSelect={selectDate}
-        /> -->
+      <!-- Column 3: Daily balance + history logs -->
+      <div class="w-full flex flex-col gap-4">
+
+        <div class="flex flex-col">
+
+          <HistoryLogs
+            {selectedDate}
+            timeLogs={calendarData.timeLogsByDate.get(selectedDate.format('YYYY-MM-DD')) || []}
+            timers={$timers}
+            countries={getTargetCountries()}
+          />
+        </div>
       </div>
     </div>
-
-    <!-- Right section: Daily Details -->
-    <div class="w-full lg:w-1/2 flex flex-col px-4 py-4 bg-gray-100 lg:bg-gray-50 min-h-full">
-      <div class="w-full max-w-lg mx-auto flex flex-col">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">
-          {selectedDate.format('MMMM D, YYYY')}
-        </h2>
-
-        <!-- Daily Balance -->
-        <DailyBalance />
-
-        <!-- Daily Logs with Filter -->
-        <!-- <HistoryLogs
-          {selectedDate}
-          {timeLogs}
-          buttons={$timers}
-          countries={getTargetCountries()}
-        /> -->
-      </div>
-    </div>
-
   </div>
 
   <BottomNav currentTab="history" />

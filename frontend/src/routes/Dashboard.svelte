@@ -5,7 +5,8 @@
   import { authStore } from '../stores/auth';
   import { snackbar } from '../stores/snackbar';
   import { authApi } from '../services/api';
-  import { EditOverview, TimerGraph } from '../components/Dashboard';
+  import EditOverview from '../components/dashboard/EditOverview.svelte';
+  import TimerGraph from '../components/dashboard/TimerGraph.svelte';
 
   import { TargetForm, TimelogForm, TimerForm } from '../components/forms';
   import DailyTargets from '../components/DailyTargets.svelte';
@@ -14,6 +15,7 @@
   import dayjs from 'dayjs';
   import type { Timer, TargetWithSpecs, TimeLog } from '../types';
   import { getSetting } from '../lib/db';
+  import { saveTimelog, deleteTimelog } from '../services/formHandlers';
 
   let showTimerForm = $state(false);
   let showTimelogForm = $state(false);
@@ -174,48 +176,20 @@
     editingTimelog = null;
   }
 
-  async function handleSaveTimelog(data: {
-    timer_id: string;
-    type: 'normal' | 'sick' | 'holiday' | 'business-trip' | 'child-sick';
-    startTimestamp: string;
-    endTimestamp?: string | null;
-    notes?: string;
-    existingLog?: TimeLog;
-  }) {
-    const { timer_id, type, startTimestamp, endTimestamp, notes, existingLog } = data;
+  function handleSaveTimelog(newLog: TimeLog) {
+    saveTimelog(newLog, editingTimelog, timerToStop).then(res => {
+      // Close the TimelogForm after saving
+      showTimelogForm = false;
+      editingTimelog = null;
 
-    // If this is a timer being stopped (timerToStop is set), stop it with the notes and custom end time
-    if (timerToStop) {
-      await timeLogsStore.stopTimer(timerToStop, notes || undefined, endTimestamp || undefined);
-      timerToStop = null;
-    } else if (existingLog) {
-      // Editing existing timelog
-      await timeLogsStore.update(existingLog.id, {
-        timer_id,
-        type,
-        start_timestamp: startTimestamp,
-        end_timestamp: endTimestamp || undefined,
-        notes: notes || undefined,
-      });
-    } else {
-      // Creating new timelog
-      await timeLogsStore.create({
-        timer_id,
-        type,
-        start_timestamp: startTimestamp,
-        end_timestamp: endTimestamp || undefined,
-        notes: notes || undefined,
-      });
-    }
-    
-    showTimelogForm = false;
-    editingTimelog = null;
+      if (res && res.timerToStop !== undefined) {
+        timerToStop = null;
+      }
+    });
   }
 
   function handleDeleteTimelog(timelog?: TimeLog) {
-    if (timelog && timelog.id) {
-      timeLogsStore.delete(timelog);
-    }
+    deleteTimelog(timelog);
     showTimelogForm = false;
     editingTimelog = null;
     timerToStop = null;
@@ -252,7 +226,7 @@
    <div class="flex flex-col absolute top-0 left-0 right-0">
     <div class="flex mx-auto px-4 pt-4 gap-2 w-full z-20 justify-end grow-0">
       <button
-        on:click={toggleToggleMode}
+        onclick={toggleToggleMode}
         class="flex gap-2 text-gray-500 transition-colors"
       >
         <span class:icon-[si--toggle-off-line]={!toggleMode}
@@ -263,7 +237,7 @@
         <span class="py-1">Auto Stop</span>
       </button>
       <button
-        on:click={toggleEditMode}
+        onclick={toggleEditMode}
         class="px-4 py-2 rounded-full transition-colors icon-[si--edit-detailed-duotone]"
         class:bg-blue-600={showEditOverview}
         class:hover:bg-blue-700={showEditOverview}
@@ -274,7 +248,7 @@
         style="width: 32px; height: 32px;"
       ></button>
       <button 
-        on:click={handleShowAddSelector}
+        onclick={handleShowAddSelector}
         class="px-4 py-2 bg-blue-600 rounded-full hover:bg-blue-700 transition-colors icon-[si--add-circle-duotone]"
         style="width: 32px; height: 32px;"
         aria-label="Add"

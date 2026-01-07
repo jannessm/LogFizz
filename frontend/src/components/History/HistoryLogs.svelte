@@ -3,11 +3,16 @@
   import SessionBox from './SessionBox.svelte';
   import TimelogForm from '../forms/TimelogForm.svelte';
   import Modal from '../Modal.svelte';
-  import { computeIndentation, type Session } from '../../lib/utils/computeIndentation';
   import { holidaysStore } from '../../stores/holidays';
   import { timeLogsStore } from '../../stores/timelogs';
-  import type { Holiday } from '../../../../lib/types';
-  import { dayjs } from '../../types/index';
+  import type { Holiday, Timer, TimeLog, TimeLogType } from '../../../../lib/types';
+  import { dayjs } from '../../types';
+  import { computeIndentation, type Session } from '../../lib/utils/computeIndentation';
+  import {
+    calculateTimeline, getHourLabels, getSessionsForSelectedDate,
+    type SessionData, type TimelineProps
+  } from '../../services/timeline';
+    import { saveTimelog } from '../../services/formHandlers';
 
   // Get user's timezone
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -15,37 +20,58 @@
   let { 
     selectedDate, 
     timeLogs, 
-    buttons, 
+    timers, 
     countries = []
   }: {
     selectedDate: dayjs.Dayjs;
-    timeLogs: any[];
-    buttons: any[];
+    timeLogs: TimeLog[];
+    timers: Timer[];
     countries: string[]; // Countries to check for holidays
   } = $props();
 
   // Internal state for timelog management
   let showTimelogForm = $state(false);
-  let editingTimelog: any = $state(null);
+  let editingTimelog: Session | null = $state(null);
   let showDeleteConfirm = $state(false);
-  let deleteTarget: any = $state(null);
+  let deleteTarget: Session | null = $state(null);
 
-  let sessions: any[] = [];
-  let specialTypeSessions: any[] = [];
-  let normalSessions: any[] = [];
-  let selectedButtonFilter: string | null = null;
-  let filteredSessions: any[] = [];
-  let filteredSpecialTypeSessions: any[] = [];
-  let uniqueButtons: any[] = [];
-  let timelineStart: dayjs.Dayjs | null = null;
-  let timelineEnd: dayjs.Dayjs | null = null;
-  let timelineHours: number = 0;
-  let timelineHeight: number = 400; // px - computed to ensure minimum session box height
-  let refreshTick = 0; // Used to trigger reactivity for running sessions
+  let sessionsData: SessionData = $derived(getSessionsForSelectedDate(selectedDate, timeLogs));
+  let sessions: Session[] = $derived(sessionsData.sessions);
+  let multiDaySessions: Session[] = $derived(sessionsData.multiDaySessions);
+  let selectedTimerFilter: string | null = $state(null);
+
+  let timelineProps: TimelineProps = $derived(calculateTimeline(sessions, selectedDate));
+  let timelineStart: dayjs.Dayjs | null = $derived(timelineProps.timelineStart);
+  let timelineEnd: dayjs.Dayjs | null = $derived(timelineProps.timelineEnd);
+  let timelineHours: number = $derived(timelineProps.timelineHours);
+  let timelineHeight: number = $derived(timelineProps.timelineHeight);
+  let refreshTick = $state(0); // Used to trigger reactivity for running sessions
   let intervalId: number | undefined;
-  let hourLabels: string[] = [];
-  let currentHolidays: Holiday[] = [];
-  let displaySessions: Session[] = $state([]);
+  let hourLabels: string[] = $derived(getHourLabels(timelineStart, timelineHours));
+
+  // Derive unique timers
+  let uniqueTimers = $derived(
+    Array.from(new Set(sessions.map(s => s.timer_id)))
+      .map(id => timers.find(t => t.id === id))
+      .filter(t => t !== undefined)
+  );
+
+  // Derive current holidays
+  let currentHolidays = $derived(getHolidaysForDate(selectedDate));
+
+  // Apply timer filter
+  let filteredSessions = $derived(
+    selectedTimerFilter 
+      ? sessions.filter(s => s.timer_id === selectedTimerFilter)
+      : sessions
+  );
+  let filteredMultiDaySessions = $derived(
+    selectedTimerFilter 
+      ? multiDaySessions.filter(s => s.timer_id === selectedTimerFilter)
+      : multiDaySessions
+  );
+
+  let displaySessions: Session[] = $derived(computeIndentation(filteredSessions));
 
   const TYPE_LABELS: Record<string, string> = {
     'sick': 'Sick Leave',
@@ -74,176 +100,28 @@
     );
   }
 
-  // Get time logs for selected date - each log is already a session
-  function getSessionsForSelectedDate() {
-    const dateStr = selectedDate.format('YYYY-MM-DD');
-    const now = dayjs();
-    
-    return timeLogs
-      .filter(tl => {
-        if (!tl.start_timestamp) return false;
-        
-        // Convert UTC timestamp to user's timezone for comparison
-        const logTimezone = tl.timezone || userTimezone;
-        const startDate = dayjs.utc(tl.start_timestamp).tz(logTimezone);
-        
-        // For multi-day logs, check if selected date falls within the range
-        if (tl.end_timestamp) {
-          const endDate = dayjs.utc(tl.end_timestamp).tz(logTimezone);
-          const selectedDay = dayjs(dateStr).startOf('day');
-          const logStart = startDate.startOf('day');
-          const logEnd = endDate.startOf('day');
-          
-          // Check if selected date is within the range (inclusive)
-          return selectedDay.isSameOrAfter(logStart) && selectedDay.isSameOrBefore(logEnd);
-        }
-        
-        // For single-day or running logs, just check start date
-        return startDate.format('YYYY-MM-DD') === dateStr;
-      })
-      .map(log => {
-        // For running sessions (no end_timestamp), calculate duration to current time
-        let duration = log.duration_minutes;
-        if (!log.end_timestamp && log.start_timestamp) {
-          const logTimezone = log.timezone || userTimezone;
-          const start = dayjs.utc(log.start_timestamp).tz(logTimezone);
-          duration = now.diff(start, 'minute');
-        }
-        
-        return {
-          timer_id: log.timer_id,
-          startTime: log.start_timestamp,
-          endTime: log.end_timestamp,
-          duration: duration,
-          log: log,
-        };
-      })
-      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-  }
-
-  // Calculate timeline bounds and position for each session
-  function calculateTimeline(sessions: any[]) {
-    if (sessions.length === 0) {
-      timelineStart = null;
-      timelineEnd = null;
-      timelineHours = 0;
-      return;
-    }
-
-    // Find earliest start and latest end
-    let earliest = dayjs(sessions[0].startTime);
-    let latest = dayjs(sessions[0].startTime);
-
-    for (const session of sessions) {
-      const start = dayjs(session.startTime);
-      const end = session.endTime ? dayjs(session.endTime) : dayjs();
-
-      if (start.isBefore(earliest)) earliest = start;
-      if (end.isAfter(latest)) latest = end;
-    }
-
-    // Round to nearest hour for cleaner display
-    timelineStart = earliest.startOf('hour');
-    timelineEnd = latest.add(1, 'hour').startOf('hour');
-    timelineHours = timelineEnd.diff(timelineStart, 'hour');
-
-    // Compute required timeline height (px) so that the minimum session box height is 60px
-    const totalMinutes = timelineEnd.diff(timelineStart, 'minute');
-    const MIN_BOX_PX = 60;
-    const MIN_HEIGHT_PX = 100; // baseline minimum timeline height
-    const MIN_LABEL_SPACING_PX = 60; // ensure at least 60px between hour labels
-
-    let requiredHeight = MIN_HEIGHT_PX;
-    if (totalMinutes > 0) {
-      for (const session of sessions) {
-        const start = dayjs(session.startTime);
-        const end = session.endTime ? dayjs(session.endTime) : dayjs();
-        const duration = end.diff(start, 'minute');
-        if (!duration || duration <= 0) continue;
-
-        // For a given session, we need H such that (duration / totalMinutes) * 0.9 * H >= MIN_BOX_PX
-        // => H >= (MIN_BOX_PX * totalMinutes) / (duration * 0.9)
-        const needed = Math.ceil((MIN_BOX_PX * totalMinutes) / (duration * 0.9));
-        if (needed > requiredHeight) requiredHeight = needed;
-      }
-    }
-
-    // Also ensure hour labels are spaced at least MIN_LABEL_SPACING_PX apart
-    let minHeightForLabels = MIN_HEIGHT_PX;
-    if (timelineHours > 0) {
-      // label spacing in px = (timelineHeight * 0.9) / timelineHours
-      // so required timelineHeight >= (MIN_LABEL_SPACING_PX * timelineHours) / 0.9
-      minHeightForLabels = Math.ceil((MIN_LABEL_SPACING_PX * timelineHours) / 0.9);
-    }
-
-    timelineHeight = Math.max(MIN_HEIGHT_PX, requiredHeight, minHeightForLabels);
-  }
-
-  // Generate hour labels for timeline
-  function getHourLabels(): string[] {
-    if (!timelineStart || timelineHours === 0) return [];
-    
-    const labels: string[] = [];
-    for (let i = 0; i <= timelineHours; i++) {
-      labels.push(timelineStart.add(i, 'hour').format('HH:mm'));
-    }
-    return labels;
-  }
-
-  $effect(() => {
-    if (selectedDate || timeLogs || refreshTick) {
-      sessions = getSessionsForSelectedDate();
-      
-      // Split sessions into special types and normal
-      specialTypeSessions = sessions.filter(s => s.log?.type && s.log.type !== 'normal');
-      normalSessions = sessions.filter(s => !s.log?.type || s.log.type === 'normal');
-      
-      calculateTimeline(normalSessions);
-
-      hourLabels = getHourLabels();
-
-      // Apply filter to both special and normal sessions
-      filteredSpecialTypeSessions = selectedButtonFilter 
-        ? specialTypeSessions.filter(s => s.timer_id === selectedButtonFilter)
-        : specialTypeSessions;
-      
-      filteredSessions = selectedButtonFilter 
-        ? normalSessions.filter(s => s.timer_id === selectedButtonFilter)
-        : normalSessions;
-      
-      uniqueButtons = Array.from(new Set(sessions.map(s => s.timer_id)))
-        .map(id => buttons.find(b => b.id === id))
-        .filter(b => b !== undefined);
-
-      // Get all holidays for selected date from all configured countries
-      currentHolidays = getHolidaysForDate(selectedDate);
-    }
-
-    displaySessions = computeIndentation(filteredSessions || []);
-  })
-
   // Check if there are any running sessions
   function hasRunningSessions(): boolean {
     return timeLogs.some(tl => tl.start_timestamp && !tl.end_timestamp);
   }
 
   // Set up interval to refresh running sessions every 30 seconds
-  onMount(() => {
-    intervalId = window.setInterval(() => {
-      if (hasRunningSessions()) {
-        refreshTick++;
-      } else if (intervalId) {
-        window.clearInterval(intervalId);
-        intervalId = undefined;
-      }
-    }, 30000); // Update every 30 seconds
-  });
+  // onMount(() => {
+  //   intervalId = window.setInterval(() => {
+  //     if (hasRunningSessions()) {
+  //       refreshTick++;
+  //     } else if (intervalId) {
+  //       window.clearInterval(intervalId);
+  //       intervalId = undefined;
+  //     }
+  //   }, 30000); // Update every 30 seconds
+  // });
 
-  onDestroy(() => {
-    if (intervalId) {
-      window.clearInterval(intervalId);
-    }
-  });
+  // onDestroy(() => {
+  //   if (intervalId) {
+  //     window.clearInterval(intervalId);
+  //   }
+  // });
 
   // Timelog management handlers
   function handleAddTimelog() {
@@ -251,36 +129,17 @@
     showTimelogForm = true;
   }
 
-  function handleEditTimelog(session: any) {
+  function handleEditTimelog(session: Session) {
     editingTimelog = session;
     showTimelogForm = true;
   }
 
-  async function handleSaveTimelog(data: { timer_id: string; type: string; startTimestamp: string; endTimestamp?: string; notes?: string; existingLog?: any }) {
-    const { timer_id, type, startTimestamp, endTimestamp, notes, existingLog } = data;
-    
-    if (existingLog && existingLog.log) {
-      // Editing existing timelog session - update it
-      await timeLogsStore.update(existingLog.log.id, {
-        timer_id,
-        type,
-        start_timestamp: startTimestamp,
-        end_timestamp: endTimestamp || undefined,
-        notes: notes || undefined,
-      });
-    } else {
-      // Creating new timelog session
-      await timeLogsStore.create({
-        timer_id,
-        type,
-        start_timestamp: startTimestamp,
-        end_timestamp: endTimestamp || undefined,
-        notes: notes || undefined,
-      });
-    }
-    
-    showTimelogForm = false;
-    editingTimelog = null;
+  function handleSaveTimelog(newLog: TimeLog) {
+    saveTimelog(newLog, editingTimelog?.log).then(res => {
+      // Close the TimelogForm after saving
+      showTimelogForm = false;
+      editingTimelog = null;
+    });
   }
 
   function handleCloseForm() {
@@ -288,7 +147,7 @@
     editingTimelog = null;
   }
 
-  function confirmDelete(session: any) {
+  function confirmDelete(session: Session) {
     deleteTarget = session;
     showDeleteConfirm = true;
   }
@@ -329,29 +188,29 @@
 
   <!-- Filter Dropdown -->
   <div class="mb-4">
-    <label for="button-filter" class="block text-sm font-medium text-gray-700 mb-2">
-      Filter by button:
+    <label for="timer-filter" class="block text-sm font-medium text-gray-700 mb-2">
+      Filter by timer:
     </label>
     <select
-      id="button-filter"
-      bind:value={selectedButtonFilter}
+      id="timer-filter"
+      bind:value={selectedTimerFilter}
       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
-      <option value={null}>All Buttons</option>
-      {#each uniqueButtons as button}
-        <option value={button.id}>
-          {button.emoji ? `${button.emoji} ` : ''}{button.name}
+      <option value={null}>All Timers</option>
+      {#each uniqueTimers as timer}
+        <option value={timer.id}>
+          {timer.emoji ? `${timer.emoji} ` : ''}{timer.name}
         </option>
       {/each}
     </select>
   </div>
 
   <!-- Special Type Sessions (Sick, Holiday, etc.) -->
-  {#if filteredSpecialTypeSessions.length > 0}
+  {#if filteredMultiDaySessions.length > 0}
     <div class="mb-6 space-y-2">
-      <h3 class="text-sm font-semibold text-gray-700 mb-3">Special Entries</h3>
-      {#each filteredSpecialTypeSessions as session}
-        {@const button = buttons.find(b => b.id === session.timer_id)}
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">Multi-Day Entries</h3>
+      {#each filteredMultiDaySessions as session}
+        {@const timer = timers.find(t => t.id === session.timer_id)}
         {@const type = session.log?.type || 'normal'}
         {@const typeLabel = TYPE_LABELS[type] || type}
         {@const typeColor = TYPE_COLORS[type] || '#6B7280'}
@@ -362,7 +221,7 @@
         {@const dateRangeText = isMultiDay && startDate && endDate 
           ? `${startDate.format('MMM D')} - ${endDate.format('MMM D, YYYY')}`
           : startDate ? startDate.format('MMM D, YYYY') : ''}
-        {#if button}
+        {#if timer}
           <button
             onclick={() => handleEditTimelog(session)}
             class="w-full flex items-center gap-3 p-4 rounded-lg border-2 hover:shadow-md transition-all text-left"
@@ -377,7 +236,7 @@
                 <span class="font-semibold text-gray-800">{typeLabel}</span>
                 <span class="text-gray-600">•</span>
                 <span class="text-gray-700">
-                  {button.emoji ? `${button.emoji} ` : ''}{button.name}
+                  {timer.emoji ? `${timer.emoji} ` : ''}{timer.name}
                 </span>
               </div>
               {#if isMultiDay}
@@ -427,7 +286,7 @@
       <div class="flex-1 grow-0 text-gray-500 relative" style="min-width: 50px;">
         {#each hourLabels as label, index}
           <div class="absolute right-0 text-right"
-            style="top: {(index / timelineHours) * 90}%;"
+            style="top: {timelineHours > 0 ? (index / timelineHours) * 90 : 0}%;"
           >{label}</div>
         {/each}
       </div>
@@ -438,22 +297,31 @@
         {#each hourLabels as _, index}
           <div 
             class="absolute left-0 right-0 border-t border-gray-300 mt-[12px]"
-            style="top: {(index / timelineHours) * 90}%;"
+            style="top: {timelineHours > 0 ? (index / timelineHours) * 90 : 0}%;"
           ></div>
         {/each}
 
         <!-- Session boxes -->
         {#each displaySessions as session}
-          {@const button = buttons.find(b => b.id === session.timer_id)}
-          {#if button}
-            <SessionBox {session} {button} {timelineStart} {timelineEnd} {timelineHeight} indentLevel={session.indentLevel} edit={handleEditTimelog} />
+          {@const timer = timers.find(t => t.id === session.timer_id)}
+          {#if timer}
+            <SessionBox 
+              {session} 
+              {timer} 
+              {timelineStart} 
+              {timelineEnd} 
+              {timelineHeight} 
+              {selectedDate}
+              indentLevel={session.indentLevel} 
+              edit={handleEditTimelog} 
+            />
           {/if}
         {/each}
       </div>
     </div>
-  {:else if sessions.length > 0 && selectedButtonFilter}
-    <p class="text-gray-500 text-center py-8">No timeline activities for selected button on this date</p>
-  {:else if filteredSpecialTypeSessions.length === 0}
+  {:else if sessions.length > 0 && selectedTimerFilter}
+    <p class="text-gray-500 text-center py-8">No timeline activities for selected timer on this date</p>
+  {:else if filteredMultiDaySessions.length === 0}
     <p class="text-gray-500 text-center py-8">No activities on this date</p>
   {/if}
 </div>
@@ -462,10 +330,10 @@
 {#if showTimelogForm}
   <TimelogForm
     {selectedDate}
-    existingLog={editingTimelog}
+    existingLog={editingTimelog?.log}
     save={handleSaveTimelog}
     close={handleCloseForm}
-    del={(session: any) => {
+    del={(session: Session) => {
       showTimelogForm = false;
       deleteTarget = session;
       showDeleteConfirm = true;

@@ -332,7 +332,7 @@
         {@const isHoliday = isPublicHoliday(day)}
         <button
           onclick={() => selectDate(day)}
-          class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 py-1"
+          class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 p-1"
           class:text-gray-400={!currentMonthDay}
           class:text-gray-800={currentMonthDay && !selected}
           class:text-white={selected}
@@ -387,11 +387,11 @@
           
           <!-- Selected indicator (solid blue circle) -->
           {#if selected}
-            <div class="absolute inset-1 rounded-full bg-blue-600 shadow-lg"></div>
+            <div class="absolute inset-0 rounded-full bg-blue-600 shadow-lg"></div>
           {/if}
           
           <!-- Date number -->
-          <span class="relative text-sm z-10 mb-1">
+          <span class="relative text-sm z-10">
             {day.format('D')}
           </span>
           
