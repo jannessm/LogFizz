@@ -13,7 +13,7 @@ import {
   getAllBalances,
 } from '../lib/db';
 import { syncService } from '../services/sync';
-import { createBaseStore, type BaseStoreConfig } from './base-store';
+import { createBaseStore, type BaseStoreConfig, mapToArray } from './base-store';
 import dayjs from '../../../lib/utils/dayjs.js';
 import { timers } from './timers';
 import { targets } from './targets';
@@ -177,9 +177,7 @@ async function upsertBalance(
 ): Promise<Balance> {
   const compositeId = generateBalanceId(targetId, date);
   const state = baseStore.getState();
-  const existingBalance = state.items.find(
-    (b: Balance) => b.id === compositeId
-  );
+  const existingBalance = state.items.get(compositeId);
 
   if (existingBalance) {
     return await baseStore.update(existingBalance.id, balanceData);
@@ -239,9 +237,9 @@ function createBalancesStore() {
      * @returns Balance or undefined
      */
     async getBalanceById(id: string): Promise<Balance | undefined> {
-      // First check in-memory store
+      // First check in-memory store (O(1) lookup)
       const state = baseStore.getState();
-      const inMemory = state.items.find(b => b.id === id);
+      const inMemory = state.items.get(id);
       if (inMemory) return inMemory;
       
       // Fall back to DB
@@ -250,7 +248,7 @@ function createBalancesStore() {
 
     getBalancesByGranularity(granularity: 'daily' | 'monthly' | 'yearly'): Balance[] {
       const state = baseStore.getState();
-      return state.items.filter(b => getGranularity(b.date) === granularity);
+      return mapToArray(state.items).filter(b => getGranularity(b.date) === granularity);
     },
 
     /**
@@ -503,7 +501,7 @@ function createBalancesStore() {
         
         // Delete existing balances
         const state = baseStore.getState();
-        const balancesToDelete = state.items.filter(b => b.target_id === target.id);
+        const balancesToDelete = mapToArray(state.items).filter(b => b.target_id === target.id);
         for (const balance of balancesToDelete) {
           await baseStore.delete(balance);
         }
@@ -533,23 +531,23 @@ export const balancesStore = createBalancesStore();
 /** Derived store providing direct access to all balances */
 export const balances = derived(
   balancesStore,
-  ($store) => $store.items
+  ($store) => mapToArray($store.items)
 );
 
 /** Derived store for daily balances (date format: YYYY-MM-DD) */
 export const dailyBalances = derived(
   balancesStore,
-  ($store) => $store.items.filter(b => b.date.length === 10)
+  ($store) => mapToArray($store.items).filter(b => b.date.length === 10)
 );
 
 /** Derived store for monthly balances (date format: YYYY-MM) */
 export const monthlyBalances = derived(
   balancesStore,
-  ($store) => $store.items.filter(b => b.date.length === 7)
+  ($store) => mapToArray($store.items).filter(b => b.date.length === 7)
 );
 
 /** Derived store for yearly balances (date format: YYYY) */
 export const yearlyBalances = derived(
   balancesStore,
-  ($store) => $store.items.filter(b => b.date.length === 4)
+  ($store) => mapToArray($store.items).filter(b => b.date.length === 4)
 );

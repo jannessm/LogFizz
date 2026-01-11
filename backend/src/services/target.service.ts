@@ -142,7 +142,10 @@ export class TargetService {
           name: change.name!,
           target_spec_ids: (change.target_specs || []).map(s => s.id),
         });
-        const savedTarget = await this.targetRepository.save(target);
+        await this.targetRepository.save(target);
+        // Reload to get auto-generated timestamps
+        const savedTarget = await this.targetRepository.findOne({ where: { id: target.id } });
+        if (!savedTarget) continue;
 
         // Create all specs
         const savedSpecs = [];
@@ -154,7 +157,10 @@ export class TargetService {
             target_id: savedTarget.id,
             exclude_holidays: specData.exclude_holidays ?? false,
           });
-          savedSpecs.push(await this.targetSpecRepository.save(spec));
+          await this.targetSpecRepository.save(spec);
+          // Reload to get auto-generated timestamps
+          const savedSpec = await this.targetSpecRepository.findOne({ where: { id: spec.id } });
+          if (savedSpec) savedSpecs.push(savedSpec);
         }
 
         // Calculate max updated_at from target and all its specs
@@ -170,6 +176,9 @@ export class TargetService {
         if (maxUpdatedAt > savedTarget.updated_at) {
           savedTarget.updated_at = maxUpdatedAt;
           await this.targetRepository.save(savedTarget);
+          // Reload to get the updated timestamp
+          const reloaded = await this.targetRepository.findOne({ where: { id: savedTarget.id } });
+          if (reloaded) Object.assign(savedTarget, reloaded);
         }
 
         savedTargets.push({
@@ -197,7 +206,10 @@ export class TargetService {
           name: change.name!,
           target_spec_ids: (change.target_specs || []).map(s => s.id),
         });
-        const savedTarget = await this.targetRepository.save(target);
+        await this.targetRepository.save(target);
+        // Reload to get auto-generated timestamps
+        const savedTarget = await this.targetRepository.findOne({ where: { id: target.id } });
+        if (!savedTarget) continue;
 
         // Create all specs
         const savedSpecs = [];
@@ -209,7 +221,10 @@ export class TargetService {
             target_id: savedTarget.id,
             exclude_holidays: specData.exclude_holidays ?? false,
           });
-          savedSpecs.push(await this.targetSpecRepository.save(spec));
+          await this.targetSpecRepository.save(spec);
+          // Reload to get auto-generated timestamps
+          const savedSpec = await this.targetSpecRepository.findOne({ where: { id: spec.id } });
+          if (savedSpec) savedSpecs.push(savedSpec);
         }
 
         // Calculate max updated_at from target and all its specs
@@ -225,6 +240,9 @@ export class TargetService {
         if (maxUpdatedAt > savedTarget.updated_at) {
           savedTarget.updated_at = maxUpdatedAt;
           await this.targetRepository.save(savedTarget);
+          // Reload to get the updated timestamp
+          const reloaded = await this.targetRepository.findOne({ where: { id: savedTarget.id } });
+          if (reloaded) Object.assign(savedTarget, reloaded);
         }
 
         savedTargets.push({
@@ -305,6 +323,9 @@ export class TargetService {
 
       if (targetNeedsUpdate) {
         await this.targetRepository.save(existingTarget);
+        // Reload to get auto-generated timestamps
+        const reloaded = await this.targetRepository.findOne({ where: { id: existingTarget.id } });
+        if (reloaded) Object.assign(existingTarget, reloaded);
       }
 
       // Update specs
@@ -359,6 +380,9 @@ export class TargetService {
           
           if (specNeedsUpdate) {
             await this.targetSpecRepository.save(existingSpec);
+            // Reload to get auto-generated timestamps
+            const reloaded = await this.targetSpecRepository.findOne({ where: { id: existingSpec.id } });
+            if (reloaded) Object.assign(existingSpec, reloaded);
           }
           
           savedSpecs.push(existingSpec);
@@ -371,7 +395,10 @@ export class TargetService {
             target_id: existingTarget.id,
             exclude_holidays: specData.exclude_holidays ?? false,
           });
-          savedSpecs.push(await this.targetSpecRepository.save(spec));
+          await this.targetSpecRepository.save(spec);
+          // Reload to get auto-generated timestamps
+          const savedSpec = await this.targetSpecRepository.findOne({ where: { id: spec.id } });
+          if (savedSpec) savedSpecs.push(savedSpec);
         }
       }
 
@@ -391,6 +418,9 @@ export class TargetService {
       if (maxUpdatedAt > existingTarget.updated_at) {
         existingTarget.updated_at = maxUpdatedAt;
         await this.targetRepository.save(existingTarget);
+        // Reload to get the updated timestamp
+        const reloaded = await this.targetRepository.findOne({ where: { id: existingTarget.id } });
+        if (reloaded) Object.assign(existingTarget, reloaded);
       }
 
       // Convert and add to saved targets

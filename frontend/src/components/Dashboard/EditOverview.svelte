@@ -1,8 +1,8 @@
 <script lang="ts">
   import Modal from '../Modal.svelte';
-  import { timersStore } from '../../stores/timers';
-  import { targetsStore } from '../../stores/targets';
-  import { timeLogsStore } from '../../stores/timelogs';
+  import { timersStore, timers } from '../../stores/timers';
+  import { targetsStore, targets } from '../../stores/targets';
+  import { timeLogsStore, timerlogs } from '../../stores/timelogs';
   import type { Timer, TargetWithSpecs } from '../../types';
   import { getActiveTargetSpec, isTargetArchived } from '../../lib/utils/targetSpec';
   import { dayjs } from '../../types';
@@ -35,7 +35,7 @@
 
   // Calculate progress for each target
   function calculateTargetProgress(target: TargetWithSpecs) {
-    const assignedTimers = $timersStore.items.filter(b => b.target_id === target.id);
+    const assignedTimers = $timers.filter(b => b.target_id === target.id);
     const todayStart = dayjs().startOf('day');
     const todayEnd = dayjs().endOf('day');
     
@@ -43,7 +43,7 @@
 
     for (const timer of assignedTimers) {
       // Get today's logs for this timer
-      const timerLogs = $timeLogsStore.items.filter(log =>
+      const timerLogs = $timerlogs.filter(log =>
         log.timer_id === timer.id &&
         log.start_timestamp &&
         dayjs(log.start_timestamp).isAfter(todayStart) &&
@@ -110,7 +110,7 @@
     const _archivedTargets: TargetWithSpecs[] = [];
     const _activeTargets: TargetWithSpecs[] = [];
 
-    $targetsStore.items.forEach(t => {
+    $targets.forEach(t => {
       if (isTargetArchived(t)) {
         _archivedTargets.push(t);
       } else {
@@ -122,8 +122,12 @@
 
     const _archivedTimers: Timer[] = [];
     const _activeTimers: Timer[] = [];
-    $timersStore.items.forEach(b => {
-      const linkedTarget = $targetsStore.items.find(t => t.id === b.target_id);
+    $timers.forEach(b => {
+      if (!b.target_id) {
+        _activeTimers.push(b);
+        return;
+      }
+      const linkedTarget = $targetsStore.items.get(b.target_id!);
       if (linkedTarget && isTargetArchived(linkedTarget)) {
         _archivedTimers.push(b);
       } else {
@@ -241,7 +245,7 @@
                           </span>
                         {/if}
                         {#if timer.target_id}
-                          {@const linkedTarget = $targetsStore.items.find(t => t.id === timer.target_id)}
+                          {@const linkedTarget = $targetsStore.items.get(timer.target_id)}
                           {#if linkedTarget}
                             <span class="flex items-center gap-1">
                               <span class="icon-[proicons--link]" style="width: 12px; height: 12px;"></span>
@@ -347,7 +351,7 @@
                               </span>
                             {/if}
                             {#if timer.target_id}
-                              {@const linkedTarget = $targetsStore.items.find(t => t.id === timer.target_id)}
+                              {@const linkedTarget = $targetsStore.items.get(timer.target_id)}
                               {#if linkedTarget}
                                 <span class="flex items-center gap-1 text-red-600">
                                   <span class="icon-[proicons--link]" style="width: 12px; height: 12px;"></span>

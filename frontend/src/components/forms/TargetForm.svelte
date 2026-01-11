@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { TargetWithSpecs, Timer, TargetSpec } from '../../types';
-  import { targetsStore } from '../../stores/targets';
+  import { targetsStore, targets } from '../../stores/targets';
   import { statesStore } from '../../stores/states';
-  import { timersStore } from '../../stores/timers';
+  import { timersStore, timers } from '../../stores/timers';
   import TargetSpecItem from './TargetSpecItem.svelte';
   import { dayjs } from '../../types';
 
@@ -36,7 +36,7 @@
   );
   
   // Get all targets for displaying which target a timer is assigned to
-  let allTargets = $derived($targetsStore.items || []);
+  let allTargets = $derived($targets || []);
 
   // Effect for initializing form data from target prop
   $effect(() => {
@@ -82,8 +82,8 @@
 
   // Separate effect for timers to avoid circular dependencies
   $effect(() => {
-    if ($timersStore.items) {
-      availableTimers = $timersStore.items;
+    if ($timers) {
+      availableTimers = $timers;
       
       // Only pre-select on initial load
       if (target?.id && !initialized) {

@@ -34,7 +34,10 @@ export class AuthService {
       email_verification_expires_at: verificationExpiresAt,
     });
 
-    const newUser = await this.userRepository.save(user);
+    await this.userRepository.save(user);
+    // Reload to get auto-generated timestamps
+    const newUser = await this.userRepository.findOne({ where: { id: user.id } });
+    if (!newUser) throw new Error('Failed to create user');
 
     // Send welcome email with verification link (async, don't wait)
     this.emailService.sendWelcomeEmail(newUser.email, verificationToken, newUser.name)
@@ -71,7 +74,9 @@ export class AuthService {
     }
 
     Object.assign(user, updates);
-    const updatedUser = await this.userRepository.save(user);
+    await this.userRepository.save(user);
+    // Reload to get auto-generated timestamps
+    const updatedUser = await this.userRepository.findOne({ where: { id: user.id } });
 
     return updatedUser;
   }

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { Timer } from '../../types';
-  import { timeLogsStore } from '../../stores/timelogs';
+  import type { Timer, TimeLog } from '../../types';
+  import { timeLogsStore, timerlogs } from '../../stores/timelogs';
+  import { mapToArray } from '../../stores/base-store';
   import { computeTimerLayout } from '../../lib/timerLayout';
   import TimerButton, {
     type ButtonEditCallback,
@@ -37,7 +38,7 @@
       const rect = containerEl.getBoundingClientRect();
       containerWidth = rect.width;
       containerHeight = Math.max(rect.height, 600);
-      timerPositions = computeTimerLayout(buttons, $timeLogsStore.items, containerWidth, containerHeight, timerSize);
+      timerPositions = computeTimerLayout(buttons, mapToArray($timeLogsStore.items), containerWidth, containerHeight, timerSize);
     }
   });
 
@@ -47,7 +48,7 @@
       containerWidth = rect.width;
       // Dynamic height based on number of buttons
       containerHeight = Math.max(rect.height, Math.min(1000, 400 + buttons.length * 30));
-      timerPositions = computeTimerLayout(buttons, $timeLogsStore.items, containerWidth, containerHeight, timerSize);
+      timerPositions = computeTimerLayout(buttons, mapToArray($timeLogsStore.items), containerWidth, containerHeight, timerSize);
     }
   });
 </script>
@@ -68,7 +69,7 @@
     {#each buttons as button (button.id)}
       {@const position = timerPositions.get(button.id)}
       {#if position}
-        {@const isActive = $timeLogsStore.items.some(t => t.timer_id === button.id && !t.end_timestamp)}
+        {@const isActive = $timerlogs.some((t: TimeLog) => t.timer_id === button.id && !t.end_timestamp)}
         <div
           class="absolute transition-all duration-500 ease-out rounded-full drop-shadow-lg"
           class:drop-shadow-2xl={isActive}

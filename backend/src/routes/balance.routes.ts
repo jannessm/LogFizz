@@ -19,6 +19,7 @@ const BalanceInputSchema = Type.Object({
   child_sick: Type.Integer(),
   worked_days: Type.Integer(),
   updated_at: Type.Optional(Type.String()),
+  created_at: Type.String(),
 });
 
 // Schema for balance output
@@ -160,22 +161,7 @@ export async function balanceRoutes(fastify: FastifyInstance) {
       }
 
       if (result.saved.length > 0) {
-        response.saved = result.saved.map(b => ({
-          id: b.id,
-          user_id: b.user_id,
-          target_id: b.target_id,
-          date: b.date,
-          due_minutes: b.due_minutes,
-          worked_minutes: b.worked_minutes,
-          cumulative_minutes: b.cumulative_minutes,
-          sick_days: b.sick_days,
-          holidays: b.holidays,
-          business_trip: b.business_trip,
-          child_sick: b.child_sick,
-          worked_days: b.worked_days,
-          created_at: b.created_at.toISOString(),
-          updated_at: b.updated_at.toISOString(),
-        }));
+        response.saved = result.saved;
       }
 
       return reply.send(response);

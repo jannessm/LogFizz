@@ -2,7 +2,7 @@ import { derived, get } from 'svelte/store';
 import type { Timer, TimeLog } from '../types';
 import { getAllTimers, saveTimer as saveTimerDB, deleteTimer as deleteTimerDB } from '../lib/db';
 import { syncService } from '../services/sync';
-import { createBaseStore, type BaseStoreConfig } from './base-store';
+import { createBaseStore, type BaseStoreConfig, mapToArray } from './base-store';
 import dayjs from '../../../lib/utils/dayjs.js';
 
 /**
@@ -60,7 +60,7 @@ export const timersStore = createTimersStore();
 /** Derived store providing direct access to timers array */
 export const timers = derived(
   timersStore,
-  ($store) => $store.items
+  ($store) => mapToArray($store.items)
 );
 
 /**
@@ -74,16 +74,16 @@ export const activeTimers = derived(
     const { activeTimeLogs } = require('./timelogs.js');
     const activeTimelogs = get(activeTimeLogs) as TimeLog[];
     const runningTimerIds = new Set(activeTimelogs.map((tl: any) => tl.timer_id));
-    return $store.items.filter(t => !runningTimerIds.has(t.id));
+    return mapToArray($store.items).filter(t => !runningTimerIds.has(t.id));
   }
 );
 
 export const nonArchivedTimers = derived(
   timersStore,
-  ($store) => $store.items.filter(t => !t.archived)
+  ($store) => mapToArray($store.items).filter(t => !t.archived)
 );
 
 export const archivedTimers = derived(
   timersStore,
-  ($store) => $store.items.filter(t => t.archived)
+  ($store) => mapToArray($store.items).filter(t => t.archived)
 );

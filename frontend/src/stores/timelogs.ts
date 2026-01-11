@@ -6,7 +6,7 @@ import {
   deleteTimeLog as deleteTimeLogDB,
 } from '../lib/db';
 import { syncService } from '../services/sync';
-import { createBaseStore, type BaseStoreConfig } from './base-store';
+import { createBaseStore, type BaseStoreConfig, mapToArray, arrayToMap } from './base-store';
 import { dayjs, userTimezone } from '../../../lib/utils/dayjs.js';
 import { recalculateBalancesForTimeLog } from '../utils/balance-recalculation';
 /**
@@ -55,7 +55,7 @@ const timeLogStoreConfig: BaseStoreConfig<TimeLog> = {
     },
     beforeUpdate: async (timeLog, state) => {
       // sort all timelogs by start_timestamp
-      const allTimeLogs = state.items.filter(tl => tl.id !== timeLog.id)
+      const allTimeLogs = mapToArray(state.items).filter(tl => tl.id !== timeLog.id)
         .sort((a, b) =>
           new Date(a.start_timestamp).getTime() - new Date(b.start_timestamp).getTime()
         );
@@ -113,7 +113,7 @@ function createTimeLogsStore() {
     // Update the store with all loaded timelogs
     baseStore.updateWriteable(state => ({
       ...state,
-      items: allTimeLogs,
+      items: arrayToMap(allTimeLogs),
       isLoading: false
     }));
   }
@@ -161,7 +161,7 @@ function createTimeLogsStore() {
           }
         }
 
-        baseStore.updateWriteable(state => ({ ...state, items, isLoading: false }));
+        baseStore.updateWriteable(state => ({ ...state, items: arrayToMap(items), isLoading: false }));
 
         // Sync with server if requested
         if (sync) {
@@ -214,13 +214,13 @@ function createTimeLogsStore() {
       
       // Skip if already loaded
       if (loadedMonths.has(key)) {
-        const existingLogs = baseStore.getState().items.filter((tl: TimeLog) => {
+        const existingLogs = mapToArray(baseStore.getState().items).filter((tl: TimeLog) => {
           // Use year/month properties if available, otherwise parse from start_timestamp
           const logYear = tl.year ?? dayjs(tl.start_timestamp).tz(userTimezone).year();
           const logMonth = tl.month ?? (dayjs(tl.start_timestamp).tz(userTimezone).month() + 1);
           return logYear === year && logMonth === month;
         });
-        console.log('found', existingLogs.length, 'existing logs for', year, month, baseStore.getState().items.length, 'total logs in store');
+        console.log('found', existingLogs.length, 'existing logs for', year, month, baseStore.getState().items.size, 'total logs in store');
         return existingLogs;
       }
 
@@ -229,11 +229,17 @@ function createTimeLogsStore() {
         const timeLogs = await getTimeLogsByYearMonth(year, month); // month is already 1-12
         loadedMonths.add(key);
         console.log('loaded', timeLogs.length, 'logs for', year, month);
-        baseStore.updateWriteable(state => ({
-          ...state,
-          items: [...timeLogs, ...state.items],
-          isLoading: false
-        }));
+        baseStore.updateWriteable(state => {
+          const newItems = new Map(state.items);
+          for (const log of timeLogs) {
+            newItems.set(log.id, log);
+          }
+          return {
+            ...state,
+            items: newItems,
+            isLoading: false
+          };
+        });
         return timeLogs;
       } catch (error: any) {
         baseStore.updateWriteable(state => ({ 
@@ -295,14 +301,14 @@ export const timeLogsStore = createTimeLogsStore();
 
 export const timerlogs = derived(
   timeLogsStore,
-  $timeLogsStore => $timeLogsStore.items
+  $timeLogsStore => mapToArray($timeLogsStore.items)
 );
 
 /** Derived store for active timelogs (running timers - no end_timestamp) */
 export const activeTimeLogs = derived(
   timeLogsStore,
   $timeLogsStore => {
-    return $timeLogsStore.items.filter(tl => !tl.end_timestamp);
+    return mapToArray($timeLogsStore.items).filter(tl => !tl.end_timestamp);
   }
 );
 
@@ -324,7 +330,7 @@ export function getTimeLogsForMonthRange(year: number, month: number, range: num
         const targetYear = targetDate.year();
         const targetMonth = targetDate.month() + 1;
         
-        const monthLogs = $timeLogsStore.items.filter((tl: TimeLog) => {
+        const monthLogs = mapToArray($timeLogsStore.items).filter((tl: TimeLog) => {
           const logYear = tl.year ?? dayjs(tl.start_timestamp).tz(userTimezone).year();
           const logMonth = tl.month ?? (dayjs(tl.start_timestamp).tz(userTimezone).month() + 1);
           return logYear === targetYear && logMonth === targetMonth;
@@ -344,7 +350,7 @@ export function getTimeLogsForDate(date: string) {
   return derived(
     timeLogsStore,
     $timeLogsStore => {
-      return $timeLogsStore.items.filter(tl => {
+      return mapToArray($timeLogsStore.items).filter(tl => {
         if (!tl.start_timestamp) return false;
         const logTimezone = tl.timezone || userTimezone;
         const logDate = dayjs.utc(tl.start_timestamp).tz(logTimezone);

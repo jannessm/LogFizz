@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Timer } from '../types';
+import { mapToArray } from './base-store';
 
 // Mock the db module
 vi.mock('../lib/db', () => ({
@@ -66,9 +67,10 @@ describe('timersStore', () => {
       await initStoreWithTimers(mockTimers);
 
       const state = get(timersStore);
-      expect(state.items).toHaveLength(2);
-      expect(state.items[0].name).toBe('Work');
-      expect(state.items[1].name).toBe('Study');
+      expect(state.items.size).toBe(2);
+      const items = mapToArray(state.items);
+      expect(items[0].name).toBe('Work');
+      expect(items[1].name).toBe('Study');
     });
 
     it('should filter out deleted timers', async () => {
@@ -97,8 +99,8 @@ describe('timersStore', () => {
       await initStoreWithTimers(mockTimers);
 
       const state = get(timersStore);
-      expect(state.items).toHaveLength(1);
-      expect(state.items[0].name).toBe('Active Timer');
+      expect(state.items.size).toBe(1);
+      expect(state.items.get('timer-1')?.name).toBe('Active Timer');
     });
   });
 
@@ -187,7 +189,7 @@ describe('timersStore', () => {
       await timersStore.delete(existingTimer);
 
       const state = get(timersStore);
-      expect(state.items).toHaveLength(0);
+      expect(state.items.size).toBe(0);
       expect(db.deleteTimer).toHaveBeenCalledWith(existingTimer);
     });
   });
@@ -262,9 +264,10 @@ describe('timersStore', () => {
       await initStoreWithTimers(mockTimers);
 
       const state = get(timersStore);
-      expect(state.items).toHaveLength(2);
-      expect(state.items.filter(t => t.archived)).toHaveLength(1);
-      expect(state.items.filter(t => !t.archived)).toHaveLength(1);
+      expect(state.items.size).toBe(2);
+      const items = mapToArray(state.items);
+      expect(items.filter(t => t.archived)).toHaveLength(1);
+      expect(items.filter(t => !t.archived)).toHaveLength(1);
     });
   });
 

@@ -45,6 +45,18 @@
   let errorMessage: string = $state('');
   let showDeleteConfirm = $state(false);
 
+  // Check if the type requires whole_day flag (all special types except normal)
+  let isSpecialType = $derived(newLog.type !== 'normal');
+
+  // Auto-set whole_day when special type is selected
+  $effect(() => {
+    if (isSpecialType && !newLog.whole_day) {
+      newLog.whole_day = true;
+      newLog.end_timestamp = newLog.start_timestamp;
+      errorMessage = '';
+    }
+  });
+
   onMount(() => {
     if (existingLog) {
       newLog = { ...existingLog };
@@ -214,6 +226,12 @@
           <option value="business-trip">Business Trip</option>
           <option value="child-sick">Child Sick</option>
         </select>
+        {#if isSpecialType}
+          <p class="text-xs text-amber-600 mt-1 flex items-start gap-1">
+            <span class="icon-[mdi--information-outline] flex-shrink-0 mt-0.5" style="width: 14px; height: 14px;"></span>
+            <span>Special types (Sick, Holiday, Business Trip, Child Sick) require the "Whole Day" flag to be counted in balance calculations.</span>
+          </p>
+        {/if}
       </div>
 
       <!-- Entry Type (hide when stopping timer or for non-normal types) -->
@@ -244,16 +262,22 @@
             id="wholeDay"
             type="checkbox"
             bind:checked={newLog.whole_day}
+            disabled={isSpecialType}
             onchange={() => {
               if (newLog.whole_day) {
                 newLog.end_timestamp = newLog.start_timestamp;
                 errorMessage = '';
               }
             }}
-            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
           />
           <span class="text-sm font-medium text-gray-700">Whole Day</span>
         </label>
+        {#if isSpecialType}
+          <p class="text-xs text-gray-500 mt-1 ml-6">
+            Required for special types to ensure proper balance calculation
+          </p>
+        {/if}
       </div>
 
       <!-- Apply Break Calculation Checkbox -->

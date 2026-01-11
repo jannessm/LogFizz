@@ -98,8 +98,8 @@ describe('balancesStore', () => {
       await initStoreWithBalances(mockBalances);
 
       const state = get(balancesStore);
-      expect(state.items).toHaveLength(1);
-      expect(state.items[0].due_minutes).toBe(480);
+      expect(state.items.size).toBe(1);
+      expect(state.items.get('target-1_2024-12-01')?.due_minutes).toBe(480);
     });
   });
 

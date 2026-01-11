@@ -2,7 +2,7 @@ import { derived, get } from 'svelte/store';
 import type { TargetWithSpecs } from '../types';
 import { saveTarget, getAllTargets, deleteTarget as deleteTargetDB } from '../lib/db';
 import { syncService } from '../services/sync';
-import { createBaseStore, type BaseStoreConfig } from './base-store';
+import { createBaseStore, type BaseStoreConfig, mapToArray } from './base-store';
 import { holidaysStore } from './holidays';
 import { timers } from './timers'; 
 import dayjs from '../../../lib/utils/dayjs.js';
@@ -94,7 +94,7 @@ export const targetsStore = createTargetsStore();
 /** Derived store providing direct access to targets array */
 export const targets = derived(
   targetsStore,
-  ($store) => $store.items
+  ($store) => mapToArray($store.items)
 );
 
 /**
@@ -107,7 +107,7 @@ export const todayTargets = derived(
     const today = dayjs();
     const todayWeekday = today.day(); // 0=Sunday, 6=Saturday
     
-    return $targetsStore.items.filter(target => {
+    return mapToArray($targetsStore.items).filter(target => {
       for (const spec of target.target_specs || []) {
         const startDate = dayjs(spec.starting_from);
         const endDate = spec.ending_at ? dayjs(spec.ending_at) : null;

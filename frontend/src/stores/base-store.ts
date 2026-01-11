@@ -14,12 +14,26 @@ export interface BaseItem {
 }
 
 /**
- * Common store state structure
+ * Common store state structure - uses Map for O(1) lookups by id
  */
 export interface BaseStoreState<T extends BaseItem> {
-  items: T[];
+  items: Map<string, T>;
   isLoading: boolean;
   error: string | null;
+}
+
+/**
+ * Convert array to Map by id
+ */
+export function arrayToMap<T extends BaseItem>(items: T[]): Map<string, T> {
+  return new Map(items.map(item => [item.id, item]));
+}
+
+/**
+ * Convert Map to array
+ */
+export function mapToArray<T extends BaseItem>(items: Map<string, T>): T[] {
+  return Array.from(items.values());
 }
 
 /**
@@ -91,7 +105,7 @@ function createStoreHelpers<T extends BaseItem>(config: BaseStoreConfig<T>) {
  */
 export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) {
   const { subscribe, set, update } = writable<BaseStoreState<T>>({
-    items: [],
+    items: new Map(),
     isLoading: false,
     error: null,
   });
@@ -140,7 +154,7 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
           finalItems = await hooks.afterLoad(items);
         }
         
-        update(state => ({ ...state, items: finalItems, isLoading: false }));
+        update(state => ({ ...state, items: arrayToMap(finalItems), isLoading: false }));
 
         // Try to pull incremental changes from server if online
         if (isOnline() && sync) {
@@ -173,11 +187,15 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
           await hooks.afterCreate(item);
         }
 
-        update(state => ({ 
-          ...state, 
-          items: [...state.items, item],
-          isLoading: false 
-        }));
+        update(state => {
+          const newItems = new Map(state.items);
+          newItems.set(item.id, item);
+          return { 
+            ...state, 
+            items: newItems,
+            isLoading: false 
+          };
+        });
 
         return item;
       } catch (error: any) {
@@ -197,7 +215,7 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
         const state = get({ subscribe });
-        const existingItem = state.items.find(item => item.id === id);
+        const existingItem = state.items.get(id);
         if (!existingItem) {
           throw new Error(`${config.storeName || 'Item'} not found`);
         }
@@ -220,11 +238,15 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
           await hooks.afterUpdate(updatedItem);
         }
 
-        update(state => ({
-          ...state,
-          items: state.items.map(item => item.id === id ? updatedItem : item),
-          isLoading: false
-        }));
+        update(state => {
+          const newItems = new Map(state.items);
+          newItems.set(id, updatedItem);
+          return {
+            ...state,
+            items: newItems,
+            isLoading: false
+          };
+        });
 
         return updatedItem;
       } catch (error: any) {
@@ -255,11 +277,15 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
           await hooks.afterDelete(item);
         }
 
-        update(state => ({
-          ...state,
-          items: state.items.filter(i => i.id !== item.id),
-          isLoading: false
-        }));
+        update(state => {
+          const newItems = new Map(state.items);
+          newItems.delete(item.id);
+          return {
+            ...state,
+            items: newItems,
+            isLoading: false
+          };
+        });
       } catch (error: any) {
         update(state => ({ 
           ...state, 
@@ -282,6 +308,27 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
      */
     getState(): BaseStoreState<T> {
       return get({ subscribe });
+    },
+
+    /**
+     * Get item by ID (O(1) lookup)
+     */
+    getById(id: string): T | undefined {
+      return get({ subscribe }).items.get(id);
+    },
+
+    /**
+     * Get all items as array
+     */
+    getAll(): T[] {
+      return mapToArray(get({ subscribe }).items);
+    },
+
+    /**
+     * Check if item exists by ID
+     */
+    has(id: string): boolean {
+      return get({ subscribe }).items.has(id);
     },
   };
 }

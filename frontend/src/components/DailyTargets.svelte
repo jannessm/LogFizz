@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { todayTargets } from '../stores/targets';
-  import { timersStore } from '../stores/timers';
-  import { timeLogsStore } from '../stores/timelogs';
+  import { timers } from '../stores/timers';
+  import { timerlogs } from '../stores/timelogs';
   import { activeTimeLogs } from '../stores/timelogs';
   import type { TargetWithSpecs } from '../types';
   import dayjs from 'dayjs';
@@ -14,7 +14,7 @@
   let progressMap = new Map<string, { totalMinutes: number; targetDuration: number; percentage: number; completed: boolean }>();
   let interval: number | null = null;
 
-  $: if ($todayTargets.length > 0 && $timersStore.items && $timeLogsStore.items) {
+  $: if ($todayTargets.length > 0 && $timers && $timerlogs) {
     updateProgressMap();
     
     // Separate active and inactive targets
@@ -72,7 +72,7 @@
   // Check if target is currently active (any assigned button is running)
   function isTargetActive(target: TargetWithSpecs): boolean {
     // Find all buttons assigned to this target
-    const assignedButtons = $timersStore.items.filter(b => b.target_id === target.id);
+    const assignedButtons = $timers.filter(b => b.target_id === target.id);
     
     // Check if any of these buttons have active timers
     return assignedButtons.some(button => 
@@ -83,7 +83,7 @@
   // Calculate progress for each target
   function calculateTargetProgress(target: TargetWithSpecs) {
     // Find all buttons assigned to this target
-    const assignedButtons = $timersStore.items.filter(b => b.target_id === target.id);
+    const assignedButtons = $timers.filter(b => b.target_id === target.id);
     
     // Get today's start/end
     const todayStart = dayjs().startOf('day');
@@ -94,7 +94,7 @@
     
     for (const button of assignedButtons) {
       // Get today's logs for this button
-      const buttonLogs = $timeLogsStore.items.filter(log => 
+      const buttonLogs = $timerlogs.filter(log => 
         log.timer_id === button.id &&
         log.start_timestamp &&
         dayjs(log.start_timestamp).isAfter(todayStart) &&

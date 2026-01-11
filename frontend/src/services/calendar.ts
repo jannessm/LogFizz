@@ -1,5 +1,6 @@
 import { derived, type Readable } from 'svelte/store';
 import { timeLogsStore } from '../stores/timelogs';
+import { mapToArray } from '../stores/base-store';
 import type { TimeLog, Timer } from '../types';
 import { dayjs } from '../types';
 
@@ -61,7 +62,7 @@ export function createCalendarStore(
     }
 
     // Filter timelogs for the target months
-    const relevantLogs = $timeLogsStore.items.filter((tl: TimeLog) => {
+    const relevantLogs = mapToArray($timeLogsStore.items).filter((tl: TimeLog) => {
       if (tl.deleted_at) return false;
     
       const logYear = tl.year ?? dayjs(tl.start_timestamp).tz(userTimezone).year();

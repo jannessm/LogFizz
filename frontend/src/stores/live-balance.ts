@@ -1,6 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { activeTimeLogs } from './timelogs';
 import { balancesStore } from './balances';
+import { mapToArray } from './base-store';
 import dayjs from '../../../lib/utils/dayjs.js';
 
 /**
@@ -70,7 +71,7 @@ function startMinuteTimer() {
       liveBalanceTick.update(tick => tick + 1);
       
       // Recalculate today's daily balances when active timelogs are running
-      await recalculateTodayBalances(activeLogs);
+      await recalculateTodayBalances();
     } else if (activeLogs.length === 0) {
       // Stop timer if no active timelogs
       stopMinuteTimer();
@@ -103,7 +104,7 @@ async function recalculateTodayBalances() {
   const state = balancesStore.getState();
   
   // Find all targets that have a daily balance for today
-  const todayBalances = state.items.filter(b => b.date === today);
+  const todayBalances = mapToArray(state.items).filter(b => b.date === today);
   const targetIds = new Set(todayBalances.map(b => b.target_id));
   
   // Recalculate each target's daily balance

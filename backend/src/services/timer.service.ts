@@ -69,8 +69,10 @@ export class TimerService {
           Object.assign(existing, change);
           // Remove updated_at from client to let TypeORM auto-update it
           delete (existing as any).updated_at;
-          const timer = await this.timerRepository.save(existing);
-          savedTimers.push(timer);
+          await this.timerRepository.save(existing);
+          // Reload to get auto-generated timestamps
+          const timer = await this.timerRepository.findOne({ where: { id: existing.id } });
+          if (timer) savedTimers.push(timer);
         } else {
           // Timer doesn't exist, create new one with client-provided UUID
           const timer = this.timerRepository.create({
@@ -80,8 +82,10 @@ export class TimerService {
           });
           // Remove updated_at to let TypeORM set it
           delete (timer as any).updated_at;
-          const saved = await this.timerRepository.save(timer);
-          savedTimers.push(saved);
+          await this.timerRepository.save(timer);
+          // Reload to get auto-generated timestamps
+          const saved = await this.timerRepository.findOne({ where: { id: timer.id } });
+          if (saved) savedTimers.push(saved);
         }
       } else {
         // Create new timer (no ID provided - shouldn't happen in offline-first)
@@ -90,8 +94,10 @@ export class TimerService {
           user_id: userId,
         });
         delete (timer as any).updated_at;
-        const saved = await this.timerRepository.save(timer);
-        savedTimers.push(saved);
+        await this.timerRepository.save(timer);
+        // Reload to get auto-generated timestamps
+        const saved = await this.timerRepository.findOne({ where: { id: timer.id } });
+        if (saved) savedTimers.push(saved);
       }
     }
 

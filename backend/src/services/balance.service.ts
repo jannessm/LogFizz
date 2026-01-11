@@ -78,8 +78,15 @@ export class BalanceService {
         existing.id = compositeId; // Ensure ID is composite format
         // Remove updated_at from client to let TypeORM auto-update it
         delete (existing as any).updated_at;
-        const balance = await this.balanceRepository.save(existing);
-        savedBalances.push(balance);
+        await this.balanceRepository.save(existing);
+        // Reload to get the auto-generated timestamps
+        const balance = await this.balanceRepository.findOne({
+          where: { id: compositeId, user_id: userId },
+        });
+        if (balance) {
+          console.log('Updated existing balance with ID:', balance.id);
+          savedBalances.push(balance);
+        }
       } else {
         // Balance doesn't exist, create new one with composite ID
         const balance = this.balanceRepository.create({
@@ -90,8 +97,14 @@ export class BalanceService {
         console.log('Creating new balance with ID:', balance.id);
         // Remove updated_at to let TypeORM set it
         delete (change as any).updated_at;
-        const saved = await this.balanceRepository.save(balance);
-        savedBalances.push(saved);
+        await this.balanceRepository.save(balance);
+        // Reload to get the auto-generated timestamps
+        const saved = await this.balanceRepository.findOne({
+          where: { id: compositeId, user_id: userId },
+        });
+        if (saved) {
+          savedBalances.push(saved);
+        }
       }
     }
 

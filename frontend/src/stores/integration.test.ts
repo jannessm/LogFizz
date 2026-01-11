@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { TimeLog, Timer, Balance, TargetWithSpecs, TargetSpec } from '../types';
+import { mapToArray } from './base-store';
 
 /**
  * Integration tests for the balance calculation flow
@@ -258,7 +259,7 @@ describe('Integration Tests - Balance Calculation Flow', () => {
       await initTimeLogsStore([timelog]);
 
       // Verify timelog exists
-      expect(get(timeLogsStore).items).toHaveLength(1);
+      expect(get(timeLogsStore).items.size).toBe(1);
 
       // Delete the timelog
       vi.mocked(db.deleteTimeLog).mockResolvedValue();
@@ -266,7 +267,7 @@ describe('Integration Tests - Balance Calculation Flow', () => {
 
       // Verify timelog was deleted
       expect(db.deleteTimeLog).toHaveBeenCalledWith(timelog);
-      expect(get(timeLogsStore).items).toHaveLength(0);
+      expect(get(timeLogsStore).items.size).toBe(0);
     });
   });
 
@@ -488,7 +489,7 @@ describe('Integration Tests - Balance Calculation Flow', () => {
       // Verify all data is loaded
       expect(get(timers)).toHaveLength(1);
       expect(get(targets)).toHaveLength(1);
-      expect(get(timeLogsStore).items).toHaveLength(1);
+      expect(get(timeLogsStore).items.size).toBe(1);
       expect(get(balances)).toHaveLength(1);
     });
 
@@ -514,7 +515,7 @@ describe('Integration Tests - Data Migration', () => {
 
     expect(get(timers)).toHaveLength(0);
     expect(get(targets)).toHaveLength(0);
-    expect(get(timeLogsStore).items).toHaveLength(0);
+    expect(get(timeLogsStore).items.size).toBe(0);
     expect(get(balances)).toHaveLength(0);
   });
 
@@ -577,7 +578,7 @@ describe('Integration Tests - Data Migration', () => {
 
     await initTimeLogsStore(timelogs);
 
-    const loadedTimelogs = get(timeLogsStore).items;
+    const loadedTimelogs = mapToArray(get(timeLogsStore).items);
     expect(loadedTimelogs).toHaveLength(5);
     
     types.forEach((type, i) => {
