@@ -114,19 +114,19 @@ async function prepareCalculationContext(
  * @param holidaysSet - Set of holiday dates
  * @returns Balance data (without id, user_id, target_id, timestamps)
  */
-function calculateBalanceData(
+export function calculateBalanceData(
   date: string,
   balanceTarget: BalanceTarget,
   timelogs: TimeLog[],
   holidaysSet: Set<string>
-): Omit<Balance, 'id' | 'user_id' | 'target_id' | 'next_balance_id' | 'created_at' | 'updated_at'> {
+): Omit<Balance, 'id' | 'user_id' | 'next_balance_id' | 'created_at' | 'updated_at'> {
   const dueMinutes = calculateDueMinutes(date, balanceTarget, holidaysSet);
   const { worked_minutes: workedMinutes, counters } = calculateWorkedMinutesForDate(
     date,
     timelogs
   );
 
-  // For special days, add due_minutes to worked_minutes (as per docs)
+  // For whole_day entries (counter entries), add due_minutes to worked_minutes (as per docs)
   let adjustedWorked = workedMinutes;
   if (counters.sick_days > 0 || counters.holidays > 0 || 
       counters.business_trip > 0 || counters.child_sick > 0 || counters.normal > 0) {
@@ -137,9 +137,10 @@ function calculateBalanceData(
 
   return {
     date,
+    target_id: balanceTarget.id,
     due_minutes: dueMinutes,
     worked_minutes: adjustedWorked,
-    cumulative_minutes: adjustedWorked - dueMinutes,
+    cumulative_minutes: 0, // is the cumulation of previous balances without the current one
     worked_days: adjustedWorked > 0 && counters.business_trip === 0 ? 1 : 0,
     ...counters,
   };
@@ -160,7 +161,7 @@ async function upsertBalance(
   store: any,
   targetId: string,
   date: string,
-  balanceData: Omit<Balance, 'id' | 'user_id' | 'target_id' | 'next_balance_id' | 'created_at' | 'updated_at'>,
+  balanceData: Omit<Balance, 'id' | 'user_id' | 'next_balance_id' | 'created_at' | 'updated_at'>,
   state: any
 ): Promise<Balance> {
   const existingBalance = state.items.find(
@@ -170,10 +171,7 @@ async function upsertBalance(
   if (existingBalance) {
     return await baseStore.update(existingBalance.id, balanceData);
   } else {
-    return await store.create({
-      target_id: targetId,
-      ...balanceData,
-    });
+    return await store.create(balanceData);
   }
 }
 
@@ -243,11 +241,8 @@ function createBalancesStore() {
 
         const dateStr = date.format('YYYY-MM-DD');
         const balanceData = calculateBalanceData(dateStr, balanceTarget, timelogs, holidaysSet);
-        
-        const balance = await this.create({
-          target_id: targetId,
-          ...balanceData,
-        });
+
+        const balance = await this.create(balanceData);
 
         dailyBalances.push(balance);
       }

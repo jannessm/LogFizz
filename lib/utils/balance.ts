@@ -102,14 +102,6 @@ export function calculateTimelogDuration(timelog: TimeLog): number {
     return timelog.duration_minutes;
   }
 
-  // Do not auto-calculate durations for special day types when duration isn't provided.
-  // These are handled as whole-day counters in frontend and should not get inferred
-  // from timestamps by backend tests/logic.
-  const specialTypes = new Set<TimeLogType>(['sick', 'holiday', 'business-trip', 'child-sick']);
-  if (timelog.type && specialTypes.has(timelog.type)) {
-    return 0;
-  }
-  
   // Calculate from timestamps
   if (!timelog.start_timestamp || !timelog.end_timestamp) {
     return 0;
@@ -170,19 +162,21 @@ export function calculateWorkedMinutesForDate(
     if (!range) continue; // Timelog doesn't overlap with this date
     
     const { effectiveStart, effectiveEnd } = range;
-    let effectiveMinutes = effectiveEnd.diff(effectiveStart, 'minute');
-    
-    // Check if breaks were already subtracted
-    // Breaks are only applied once on the last day and only if log ends before day end
+    const logStart = dayjs(timelog.start_timestamp);
     const logEnd = timelog.end_timestamp ? dayjs(timelog.end_timestamp) : dayjs();
     const dayEnd = dayjs(date).endOf('day');
     const totalDuration = duration;
-    const actualDuration = logEnd.diff(dayjs(timelog.start_timestamp), 'minute');
+    const actualDuration = logEnd.diff(logStart, 'minute');
     
-    // If timelog.duration < actual timerange AND log ends before day end, breaks were applied
-    if (totalDuration < actualDuration && logEnd.isBefore(dayEnd)) {
-      // Add back the difference (the break that was subtracted)
-      effectiveMinutes += (actualDuration - totalDuration);
+    // Determine if this log had breaks applied (duration < actual time range)
+    const breaksWereApplied = totalDuration < actualDuration;
+    
+    // If log ends after this day, use full effective range
+    let effectiveMinutes = effectiveEnd.diff(effectiveStart, 'minute');
+
+    // If log ends within this day, adjust based on breaks
+    if (logEnd.isBefore(dayEnd) && breaksWereApplied) {
+      effectiveMinutes -= (actualDuration - totalDuration);
     }
     
     worked += effectiveMinutes;
@@ -246,7 +240,7 @@ export function aggregateToMonthly(
   const first = dailyBalances[0];
   let totalDue = 0;
   let totalWorked = 0;
-  const counters: WholeDayCounters = {
+  const counters: Omit<WholeDayCounters, 'normal'> = {
     sick_days: 0,
     holidays: 0,
     business_trip: 0,
@@ -274,7 +268,7 @@ export function aggregateToMonthly(
     }
   }
   
-  const cumulation = totalWorked - totalDue + previousCumulation;
+  const cumulation = previousCumulation;
   
   // Extract year-month from first daily balance date
   const date = first.date.substring(0, 7); // 'YYYY-MM'
@@ -310,7 +304,7 @@ export function aggregateToYearly(
   const first = monthlyBalances[0];
   let totalDue = 0;
   let totalWorked = 0;
-  const counters: WholeDayCounters = {
+  const counters: Omit<WholeDayCounters, 'normal'> = {
     sick_days: 0,
     holidays: 0,
     business_trip: 0,
@@ -328,7 +322,7 @@ export function aggregateToYearly(
     workedDays += monthly.worked_days;
   }
   
-  const cumulation = totalWorked - totalDue + previousCumulation;
+  const cumulation = previousCumulation;
   
   // Extract year from first monthly balance date
   const date = first.date.substring(0, 4); // 'YYYY'
