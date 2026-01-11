@@ -11,6 +11,7 @@ import {
   calculateDueMinutes,
   aggregateToMonthly,
   aggregateToYearly,
+  propagateCumulativeMinutes,
   type Balance,
   type Target,
 } from './balance.js';
@@ -245,10 +246,9 @@ describe('Balance Calculation Utilities', () => {
     it('should aggregate daily balances correctly', () => {
       const dailyBalances: Balance[] = [
         {
-          id: 'daily-1',
+          id: 'target-1_2024-06-01',
           user_id: 'user-1',
           target_id: 'target-1',
-          next_balance_id: null,
           
           date: '2024-06-01',
           due_minutes: 480,
@@ -263,10 +263,9 @@ describe('Balance Calculation Utilities', () => {
           updated_at: '2024-06-01T00:00:00Z',
         },
         {
-          id: 'daily-2',
+          id: 'target-1_2024-06-02',
           user_id: 'user-1',
           target_id: 'target-1',
-          next_balance_id: null,
           
           date: '2024-06-02',
           due_minutes: 480,
@@ -286,17 +285,16 @@ describe('Balance Calculation Utilities', () => {
       expect(result.date).toBe('2024-06');
       expect(result.due_minutes).toBe(960);
       expect(result.worked_minutes).toBe(970);
-      expect(result.cumulative_minutes).toBe(10); // 970 - 960 + 0
+      expect(result.cumulative_minutes).toBe(0); // previous cumulation is 0
       expect(result.worked_days).toBe(2);
     });
 
     it('should add due minutes for sick days to worked minutes', () => {
       const dailyBalances: Balance[] = [
         {
-          id: 'daily-1',
+          id: 'target-1_2024-06-01',
           user_id: 'user-1',
           target_id: 'target-1',
-          next_balance_id: null,
           
           date: '2024-06-01',
           due_minutes: 480,
@@ -320,10 +318,9 @@ describe('Balance Calculation Utilities', () => {
     it('should carry forward previous cumulation', () => {
       const dailyBalances: Balance[] = [
         {
-          id: 'daily-1',
+          id: 'target-1_2024-06-01',
           user_id: 'user-1',
           target_id: 'target-1',
-          next_balance_id: null,
           
           date: '2024-06-01',
           due_minutes: 480,
@@ -341,7 +338,7 @@ describe('Balance Calculation Utilities', () => {
       
       const previousCumulation = 120;
       const result = aggregateToMonthly(dailyBalances, previousCumulation);
-      expect(result.cumulative_minutes).toBe(120); // 480 - 480 + 120
+      expect(result.cumulative_minutes).toBe(120); // previous cumulation is carried forward
     });
   });
 
@@ -349,10 +346,9 @@ describe('Balance Calculation Utilities', () => {
     it('should aggregate monthly balances correctly', () => {
       const monthlyBalances: Balance[] = [
         {
-          id: 'monthly-1',
+          id: 'target-1_2024-01',
           user_id: 'user-1',
           target_id: 'target-1',
-          next_balance_id: null,
           
           date: '2024-01',
           due_minutes: 9600,
@@ -367,10 +363,9 @@ describe('Balance Calculation Utilities', () => {
           updated_at: '2024-01-31T00:00:00Z',
         },
         {
-          id: 'monthly-2',
+          id: 'target-1_2024-02',
           user_id: 'user-1',
           target_id: 'target-1',
-          next_balance_id: null,
           
           date: '2024-02',
           due_minutes: 9120,
@@ -390,10 +385,68 @@ describe('Balance Calculation Utilities', () => {
       expect(result.date).toBe('2024');
       expect(result.due_minutes).toBe(18720);
       expect(result.worked_minutes).toBe(18900);
-      expect(result.cumulative_minutes).toBe(180); // 18900 - 18720 + 0
+      expect(result.cumulative_minutes).toBe(0); // previous cumulation is 0
       expect(result.worked_days).toBe(39);
       expect(result.sick_days).toBe(1);
       expect(result.holidays).toBe(2);
     });
   });
+
+  describe('propagateCumulativeMinutes', () => {
+    it('should propagate cumulative minutes starting from zero', () => {
+      const balances: Balance[] = [
+        createMockBalanceForCumulation('2024-01', 480, 500),  // +20
+        createMockBalanceForCumulation('2024-02', 480, 400),  // -80
+        createMockBalanceForCumulation('2024-03', 480, 520),  // +40
+      ];
+
+      const finalCumulation = propagateCumulativeMinutes(balances, 0);
+
+      expect(balances[0].cumulative_minutes).toBe(0);   // starts at 0
+      expect(balances[1].cumulative_minutes).toBe(20);  // 0 + (500-480)
+      expect(balances[2].cumulative_minutes).toBe(-60); // 20 + (400-480)
+      expect(finalCumulation).toBe(-20);                // -60 + (520-480)
+    });
+
+    it('should propagate cumulative minutes with initial cumulation', () => {
+      const balances: Balance[] = [
+        createMockBalanceForCumulation('2024-01', 480, 500),  // +20
+        createMockBalanceForCumulation('2024-02', 480, 480),  // 0
+      ];
+
+      const finalCumulation = propagateCumulativeMinutes(balances, 100);
+
+      expect(balances[0].cumulative_minutes).toBe(100); // starts at initial
+      expect(balances[1].cumulative_minutes).toBe(120); // 100 + (500-480)
+      expect(finalCumulation).toBe(120);                // 120 + (480-480)
+    });
+
+    it('should handle empty array', () => {
+      const balances: Balance[] = [];
+
+      const finalCumulation = propagateCumulativeMinutes(balances, 50);
+
+      expect(finalCumulation).toBe(50); // returns initial when no balances
+    });
+  });
 });
+
+// Helper for cumulation tests
+function createMockBalanceForCumulation(date: string, due: number, worked: number): Balance {
+  return {
+    id: `target-1_${date}`,
+    user_id: 'user-1',
+    target_id: 'target-1',
+    date,
+    due_minutes: due,
+    worked_minutes: worked,
+    cumulative_minutes: 0, // will be set by propagate function
+    sick_days: 0,
+    holidays: 0,
+    business_trip: 0,
+    child_sick: 0,
+    worked_days: 1,
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+  };
+}

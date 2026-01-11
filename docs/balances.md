@@ -11,10 +11,10 @@ flowchart
 User --> Target1
 User --> Target2
 
-Target1 --> YearlyBalance1 --> |next balance| YearlyBalance2
+Target1 --> YearlyBalance1
 Target1 --> YearlyBalance2
 
-YearlyBalance1 --> MonthlyBalance1 --> |next balance| MonthlyBalance2
+YearlyBalance1 --> MonthlyBalance1
 YearlyBalance1 --> MonthlyBalance2
 
 
@@ -29,10 +29,9 @@ TimeLogsArray1 --> TimeLog
 
 ### Balance Data Structure
 
-- id!
+- id! (composite key: `{target_id}_{date}`, e.g., `uuid_2025-01-15`)
 - user_id!
 - target_id!
-- next_balance_id? (null if last balance or daily balance, only same granularity allowed!)
 - date (year for yearlybalance, year-month for monthlybalance, ...)
 - due_minutes!
 - worked_minutes!
@@ -46,7 +45,7 @@ TimeLogsArray1 --> TimeLog
 - updated_at!
 - deleted_at
 
-**Note**: The `parent_balance_id` field has been removed. The bottom-up calculation approach (Daily → Monthly → Yearly) uses aggregation instead of parent references.
+**Note**: The `id` is a composite key combining `target_id` and `date`, making it deterministic and derivable. The `next_balance_id` field has been removed as cumulation propagation now uses sorted date order instead of linked-list traversal.
 
 ### Target Data Structure
 
@@ -99,13 +98,58 @@ To be as up to date as possible use a loop to trigger the update of active timel
 
 ### Init/recalculation of Balances
 
-needs to process ALL timelogs for a target, since multiday targets can be effecting different balance objects. Important: does not calculate the total duration of a timelog. instead it extracts the effective duration from this timelog with respect to the balance timespan. this is done on upsert of the timelog. The aggregation for the next hierarchy level (daily, monthly, yearly) sums all balances by:
+Balances are still calculated bottom-up (daily -> monthly -> yearly), but we introduce a small metadata structure stored in local storage to avoid recalculating ranges that are known to be up to date.
+
+#### Balance Calc Metadata (local storage)
+
+Store a per-user, per-target marker for the last *day* for which balances are fully derived and propagated.
+
+- key: `balance_calc_meta_v1`
+- value:
+
+  - `schema_version: 1`
+  - `user_id: string`
+  - `targets: Record<target_id, { last_updated_day: string /* YYYY-MM-DD */, updated_at: string /* ISO */ }>`
+
+Notes:
+
+- `last_updated_day` refers to the *daily* balance layer being present and correct up to that date, and higher layers derived at least up to the same date.
+- When conflicts occur during sync (or when data is cleared), this metadata should be cleared for the affected target(s).
+- The metadata does not replace correctness guarantees: if inputs change in the past, affected ranges still need recomputation (see “Update Balances on Timelog change”).
+
+#### Initial calculation / full recalculation
+
+The initial calculation should start at the earliest date derived from the target specs and iterate day-by-day to first create/update all daily balances. Then, after daily balances exist for the whole range, derive monthly and yearly entries.
+
+Algorithm (per target):
+
+1. Determine the calculation range:
+   - `range_start = min(targetSpec.starting_from)`
+   - `range_end = min(targetSpec.ending_at, today)` (inclusive)
+2. Iterate all days from `range_start` to `range_end`:
+   - compute due minutes from the applicable target spec + holiday rules
+   - compute worked minutes for that date by aggregating effective durations of timelogs overlapping that date
+   - **upsert** the daily balance using deterministic id (`{target_id}_{YYYY-MM-DD}`)
+3. Derive monthly balances:
+   - group daily balances by month
+   - sum due/worked + counters
+   - compute monthly `cumulative_minutes` by sorting months and applying rolling cumulation
+4. Derive yearly balances:
+   - group monthly or daily by year (either is fine if consistent)
+   - sum due/worked + counters
+   - compute yearly `cumulative_minutes` by sorting years and applying rolling cumulation
+5. Update metadata:
+   - set `last_updated_day = range_end`
+
+Multi-day timelogs still need special handling: we do not “split” the timelog into multiple records; instead we clip it per day (see `getEffectiveRange`) and apply the break subtraction rule only once (on the last day).
+
+Important: does not calculate the total duration of a timelog. instead it extracts the effective duration from this timelog with respect to the balance timespan. this is done on upsert of the timelog. The aggregation for the next hierarchy level (daily, monthly, yearly) sums all balances by:
 
 - cumulation of worked/due/cumulative minutes
 
-  - for all special type counter values add the due minutes for that day to the worked minutes during the daily aggregation
+  - for all whole day timelogs, add the due minutes for that day to the worked minutes during the daily aggregation
     - e.g. sick_days = 1 and due_minutes=480 => worked_minutes += 480
-  - cumulative minutes = worked - due + cumulation of previous month/year, this is set during the aggregation by sorting all balances by type and date
+  - cumulative minutes = (worked - due + cumulation) of previous month/year, this is set during the aggregation by sorting all balances by type and date. This field is needed for displaying the monthly balance. When showing a balance, the actual balance can be recalculated by the current worked and due minutes + the cumulation field which is the cumulation of all past event to this balance entry.
   - daily balances dont have cumulations
 - sum of special type counters (e.g. sick, child_sick, holiday)
 
@@ -127,24 +171,81 @@ eachTarget --> done
 
 ### Update Balances on Timelog change
 
-routine to update all balances without doing all the math when one timelog gets updated. To retrieve the affected balances use the start and end date of the timelog. for each day in this timespan load all balances until today. if balances are missing, create a new one and set the next_balance_id field. To get the next level, get all unique months/years respectively.
+Routine to update balances without doing all the math when one timelog changes.
+
+Key change: use the same bottom-up algorithm as the initial calculation, but only *create* daily balances when they don’t exist yet. Existing daily balances are considered authoritative unless the timelog change affects their day.
+
+1) Determine affected date range:
+
+- `affected_start = date(start_timestamp)`
+- `affected_end = date(end_timestamp ?? start_timestamp)`
+- If a timelog crosses midnight, all days in-between are affected.
+
+2) Ensure daily layer exists up to today (incremental extension):
+
+- Read metadata `last_updated_day` for the target.
+- If `last_updated_day < today`, iterate `d = last_updated_day + 1 .. today`:
+  - **if daily balance for `d` does not exist**: create it (compute due/worked/counters)
+  - **if it exists**: do nothing (no recalculation)
+- After this step, set `last_updated_day = today`.
+
+3) Recalculate only truly affected daily balances:
+
+- For each day in `affected_start..affected_end`:
+  - recompute daily due/worked/counters from source-of-truth inputs (timelogs, target specs, holidays)
+  - upsert daily balance
+
+4) Re-derive higher levels for the minimal impacted ranges:
+
+- Determine impacted months/years from `affected_start..today` (because cumulative fields depend on history order).
+- Rebuild monthly balances for impacted months by summing daily balances.
+- Recompute monthly `cumulative_minutes` starting from the earliest impacted month.
+- Rebuild yearly balances for impacted years by summing monthly (or daily) balances.
+- Recompute yearly `cumulative_minutes` starting from the earliest impacted year.
+
+Note: if you store `cumulative_minutes` on monthly/yearly entries, any change in the past potentially affects all later cumulative values. That’s why the propagation range is `min(impacted_period)..today`.
 
 ```mermaid
 graph TD
 subgraph UpdateBalances
-updateBalances([updateBalances<br>Input: timelog]) --> eachLevel{for daily, monthly, yearly} --> getAffected[get balances<br>directly effected by timelog] -->
-each{for each<br>balance}
-each --next--> recalc(["new_balance = calculateDaily(balance.date)"]) --> isDaily{is monthly, or yearly} --no--> each
-isDaily --yes--> propMonth(["propagateCumulation(new_balance)"]) --> each
-each --done--> return1
+updateBalances([updateBalances<br>Input: timelog]) --> ensureDaily["ensureDailyBalancesExist(last_updated_day..today)<br>(create only if missing)"] --> recalcDaily["recalculateDailyBalances(affected_start..affected_end)"] -->
+rebuildMonth["rebuildMonthly(min_affected_month..today)"] --> rebuildYear["rebuildYearly(min_affected_year..today)"] --> return1
 end
 
 subgraph propagateCumulation
-prop([propagateCumulation<br>Input: balance, cumulative]) --> calcCum[cumulative = balance.cumulative + balance.worked - balance.due] --> while{while balance.next_balance_id} --true--> loadBal[new_balance = get next balance by next_balance_id] --> setCumNew[new_balance.cumulative = cumulative] -->
-  setCum[cumulative = new_balance.cumulative + new_balance.worked - new_balance.due] --> while
-  while --false--> return
+prop([propagateCumulation<br>Input: balances sorted by date]) --> loop{for each balance<br>in sorted order} --next--> calcCum[cumulative = prev_cumulative + prev_balance.worked - prev_balance.due] --> saveCum[balance.cumulative = cumulative] --> setPrev[prev_cumulative = cumulative] --> loop
+loop --done--> return
 end
 ```
+
+## Suggestions to speed things up (and improve caching)
+
+1. **Index timelogs by day (local) for fast daily aggregation**
+
+- Maintain a local map/table: `timelog_day_index(date -> timelog_ids[])`.
+- Update it on timelog upsert/delete.
+- Then `calculateWorkedMinutesForDate` doesn’t need to scan every timelog; it can load only the small set overlapping that day.
+
+2. **Persist a normalized “effective slices per day” cache for multi-day timelogs**
+
+- For each timelog, store computed effective minutes per day in a small local table keyed by `(timelog_id, date)`.
+- On timelog change, recompute only those days.
+- Daily worked aggregation becomes a simple sum over slices.
+
+4) **Propagate cumulation only from the earliest changed period**
+
+- When rebuilding monthly/yearly, determine the earliest period that changed (first month where sums differ or first month in affected range).
+- Recompute `cumulative_minutes` only from there forward.
+
+5) **Precompute holiday lookup**
+
+- Create a `Set<string>` of holiday `YYYY-MM-DD` per year (or per target if exclude rules differ).
+- Avoid repeated “is holiday” DB lookups inside daily loops.
+
+6) **Chunking + yielding in the UI**
+
+- The initial day-by-day iteration can be chunked (e.g. 30/60 days at a time) and yielded (microtask/`requestIdleCallback`) to keep the UI responsive.
+- Persist intermediate progress and update `last_updated_day` only when a chunk is fully done.
 
 ### Due Calcuation
 

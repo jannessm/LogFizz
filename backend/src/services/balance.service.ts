@@ -2,6 +2,7 @@ import { AppDataSource } from '../config/database.js';
 import { Balance } from '../entities/Balance.js';
 import { MoreThan } from 'typeorm';
 import dayjs from '../../../lib/utils/dayjs.js';
+import { generateBalanceId } from '../../../lib/types/index.js';
 
 export class BalanceService {
   private balanceRepository = AppDataSource.getRepository(Balance);
@@ -23,6 +24,7 @@ export class BalanceService {
   /**
    * Push bulk changes to balances (create or update) with conflict detection
    * Returns conflicts if any exist, otherwise returns saved balances
+   * Balance IDs are composite: {target_id}_{date}
    */
   async pushBalanceChanges(
     userId: string,
@@ -41,62 +43,53 @@ export class BalanceService {
     }> = [];
 
     for (const change of changes) {
-      if (change.id) {
-        // Check if balance exists on server
-        const existing = await this.balanceRepository.findOne({
-          where: { id: change.id, user_id: userId },
-        });
+      // Generate composite ID from target_id and date
+      const compositeId = change.target_id && change.date 
+        ? generateBalanceId(change.target_id, change.date)
+        : change.id;
 
-        if (existing) {
-          // Conflict detection: Check if server version is newer than client version
-          if (change.updated_at) {
-            const clientTimestamp = dayjs(change.updated_at);
-            const serverTimestamp = dayjs(existing.updated_at);
-            if (serverTimestamp.isAfter(clientTimestamp)) {
-              // Server has newer data - conflict detected
-              conflicts.push({
-                clientVersion: change,
-                serverVersion: existing,
-              });
-              continue; // Skip saving this record
-            }
-          }
+      if (!compositeId) {
+        console.error('Cannot create balance without target_id and date');
+        continue;
+      }
 
-          // No conflict or client is newer - update
-          Object.assign(existing, change);
-          // Remove updated_at from client to let TypeORM auto-update it
-          delete (existing as any).updated_at;
-          // Convert empty string to null for next_balance_id
-          if (existing.next_balance_id === '') {
-            existing.next_balance_id = null;
+      // Check if balance exists on server
+      const existing = await this.balanceRepository.findOne({
+        where: { id: compositeId, user_id: userId },
+      });
+
+      if (existing) {
+        // Conflict detection: Check if server version is newer than client version
+        if (change.updated_at) {
+          const clientTimestamp = dayjs(change.updated_at);
+          const serverTimestamp = dayjs(existing.updated_at);
+          if (serverTimestamp.isAfter(clientTimestamp)) {
+            // Server has newer data - conflict detected
+            conflicts.push({
+              clientVersion: change,
+              serverVersion: existing,
+            });
+            continue; // Skip saving this record
           }
-          const balance = await this.balanceRepository.save(existing);
-          savedBalances.push(balance);
-        } else {
-          // Balance doesn't exist, create new one with client-provided UUID
-          
-          const balance = this.balanceRepository.create({
-            ...change,
-            user_id: userId,
-            id: change.id, // Use client-generated UUID
-          });
-          console.log('Creating new balance with ID:', balance);
-          // Remove updated_at to let TypeORM set it
-          delete (change as any).updated_at;
-          // Convert empty string to null for next_balance_id
-          if (balance.next_balance_id === '') {
-            balance.next_balance_id = null;
-          }
-          const saved = await this.balanceRepository.save(balance);
-          savedBalances.push(saved);
         }
+
+        // No conflict or client is newer - update
+        Object.assign(existing, change);
+        existing.id = compositeId; // Ensure ID is composite format
+        // Remove updated_at from client to let TypeORM auto-update it
+        delete (existing as any).updated_at;
+        const balance = await this.balanceRepository.save(existing);
+        savedBalances.push(balance);
       } else {
-        // Create new balance (no ID provided - shouldn't happen in offline-first)
+        // Balance doesn't exist, create new one with composite ID
         const balance = this.balanceRepository.create({
           ...change,
           user_id: userId,
+          id: compositeId,
         });
-        delete (balance as any).updated_at;
+        console.log('Creating new balance with ID:', balance.id);
+        // Remove updated_at to let TypeORM set it
+        delete (change as any).updated_at;
         const saved = await this.balanceRepository.save(balance);
         savedBalances.push(saved);
       }

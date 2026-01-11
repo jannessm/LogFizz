@@ -61,10 +61,9 @@ export interface TargetSpec {
 
 // Balance types
 export interface Balance {
-  id: string;
+  id: string; // Composite ID format: {target_id}_{date}
   user_id: string;
   target_id: string;
-  next_balance_id: string | null;
 
   date: string; // year, year-month, or year-month-date
   due_minutes: number;
@@ -80,6 +79,31 @@ export interface Balance {
   created_at: string;
   updated_at: string;
   deleted_at?: string;
+}
+
+/**
+ * Generate a deterministic balance ID from target_id and date
+ * @param targetId - The target ID (UUID)
+ * @param date - The date string (YYYY, YYYY-MM, or YYYY-MM-DD)
+ * @returns Composite ID in format {target_id}_{date}
+ */
+export function generateBalanceId(targetId: string, date: string): string {
+  return `${targetId}_${date}`;
+}
+
+/**
+ * Parse a composite balance ID into its components
+ * @param id - The composite balance ID
+ * @returns Object with targetId and date, or null if invalid
+ */
+export function parseBalanceId(id: string): { targetId: string; date: string } | null {
+  const lastUnderscoreIndex = id.lastIndexOf('_');
+  if (lastUnderscoreIndex === -1) return null;
+  
+  return {
+    targetId: id.substring(0, lastUnderscoreIndex),
+    date: id.substring(lastUnderscoreIndex + 1)
+  };
 }
 
 // TimeLog type enum
@@ -115,6 +139,21 @@ export interface Holiday {
   date: string;
   name: string;
   year: number;
+}
+
+/**
+ * Metadata for balance calculation state
+ * Stored in local storage to track which balances are up-to-date
+ */
+export interface BalanceCalcMeta {
+  schema_version: 1;
+  user_id: string;
+  targets: Record<string, {
+    /** Last day (YYYY-MM-DD) for which balances are fully derived */
+    last_updated_day: string;
+    /** Timestamp when metadata was last updated */
+    updated_at: string;
+  }>;
 }
 
 export interface HolidayMetadata {

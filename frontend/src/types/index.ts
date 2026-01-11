@@ -17,6 +17,7 @@ export type {
   SyncQueueItem,
   GoalProgress,
   TargetSpec,
+  BalanceCalcMeta,
 } from '../../../lib/types/index.js';
 
 // Extended Target type that includes nested target_specs from backend

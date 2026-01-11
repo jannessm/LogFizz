@@ -1,6 +1,6 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
-import type { Timer, TimeLog, User, SyncQueueItem, Balance, Holiday } from '../../types';
+import type { Timer, TimeLog, User, SyncQueueItem, Balance, Holiday, BalanceCalcMeta } from '../../types';
 import type { TargetWithSpecs } from '../../types';
 import { dayjs, userTimezone } from '../../../../lib/utils/dayjs.js';
 
@@ -27,7 +27,6 @@ interface TapShiftDB extends DBSchema {
     indexes: {
       'by-date': string;
       'by-target-id': string;
-      'by-user-target-date': [string, string, string];
     };
   };
   syncQueue: {
@@ -106,11 +105,11 @@ export async function getDB(): Promise<IDBPDatabase<TapShiftDB>> {
       }
 
       // Balances store (unified for daily/monthly/yearly)
+      // ID is composite: {target_id}_{date}
       if (!db.objectStoreNames.contains('balances')) {
         const balanceStore = db.createObjectStore('balances', { keyPath: 'id' });
         balanceStore.createIndex('by-date', 'date');
         balanceStore.createIndex('by-target-id', 'target_id');
-        balanceStore.createIndex('by-user-target-date', ['user_id', 'target_id', 'date']);
       }
 
       // Holidays store
@@ -288,6 +287,61 @@ export async function saveSetting(key: string, value: any): Promise<void> {
 export async function getSetting(key: string): Promise<any> {
   const db = await getDB();
   return db.get('settings', key);
+}
+
+// Balance Calc Metadata operations
+const BALANCE_CALC_META_KEY = 'balance_calc_meta_v1';
+
+/**
+ * Get the balance calculation metadata
+ * @returns The metadata or null if not found
+ */
+export async function getBalanceCalcMeta(): Promise<BalanceCalcMeta | null> {
+  const meta = await getSetting(BALANCE_CALC_META_KEY);
+  return meta ?? null;
+}
+
+/**
+ * Set the last updated day for a specific target
+ * @param targetId - Target ID to update
+ * @param lastUpdatedDay - Last day (YYYY-MM-DD) for which balances are derived
+ * @param userId - User ID for metadata
+ */
+export async function setBalanceCalcMetaForTarget(
+  targetId: string,
+  lastUpdatedDay: string,
+  userId: string
+): Promise<void> {
+  const meta = await getBalanceCalcMeta() ?? {
+    schema_version: 1 as const,
+    user_id: userId,
+    targets: {}
+  };
+
+  meta.targets[targetId] = {
+    last_updated_day: lastUpdatedDay,
+    updated_at: new Date().toISOString()
+  };
+
+  await saveSetting(BALANCE_CALC_META_KEY, meta);
+}
+
+/**
+ * Clear balance calculation metadata
+ * @param targetId - Optional target ID to clear. If omitted, clears all metadata.
+ */
+export async function clearBalanceCalcMeta(targetId?: string): Promise<void> {
+  if (!targetId) {
+    const db = await getDB();
+    await db.delete('settings', BALANCE_CALC_META_KEY);
+    return;
+  }
+
+  const meta = await getBalanceCalcMeta();
+  if (meta?.targets[targetId]) {
+    delete meta.targets[targetId];
+    await saveSetting(BALANCE_CALC_META_KEY, meta);
+  }
 }
 
 // Sync cursor operations

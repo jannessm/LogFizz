@@ -276,7 +276,6 @@ export function aggregateToMonthly(
   return {
     user_id: first.user_id,
     target_id: first.target_id,
-    next_balance_id: null,
     date,
     due_minutes: totalDue,
     worked_minutes: totalWorked,
@@ -330,7 +329,6 @@ export function aggregateToYearly(
   return {
     user_id: first.user_id,
     target_id: first.target_id,
-    next_balance_id: null,
     date,
     due_minutes: totalDue,
     worked_minutes: totalWorked,
@@ -338,4 +336,28 @@ export function aggregateToYearly(
     ...counters,
     worked_days: workedDays,
   };
+}
+
+/**
+ * Propagate cumulative minutes through sorted balances
+ * Mutates the cumulative_minutes field of each balance
+ * 
+ * @param balances - Array of balances sorted by date (ascending)
+ * @param initialCumulation - Starting cumulation from previous period (default: 0)
+ * @returns Final cumulation value after processing all balances
+ */
+export function propagateCumulativeMinutes(
+  balances: Balance[],
+  initialCumulation: number = 0
+): number {
+  let cumulation = initialCumulation;
+  
+  for (const balance of balances) {
+    // cumulative_minutes is the running total BEFORE adding this balance's contribution
+    balance.cumulative_minutes = cumulation;
+    // Update running total with this balance's contribution
+    cumulation += (balance.worked_minutes - balance.due_minutes);
+  }
+  
+  return cumulation;
 }

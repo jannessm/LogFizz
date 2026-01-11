@@ -176,10 +176,9 @@ export class InitialSchema1699700000000 implements MigrationInterface {
         // Create balances table
         await queryRunner.query(`
             CREATE TABLE IF NOT EXISTS "balances" (
-                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                "id" character varying NOT NULL,
                 "user_id" uuid NOT NULL,
                 "target_id" uuid NOT NULL,
-                "next_balance_id" uuid,
 
                 "date" character varying NOT NULL,
                 "due_minutes" integer NOT NULL DEFAULT 0,
@@ -200,9 +199,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 CONSTRAINT "FK_balances_user" FOREIGN KEY ("user_id") 
                     REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
                 CONSTRAINT "FK_balances_target" FOREIGN KEY ("target_id") 
-                    REFERENCES "targets"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
-                CONSTRAINT "FK_balances_next" FOREIGN KEY ("next_balance_id") 
-                    REFERENCES "balances"("id") ON DELETE NO ACTION ON UPDATE NO ACTION
+                    REFERENCES "targets"("id") ON DELETE CASCADE ON UPDATE NO ACTION
             )
         `);
 
@@ -225,13 +222,11 @@ export class InitialSchema1699700000000 implements MigrationInterface {
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_deleted_at" ON "time_logs" ("deleted_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_timers_updated_at" ON "timers" ("updated_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_updated_at" ON "time_logs" ("updated_at")`);
-        await queryRunner.query(`CREATE UNIQUE INDEX IF NOT EXISTS "IDX_balances_user_target_date" ON "balances" ("user_id", "target_id", "date")`);
 
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         // Drop tables in reverse order (respecting foreign key constraints)
-        await queryRunner.query(`DROP INDEX IF EXISTS "IDX_balances_user_target_date"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "balances"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "time_logs"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "timers"`);

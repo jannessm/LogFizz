@@ -1,10 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import type { BalanceEntity } from '../../../lib/types/index.js';
 
 @Entity('balances')
-@Index(['user_id', 'target_id', 'date'], { unique: true })
 export class Balance implements BalanceEntity {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn('varchar') // Composite ID: {target_id}_{date}
   id!: string;
 
   @Column('uuid')
@@ -12,9 +11,6 @@ export class Balance implements BalanceEntity {
 
   @Column('uuid')
   target_id!: string;
-
-  @Column('uuid', { nullable: true, default: null })
-  next_balance_id: string | null;
 
 
   @Column('varchar') // year, year-month, or year-month-date

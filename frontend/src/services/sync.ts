@@ -241,12 +241,6 @@ export class SyncService {
     // Remove user_id from payload as server sets it from session
     const payload = data.map((qi: any) => {
       const { user_id, ...rest } = qi.data;
-      
-      // Sanitize balance data: convert empty string next_balance_id to null
-      if (cursor === 'balances' && rest.next_balance_id === '') {
-        rest.next_balance_id = null;
-      }
-      
       return rest;
     });
 

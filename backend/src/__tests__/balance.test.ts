@@ -108,7 +108,8 @@ describe('Monthly Balance Service - Sync Only', () => {
     });
 
     it('should push new balance and return it in saved', async () => {
-      const balanceId = '990e8400-e29b-41d4-a716-446655440099';
+      const balanceDate = '2025-01';
+      const expectedId = `${targetId}_${balanceDate}`;
       
       const pushResponse = await app.inject({
         method: 'POST',
@@ -116,10 +117,8 @@ describe('Monthly Balance Service - Sync Only', () => {
         headers: { cookie: sessionCookie },
         payload: {
           balances: [{
-            id: balanceId,
             target_id: targetId,
-            next_balance_id: null,
-            date: '2025-01',
+            date: balanceDate,
             due_minutes: 9600,
             worked_minutes: 9000,
             cumulative_minutes: -600,
@@ -136,7 +135,7 @@ describe('Monthly Balance Service - Sync Only', () => {
       const data = JSON.parse(pushResponse.payload);
       
       expect(data.saved).toHaveLength(1);
-      expect(data.saved[0].id).toBe(balanceId);
+      expect(data.saved[0].id).toBe(expectedId);
       expect(data.saved[0].target_id).toBe(targetId);
       expect(data.saved[0].date).toBe('2025-01');
       expect(data.saved[0].due_minutes).toBe(9600);
@@ -146,7 +145,8 @@ describe('Monthly Balance Service - Sync Only', () => {
     });
 
     it('should update existing balance', async () => {
-      const balanceId = '980e8400-e29b-41d4-a716-446655440098';
+      const balanceDate = '2025-02';
+      const expectedId = `${targetId}_${balanceDate}`;
       
       // Create initial balance
       await app.inject({
@@ -155,10 +155,8 @@ describe('Monthly Balance Service - Sync Only', () => {
         headers: { cookie: sessionCookie },
         payload: {
           balances: [{
-            id: balanceId,
             target_id: targetId,
-            next_balance_id: null,
-            date: '2025-02',
+            date: balanceDate,
             due_minutes: 9600,
             worked_minutes: 8000,
             cumulative_minutes: -1600,
@@ -181,10 +179,8 @@ describe('Monthly Balance Service - Sync Only', () => {
         headers: { cookie: sessionCookie },
         payload: {
           balances: [{
-            id: balanceId,
             target_id: targetId,
-            next_balance_id: null,
-            date: '2025-02',
+            date: balanceDate,
             due_minutes: 9600,
             worked_minutes: 9500, // Changed
             cumulative_minutes: -100, // Changed
@@ -201,14 +197,15 @@ describe('Monthly Balance Service - Sync Only', () => {
       const data = JSON.parse(updateResponse.payload);
       
       expect(data.saved).toHaveLength(1);
-      expect(data.saved[0].id).toBe(balanceId);
+      expect(data.saved[0].id).toBe(expectedId);
       expect(data.saved[0].worked_minutes).toBe(9500);
       expect(data.saved[0].cumulative_minutes).toBe(-100);
       expect(data.conflicts).toBeUndefined();
     });
 
     it('should detect conflicts when server has newer data', async () => {
-      const balanceId = '970e8400-e29b-41d4-a716-446655440097';
+      const balanceDate = '2025-03';
+      const expectedId = `${targetId}_${balanceDate}`;
       
       // Create initial balance
       const createResponse = await app.inject({
@@ -217,10 +214,8 @@ describe('Monthly Balance Service - Sync Only', () => {
         headers: { cookie: sessionCookie },
         payload: {
           balances: [{
-            id: balanceId,
             target_id: targetId,
-            next_balance_id: null,
-            date: '2025-03',
+            date: balanceDate,
             due_minutes: 9600,
             worked_minutes: 8000,
             cumulative_minutes: -1600,
@@ -245,10 +240,9 @@ describe('Monthly Balance Service - Sync Only', () => {
         headers: { cookie: sessionCookie },
         payload: {
           balances: [{
-            id: balanceId,
+            id: expectedId,
             target_id: targetId,
-            next_balance_id: null,
-            date: '2025-03',
+            date: balanceDate,
             due_minutes: 9600,
             worked_minutes: 7000, // Different value
             cumulative_minutes: -2600,

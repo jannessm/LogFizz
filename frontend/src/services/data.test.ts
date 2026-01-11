@@ -476,10 +476,9 @@ describe('Balance Calculation Tests with Seed Data', () => {
     it('should aggregate monthly balances to yearly', () => {
       const monthlyBalances: Balance[] = [
         {
-          id: 'monthly-10',
+          id: `${WORK_TARGET_ID}_2025-10`,
           user_id: DEMO_USER_ID,
           target_id: WORK_TARGET_ID,
-          next_balance_id: null,
           date: '2025-10',
           due_minutes: 11040, // 23 * 480
           worked_minutes: 10350, // 23 * 450
@@ -493,10 +492,9 @@ describe('Balance Calculation Tests with Seed Data', () => {
           updated_at: '2025-10-31',
         },
         {
-          id: 'monthly-11',
+          id: `${WORK_TARGET_ID}_2025-11`,
           user_id: DEMO_USER_ID,
           target_id: WORK_TARGET_ID,
-          next_balance_id: null,
           date: '2025-11',
           due_minutes: 8160, // 17 * 480
           worked_minutes: 8160, // 17 * 480

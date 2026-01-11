@@ -130,7 +130,6 @@ function createMockBalance(
     id,
     user_id: 'user-1',
     target_id: targetId,
-    next_balance_id: '',
     date,
     due_minutes: dueMinutes,
     worked_minutes: workedMinutes,

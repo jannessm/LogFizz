@@ -7,11 +7,15 @@ vi.mock('../lib/db', () => ({
   getBalancesByTargetId: vi.fn(),
   saveBalance: vi.fn(),
   deleteBalance: vi.fn(),
+  getBalance: vi.fn(),
   getTimeLogsByYearMonth: vi.fn().mockResolvedValue([]),
   addToSyncQueue: vi.fn(),
   getSyncCursor: vi.fn().mockResolvedValue({}),
   saveSyncCursor: vi.fn(),
   getUser: vi.fn().mockResolvedValue(null),
+  getBalanceCalcMeta: vi.fn().mockResolvedValue(null),
+  setBalanceCalcMetaForTarget: vi.fn().mockResolvedValue(undefined),
+  clearBalanceCalcMeta: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock the sync service
@@ -20,6 +24,7 @@ vi.mock('../services/sync', () => ({
     queueUpsertBalance: vi.fn().mockResolvedValue(undefined),
     queueDeleteBalance: vi.fn().mockResolvedValue(undefined),
     sync: vi.fn().mockResolvedValue(undefined),
+    afterSync: vi.fn(), // Register callback but don't invoke it
   },
 }));
 
@@ -68,10 +73,9 @@ describe('balancesStore', () => {
     it('should load balances from database', async () => {
       const mockBalances: Balance[] = [
         {
-          id: 'balance-1',
+          id: 'target-1_2024-12-01',
           user_id: 'user-1',
           target_id: 'target-1',
-          next_balance_id: '',
           date: '2024-12-01',
           due_minutes: 480,
           worked_minutes: 500,
@@ -111,7 +115,7 @@ describe('balancesStore', () => {
       expect(newBalance.due_minutes).toBe(480);
       expect(newBalance.worked_minutes).toBe(520);
       expect(newBalance.cumulative_minutes).toBe(0); // default
-      expect(newBalance.id).toBeDefined();
+      expect(newBalance.id).toBe('target-1_2024-12-15'); // composite ID
       expect(db.saveBalance).toHaveBeenCalled();
     });
 
@@ -138,10 +142,9 @@ describe('balancesStore', () => {
   describe('update', () => {
     it('should update an existing balance', async () => {
       const existingBalance: Balance = {
-        id: 'balance-1',
+        id: 'target-1_2024-12-01',
         user_id: 'user-1',
         target_id: 'target-1',
-        next_balance_id: '',
         date: '2024-12-01',
         due_minutes: 480,
         worked_minutes: 400,
@@ -158,7 +161,7 @@ describe('balancesStore', () => {
       await initStoreWithBalances([existingBalance]);
       vi.mocked(db.saveBalance).mockResolvedValue();
 
-      const updatedBalance = await balancesStore.update('balance-1', {
+      const updatedBalance = await balancesStore.update('target-1_2024-12-01', {
         worked_minutes: 500,
         cumulative_minutes: 20,
       });
@@ -180,10 +183,9 @@ describe('balancesStore', () => {
   describe('delete', () => {
     it('should delete an existing balance', async () => {
       const existingBalance: Balance = {
-        id: 'balance-1',
+        id: 'target-1_2024-12-01',
         user_id: 'user-1',
         target_id: 'target-1',
-        next_balance_id: '',
         date: '2024-12-01',
         due_minutes: 480,
         worked_minutes: 500,
@@ -315,7 +317,6 @@ function createMockBalance(id: string, date: string): Balance {
     id,
     user_id: 'user-1',
     target_id: 'target-1',
-    next_balance_id: '',
     date,
     due_minutes: 480,
     worked_minutes: 500,
