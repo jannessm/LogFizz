@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import type { TimeLog, Balance } from '../types';
 import dayjs from '../../../lib/utils/dayjs.js';
 import {
@@ -482,7 +482,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
           date: '2025-10',
           due_minutes: 11040, // 23 * 480
           worked_minutes: 10350, // 23 * 450
-          cumulative_minutes: -690,
+          cumulative_minutes: 0,
           sick_days: 0,
           holidays: 0,
           business_trip: 0,
@@ -516,7 +516,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
       expect(yearlyBalance.due_minutes).toBe(11040 + 8160);
       expect(yearlyBalance.worked_minutes).toBe(10350 + 8160);
       expect(yearlyBalance.worked_days).toBe(23 + 17);
-      expect(yearlyBalance.cumulative_minutes).toBe((10350 + 8160) - (11040 + 8160));
+      expect(yearlyBalance.cumulative_minutes).toBe(0); // cumulation from previous year is 0
     });
   });
   
