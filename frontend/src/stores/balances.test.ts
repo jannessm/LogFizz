@@ -5,6 +5,7 @@ import type { Balance, TimeLog, TargetWithSpecs } from '../types';
 vi.mock('../lib/db', () => ({
   getBalancesByDate: vi.fn(),
   getBalancesByTargetId: vi.fn(),
+  getAllBalances: vi.fn(),
   saveBalance: vi.fn(),
   deleteBalance: vi.fn(),
   getBalance: vi.fn(),
@@ -64,7 +65,7 @@ import { get } from 'svelte/store';
 
 // Helper to initialize store with balances
 async function initStoreWithBalances(balancesList: Balance[]) {
-  vi.mocked(db.getBalancesByDate).mockResolvedValue(balancesList);
+  vi.mocked(db.getAllBalances).mockResolvedValue(balancesList);
   await balancesStore.load();
 }
 
@@ -425,9 +426,16 @@ describe('ensureBalancesUpToDate', () => {
 
   it('should create daily balances from target spec start date to today (first-time init)', async () => {
     await initStoreWithBalances([]);
-    vi.mocked(db.saveBalance).mockResolvedValue();
+    
+    // Track saved balances to return them when getBalancesByTargetId is called
+    const savedBalances: Balance[] = [];
+    vi.mocked(db.saveBalance).mockImplementation(async (balance: Balance) => {
+      savedBalances.push(balance);
+    });
     vi.mocked(db.getBalance).mockResolvedValue(undefined);
     vi.mocked(db.getBalanceCalcMeta).mockResolvedValue(null);
+    // Return saved daily balances when rebuilding monthly/yearly
+    vi.mocked(db.getBalancesByTargetId).mockImplementation(async () => savedBalances);
     
     // Target starting from 3 days ago
     const threeDaysAgo = new Date();
@@ -480,10 +488,15 @@ describe('ensureBalancesUpToDate', () => {
     const currentYear = today.substring(0, 4);
     
     // Pre-populate with existing daily balance for today
-    await initStoreWithBalances([
-      createMockBalance('target-1_' + today, today),
-    ]);
-    vi.mocked(db.saveBalance).mockResolvedValue();
+    const existingBalance = createMockBalance('target-1_' + today, today);
+    await initStoreWithBalances([existingBalance]);
+    
+    // Track saved balances to return them when getBalancesByTargetId is called
+    const savedBalances: Balance[] = [existingBalance];
+    vi.mocked(db.saveBalance).mockImplementation(async (balance: Balance) => {
+      savedBalances.push(balance);
+    });
+    vi.mocked(db.getBalancesByTargetId).mockImplementation(async () => savedBalances);
     
     // Metadata says we're up to today
     vi.mocked(db.getBalanceCalcMeta).mockResolvedValue({
@@ -535,12 +548,22 @@ describe('ensureBalancesUpToDate', () => {
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
     
-    await initStoreWithBalances([
+    const existingBalances = [
       createMockBalance('target-1_' + yesterdayStr, yesterdayStr),
       createMockBalance('target-1_' + today, today),
-    ]);
-    vi.mocked(db.saveBalance).mockResolvedValue();
+    ];
+    await initStoreWithBalances(existingBalances);
+    
+    // Track saved balances to return them when getBalancesByTargetId is called
+    const savedBalances: Balance[] = [...existingBalances];
+    vi.mocked(db.saveBalance).mockImplementation(async (balance: Balance) => {
+      // Update or add balance
+      const idx = savedBalances.findIndex(b => b.id === balance.id);
+      if (idx >= 0) savedBalances[idx] = balance;
+      else savedBalances.push(balance);
+    });
     vi.mocked(db.getBalance).mockResolvedValue(undefined);
+    vi.mocked(db.getBalancesByTargetId).mockImplementation(async () => savedBalances);
     vi.mocked(db.getBalanceCalcMeta).mockResolvedValue({
       schema_version: 1,
       user_id: 'user-1',
@@ -602,9 +625,15 @@ describe('ensureBalancesUpToDate', () => {
     const endYear = endDate.substring(0, 4);
     
     await initStoreWithBalances([]);
-    vi.mocked(db.saveBalance).mockResolvedValue();
+    
+    // Track saved balances to return them when getBalancesByTargetId is called
+    const savedBalances: Balance[] = [];
+    vi.mocked(db.saveBalance).mockImplementation(async (balance: Balance) => {
+      savedBalances.push(balance);
+    });
     vi.mocked(db.getBalance).mockResolvedValue(undefined);
     vi.mocked(db.getBalanceCalcMeta).mockResolvedValue(null);
+    vi.mocked(db.getBalancesByTargetId).mockImplementation(async () => savedBalances);
     
     // Target that ended yesterday
     mockTargets = [createMockTarget('target-1', 'user-1', startDate, endDate)];
@@ -655,8 +684,14 @@ describe('ensureBalancesUpToDate', () => {
     const currentYear = today.substring(0, 4);
     
     await initStoreWithBalances([]);
-    vi.mocked(db.saveBalance).mockResolvedValue();
+    
+    // Track saved balances to return them when getBalancesByTargetId is called
+    const savedBalances: Balance[] = [];
+    vi.mocked(db.saveBalance).mockImplementation(async (balance: Balance) => {
+      savedBalances.push(balance);
+    });
     vi.mocked(db.getBalance).mockResolvedValue(undefined);
+    vi.mocked(db.getBalancesByTargetId).mockImplementation(async () => savedBalances);
     vi.mocked(db.getBalanceCalcMeta).mockResolvedValue({
       schema_version: 1,
       user_id: 'user-1',
@@ -730,6 +765,7 @@ describe('init', () => {
     vi.mocked(db.saveBalance).mockResolvedValue();
     vi.mocked(db.getBalance).mockResolvedValue(undefined);
     vi.mocked(db.getBalanceCalcMeta).mockResolvedValue(null);
+    vi.mocked(db.getBalancesByTargetId).mockResolvedValue([]);
     
     mockTargets = [
       createMockTarget('target-1', 'user-1', startDate),
@@ -761,6 +797,7 @@ describe('init', () => {
       .mockRejectedValueOnce(new Error('DB Error'))
       .mockResolvedValue();
     vi.mocked(db.getBalance).mockResolvedValue(undefined);
+    vi.mocked(db.getBalancesByTargetId).mockResolvedValue([]);
     
     mockTargets = [
       createMockTarget('target-1', 'user-1', startDate),
@@ -794,11 +831,17 @@ describe('recalculateBalances', () => {
     await initStoreWithBalances([
       createMockBalance('target-1_' + today, today),
     ]);
-    vi.mocked(db.saveBalance).mockResolvedValue();
+    
+    // Track saved balances to return them when getBalancesByTargetId is called
+    const savedBalances: Balance[] = [];
+    vi.mocked(db.saveBalance).mockImplementation(async (balance: Balance) => {
+      savedBalances.push(balance);
+    });
     vi.mocked(db.deleteBalance).mockResolvedValue();
     vi.mocked(db.getBalance).mockResolvedValue(undefined);
     vi.mocked(db.clearBalanceCalcMeta).mockResolvedValue();
     vi.mocked(db.getBalanceCalcMeta).mockResolvedValue(null);
+    vi.mocked(db.getBalancesByTargetId).mockImplementation(async () => savedBalances);
     
     mockTargets = [createMockTarget('target-1', 'user-1', startDate)];
     mockTimers = [{ id: 'timer-1', target_id: 'target-1' }];
@@ -842,10 +885,20 @@ describe('recalculateBalances', () => {
     const startDate = twoDaysAgo.toISOString().split('T')[0];
     
     await initStoreWithBalances([]);
-    vi.mocked(db.saveBalance).mockResolvedValue();
+    
+    // Track saved balances per target
+    const savedBalances: Map<string, Balance[]> = new Map();
+    vi.mocked(db.saveBalance).mockImplementation(async (balance: Balance) => {
+      const targetId = balance.target_id;
+      if (!savedBalances.has(targetId)) savedBalances.set(targetId, []);
+      savedBalances.get(targetId)!.push(balance);
+    });
     vi.mocked(db.getBalance).mockResolvedValue(undefined);
     vi.mocked(db.clearBalanceCalcMeta).mockResolvedValue();
     vi.mocked(db.getBalanceCalcMeta).mockResolvedValue(null);
+    vi.mocked(db.getBalancesByTargetId).mockImplementation(async (targetId: string) => {
+      return savedBalances.get(targetId) || [];
+    });
     
     mockTargets = [
       createMockTarget('target-1', 'user-1', startDate),

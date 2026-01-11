@@ -91,13 +91,11 @@
     <!-- Month + Day view -->
     <div class="border border-gray-200 rounded-lg p-3">
       <div class="flex justify-between items-start mb-2">
-        {#if granularity === 'day'}
         <div class="text-right">
-          <div class={`text-lg font-bold ${getBalanceColor(balance.cumulative_minutes)}`}>
-            {formatMinutes(balance.cumulative_minutes)}
+          <div class={`text-lg font-bold ${getBalanceColor(balance.cumulative_minutes + balance.worked_minutes - balance.due_minutes)}`}>
+            {formatMinutes(balance.cumulative_minutes + balance.worked_minutes - balance.due_minutes)}
           </div>
         </div>
-        {/if}
       </div>
 
       <div class="grid grid-cols-2 gap-2 text-sm">

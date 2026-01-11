@@ -10,6 +10,7 @@ import {
   getBalanceCalcMeta,
   setBalanceCalcMetaForTarget,
   clearBalanceCalcMeta,
+  getAllBalances,
 } from '../lib/db';
 import { syncService } from '../services/sync';
 import { createBaseStore, type BaseStoreConfig } from './base-store';
@@ -34,7 +35,7 @@ import { generateBalanceId } from '../../../lib/types/index.js';
  */
 const balancesConfig: BaseStoreConfig<Balance> = {
   db: {
-    getAll: () => getBalancesByDate(dayjs().format('YYYY-MM')),
+    getAll: getAllBalances,
     save: saveBalance,
     delete: deleteBalance,
   },
@@ -286,6 +287,10 @@ function createBalancesStore() {
       const start = typeof startMonth === 'string' ? dayjs(startMonth) : startMonth;
       const end = typeof endMonth === 'string' ? dayjs(endMonth) : endMonth;
       
+      // Load all balances for this target from DB (not just in-memory)
+      const allBalances = await getBalancesByTargetId(targetId);
+      const dailyBalances = allBalances.filter(b => getGranularity(b.date) === 'daily');
+      
       // Get previous month's cumulation
       const prevMonth = start.subtract(1, 'month');
       const prevMonthStr = prevMonth.format('YYYY-MM');
@@ -297,8 +302,8 @@ function createBalancesStore() {
       // Rebuild each month
       for (let m = start.startOf('month'); m.isSameOrBefore(end, 'month'); m = m.add(1, 'month')) {
         const monthStr = m.format('YYYY-MM');
-        const dailies = this.getBalancesByGranularity('daily')
-          .filter(b => b.target_id === targetId && b.date.startsWith(monthStr))
+        const dailies = dailyBalances
+          .filter(b => b.date.startsWith(monthStr))
           .sort((a, b) => a.date.localeCompare(b.date));
 
         if (dailies.length === 0) continue;
@@ -322,6 +327,10 @@ function createBalancesStore() {
       startYear: number,
       endYear: number
     ): Promise<void> {
+      // Load all balances for this target from DB (not just in-memory)
+      const allBalances = await getBalancesByTargetId(targetId);
+      const monthlyBals = allBalances.filter(b => getGranularity(b.date) === 'monthly');
+      
       // Get previous year's cumulation
       const prevYearStr = `${startYear - 1}`;
       const prevBal = await this.getBalanceById(generateBalanceId(targetId, prevYearStr));
@@ -332,8 +341,8 @@ function createBalancesStore() {
       // Rebuild each year
       for (let year = startYear; year <= endYear; year++) {
         const yearStr = `${year}`;
-        const monthlies = this.getBalancesByGranularity('monthly')
-          .filter(b => b.target_id === targetId && b.date.startsWith(yearStr))
+        const monthlies = monthlyBals
+          .filter(b => b.date.startsWith(yearStr))
           .sort((a, b) => a.date.localeCompare(b.date));
 
         if (monthlies.length === 0) continue;

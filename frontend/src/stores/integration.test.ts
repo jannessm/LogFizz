@@ -19,6 +19,7 @@ vi.mock('../lib/db', () => ({
   deleteTarget: vi.fn().mockResolvedValue(undefined),
   getBalancesByDate: vi.fn().mockResolvedValue([]),
   getBalancesByTargetId: vi.fn().mockResolvedValue([]),
+  getAllBalances: vi.fn().mockResolvedValue([]),
   saveBalance: vi.fn().mockResolvedValue(undefined),
   deleteBalance: vi.fn().mockResolvedValue(undefined),
   addToSyncQueue: vi.fn(),
