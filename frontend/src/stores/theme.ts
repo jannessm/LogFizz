@@ -26,18 +26,20 @@ function createThemeStore() {
     return 'light';
   }
 
-  function updateEffectiveTheme(mode: ThemeMode) {
-    const effectiveTheme = mode === 'auto' ? getSystemTheme() : mode;
-    update(state => ({ ...state, effectiveTheme }));
-    
-    // Apply theme to document
+  function applyThemeToDocument(theme: 'light' | 'dark') {
     if (typeof document !== 'undefined') {
-      if (effectiveTheme === 'dark') {
+      if (theme === 'dark') {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
       }
     }
+  }
+
+  function updateEffectiveTheme(mode: ThemeMode) {
+    const effectiveTheme = mode === 'auto' ? getSystemTheme() : mode;
+    update(state => ({ ...state, effectiveTheme }));
+    applyThemeToDocument(effectiveTheme);
   }
 
   // Listen for system theme changes
@@ -46,16 +48,7 @@ function createThemeStore() {
       update(state => {
         if (state.mode === 'auto') {
           const effectiveTheme = e.matches ? 'dark' : 'light';
-          
-          // Apply theme to document
-          if (typeof document !== 'undefined') {
-            if (effectiveTheme === 'dark') {
-              document.documentElement.classList.add('dark');
-            } else {
-              document.documentElement.classList.remove('dark');
-            }
-          }
-          
+          applyThemeToDocument(effectiveTheme);
           return { ...state, effectiveTheme };
         }
         return state;
