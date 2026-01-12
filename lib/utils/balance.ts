@@ -144,10 +144,14 @@ export function calculateWorkedMinutesForDate(
   };
   
   for (const timelog of timelogs) {
-    const duration = calculateTimelogDuration(timelog);
+    // Get effective range for this date
+    const range = getEffectiveRange(date, timelog.start_timestamp, timelog.end_timestamp);
+    if (!range) continue; // Timelog doesn't overlap with this date
     
+    const duration = calculateTimelogDuration(timelog);
+
     // Whole day entries (duration < 0) increment counters only 
-    if (duration < 0) {
+    if (duration < 0 && ![0, 6].includes(dayjs(date).day())) {
       const type = timelog.type || 'normal';
       if (type === 'normal') counters.normal++;
       else if (type === 'sick') counters.sick_days++;
@@ -156,10 +160,6 @@ export function calculateWorkedMinutesForDate(
       else if (type === 'child-sick') counters.child_sick++;
       continue;
     }
-    
-    // Get effective range for this date
-    const range = getEffectiveRange(date, timelog.start_timestamp, timelog.end_timestamp);
-    if (!range) continue; // Timelog doesn't overlap with this date
     
     const { effectiveStart, effectiveEnd } = range;
     const logStart = dayjs(timelog.start_timestamp);
@@ -256,11 +256,8 @@ export function aggregateToMonthly(
     counters.business_trip += daily.business_trip;
     counters.child_sick += daily.child_sick;
     
-    // For special types, add due minutes to worked minutes
-    if (daily.sick_days > 0) totalWorked += daily.due_minutes;
-    if (daily.holidays > 0) totalWorked += daily.due_minutes;
-    if (daily.business_trip > 0) totalWorked += daily.due_minutes;
-    if (daily.child_sick > 0) totalWorked += daily.due_minutes;
+    // Note: worked_minutes already includes due_minutes for whole_day entries
+    // (added in calculateBalanceData), so we do NOT add them again here
     
     // Count worked days (excluding certain special types, excluding business trips)
     if (daily.worked_minutes > 0 && daily.business_trip === 0) {

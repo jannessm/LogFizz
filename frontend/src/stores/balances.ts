@@ -89,9 +89,10 @@ async function prepareCalculationContext(
   // Load timelogs for this month
   const allTimelogs = await getTimeLogsByYearMonth(year, month);
   const _timers = get(timers);
+  // Filter to only include timelogs from timers linked to this specific target
   const timelogs = allTimelogs.filter(tl => {
     const timer = _timers.find(t => t.id === tl.timer_id);
-    return timer !== undefined;
+    return timer !== undefined && timer.target_id === targetId;
   });
 
   // Build holidays set for the target

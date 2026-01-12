@@ -139,6 +139,7 @@ describe('Balance Calculation Utilities', () => {
         {
           type: 'sick',
           whole_day: true,
+          start_timestamp: '2024-06-15T08:00:00Z', // Must match the date being calculated
         },
       ];
       
@@ -289,7 +290,10 @@ describe('Balance Calculation Utilities', () => {
       expect(result.worked_days).toBe(2);
     });
 
-    it('should add due minutes for sick days to worked minutes', () => {
+    it('should preserve worked_minutes for sick days (already includes due_minutes from daily calculation)', () => {
+      // Note: calculateBalanceData already adds due_minutes to worked_minutes for sick days,
+      // so the daily balance should have worked_minutes = due_minutes for a sick day.
+      // aggregateToMonthly should NOT add due_minutes again.
       const dailyBalances: Balance[] = [
         {
           id: 'target-1_2024-06-01',
@@ -298,20 +302,20 @@ describe('Balance Calculation Utilities', () => {
           
           date: '2024-06-01',
           due_minutes: 480,
-          worked_minutes: 0,
+          worked_minutes: 480, // Already includes due_minutes from calculateBalanceData
           cumulative_minutes: 0,
           sick_days: 1,
           holidays: 0,
           business_trip: 0,
           child_sick: 0,
-          worked_days: 0,
+          worked_days: 1,
           created_at: '2024-06-01T00:00:00Z',
           updated_at: '2024-06-01T00:00:00Z',
         },
       ];
       
       const result = aggregateToMonthly(dailyBalances, 0);
-      expect(result.worked_minutes).toBe(480); // 0 + 480 (from sick day)
+      expect(result.worked_minutes).toBe(480); // Should be 480, NOT doubled to 960
       expect(result.sick_days).toBe(1);
     });
 
