@@ -7,10 +7,11 @@
 set -e  # Exit on error
 
 # Configuration
-CONTAINER_NAME="clock-postgres"
-DB_NAME="clock_db"
-DB_USER="clock_user"
-DB_PASSWORD="clock_password"
+# Read from environment variables or use defaults from docker-compose.yml
+CONTAINER_NAME="${POSTGRES_CONTAINER:-clock-postgres}"
+DB_NAME="${POSTGRES_DB:-clock_db}"
+DB_USER="${POSTGRES_USER:-clock_user}"
+# Note: Password is not needed as we use docker exec (authenticated by container access)
 
 # Color codes for output
 RED='\033[0;31m'

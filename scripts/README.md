@@ -166,12 +166,24 @@ The restore script creates a temporary backup before attempting to restore. If t
 ## Environment Variables
 
 The scripts use these default values from `docker-compose.yml`:
-- Container name: `clock-postgres`
-- Database: `clock_db`
-- User: `clock_user`
-- Password: `clock_password`
+- Container name: `clock-postgres` (override with `POSTGRES_CONTAINER`)
+- Database: `clock_db` (override with `POSTGRES_DB`)
+- User: `clock_user` (override with `POSTGRES_USER`)
 
-If you've customized these values, edit the scripts accordingly.
+You can customize these values using environment variables:
+
+```bash
+# Using environment variables
+export POSTGRES_CONTAINER=my-postgres
+export POSTGRES_DB=my_database
+export POSTGRES_USER=my_user
+./scripts/backup-postgres.sh
+
+# Or inline
+POSTGRES_CONTAINER=my-postgres ./scripts/backup-postgres.sh
+```
+
+**Note**: Passwords are not needed as the scripts use `docker exec` which authenticates via container access permissions.
 
 ## Security Notes
 

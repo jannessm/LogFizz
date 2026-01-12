@@ -11,10 +11,11 @@ set -e  # Exit on error
 BACKUP_DIR="${1:-./backups}"
 DAILY_DIR="${BACKUP_DIR}/daily"
 MONTHLY_DIR="${BACKUP_DIR}/monthly"
-CONTAINER_NAME="clock-postgres"
-DB_NAME="clock_db"
-DB_USER="clock_user"
-DB_PASSWORD="clock_password"
+# Read from environment variables or use defaults from docker-compose.yml
+CONTAINER_NAME="${POSTGRES_CONTAINER:-clock-postgres}"
+DB_NAME="${POSTGRES_DB:-clock_db}"
+DB_USER="${POSTGRES_USER:-clock_user}"
+# Note: Password is not needed as we use docker exec (authenticated by container access)
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 DATE_ONLY=$(date +%Y%m%d)
 DAY_OF_MONTH=$(date +%d)
@@ -92,7 +93,8 @@ log "Cleaning up old daily backups (keeping last ${DAILY_RETENTION})..."
 DAILY_COUNT=$(find "${DAILY_DIR}" -name "backup_*.sql.gz" -type f | wc -l)
 if [ "${DAILY_COUNT}" -gt "${DAILY_RETENTION}" ]; then
     REMOVE_COUNT=$((DAILY_COUNT - DAILY_RETENTION))
-    find "${DAILY_DIR}" -name "backup_*.sql.gz" -type f -printf '%T+ %p\n' | sort | head -n "${REMOVE_COUNT}" | cut -d' ' -f2- | while read -r file; do
+    # Use ls -t for portability across different systems (macOS, Linux, BSD)
+    ls -t "${DAILY_DIR}"/backup_*.sql.gz | tail -n "${REMOVE_COUNT}" | while read -r file; do
         log "Removing old daily backup: $(basename "${file}")"
         rm -f "${file}"
     done
@@ -106,7 +108,8 @@ log "Cleaning up old monthly backups (keeping last ${MONTHLY_RETENTION})..."
 MONTHLY_COUNT=$(find "${MONTHLY_DIR}" -name "backup_monthly_*.sql.gz" -type f | wc -l)
 if [ "${MONTHLY_COUNT}" -gt "${MONTHLY_RETENTION}" ]; then
     REMOVE_COUNT=$((MONTHLY_COUNT - MONTHLY_RETENTION))
-    find "${MONTHLY_DIR}" -name "backup_monthly_*.sql.gz" -type f -printf '%T+ %p\n' | sort | head -n "${REMOVE_COUNT}" | cut -d' ' -f2- | while read -r file; do
+    # Use ls -t for portability across different systems (macOS, Linux, BSD)
+    ls -t "${MONTHLY_DIR}"/backup_monthly_*.sql.gz | tail -n "${REMOVE_COUNT}" | while read -r file; do
         log "Removing old monthly backup: $(basename "${file}")"
         rm -f "${file}"
     done
