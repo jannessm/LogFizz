@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import dayjs from 'dayjs';
   import weekOfYear from 'dayjs/plugin/weekOfYear';
+  import { getSetting } from '../../lib/db';
 
   dayjs.extend(weekOfYear);
 
@@ -13,16 +15,39 @@
   let calendarDays: dayjs.Dayjs[];
   let weekNumbers: number[];
   let buttonColors: Map<string, string[]> = new Map();
+  let firstDayOfWeek: 'sunday' | 'monday' = 'sunday';
+  let dayNames: string[] = [];
+
+  onMount(async () => {
+    // Load first day of week setting
+    const firstDaySetting = await getSetting('firstDayOfWeek');
+    firstDayOfWeek = firstDaySetting || 'sunday'; // default sunday
+    updateDayNames();
+  });
+
+  function updateDayNames() {
+    if (firstDayOfWeek === 'monday') {
+      dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    } else {
+      dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    }
+  }
 
   // Get calendar days for current month - ensure we have exactly 6 weeks (42 days)
   function getCalendarDays() {
     const firstDay = currentMonth.startOf('month');
 
     // Get the day of week for the first day (0 = Sunday, 6 = Saturday)
-    const firstDayOfWeek = firstDay.day();
+    let firstDayOfWeekNum = firstDay.day();
+    
+    // Adjust for Monday as first day of week
+    if (firstDayOfWeek === 'monday') {
+      // Convert Sunday (0) to 6, and shift everything else down by 1
+      firstDayOfWeekNum = firstDayOfWeekNum === 0 ? 6 : firstDayOfWeekNum - 1;
+    }
     
     // Calculate how many days to show before the first of the month
-    const startDate = firstDay.subtract(firstDayOfWeek, 'day');
+    const startDate = firstDay.subtract(firstDayOfWeekNum, 'day');
     
     // Always show 6 weeks (42 days) for consistent layout
     const days = [];
@@ -56,6 +81,14 @@
 
   $: if (timeLogs.length > 0) {
     buttonColors = getButtonColorsMap();
+  }
+
+  $: if (firstDayOfWeek) {
+    updateDayNames();
+    if (currentMonth && selectedDate) {
+      calendarDays = getCalendarDays();
+      weekNumbers = getWeekNumbers();
+    }
   }
 
   function getButtonColorsMap(): Map<string, string[]> {
@@ -104,7 +137,7 @@
       <div class="text-center text-xs font-semibold text-gray-500 py-2">
         
       </div>
-      {#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as day}
+      {#each dayNames as day}
         <div class="text-center text-xs font-semibold text-gray-600 py-2">
           {day}
         </div>

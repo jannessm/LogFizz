@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { authStore } from './stores/auth';
+  import { themeStore } from './stores/theme';
   import Login from './routes/Login.svelte';
   import Dashboard from './routes/Dashboard.svelte';
   import History from './routes/History.svelte';
@@ -23,6 +24,7 @@
 
   onMount(async () => {
     await authStore.init();
+    await themeStore.init();
     isLoading = false;
 
     // Auto-sync every minute if online and authenticated
