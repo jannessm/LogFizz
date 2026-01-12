@@ -1,6 +1,8 @@
 <script lang="ts">
   import { dayjs, type TargetWithSpecs, type TimeLog, type Timer } from '../../types';
   import { hasSpecialType, type CalendarTimeLogData } from '../../services/calendar';
+  import { onMount } from 'svelte';
+  import { getSetting } from '../../lib/db';
 
   // Get user's timezone
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -148,10 +150,22 @@
     selectedDate = date;
   }
 
+  let firstDayOfWeek: 'sunday' | 'monday' = $state('sunday');
+  let dayNames: string[] = $state([]);
   let calendarDays = $derived.by(() => {
     const firstDay = currentMonth.startOf('month');
-    const firstDayOfWeek = firstDay.day();
-    const startDate = firstDay.subtract(firstDayOfWeek, 'day');
+
+    // Get the day of week for the first day (0 = Sunday, 6 = Saturday)
+    let firstDayOfWeekNum: number = firstDay.day();
+    
+    // Adjust for Monday as first day of week
+    if (firstDayOfWeek === 'monday') {
+      // Convert Sunday (0) to 6, and shift everything else down by 1
+      firstDayOfWeekNum = firstDayOfWeekNum === 0 ? 6 : firstDayOfWeekNum - 1;
+    }
+    
+    // Calculate how many days to show before the first of the month
+    const startDate = firstDay.subtract(firstDayOfWeekNum, 'day');
     
     const days = [];
     let current = startDate;
@@ -163,6 +177,21 @@
     
     return days;
   });
+
+  onMount(async () => {
+    // Load first day of week setting
+    const firstDaySetting = await getSetting('firstDayOfWeek');
+    firstDayOfWeek = firstDaySetting || 'sunday'; // default sunday
+    updateDayNames();
+  });
+
+  function updateDayNames() {
+    if (firstDayOfWeek === 'monday') {
+      dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    } else {
+      dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    }
+  }
 
   let weekNumbers = $derived.by(() => {
     const weeks = [];
@@ -195,6 +224,13 @@
     console.log('Multi-day range info for', dateStr, info);
     return info;
   }
+
+  // Update day names when firstDayOfWeek changes
+  $effect(() => {
+    if (firstDayOfWeek) {
+      updateDayNames();
+    }
+  });
 
   /**
    * Create a gradient CSS string from an array of colors
@@ -298,7 +334,7 @@
       <div class="text-center text-xs font-semibold text-gray-500 py-2">
         
       </div>
-      {#each ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as day}
+      {#each dayNames as day}
         <div class="text-center text-xs font-semibold text-gray-600 py-2">
           {day}
         </div>

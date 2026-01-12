@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { authStore } from './stores/auth';
   import { get } from 'svelte/store';
+  import { themeStore } from './stores/theme';
   import Login from './routes/Login.svelte';
   import Dashboard from './routes/Dashboard.svelte';
   import History from './routes/History.svelte';
@@ -28,6 +29,7 @@
   onMount(async () => {
     await getDB(); // ensure DB is initialized
     await authStore.init();
+    await themeStore.init();
     await loadData(authenticated); // initializes all necessary data stores if logged in
     isLoading = false;
 
