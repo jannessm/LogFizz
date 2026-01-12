@@ -85,6 +85,12 @@ fi
 
 # Drop and recreate database
 log "Dropping and recreating database..."
+log "Terminating active connections to the database..."
+# Terminate all active connections to the database before dropping it
+docker exec "${CONTAINER_NAME}" psql -U "${DB_USER}" -d postgres -c \
+    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${DB_NAME}' AND pid <> pg_backend_pid();" > /dev/null 2>&1
+
+# Drop and recreate the database
 if docker exec "${CONTAINER_NAME}" psql -U "${DB_USER}" -c "DROP DATABASE IF EXISTS ${DB_NAME};" postgres && \
    docker exec "${CONTAINER_NAME}" psql -U "${DB_USER}" -c "CREATE DATABASE ${DB_NAME};" postgres; then
     success "Database recreated"
