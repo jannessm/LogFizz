@@ -1,8 +1,6 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { holidaysStore } from '../../stores/holidays';
   import { dayjs, type TargetWithSpecs, type TimeLog, type Timer } from '../../types';
-  import { getMultiDayRange, hasSpecialType, type CalendarTimeLogData } from '../../services/calendar';
+  import { hasSpecialType, type CalendarTimeLogData } from '../../services/calendar';
 
   // Get user's timezone
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -88,32 +86,6 @@
   }
 
   let countries = $derived(getTargetCountries());
-
-  // Sync holidays for all countries in targets
-  async function syncHolidays() {
-    const countryList = getTargetCountries();
-    if (countryList.length === 0) {
-      // Fallback to user's country from browser locale if no targets have state codes
-      const locale = navigator.language || 'en-US';
-      const country = locale.split('-')[1]?.toUpperCase() || 'US';
-      countryList.push(country);
-    }
-    
-    const year = currentMonth.year();
-    await holidaysStore.fetchHolidaysForStates(countryList, year);
-  }
-
-  onMount(async () => {
-    // Sync holidays for the initial month
-    await syncHolidays();
-  });
-
-  // Sync holidays when the month/year changes
-  $effect(() => {
-    if (currentMonth) {
-      syncHolidays();
-    }
-  });
 
   // Month navigation functions
   function previousMonth() {
@@ -207,19 +179,37 @@
 
   // Check if date has any special type timelogs (non-normal) - single day only
   function hasSpecialTypeForDate(date: dayjs.Dayjs): { hasSpecial: boolean; color: string | null } {
-    return hasSpecialType(date, timeLogsByDate, timeLogs);
+    return hasSpecialType(date, timeLogsByDate, timeLogs, getMultiDayRangeForDate(date));
   }
 
   // Check if date is within a multi-day timelog range - use pre-computed data
   function getMultiDayRangeForDate(date: dayjs.Dayjs) {
     const dateStr = date.format('YYYY-MM-DD');
-    return multiDayRanges.get(dateStr) || {
+    const info = multiDayRanges.get(dateStr) || {
       isInRange: false,
       isStart: false,
       isEnd: false,
       isMiddle: false,
-      color: null,
+      colors: [],
     };
+    console.log('Multi-day range info for', dateStr, info);
+    return info;
+  }
+
+  /**
+   * Create a gradient CSS string from an array of colors
+   */
+  function createGradient(colors: string[]): string {
+    if (colors.length === 0) return '';
+    if (colors.length === 1) return colors[0];
+    
+    // Create a linear gradient with equal distribution
+    const stops = colors.map((color, index) => {
+      const percentage = (index / (colors.length - 1)) * 100;
+      return `${color} ${percentage}%`;
+    }).join(', ');
+    
+    return `linear-gradient(to right bottom, ${stops})`;
   }
 
   function isToday(date: dayjs.Dayjs): boolean {
@@ -234,14 +224,16 @@
     return date.isSame(currentMonth, 'month');
   }
 
-  function isPublicHoliday(date: dayjs.Dayjs): boolean {
-    if (countries.length === 0) return false;
+  /**
+   * Get the name of the public holiday for a date if it affects balance calculations.
+   * Returns null if not a relevant holiday.
+   */
+  function getPublicHolidayName(date: dayjs.Dayjs): string | null {
     const dateStr = date.format('YYYY-MM-DD');
-    // Check if it's a holiday in ANY of the configured countries
-    const holiday = $holidaysStore.holidays.find(
-      h => countries.includes(h.country) && h.date === dateStr
-    );
-    return !!holiday;
+    const holidays = calendarData.relevantHolidays.get(dateStr);
+    
+    // Return the first holiday's name if any exist
+    return holidays && holidays.length > 0 ? holidays[0].name : null;
   }
 </script>
 
@@ -329,47 +321,52 @@
         {@const currentMonthDay = isCurrentMonth(day)}
         {@const specialType = hasSpecialTypeForDate(day)}
         {@const multiDayRange = getMultiDayRangeForDate(day)}
-        {@const isHoliday = isPublicHoliday(day)}
+        {@const holidayName = getPublicHolidayName(day)}
+        {@const isHoliday = holidayName !== null}
+        {@const gradient = createGradient(multiDayRange.colors)}
+        {@const borderColor = isHoliday ? '#a855f7' : null}
         <button
           onclick={() => selectDate(day)}
           class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 p-1"
           class:text-gray-400={!currentMonthDay}
           class:text-gray-800={currentMonthDay && !selected}
+          title={holidayName || ''}
           class:text-white={selected}
           class:font-bold={today || selected}
         >
-          <!-- Multi-day range indicator (rounded rectangle connecting days) -->
-          {#if multiDayRange.isInRange && !today && !selected && multiDayRange.color}
-            {#if multiDayRange.isStart && multiDayRange.isEnd}
-              <!-- Single day range (shouldn't happen but handle it) -->
-              <div 
-                class="absolute inset-1 rounded-full border-2 opacity-30"
-                style="background-color: {multiDayRange.color}; border-color: {multiDayRange.color};"
-              ></div>
-            {:else if multiDayRange.isStart}
+          <!-- Multi-day range indicator (rounded rectangle connecting days with gradient) -->
+          {#if multiDayRange.isInRange && !today && !selected && multiDayRange.colors.length > 0}
+            {#if multiDayRange.isStart}
               <!-- Start of range -->
               <div 
-                class="absolute top-1 bottom-1 left-1 right-0 border-2 opacity-30 rounded-l-full"
-                style="background-color: {multiDayRange.color}; border-color: {multiDayRange.color};"
+                class="absolute top-1 bottom-1 left-1 right-0 opacity-30 rounded-l-full"
+                class:border-2={isHoliday}
+                class:border-purple-500={isHoliday}
+                style="background: {gradient};"
+
               ></div>
             {:else if multiDayRange.isEnd}
               <!-- End of range -->
               <div 
-                class="absolute top-1 bottom-1 left-0 right-1 border-2 opacity-30 rounded-r-full"
-                style="background-color: {multiDayRange.color}; border-color: {multiDayRange.color};"
+                class="absolute top-1 bottom-1 left-0 right-1 opacity-30 rounded-r-full"
+                class:border-2={isHoliday}
+                class:border-purple-500={isHoliday}
+                style="background: {gradient};"
               ></div>
             {:else if multiDayRange.isMiddle}
-              <!-- Middle of range -->
+              <!-- Middle of range (including overlaps) -->
               <div 
-                class="absolute top-1 bottom-1 left-0 right-0 border-2 opacity-30"
-                style="background-color: {multiDayRange.color}; border-color: {multiDayRange.color}; border-radius: 0;"
+                class="absolute top-1 bottom-1 left-0 right-0 opacity-30"
+                class:border-2={isHoliday}
+                class:border-purple-500={isHoliday}
+                style="background: {gradient}; border-radius: 0;"
               ></div>
             {/if}
           {/if}
           
-          <!-- Holiday indicator (subtle purple background) -->
-          {#if isHoliday && currentMonthDay && !selected}
-            <div class="absolute inset-1 rounded-full bg-purple-100 border border-purple-300 opacity-50"></div>
+          <!-- Holiday indicator (purple border only, when no other circle present) -->
+          {#if isHoliday && currentMonthDay && !selected && !multiDayRange.isInRange && !specialType.hasSpecial}
+            <div class="absolute inset-1 rounded-full border-2 border-purple-500"></div>
           {/if}
 
           <!-- Today indicator (light blue circle behind) - FULL SIZE -->
@@ -380,8 +377,10 @@
           <!-- Special type indicator (colored circle behind, not today and not selected) - single day only -->
           {#if specialType.hasSpecial && !today && !selected && specialType.color}
             <div 
-              class="absolute inset-1 rounded-full border-2 opacity-30"
-              style="background-color: {specialType.color}; border-color: {specialType.color};"
+              class="absolute inset-1 rounded-full opacity-30"
+              class:border-2={isHoliday}
+              class:border-purple-500={isHoliday}
+              style="background-color: {specialType.color};"
             ></div>
           {/if}
           
@@ -395,8 +394,8 @@
             {day.format('D')}
           </span>
           
-          <!-- Activity dots -->
-          {#if _timelogsColors && _timelogsColors.length > 0}
+          <!-- Activity dots - only show if no circle indicator present -->
+          {#if _timelogsColors && _timelogsColors.length > 0 && !today && !selected}
             <div class="relative flex gap-0.5 z-10">
               {#each _timelogsColors as color}
                 <div 
@@ -422,12 +421,16 @@
         <span class="text-gray-600">Today</span>
       </div>
       <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full border-2 border-purple-500 flex-shrink-0"></div>
+        <span class="text-gray-600">Public Holiday</span>
+      </div>
+      <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-red-500 opacity-30 border-2 border-red-500 flex-shrink-0"></div>
         <span class="text-gray-600">Sick</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-green-500 opacity-30 border-2 border-green-500 flex-shrink-0"></div>
-        <span class="text-gray-600">Holiday</span>
+        <span class="text-gray-600">Holiday (PTO)</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-amber-500 opacity-30 border-2 border-amber-500 flex-shrink-0"></div>
@@ -443,7 +446,7 @@
           <div class="w-1 h-1 rounded-full bg-green-600"></div>
           <div class="w-1 h-1 rounded-full bg-purple-600"></div>
         </div>
-        <span class="text-gray-600">Activity dots (timers)</span>
+        <span class="text-gray-600">Logged Timers</span>
       </div>
     </div>
   </div>

@@ -405,10 +405,10 @@
                     class="px-3 py-1.5 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors flex items-center gap-1"
                   >
                     {#if showAllSpecs}
-                      <span class="icon-[si--chevron-up-line] w-4 h-4"></span>
+                      <span class="icon-[proicons--chevron-up] w-4 h-4"></span>
                       Show Less ({targetSpecs.length - 1} hidden)
                     {:else}
-                      <span class="icon-[si--chevron-down-line] w-4 h-4"></span>
+                      <span class="icon-[proicons--chevron-down] w-4 h-4"></span>
                       Show All ({targetSpecs.length - 1} more)
                     {/if}
                   </button>

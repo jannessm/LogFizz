@@ -142,7 +142,7 @@
       <!-- Wrong user error state -->
       <div class="text-center">
         <div class="mb-6">
-          <span class="w-16 h-16 icon-[si--mail-check-line] text-blue-600 mx-auto block"></span>
+          <span class="w-16 h-16 icon-[si--mail-duotone] text-blue-600 mx-auto block"></span>
         </div>
         <h1 class="text-2xl font-bold text-gray-800 mb-4">Wrong Account</h1>
         <p class="text-gray-700 mb-4">

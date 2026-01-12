@@ -16,6 +16,8 @@ The calendar service provides centralized caching and calculation of timelog dat
 - Dots appear on ALL days a timelog spans, not just the start date
 - Running timelogs (no end_timestamp) show on today as well
 - Multi-day ranges (sick leave, holidays, etc.) pre-computed per date
+- **Supports multiple overlapping ranges** - gradient colors blend seamlessly
+- **Overlapping start/end dates** treated as middle blocks for smooth transitions
 
 ### 3. **Reactive Store Integration**
 - Returns Svelte stores that automatically update when timelogs or timers change
@@ -54,8 +56,8 @@ interface MultiDayRangeInfo {
   isInRange: boolean;   // Is this date part of a multi-day range?
   isStart: boolean;     // Is this the first day of the range?
   isEnd: boolean;       // Is this the last day of the range?
-  isMiddle: boolean;    // Is this a middle day of the range?
-  color: string | null; // Color for the range indicator
+  isMiddle: boolean;    // Is this a middle day of the range? (includes overlaps)
+  colors: string[];     // Array of colors for gradient display (supports multiple overlapping ranges)
 }
 ```
 
@@ -79,10 +81,13 @@ const logsFor2026Jan01 = data.timeLogsByDate.get('2026-01-01');
 // Access dot colors for a specific date (based on all spanning timelogs)
 const colorsFor2026Jan01 = data.dotColors.get('2026-01-01');
 
-// Access pre-computed multi-day range info
+// Access pre-computed multi-day range info with gradient support
 const rangeInfo = data.multiDayRanges.get('2026-01-01');
 if (rangeInfo.isStart) {
   console.log('First day of a multi-day range');
+}
+if (rangeInfo.colors.length > 1) {
+  console.log('Multiple overlapping ranges - will display as gradient');
 }
 ```
 
@@ -103,6 +108,8 @@ Loads timelogs for a specific month range into the store.
 await loadCalendarMonth(2025, 12, 1);
 ```
 
+## Helper Functions
+
 ### `getTypeColor(type)`
 
 Get the color for a timelog type.
@@ -112,9 +119,16 @@ Get the color for a timelog type.
 
 **Returns:** `string | null` - Hex color or null for normal type
 
+**Color Mappings:**
+- `sick` → `#EF4444` (Red)
+- `holiday` → `#10B981` (Green)
+- `business-trip` → `#F59E0B` (Amber)
+- `child-sick` → `#EC4899` (Pink)
+- `normal` → `null` (Use timer color)
+
 ### `getMultiDayRange(date, timeLogs)`
 
-Check if a date is within a multi-day timelog range.
+Check if a date is within a multi-day timelog range. Supports multiple overlapping ranges.
 
 **Parameters:**
 - `date` (dayjs.Dayjs) - Date to check
@@ -123,13 +137,18 @@ Check if a date is within a multi-day timelog range.
 **Returns:**
 ```typescript
 {
-  isInRange: boolean;
-  isStart: boolean;
-  isEnd: boolean;
-  isMiddle: boolean;
-  color: string | null;
+  isInRange: boolean;   // Is this date part of any multi-day range?
+  isStart: boolean;     // Is this the first day of a range (no overlaps)?
+  isEnd: boolean;       // Is this the last day of a range (no overlaps)?
+  isMiddle: boolean;    // Is this a middle day or overlapping start/end?
+  colors: string[];     // Array of colors from all overlapping ranges
 }
 ```
+
+**Overlap Handling:**
+- When multiple ranges start or end on the same date, `isMiddle` is set to `true`
+- This creates a seamless blend between different colored ranges
+- All colors are collected for gradient display
 
 ### `hasSpecialType(date, timeLogsByDate, timeLogs)`
 
@@ -213,6 +232,8 @@ Check if a date has special type timelogs (non-normal).
   - Multi-day events (sick leave, vacation) show on all relevant days
   - More intuitive calendar visualization
 - **Consistent dot colors** based on complete timelog duration
+- **Gradient support for overlapping ranges** - visually blends multiple concurrent events
+- **Smart overlap handling** - seamless transitions between adjacent ranges
 
 ### Maintainability
 - **Separation of concerns** - calendar logic separated from UI
@@ -275,3 +296,63 @@ Check if a date has special type timelogs (non-normal).
 - `svelte/store` - For derived stores
 - `../stores/timelogs` - Timelog store
 - `../types` - Type definitions
+
+## Gradient Rendering for Overlapping Ranges
+
+The calendar service supports gradient rendering when multiple multi-day ranges overlap on the same date. This creates a smooth visual transition between different event types.
+
+### How It Works
+
+1. **Single Range:** Display with solid color
+   ```
+   [Sick: Red] → [Red] → [Red]
+   ```
+
+2. **Adjacent Ranges:** Blend at the junction point
+   ```
+   [Sick: Red] → [Red|Green] → [Holiday: Green]
+   ```
+   The middle date shows a gradient blending red into green.
+
+3. **Multiple Overlapping Ranges:** Show all colors as gradient
+   ```
+   [Sick + Holiday: Red→Green] → [Red→Green→Amber] → [Holiday + Trip: Green→Amber]
+   ```
+
+### Implementation Details
+
+- **`colors` array:** Contains all colors from overlapping ranges at a specific date
+- **Gradient CSS:** Generated using `linear-gradient(to right, color1 0%, color2 50%, color3 100%)`
+- **Border handling:** 
+  - Start/End of single range: Use the range color
+  - Overlapping: Use the first color in the array
+  - Holiday indicator: Purple border (`#a855f7`) takes precedence
+
+### Visual Examples
+
+**Example 1: Single Sick Leave (Jan 1-3)**
+```
+Jan 1: [Start: Red●]
+Jan 2: [Middle: Red━━]
+Jan 3: [End: ●Red]
+```
+
+**Example 2: Sick Leave (Jan 1-3) + Holiday (Jan 3-5)**
+```
+Jan 1: [Start: Red●]
+Jan 2: [Middle: Red━━]
+Jan 3: [Middle: Red→Green━━] ← Gradient blend
+Jan 4: [Middle: Green━━]
+Jan 5: [End: ●Green]
+```
+
+**Example 3: Three Overlapping Ranges**
+```
+Sick (Jan 1-5), Holiday (Jan 2-4), Business Trip (Jan 3-6)
+Jan 1: [Start: Red●]
+Jan 2: [Middle: Red→Green━━]
+Jan 3: [Middle: Red→Green→Amber━━] ← All three blend
+Jan 4: [Middle: Red→Green→Amber━━]
+Jan 5: [Middle: Red→Amber━━]
+Jan 6: [End: ●Amber]
+```

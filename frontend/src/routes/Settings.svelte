@@ -166,7 +166,6 @@
             <span class="w-5 h-5 icon-[svg-spinners--3-dots-fade]"></span>
             Recalculating...
           {:else}
-            <span class="w-5 h-5 icon-[mdi--calculator]"></span>
             Recalculate All Balances
           {/if}
         </button>

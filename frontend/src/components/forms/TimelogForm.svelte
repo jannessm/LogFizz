@@ -228,7 +228,6 @@
         </select>
         {#if isSpecialType}
           <p class="text-xs text-amber-600 mt-1 flex items-start gap-1">
-            <span class="icon-[mdi--information-outline] flex-shrink-0 mt-0.5" style="width: 14px; height: 14px;"></span>
             <span>Special types (Sick, Holiday, Business Trip, Child Sick) require the "Whole Day" flag to be counted in balance calculations.</span>
           </p>
         {/if}

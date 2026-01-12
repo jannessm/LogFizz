@@ -39,27 +39,27 @@
   // Constants
   const MAX_DISPLAYED_ERRORS = 5;
 
-  let file: File | null = null;
-  let fileType: 'csv' | 'pdf' | null = null;
-  let fileInput: HTMLInputElement;
-  let step: 'upload' | 'mapping' | 'project-mapping' | 'confirm' = 'upload';
-  let parsedData: string[][] = [];
-  let headers: string[] = [];
-  let dateColumn: string = '';
-  let startTimeColumn: string = '';
-  let endTimeColumn: string = '';
-  let notesColumn: string = '';
-  let projectColumn: string = '';
-  let detectedProjects: DetectedProject[] = [];
-  let projectMappings: Map<string, { action: 'assign' | 'ignore' | 'create'; timerId?: string }> = new Map();
-  let selectedTimerId: string = '';
-  let previewLogs: { start: string; end: string; isValid: boolean }[] = [];
-  let errorMessage: string = '';
-  let warningMessage: string = '';
-  let validationErrors: string[] = [];
-  let showErrorDetails = false;
-  let showTimerForm = false;
-  let currentProjectForTimer: string | null = null;
+  let file = $state<File | null>(null);
+  let fileType = $state<'csv' | 'pdf' | null>(null);
+  let fileInput = $state<HTMLInputElement>();
+  let step = $state<'upload' | 'mapping' | 'project-mapping' | 'confirm'>('upload');
+  let parsedData = $state<string[][]>([]);
+  let headers = $state<string[]>([]);
+  let dateColumn = $state('');
+  let startTimeColumn = $state('');
+  let endTimeColumn = $state('');
+  let notesColumn = $state('');
+  let projectColumn = $state('');
+  let detectedProjects = $state<DetectedProject[]>([]);
+  let projectMappings = $state(new Map<string, { action: 'assign' | 'ignore' | 'create'; timerId?: string }>());
+  let selectedTimerId = $state('');
+  let previewLogs = $state<{ start: string; end: string; isValid: boolean }[]>([]);
+  let errorMessage = $state('');
+  let warningMessage = $state('');
+  let validationErrors = $state<string[]>([]);
+  let showErrorDetails = $state(false);
+  let showTimerForm = $state(false);
+  let currentProjectForTimer = $state<string | null>(null);
 
   function detectFileType(fileName: string): 'csv' | 'pdf' | null {
     const extension = fileName.toLowerCase().split('.').pop();
@@ -275,9 +275,7 @@
   }
 
   $effect(() => {
-    if (startTimeColumn || endTimeColumn || dateColumn) {
-      updatePreview();
-    }
+    updatePreview();
   });
 
   function goToProjectMapping() {
@@ -366,7 +364,6 @@
         mapping.timerId = undefined;
       }
       projectMappings.set(projectName, mapping);
-      projectMappings = projectMappings; // Trigger reactivity
     }
   }
 
@@ -374,7 +371,6 @@
     const mapping = projectMappings.get(projectName) || { action: 'assign' };
     mapping.timerId = timerId;
     projectMappings.set(projectName, mapping);
-    projectMappings = projectMappings; // Trigger reactivity
   }
 
   function handleTimerFormClose() {
@@ -391,7 +387,6 @@
         mapping.action = 'assign';
         mapping.timerId = newTimer.id;
         projectMappings.set(currentProjectForTimer, mapping);
-        projectMappings = projectMappings; // Trigger reactivity
       }
     }
     
@@ -616,8 +611,8 @@
           class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
           ondrop={handleDrop}
           ondragover={handleDragOver}
-          onclick={() => fileInput.click()}
-          onkeydown={(e) => e.key === 'Enter' && fileInput.click()}
+          onclick={() => fileInput?.click()}
+          onkeydown={(e) => e.key === 'Enter' && fileInput?.click()}
           role="button"
           tabindex="0"
         >

@@ -10,7 +10,7 @@
   import { timers } from '../stores/timers';
   import { targets } from '../stores/targets';
   import { snackbar } from '../stores/snackbar';
-  import { dayjs, type TimeLog } from '../types'; // ensure consistent dayjs instance
+  import { dayjs } from '../types'; // ensure consistent dayjs instance
   import { onMount } from 'svelte';
   import { createCalendarStore, loadCalendarMonth } from '../services/calendar';
 
@@ -20,7 +20,7 @@
 
   // Create calendar store that reactively updates based on currentMonth and timers
   let calendarStore = $derived(
-    createCalendarStore(currentMonth.year(), currentMonth.month() + 1, 1, $timers)
+    createCalendarStore(currentMonth.year(), currentMonth.month() + 1, 1, $timers, $targets)
   );
   let calendarData = $derived($calendarStore);
 
@@ -38,24 +38,6 @@
     if (monthChanged) {
       loadCalendarMonth(currentMonth.year(), currentMonth.month() + 1);
     }
-  }
-
-  // Handle date selection from charts (only changes selected date, not the current month)
-  function selectDate(date: dayjs.Dayjs) {
-    selectedDate = date;
-  }
-
-  // Get unique state codes from all daily targets (for HistoryLogs component)
-  function getTargetCountries(): string[] {
-    const countries: string[] = [];
-    for (const t of $targets) {
-      for (const spec of t.target_specs || []) {
-        if (spec.state_code) {
-          countries.push(spec.state_code);
-        }
-      }
-    }
-    return Array.from(new Set(countries)); // Remove duplicates
   }
 
   function handleImportClick() {
@@ -146,7 +128,7 @@
             {selectedDate}
             timeLogs={calendarData.timeLogsByDate.get(selectedDate.format('YYYY-MM-DD')) || []}
             timers={$timers}
-            countries={getTargetCountries()}
+            relevantHolidays={calendarData.relevantHolidays.get(selectedDate.format('YYYY-MM-DD')) || []}
           />
         </div>
       </div>

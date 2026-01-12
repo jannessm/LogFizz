@@ -2,8 +2,6 @@
   import { onMount, onDestroy } from 'svelte';
   import SessionBox from './SessionBox.svelte';
   import TimelogForm from '../forms/TimelogForm.svelte';
-  import Modal from '../Modal.svelte';
-  import { holidaysStore } from '../../stores/holidays';
   import { timeLogsStore } from '../../stores/timelogs';
   import type { Holiday, Timer, TimeLog, TimeLogType } from '../../../../lib/types';
   import { dayjs } from '../../types';
@@ -21,12 +19,12 @@
     selectedDate, 
     timeLogs, 
     timers, 
-    countries = []
+    relevantHolidays = []
   }: {
     selectedDate: dayjs.Dayjs;
     timeLogs: TimeLog[];
     timers: Timer[];
-    countries: string[]; // Countries to check for holidays
+    relevantHolidays: Holiday[]; // Holidays that affect balance calculations for this date
   } = $props();
 
   // Internal state for timelog management
@@ -53,9 +51,6 @@
       .map(id => timers.find(t => t.id === id))
       .filter(t => t !== undefined)
   );
-
-  // Derive current holidays
-  let currentHolidays = $derived(getHolidaysForDate(selectedDate));
 
   // Apply timer filter
   let filteredSessions = $derived(
@@ -89,37 +84,28 @@
     return date.isSame(dayjs(), 'day');
   }
 
-  // Get all holidays for the selected date across all configured countries
-  function getHolidaysForDate(date: dayjs.Dayjs): Holiday[] {
-    if (countries.length === 0) return [];
-    const dateStr = date.format('YYYY-MM-DD');
-    return $holidaysStore.holidays.filter(
-      h => countries.includes(h.country) && h.date === dateStr
-    );
-  }
-
   // Check if there are any running sessions
   function hasRunningSessions(): boolean {
     return timeLogs.some(tl => tl.start_timestamp && !tl.end_timestamp);
   }
 
   // Set up interval to refresh running sessions every 30 seconds
-  // onMount(() => {
-  //   intervalId = window.setInterval(() => {
-  //     if (hasRunningSessions()) {
-  //       refreshTick++;
-  //     } else if (intervalId) {
-  //       window.clearInterval(intervalId);
-  //       intervalId = undefined;
-  //     }
-  //   }, 30000); // Update every 30 seconds
-  // });
+  onMount(() => {
+    intervalId = window.setInterval(() => {
+      if (hasRunningSessions()) {
+        refreshTick++;
+      } else if (intervalId) {
+        window.clearInterval(intervalId);
+        intervalId = undefined;
+      }
+    }, 30000); // Update every 30 seconds
+  });
 
-  // onDestroy(() => {
-  //   if (intervalId) {
-  //     window.clearInterval(intervalId);
-  //   }
-  // });
+  onDestroy(() => {
+    if (intervalId) {
+      window.clearInterval(intervalId);
+    }
+  });
 
   // Timelog management handlers
   function handleAddTimelog() {
@@ -247,15 +233,25 @@
     </div>
   {/if}
 
-  <!-- Public Holiday Banner -->
-  {#if currentHolidays.length > 0}
-    <div class="mb-4 space-y-2">
-      {#each currentHolidays as holiday}
-        <div class="p-3 rounded-lg bg-purple-50 border border-purple-200 flex items-center gap-2">
-          <span class="text-purple-600 text-lg">🎉</span>
-          <div class="flex-1">
-            <p class="text-sm font-semibold text-purple-900">{holiday.name}</p>
-            <p class="text-xs text-purple-700">Public Holiday • {holiday.country}</p>
+  <!-- Public Holidays (displayed like whole_day timelogs) -->
+  {#if relevantHolidays.length > 0}
+    <div class="mb-6 space-y-2">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">Public Holidays</h3>
+      {#each relevantHolidays as holiday}
+        <div 
+          class="w-full flex items-center gap-3 p-4 rounded-lg border-2 text-left"
+          style="border-color: #A855F720; background-color: #A855F710;"
+        >
+          <div 
+            class="w-4 h-4 rounded-full flex-shrink-0 border-2 border-purple-500"
+          ></div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-semibold text-gray-800">{holiday.name}</span>
+            </div>
+            <p class="text-xs text-gray-600">
+              🎉 Public Holiday • {holiday.country}
+            </p>
           </div>
         </div>
       {/each}

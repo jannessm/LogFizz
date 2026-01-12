@@ -11,14 +11,14 @@
     dateSelect?: ((date: any) => void);
   } = $props();
   
-  let labels: string[];
-  let title: string = '';
+  let labels: string[] = $state([]);
+  let title: string = $state('');
 
-  let canvas: HTMLCanvasElement;
-  let chart: Chart | null = null;
-  let refreshTick = 0; // Used to trigger reactivity for running sessions
+  let canvas: HTMLCanvasElement | null = $state(null);
+  let chart: Chart | null = $state(null);
+  let refreshTick = $state(0); // Used to trigger reactivity for running sessions
   let intervalId: number | undefined;
-  let chartCreated = false;
+  let chartCreated = $state(false);
 
   // Update chart when data changes
   $effect(() => {

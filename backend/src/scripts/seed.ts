@@ -567,46 +567,67 @@ async function seed() {
     }));
 
     // Multi-day holiday (6-9 days ago - 4 consecutive days)
-    // Create individual whole-day entries for each day
-    for (let daysAgo = 9; daysAgo >= 6; daysAgo--) {
-      const holidayMultiDate = new Date(today);
-      holidayMultiDate.setDate(holidayMultiDate.getDate() - daysAgo);
-      const holidayMultiStart = new Date(holidayMultiDate);
-      holidayMultiStart.setHours(8, 0, 0, 0);
-      
-      await timeLogRepo.save(timeLogRepo.create({
-        user_id: demoUser.id,
-        timer_id: workTimer.id,
-        start_timestamp: holidayMultiStart,
-        end_timestamp: holidayMultiStart,
-        timezone: 'Europe/Berlin',
-        notes: `Multi-day vacation - day ${10 - daysAgo} of 4`,
-        apply_break_calculation: false,
-        type: 'holiday',
-        whole_day: true,
-      }));
-    }
+    // Create a single timelog spanning the entire range
+    const holidayMultiStart = new Date(today);
+    holidayMultiStart.setDate(holidayMultiStart.getDate() - 9);
+    holidayMultiStart.setHours(0, 0, 0, 0);
+    const holidayMultiEnd = new Date(today);
+    holidayMultiEnd.setDate(holidayMultiEnd.getDate() - 6);
+    holidayMultiEnd.setHours(23, 59, 59, 999);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      timer_id: workTimer.id,
+      start_timestamp: holidayMultiStart,
+      end_timestamp: holidayMultiEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Multi-day vacation (4 days)',
+      apply_break_calculation: false,
+      type: 'holiday',
+      whole_day: true,
+    }));
 
     // Multi-day sick leave (10-11 days ago - 2 consecutive days)
-    // Create individual whole-day entries for each day
-    for (let daysAgo = 11; daysAgo >= 10; daysAgo--) {
-      const sickMultiDate = new Date(today);
-      sickMultiDate.setDate(sickMultiDate.getDate() - daysAgo);
-      const sickMultiStart = new Date(sickMultiDate);
-      sickMultiStart.setHours(8, 0, 0, 0);
-      
-      await timeLogRepo.save(timeLogRepo.create({
-        user_id: demoUser.id,
-        timer_id: workTimer.id,
-        start_timestamp: sickMultiStart,
-        end_timestamp: sickMultiStart,
-        timezone: 'Europe/Berlin',
-        notes: `Sick leave - day ${12 - daysAgo} of 2`,
-        apply_break_calculation: false,
-        type: 'sick',
-        whole_day: true,
-      }));
-    }
+    // Create a single timelog spanning the entire range
+    const sickMultiStart = new Date(today);
+    sickMultiStart.setDate(sickMultiStart.getDate() - 11);
+    sickMultiStart.setHours(0, 0, 0, 0);
+    const sickMultiEnd = new Date(today);
+    sickMultiEnd.setDate(sickMultiEnd.getDate() - 10);
+    sickMultiEnd.setHours(23, 59, 59, 999);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      timer_id: workTimer.id,
+      start_timestamp: sickMultiStart,
+      end_timestamp: sickMultiEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Sick leave (2 days)',
+      apply_break_calculation: false,
+      type: 'sick',
+      whole_day: true,
+    }));
+
+    // Overlapping ranges test: Business trip (7-8 days ago) overlaps with holiday (6-9 days ago)
+    // This tests the gradient feature where ranges blend together
+    const businessTripMultiStart = new Date(today);
+    businessTripMultiStart.setDate(businessTripMultiStart.getDate() - 8);
+    businessTripMultiStart.setHours(0, 0, 0, 0);
+    const businessTripMultiEnd = new Date(today);
+    businessTripMultiEnd.setDate(businessTripMultiEnd.getDate() - 7);
+    businessTripMultiEnd.setHours(23, 59, 59, 999);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      timer_id: workTimer.id,
+      start_timestamp: businessTripMultiStart,
+      end_timestamp: businessTripMultiEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Business trip overlapping with vacation (2 days)',
+      apply_break_calculation: false,
+      type: 'business-trip',
+      whole_day: true,
+    }));
 
     console.log('✅ Created sample time logs');
     console.log('   - September 2025: Exercise sessions (1h Mon/Wed/Fri)');
@@ -620,7 +641,10 @@ async function seed() {
     console.log('     * Child-sick: whole_day=false (half-day, uses time range)');
     console.log('     * Business-trip: whole_day=false (uses time range)');
     console.log('     * Normal: whole_day=false (uses time range)');
-    console.log('   - Multi-day timelogs: 4 individual holiday entries and 2 individual sick entries');
+    console.log('   - Multi-day timelogs:');
+    console.log('     * 1 holiday entry (4 days, 6-9 days ago)');
+    console.log('     * 1 sick leave entry (2 days, 10-11 days ago)');
+    console.log('     * 1 business trip entry (2 days, 7-8 days ago) - OVERLAPS with holiday for gradient test');
 
     
 

@@ -12,14 +12,14 @@
     timeLogs: any[];
   } = $props();
 
-  let canvas: HTMLCanvasElement;
-  let chart: Chart | null = null;
-  let labels: string[] = [];
-  let data: number[] = [];
-  let colors: string[] = [];
-  let refreshTick = 0; // Used to trigger reactivity for running sessions
+  let canvas: HTMLCanvasElement | null = $state(null);
+  let chart: Chart | null = $state(null);
+  let labels: string[] = $state([]);
+  let data: number[] = $state([]);
+  let colors: string[] = $state([]);
+  let refreshTick = $state(0); // Used to trigger reactivity for running sessions
   let intervalId: number | undefined;
-  let chartCreated = false;
+  let chartCreated = $state(false);
 
   // Update chart when data changes
   $effect(() => {
