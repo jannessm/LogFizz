@@ -3,41 +3,46 @@
   import { Chart, PieController, ArcElement, Tooltip, Legend } from 'chart.js';
   import dayjs from 'dayjs';
   import { numberToHoursMinutes } from '../../lib/chart_utils';
-  
-  export let buttons: any[];
-  export let title: string = '';
-  export let currentMonth: dayjs.Dayjs;
-  export let timeLogs: any[];
+  import type { Timer } from '../../types';
+ 
+  let { timers, title = '', currentMonth, timeLogs }: {
+    timers: Timer[];
+    title?: string;
+    currentMonth: dayjs.Dayjs;
+    timeLogs: any[];
+  } = $props();
 
-  let canvas: HTMLCanvasElement;
-  let chart: Chart | null = null;
-  let labels: string[] = [];
-  let data: number[] = [];
-  let colors: string[] = [];
-  let refreshTick = 0; // Used to trigger reactivity for running sessions
+  let canvas: HTMLCanvasElement | null = $state(null);
+  let chart: Chart | null = $state(null);
+  let labels: string[] = $state([]);
+  let data: number[] = $state([]);
+  let colors: string[] = $state([]);
+  let refreshTick = $state(0); // Used to trigger reactivity for running sessions
   let intervalId: number | undefined;
-  let chartCreated = false;
+  let chartCreated = $state(false);
 
   // Update chart when data changes
-  $: if (canvas && (timeLogs.length > 0 || refreshTick)) {
-    labels = [];
-    data = [];
-    colors = [];
+  $effect(() => {
+    if (canvas && timers && (timeLogs.length > 0 || refreshTick)) {
+      labels = [];
+      data = [];
+      colors = [];
 
-    // Prepare data for pie chart
-    const monthlyStats = getMonthlyButtonStats();
-    
-    monthlyStats.forEach((minutes, buttonId) => {
-      const button = buttons.find(b => b.id === buttonId);
-      if (button) {
-        labels.push(button.name);
-        data.push(minutes / 60); // Convert to hours
-        colors.push(button.color || '#3B82F6');
-      }
-    });
+      // Prepare data for pie chart
+      const monthlyStats = getMonthlyButtonStats();
+      
+      monthlyStats.forEach((minutes, buttonId) => {
+        const button = timers.find(b => b.id === buttonId);
+        if (button) {
+          labels.push(button.name);
+          data.push(minutes / 60); // Convert to hours
+          colors.push(button.color || '#3B82F6');
+        }
+      });
 
-    updateChart();
-  }
+      updateChart();
+    }
+  });
 
   // Calculate total time per button for the current month
   function getMonthlyButtonStats() {
@@ -70,7 +75,7 @@
       }
       
       if (duration !== undefined && duration !== null) {
-        stats.set(log.button_id, (stats.get(log.button_id) || 0) + duration);
+        stats.set(log.timer_id, (stats.get(log.timer_id) || 0) + duration);
       }
     }
     

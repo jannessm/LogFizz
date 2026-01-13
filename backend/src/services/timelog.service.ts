@@ -1,11 +1,9 @@
 import { AppDataSource } from '../config/database.js';
 import { TimeLog } from '../entities/TimeLog.js';
-import { Button } from '../entities/Button.js';
 import { MoreThan } from 'typeorm';
 
 export class TimeLogService {
   private timeLogRepository = AppDataSource.getRepository(TimeLog);
-  private buttonRepository = AppDataSource.getRepository(Button);
 
   /**
    * Get all time logs (including soft-deleted) changed since a given timestamp
@@ -20,6 +18,7 @@ export class TimeLogService {
       order: { updated_at: 'ASC' },
     });
   }
+
 
   /**
    * Push bulk changes to time logs (create or update) with conflict detection
@@ -66,8 +65,10 @@ export class TimeLogService {
           Object.assign(existing, change);
           // Remove updated_at from client to let TypeORM auto-update it
           delete (existing as any).updated_at;
-          const timeLog = await this.timeLogRepository.save(existing);
-          savedTimeLogs.push(timeLog);
+          await this.timeLogRepository.save(existing);
+          // Reload to get auto-generated timestamps
+          const timeLog = await this.timeLogRepository.findOne({ where: { id: existing.id } });
+          if (timeLog) savedTimeLogs.push(timeLog);
         } else {
           // Time log doesn't exist, create new one with client-provided UUID
           const timeLog = this.timeLogRepository.create({
@@ -77,8 +78,10 @@ export class TimeLogService {
           });
           // Remove updated_at to let TypeORM set it
           delete (timeLog as any).updated_at;
-          const saved = await this.timeLogRepository.save(timeLog);
-          savedTimeLogs.push(saved);
+          await this.timeLogRepository.save(timeLog);
+          // Reload to get auto-generated timestamps
+          const saved = await this.timeLogRepository.findOne({ where: { id: timeLog.id } });
+          if (saved) savedTimeLogs.push(saved);
         }
       } else {
         // Create new time log (no ID provided - shouldn't happen in offline-first)
@@ -87,8 +90,10 @@ export class TimeLogService {
           user_id: userId,
         });
         delete (timeLog as any).updated_at;
-        const saved = await this.timeLogRepository.save(timeLog);
-        savedTimeLogs.push(saved);
+        await this.timeLogRepository.save(timeLog);
+        // Reload to get auto-generated timestamps
+        const saved = await this.timeLogRepository.findOne({ where: { id: timeLog.id } });
+        if (saved) savedTimeLogs.push(saved);
       }
     }
 

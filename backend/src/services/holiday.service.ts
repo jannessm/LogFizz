@@ -1,39 +1,24 @@
 import { AppDataSource } from '../config/database.js';
 import { Holiday } from '../entities/Holiday.js';
-import { Between } from 'typeorm';
 
 export class HolidayService {
   private holidayRepository = AppDataSource.getRepository(Holiday);
 
-  async getHolidays(country: string, year: number): Promise<Holiday[]> {
+  async getHolidays(state_code: string, year: number): Promise<Holiday[]> {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year + 1, 0, 1);
 
-    return this.holidayRepository.find({
-      where: {
-        country,
-        date: Between(startDate, endDate),
-      },
-      order: {
-        date: 'ASC',
-      },
-    });
+    return this.holidayRepository.createQueryBuilder('h')
+                    .where('(h.global = true OR :state = ANY (h.counties))', { state: state_code })
+                    .andWhere('h.date BETWEEN :startDate AND :endDate', { startDate, endDate })
+                    .orderBy('h.date', 'ASC')
+                    .getMany();
   }
 
-  async addHoliday(country: string, date: Date, name: string, year: number): Promise<Holiday> {
-    const holiday = this.holidayRepository.create({
-      country,
-      date,
-      name,
-      year,
-    });
 
-    return this.holidayRepository.save(holiday);
-  }
+  async getWorkingDaysSummary(state_code: string, year: number): Promise<any> {
+    const holidays = await this.getHolidays(state_code, year);
 
-  async getWorkingDaysSummary(country: string, year: number): Promise<any> {
-    const holidays = await this.getHolidays(country, year);
-    
     // Calculate total days in the year
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year + 1, 0, 1);
@@ -67,7 +52,7 @@ export class HolidayService {
 
     return {
       year,
-      country,
+      state_code,
       totalDays,
       weekdays,
       weekends,
@@ -77,8 +62,4 @@ export class HolidayService {
     };
   }
 
-  async deleteHoliday(id: string): Promise<boolean> {
-    const result = await this.holidayRepository.delete(id);
-    return (result.affected || 0) > 0;
-  }
 }

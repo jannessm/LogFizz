@@ -1,51 +1,41 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { buttonsStore } from '../stores/buttons';
+  import { nonArchivedTimers } from '../stores/timers';
   import { timeLogsStore } from '../stores/timelogs';
-  import { targetsStore } from '../stores/targets';
   import { authStore } from '../stores/auth';
   import { snackbar } from '../stores/snackbar';
   import { authApi } from '../services/api';
-  import ButtonGraph from '../components/ButtonGraph.svelte';
-  import ButtonForm from '../components/ButtonForm.svelte';
-  import TimelogForm from '../components/TimelogForm.svelte';
+  import EditOverview from '../components/Dashboard/EditOverview.svelte';
+  import TimerGraph from '../components/Dashboard/TimerGraph.svelte';
+
+  import { TargetForm, TimelogForm, TimerForm } from '../components/forms';
   import DailyTargets from '../components/DailyTargets.svelte';
-  import TargetForm from '../components/TargetForm.svelte';
   import BottomNav from '../components/BottomNav.svelte';
-  import EditOverview from '../components/EditOverview.svelte';
   import AddSelector from '../components/AddSelector.svelte';
   import dayjs from 'dayjs';
-  import type { Button, DailyTarget } from '../types';
+  import type { Timer, TargetWithSpecs, TimeLog } from '../types';
   import { getSetting } from '../lib/db';
+  import { saveTimelog, deleteTimelog } from '../services/formHandlers';
 
-  let showButtonForm = false;
-  let showTimelogForm = false;
-  let showTargetForm = false;
-  let showEditOverview = false;
-  let showAddSelector = false;
-  let editMode = false;
-  let editingButton: Button | null = null;
-  let editingTimelog: any = null;
-  let editingTarget: DailyTarget | null = null;
-  let toggleMode = true;
-  let verificationReminderShown = false;
-  let editOnStopEnabled = true;
-  let timerToStop: any = null;
+  let showTimerForm = $state(false);
+  let showTimelogForm = $state(false);
+  let showTargetForm = $state(false);
+  let showEditOverview = $state(false);
+  let showAddSelector = $state(false);
+  let editMode = $state(false);
+  let editingTimer: Timer | null = $state(null);
+  let editingTimelog: TimeLog | null = $state(null);
+  let editingTarget: TargetWithSpecs | null = $state(null);
+  let editFromOverview = $state(false);
+  let toggleMode = $state(true);
+  let verificationReminderShown = $state(false);
+  let editOnStopEnabled = $state(true);
+  let timerToStop: any = $state(null);
 
-  $: user = $authStore.user;
+  let timers = nonArchivedTimers;
+  let user = $authStore.user;
 
   onMount(async () => {
-    
-    await Promise.all([
-      buttonsStore.load(),
-      targetsStore.load(),
-    ]);
-
-    await Promise.all([
-      timeLogsStore.load(),
-      timeLogsStore.loadActive(),
-    ]);
-
     // Load edit-on-stop setting
     const setting = await getSetting('editOnStop');
     editOnStopEnabled = setting !== false; // default to true if not set
@@ -70,18 +60,25 @@
             await authApi.resendVerification(user.email);
             snackbar.success('Verification email sent! Please check your inbox.', 6000);
           } catch (error: any) {
-            snackbar.error('Failed to send verification email. Please try again later.', 5000);
+            // Check for rate limiting (429 Too Many Requests)
+            if (error.response?.status === 429) {
+              snackbar.error('Too many verification requests. Please wait 15 minutes before trying again.', 8000);
+            } else {
+              snackbar.error('Failed to send verification email. Please try again later.', 5000);
+            }
           }
         },
-        0 // Don't auto-dismiss
+        10000 // 10s
       );
     }
   }
 
   // Watch for user changes to re-check verification status
-  $: if (user && !verificationReminderShown) {
-    checkEmailVerification();
-  }
+  $effect(() => {
+    if (user && !verificationReminderShown) {
+      checkEmailVerification();
+    }
+  });
 
   function handleShowAddSelector() {
     showAddSelector = true;
@@ -91,30 +88,38 @@
     showAddSelector = false;
   }
 
-  function handleAddSelectorSelect(event: CustomEvent<{ type: 'button' | 'target' }>) {
+  function handleAddSelectorSelect(type: 'timer' | 'target') {
     showAddSelector = false;
-    if (event.detail.type === 'button') {
-      handleAddButton();
+    if (type === 'timer') {
+      handleAddTimer();
     } else {
       handleAddTarget();
     }
   }
 
-  function handleAddButton() {
-    editingButton = null;
-    showButtonForm = true;
+  function handleAddTimer() {
+    editingTimer = null;
+    showTimerForm = true;
   }
 
-  function handleEditButton(event: CustomEvent | Button) {
-    const button = 'detail' in event ? event.detail : event;
-    editingButton = button;
-    showButtonForm = true;
-    showEditOverview = false;
+  function handleEditTimer(timer: Timer) {
+    console.log('Editing timer:', timer, editMode);
+    editingTimer = timer;
+    showTimerForm = true;
+    if (showEditOverview) {
+      editFromOverview = true;
+      showEditOverview = false;
+    }
   }
 
   function handleCloseForm() {
-    showButtonForm = false;
-    editingButton = null;
+    showTimerForm = false;
+    editingTimer = null;
+    
+    // If we were editing a timer (not creating), reopen the edit overview
+    if (editFromOverview) {
+      showEditOverview = true;
+    }
   }
 
   function handleAddTarget() {
@@ -122,7 +127,12 @@
     showTargetForm = true;
   }
 
-  function handleEditTarget(target: DailyTarget) {
+  function handleEditTarget(target: TargetWithSpecs) {
+    if (showEditOverview) {
+      editFromOverview = true;
+      showEditOverview = false;
+    }
+
     editingTarget = target;
     showTargetForm = true;
     showEditOverview = false;
@@ -131,6 +141,11 @@
   function handleCloseTargetForm() {
     showTargetForm = false;
     editingTarget = null;
+    
+    // If we were editing a target (not creating), reopen the edit overview
+    if (editFromOverview) {
+      showEditOverview = true;
+    }
   }
 
   function toggleEditMode() {
@@ -145,25 +160,14 @@
     toggleMode = !toggleMode;
   }
 
-  function handleLongPress(event: CustomEvent<{ button: Button; isActive: boolean }>) {
-    const { button, isActive } = event.detail;
-    
-    if (isActive) {
-      // Find the active timelog for this button
-      const activeTimer = $timeLogsStore.activeTimers.find(t => t.button_id === button.id);
-      if (activeTimer) {
-        // Open TimelogForm to edit active timelog
-        editingTimelog = {
-          button_id: button.id,
-          startTime: activeTimer.start_timestamp,
-          endTime: null,
-          log: activeTimer
-        };
-        showTimelogForm = true;
-      }
+  function handleLongPress(timer: Timer, timelog: TimeLog | undefined, isActive: boolean) {
+    if (isActive && timelog) {
+      // Open TimelogForm to edit active timelog
+      editingTimelog = timelog;
+      showTimelogForm = true;
     } else {
-      // Open ButtonForm to edit button
-      handleEditButton(button);
+      // Open TimerForm to edit timer
+      handleEditTimer(timer);
     }
   }
 
@@ -172,68 +176,43 @@
     editingTimelog = null;
   }
 
-  async function handleSaveTimelog(event: CustomEvent) {
-    const { button_id, startTimestamp, endTimestamp, notes, existingLog } = event.detail;
-    
-    // If this is a timer being stopped (timerToStop is set), stop it with the notes and custom end time
-    if (timerToStop && existingLog?.log?.id === timerToStop.id) {
-      await timeLogsStore.stopTimer(timerToStop.id, notes || undefined, endTimestamp || undefined);
-      timerToStop = null;
-    } else if (existingLog && existingLog.log) {
-      // Editing existing timelog
-      await timeLogsStore.update(existingLog.log.id, {
-        button_id,
-        start_timestamp: startTimestamp,
-        end_timestamp: endTimestamp || undefined,
-        notes: notes || undefined,
-      });
-    } else {
-      // Creating new timelog
-      await timeLogsStore.create({
-        button_id,
-        start_timestamp: startTimestamp,
-        end_timestamp: endTimestamp || undefined,
-        notes: notes || undefined,
-      });
-    }
-    
-    showTimelogForm = false;
-    editingTimelog = null;
+  function handleSaveTimelog(newLog: TimeLog) {
+    saveTimelog(newLog, editingTimelog, timerToStop).then(res => {
+      // Close the TimelogForm after saving
+      showTimelogForm = false;
+      editingTimelog = null;
+
+      if (res && res.timerToStop !== undefined) {
+        timerToStop = null;
+      }
+    });
   }
 
-  function handleDeleteTimelog(event: CustomEvent) {
-    const { session } = event.detail;
-    if (session?.log?.id) {
-      timeLogsStore.delete(session.log.id);
-    }
+  function handleDeleteTimelog(timelog?: TimeLog) {
+    deleteTimelog(timelog);
     showTimelogForm = false;
     editingTimelog = null;
+    timerToStop = null;
   }
 
-  async function handleTimerStopped(event: CustomEvent) {
-    const { timer, button } = event.detail;
-    timerToStop = timer;
-
+  async function handleTimerStopped(timelog: TimeLog, timer: Timer) {
     if (editOnStopEnabled) {
-      // Open TimelogForm to allow adding notes before stopping
-      editingTimelog = {
-        button_id: button.id,
-        startTime: timer.start_timestamp,
-        endTime: null,
-        log: timer
-      };
+      // Open TimelogForm to allow editing before stopping (optional)
+      // Timer will continue running until user saves the form
+      editingTimelog = {...timelog};
+      timerToStop = timelog;
       showTimelogForm = true;
     } else {
       // Stop timer immediately without opening form
-      await timeLogsStore.stopTimer(timer.id);
-      timerToStop = null;
+      await timeLogsStore.stopTimer(timelog);
     }
   }
 
-  async function handleCloseTimelogFormWithStop() {
-    // If there's a pending timer to stop, stop it now without saving changes
+  async function handleCloseTimelogFormWithoutSave() {
+    // If there's a pending timer to stop, DON'T stop it - let it continue running
+    // User cancelled the stop action by closing the form
     if (timerToStop) {
-      await timeLogsStore.stopTimer(timerToStop.id);
+      console.log('Timer stop cancelled - timer continues running');
       timerToStop = null;
     }
     showTimelogForm = false;
@@ -247,7 +226,7 @@
    <div class="flex flex-col absolute top-0 left-0 right-0">
     <div class="flex mx-auto px-4 pt-4 gap-2 w-full z-20 justify-end grow-0">
       <button
-        on:click={toggleToggleMode}
+        onclick={toggleToggleMode}
         class="flex gap-2 text-gray-500 transition-colors"
       >
         <span class:icon-[si--toggle-off-line]={!toggleMode}
@@ -258,7 +237,7 @@
         <span class="py-1">Auto Stop</span>
       </button>
       <button
-        on:click={toggleEditMode}
+        onclick={toggleEditMode}
         class="px-4 py-2 rounded-full transition-colors icon-[si--edit-detailed-duotone]"
         class:bg-blue-600={showEditOverview}
         class:hover:bg-blue-700={showEditOverview}
@@ -269,7 +248,7 @@
         style="width: 32px; height: 32px;"
       ></button>
       <button 
-        on:click={handleShowAddSelector}
+        onclick={handleShowAddSelector}
         class="px-4 py-2 bg-blue-600 rounded-full hover:bg-blue-700 transition-colors icon-[si--add-circle-duotone]"
         style="width: 32px; height: 32px;"
         aria-label="Add"
@@ -283,14 +262,14 @@
     <div class="mx-auto px-4 py-6 min-w-full w-full h-full">
       <!-- Daily Targets Overview -->
 
-      <!-- Button Graph -->
-      <ButtonGraph 
-        buttons={$buttonsStore.buttons.filter(b => !b.archived)}
+      <!-- Timer Graph -->
+      <TimerGraph
+        buttons={$timers}
         {editMode}
         {toggleMode}
-        on:edit={handleEditButton}
-        on:longpress={handleLongPress}
-        on:timerstopped={handleTimerStopped}
+        edit={handleEditTimer}
+        longpress={handleLongPress}
+        timerstopped={handleTimerStopped}
       />
     </div>
   </div>
@@ -313,19 +292,19 @@
   <!-- Edit Overview Modal -->
   {#if showEditOverview}
     <EditOverview 
-      onEditButton={handleEditButton}
-      onEditTarget={handleEditTarget}
-      onAddButton={handleAddButton}
-      onAddTarget={handleAddTarget}
-      on:close={handleCloseEditOverview}
+      editTimer={handleEditTimer}
+      editTarget={handleEditTarget}
+      addTimer={handleAddTimer}
+      addTarget={handleAddTarget}
+      close={handleCloseEditOverview}
     />
   {/if}
 
-  <!-- Button Form Modal -->
-  {#if showButtonForm}
-    <ButtonForm 
-      button={editingButton}
-      on:close={handleCloseForm}
+  <!-- Timer Form Modal -->
+  {#if showTimerForm}
+    <TimerForm 
+      timer={editingTimer}
+      close={handleCloseForm}
     />
   {/if}
 
@@ -333,27 +312,27 @@
   {#if showTargetForm}
     <TargetForm 
       target={editingTarget}
-      on:close={handleCloseTargetForm}
+      close={handleCloseTargetForm}
     />
   {/if}
 
   <!-- Add Selector Modal -->
   {#if showAddSelector}
     <AddSelector 
-      on:close={handleAddSelectorClose}
-      on:select={handleAddSelectorSelect}
+      close={handleAddSelectorClose}
+      select={handleAddSelectorSelect}
     />
   {/if}
 
   <!-- Timelog Form Modal -->
-  {#if showTimelogForm}
+  {#if showTimelogForm && editingTimelog !== null}
     <TimelogForm
       selectedDate={dayjs()}
       existingLog={editingTimelog}
       isTimerStop={!!timerToStop}
-      on:save={handleSaveTimelog}
-      on:close={timerToStop ? handleCloseTimelogFormWithStop : handleCloseTimelogForm}
-      on:delete={handleDeleteTimelog}
+      save={handleSaveTimelog}
+      close={timerToStop ? handleCloseTimelogFormWithoutSave : handleCloseTimelogForm}
+      del={handleDeleteTimelog}
     />
   {/if}
 </div>

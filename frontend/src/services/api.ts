@@ -1,6 +1,6 @@
 import ky from 'ky';
-import type { User, Button, TimeLog, Holiday, DailyTarget, State, MonthlyBalance } from '../types';
-import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.browser.js';
+import type { User, Timer, TimeLog, Holiday, State, Balance } from '../types';
+import { hashPasswordForTransport } from '../../../lib/utils/passwordHash';
 
 // In development, use proxy (relative path). In production, use env variable or default to same origin
 const API_BASE_URL = import.meta.env.PROD 
@@ -85,7 +85,10 @@ export const authApi = {
 
   async resetPassword(token: string, newPassword: string, email: string): Promise<{ message: string }> {
     const hashedPassword = await hashPasswordForTransport(newPassword, email);
-    return api.post('api/auth/reset-password', { json: { token, newPassword: hashedPassword, email } }).json();
+    return api.post('api/auth/reset-password', { json: {
+      token,
+      newPassword: hashedPassword,
+    } }).json();
   },
 
   async verifyEmail(token: string): Promise<{ message: string }> {
@@ -97,93 +100,30 @@ export const authApi = {
   },
 };
 
-// Button API
-export const buttonApi = {
-  async getAll(): Promise<Button[]> {
-    return api.get('api/buttons').json();
-  },
-
-  async get(id: string): Promise<Button> {
-    return api.get(`api/buttons/${id}`).json();
-  },
-
-  async create(button: Partial<Button>): Promise<Button> {
-    return api.post('api/buttons', { json: button }).json();
-  },
-
-  async update(id: string, button: Partial<Button>): Promise<Button> {
-    return api.put(`api/buttons/${id}`, { json: button }).json();
-  },
-
-  async delete(id: string): Promise<void> {
-    await api.delete(`api/buttons/${id}`);
-  },
-
+// Timer API (formerly Button)
+export const timerApi = {
   // Cursor-based sync endpoints
-  async getSyncChanges(since: string): Promise<{ buttons: Button[]; cursor: string }> {
+  async getSyncChanges(since: string): Promise<{ timers: Timer[]; cursor: string }> {
     const searchParams = new URLSearchParams({ since });
-    return api.get('api/buttons/sync', { searchParams }).json();
+    return api.get('api/timers/sync', { searchParams }).json();
   },
 
-  async pushSyncChanges(buttons: Partial<Button>[]): Promise<{
-    saved?: Button[];
+  async pushSyncChanges(timers: Partial<Timer>[]): Promise<{
+    saved?: Timer[];
     conflicts?: Array<{
       id: string;
       field: string;
-      clientVersion: Partial<Button>;
-      serverVersion: Button;
+      clientVersion: Partial<Timer>;
+      serverVersion: Timer;
     }>;
     cursor: string;
   }> {
-    return api.post('api/buttons/sync', { json: { buttons } }).json();
+    return api.post('api/timers/sync', { json: { timers } }).json();
   },
 };
 
 // TimeLog API
 export const timeLogApi = {
-  async start(buttonId: string): Promise<TimeLog> {
-    return api.post('api/timelogs/start', { json: { button_id: buttonId } }).json();
-  },
-
-  async stop(id: string): Promise<TimeLog> {
-    return api.post(`api/timelogs/stop/${id}`).json();
-  },
-
-  async getAll(params?: {
-    start_date?: string;
-    end_date?: string;
-    button_id?: string;
-  }): Promise<TimeLog[]> {
-    const searchParams = new URLSearchParams();
-    if (params?.start_date) searchParams.set('start_date', params.start_date);
-    if (params?.end_date) searchParams.set('end_date', params.end_date);
-    if (params?.button_id) searchParams.set('button_id', params.button_id);
-    
-    return api.get('api/timelogs', { searchParams }).json();
-  },
-
-  async getTodayTime(buttonId: string): Promise<{ total_minutes: number }> {
-    return api.get(`api/timelogs/today/${buttonId}`).json();
-  },
-
-  async getYearlyStats(year?: number): Promise<any[]> {
-    const searchParams = year ? new URLSearchParams({ year: year.toString() }) : undefined;
-    return api.get('api/timelogs/stats/yearly', { searchParams }).json();
-  },
-
-  async getGoalProgress(buttonId: string, date?: string): Promise<any> {
-    const searchParams = date ? new URLSearchParams({ date }) : undefined;
-    return api.get(`api/timelogs/goal-progress/${buttonId}`, { searchParams }).json();
-  },
-
-  async update(id: string, timeLog: Partial<TimeLog>): Promise<TimeLog> {
-    return api.put(`api/timelogs/${id}`, { json: timeLog }).json();
-  },
-
-  async delete(id: string): Promise<void> {
-    await api.delete(`api/timelogs/${id}`);
-  },
-
   // Cursor-based sync endpoints
   async getSyncChanges(since: string): Promise<{ timeLogs: TimeLog[]; cursor: string }> {
     const searchParams = new URLSearchParams({ since });
@@ -260,11 +200,23 @@ export const statesApi = {
   },
 };
 
-// Monthly Balance API
-export const monthlyBalanceApi = {
-  async getSyncChanges(since: string): Promise<{ monthlyBalances: MonthlyBalance[]; cursor: string }> {
+// Balance API (replaces Monthly Balance)
+export const balanceApi = {
+  async getSyncChanges(since: string): Promise<{ balances: Balance[]; cursor: string }> {
     const searchParams = new URLSearchParams({ since });
-    return api.get('api/monthly-balances/sync', { searchParams }).json();
+    return api.get('api/balances/sync', { searchParams }).json();
+  },
+  async pushSyncChanges(balances: Partial<Balance>[]): Promise<{
+    saved?: Balance[];
+    conflicts?: Array<{
+      id: string;
+      field: string;
+      clientVersion: Partial<Balance>;
+      serverVersion: Balance;
+    }>;
+    cursor: string;
+  }> {
+    return api.post('api/balances/sync', { json: { balances } }).json();
   },
 };
 

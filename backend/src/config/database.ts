@@ -1,11 +1,12 @@
 import { DataSource } from 'typeorm';
 import { User } from '../entities/User.js';
-import { Button } from '../entities/Button.js';
+import { Timer } from '../entities/Timer.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { HolidayMetadata } from '../entities/HolidayMetadata.js';
-import { DailyTarget } from '../entities/DailyTarget.js';
-import { MonthlyBalance } from '../entities/MonthlyBalance.js';
+import { Target } from '../entities/Target.js';
+import { TargetSpec } from '../entities/TargetSpec.js';
+import { Balance } from '../entities/Balance.js';
 import { State } from '../entities/State.js';
 import { InitialSchema1699700000000 } from '../migrations/1699700000000-InitialSchema.js';
 
@@ -21,7 +22,7 @@ export const AppDataSource = new DataSource({
   database: isTest ? 'clock_test_db' : (process.env.DB_DATABASE || 'clock_db'),
   synchronize: !isProduction, // Auto-create tables in dev and test only
   logging: !isProduction && !isTest,
-  entities: [User, Button, TimeLog, Holiday, HolidayMetadata, DailyTarget, MonthlyBalance, State],
+  entities: [User, Timer, TimeLog, Holiday, HolidayMetadata, Target, TargetSpec, Balance, State],
   subscribers: [],
   migrations: [InitialSchema1699700000000],
   migrationsRun: isProduction, // Auto-run migrations in production

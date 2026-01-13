@@ -16,9 +16,9 @@
     const urlParams = new URLSearchParams(window.location.search);
     const tokenParam = urlParams.get('token');
     const emailParam = urlParams.get('email');
-    if (tokenParam) {
+    if (tokenParam && emailParam) {
       token = tokenParam;
-      email = emailParam || ''; // Email is optional for backward compatibility
+      email = emailParam;
     } else {
       errorMessage = 'Invalid reset link. Please request a new password reset.';
     }
@@ -51,7 +51,12 @@
         navigate('/login');
       }, 2000);
     } catch (error: any) {
-      errorMessage = error.message || 'Failed to reset password. The link may be invalid or expired.';
+      // Check for rate limiting (429 Too Many Requests)
+      if (error.response?.status === 429) {
+        errorMessage = 'Too many password reset attempts. Please wait 15 minutes before trying again.';
+      } else {
+        errorMessage = error.message || 'Failed to reset password. The link may be invalid or expired.';
+      }
     } finally {
       isLoading = false;
     }

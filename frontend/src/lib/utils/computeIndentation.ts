@@ -1,8 +1,9 @@
-import dayjs from 'dayjs';
+import dayjs from '../../../../lib/utils/dayjs.js';
 
-type Session = {
+export type Session = {
   startTime: string;
   endTime?: string | null;
+  multiDay?: boolean;
   [key: string]: any;
 };
 

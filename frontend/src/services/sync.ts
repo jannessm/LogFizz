@@ -3,428 +3,324 @@ import {
   getUnsyncedItems, 
   markItemSynced,
   deleteFromSyncQueue,
-  saveButton,
+  saveTimer,
   saveTimeLog,
   saveTarget,
-  deleteButton,
+  saveBalance,
+  deleteTimer,
   deleteTimeLog,
   deleteTarget,
+  deleteBalance,
   getSyncCursor,
   saveSyncCursor,
   getUser,
 } from '../lib/db';
-import { buttonApi, timeLogApi, targetApi, isOnline } from './api';
-import type { Button, TimeLog, DailyTarget, SyncQueueItem } from '../types';
-import { validateAndFixTimelogs } from '../lib/buttonLayout';
-import { wsService } from './websocket';
+import { timerApi, timeLogApi, targetApi, balanceApi, isOnline } from './api';
+import type { Timer, TimeLog } from '../types';
+import type { TargetWithSpecs } from '../types';
+
+type SyncConfig = {
+  type: 'timer' | 'timelog' | 'target' | 'balance';
+  cursorKey: 'timers' | 'timelogs' | 'targets' | 'balances';
+  api: any;
+  dataKey: string;
+  save: (item: any) => Promise<void>;
+  delete: (item: any) => Promise<void>;
+  name: string;
+};
 
 export class SyncService {
-  private isSyncing = false;
-  private syncListeners: (() => void)[] = [];
+  private syncingLocks = {
+    timer: false,
+    timelog: false,
+    target: false,
+    balance: false,
+  };
+  private syncListeners: {
+    timer: (() => void)[];
+    timelog: (() => void)[];
+    target: (() => void)[];
+    balance: (() => void)[];
+  } = {
+    timer: [],
+    timelog: [],
+    target: [],
+    balance: [],
+  };
 
-  constructor() {
-    // Listen for WebSocket events and trigger syncs
-    wsService.on('button_change', () => this.handleRemoteChange());
-    wsService.on('timelog_change', () => this.handleRemoteChange());
-    wsService.on('target_change', () => this.handleRemoteChange());
-    wsService.on('sync_needed', () => this.handleRemoteChange());
-  }
+  private syncConfigs: SyncConfig[] = [
+      {
+        type: 'timer',
+        cursorKey: 'timers' as const,
+        api: timerApi,
+        dataKey: 'timers',
+        save: saveTimer,
+        delete: deleteTimer,
+        name: 'timer',
+      },
+      {
+        type: 'timelog',
+        cursorKey: 'timelogs' as const,
+        api: timeLogApi,
+        dataKey: 'timeLogs',
+        save: saveTimeLog,
+        delete: deleteTimeLog,
+        name: 'timelog',
+      },
+      {
+        type: 'target',
+        cursorKey: 'targets' as const,
+        api: targetApi,
+        dataKey: 'targets',
+        save: saveTarget,
+        delete: deleteTarget,
+        name: 'target',
+      },
+      {
+        type: 'balance',
+        cursorKey: 'balances' as const,
+        api: balanceApi,
+        dataKey: 'balances',
+        save: saveBalance,
+        delete: deleteBalance,
+        name: 'balance',
+      },
+    ];
 
-  private async handleRemoteChange() {
-    console.log('Remote change detected, triggering sync');
-    // Debounce syncs - wait a bit before syncing in case multiple changes arrive
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    await this.syncAll();
-  }
-
-  // Queue operations for sync
-  async queueButtonCreate(button: Button): Promise<void> {
-    const item: SyncQueueItem = {
+  // Generic helper to queue operations
+  private async queueOperation(
+    type: 'timer' | 'timelog' | 'target' | 'balance',
+    data: any,
+    save: (item: any) => Promise<void>
+  ): Promise<void> {
+    data.updated_at = new Date().toISOString();
+    await addToSyncQueue({
       id: crypto.randomUUID(),
-      type: 'button',
-      operation: 'create',
-      data: button,
-      timestamp: Date.now(),
+      type,
+      data,
       synced: false,
-    };
-    await addToSyncQueue(item);
-    await saveButton(button); // Save locally immediately
-    this.notifyListeners();
+    });
+
+    await save(data);
+    this.notifyListeners(type);
   }
 
-  async queueButtonUpdate(button: Button): Promise<void> {
-    const item: SyncQueueItem = {
-      id: crypto.randomUUID(),
-      type: 'button',
-      operation: 'update',
-      data: button,
-      timestamp: Date.now(),
-      synced: false,
-    };
-    await addToSyncQueue(item);
-    await saveButton(button); // Update locally immediately
-    this.notifyListeners();
+  // Timer queue operations
+  async queueUpsertTimer(timer: Timer): Promise<void> {
+    await this.queueOperation('timer', timer, saveTimer);
   }
 
-  async queueButtonDelete(buttonId: string): Promise<void> {
-    const item: SyncQueueItem = {
-      id: crypto.randomUUID(),
-      type: 'button',
-      operation: 'delete',
-      data: { id: buttonId },
-      timestamp: Date.now(),
-      synced: false,
-    };
-    await addToSyncQueue(item);
-    await deleteButton(buttonId); // Delete locally immediately
-    this.notifyListeners();
+  async queueDeleteTimer(timer: Timer): Promise<void> {
+    const data = { ...timer, deleted_at: new Date().toISOString() };
+    await this.queueOperation('timer', data, deleteTimer);
   }
 
-  async queueTimeLogCreate(timeLog: TimeLog): Promise<void> {
-    const item: SyncQueueItem = {
-      id: crypto.randomUUID(),
-      type: 'timelog',
-      operation: 'create',
-      data: timeLog,
-      timestamp: Date.now(),
-      synced: false,
-    };
-    await addToSyncQueue(item);
-    await saveTimeLog(timeLog); // Save locally immediately
-    this.notifyListeners();
+  // TimeLog queue operations
+  async queueUpsertTimeLog(timeLog: TimeLog): Promise<void> {
+    delete (timeLog as any).year; // only for local use
+    delete (timeLog as any).month; // only for local use
+    await this.queueOperation('timelog', timeLog, saveTimeLog);
   }
 
-  async queueTimeLogUpdate(timeLog: TimeLog): Promise<void> {
-    const item: SyncQueueItem = {
-      id: crypto.randomUUID(),
-      type: 'timelog',
-      operation: 'update',
-      data: timeLog,
-      timestamp: Date.now(),
-      synced: false,
-    };
-    await addToSyncQueue(item);
-    await saveTimeLog(timeLog); // Update locally immediately
-    this.notifyListeners();
+  async queueDeleteTimeLog(timeLog: TimeLog | string): Promise<void> {
+    if (typeof timeLog === 'string') {
+      // Backward compatibility - accept id string
+      const data = { id: timeLog, deleted_at: new Date().toISOString() };
+      await this.queueOperation('timelog', data, () => deleteTimeLog(data as TimeLog));
+    } else {
+      // Accept full object
+      const data = { ...timeLog, deleted_at: new Date().toISOString() };
+      await this.queueOperation('timelog', data, () => deleteTimeLog(data as TimeLog));
+    }
   }
 
-  async queueTimeLogDelete(timeLogId: string): Promise<void> {
-    const item: SyncQueueItem = {
-      id: crypto.randomUUID(),
-      type: 'timelog',
-      operation: 'delete',
-      data: { id: timeLogId },
-      timestamp: Date.now(),
-      synced: false,
-    };
-    await addToSyncQueue(item);
-    await deleteTimeLog(timeLogId); // Delete locally immediately
-    this.notifyListeners();
+  // Target queue operations
+  async queueUpsertTarget(target: TargetWithSpecs): Promise<void> {
+    await this.queueOperation('target', target, saveTarget);
   }
 
-  async queueTargetCreate(target: DailyTarget): Promise<void> {
-    const item: SyncQueueItem = {
-      id: crypto.randomUUID(),
-      type: 'target',
-      operation: 'create',
-      data: target,
-      timestamp: Date.now(),
-      synced: false,
-    };
-    await addToSyncQueue(item);
-    await saveTarget(target);
-    this.notifyListeners();
+  async queueDeleteTarget(target: TargetWithSpecs): Promise<void> {
+    const data = { ...target, deleted_at: new Date().toISOString() };
+    await this.queueOperation('target', data, deleteTarget);
   }
 
-  async queueTargetUpdate(target: DailyTarget): Promise<void> {
-    const item: SyncQueueItem = {
-      id: crypto.randomUUID(),
-      type: 'target',
-      operation: 'update',
-      data: target,
-      timestamp: Date.now(),
-      synced: false,
-    };
-    await addToSyncQueue(item);
-    await saveTarget(target);
-    this.notifyListeners();
+  // Balance queue operations
+  async queueUpsertBalance(balance: any): Promise<void> {
+    await this.queueOperation('balance', balance, saveBalance);
   }
 
-  async queueTargetDelete(targetId: string): Promise<void> {
-    const item: SyncQueueItem = {
-      id: crypto.randomUUID(),
-      type: 'target',
-      operation: 'delete',
-      data: { id: targetId },
-      timestamp: Date.now(),
-      synced: false,
-    };
-    await addToSyncQueue(item);
-    await deleteTarget(targetId);
-    this.notifyListeners();
+  async queueDeleteBalance(balance: any): Promise<void> {
+    const data = { ...balance, deleted_at: new Date().toISOString() };
+    await this.queueOperation('balance', data, deleteBalance);
   }
 
-  // Sync all pending items using cursor-based approach
-  async syncAll(): Promise<void> {
-    if (this.isSyncing || !isOnline()) {
+  // Alias for external calls
+  async sync(type: 'all' | 'timer' | 'timelog' | 'target' | 'balance' = 'all'): Promise<void> {
+    if (!isOnline()) {
+      return;
+    }
+
+    const types = type === 'all'
+      ? ['timer', 'timelog', 'target', 'balance']
+      : [type];
+
+    const notSyncing = types.filter(t => !this.syncingLocks[t as keyof typeof this.syncingLocks]);
+
+    if (notSyncing.length === 0) {
       return;
     }
 
     // Check if user is logged in
     const user = await getUser();
     if (!user) {
-      console.log('Skipping sync: user not logged in');
       return;
     }
 
-    this.isSyncing = true;
+    console.log('Starting sync for types:', notSyncing);
+
+    for (const t of notSyncing) {
+      this.syncingLocks[t as keyof typeof this.syncingLocks] = true;
+    }
     try {
+      const configs = this.syncConfigs.filter(config => 
+        notSyncing.includes(config.type)
+      );
       // Phase 1: Push local changes to server
-      await this.pushLocalChanges();
+      await this.pushLocalChanges(configs);
       
       // Phase 2: Pull server changes since last sync
-      await this.pullServerChanges();
+      await this.pullServerChanges(configs);
       
-      this.notifyListeners();
+      notSyncing.forEach(t => this.notifyListeners(t as keyof typeof this.syncListeners));
     } finally {
-      this.isSyncing = false;
+      for (const t of notSyncing) {
+        this.syncingLocks[t as keyof typeof this.syncingLocks] = false;
+      }
+      console.log('Sync completed for types:', notSyncing);
     }
   }
 
-  // Alias for external calls
-  async sync(): Promise<void> {
-    return this.syncAll();
+  private async pullChanges(
+    cursorKey: 'timers' | 'timelogs' | 'targets' | 'balances',
+    api: any,
+    dataKey: string,
+    save: (item: any) => Promise<void>,
+    deleteItem: (item: any) => Promise<void>,
+  ): Promise<void> {
+    let cursor = await getSyncCursor(cursorKey);
+    if (!cursor) {
+      // First sync - use epoch time to get all data
+      cursor = new Date(0).toISOString();
+    }
+
+    const result = await api.getSyncChanges(cursor);
+
+    // Update local DB with server changes
+    const promises = [];
+    for (const item of result[dataKey]) {
+      if ((item as any).deleted_at) {
+        // Item was deleted on server - pass full item to delete helper
+        promises.push(deleteItem(item));
+      } else {
+        promises.push(save(item));
+      }
+    }
+    await Promise.all(promises);
+
+    // Save new cursor
+    await saveSyncCursor(cursorKey, result.cursor);
+  }
+
+  private async pushChanges(
+    cursor: 'timers' | 'timelogs' | 'targets' | 'balances',
+    data: any[],
+    api: any,
+    save: (item: any) => Promise<void>,
+  ): Promise<void> {
+    // data is an array of SyncQueueItem objects
+    // Remove user_id from payload as server sets it from session
+    const payload = data.map((qi: any) => {
+      const { user_id, ...rest } = qi.data;
+      return rest;
+    });
+
+    const result = await api.pushSyncChanges(payload);
+
+    // Save the new cursor
+    await saveSyncCursor(cursor, result.cursor);
+
+    // remove item from sync queue since conflict alters local database
+    // TODO: should keep track of local changes for proper conflict handling
+    for (const qi of data) {
+      await markItemSynced(qi.id);
+      setTimeout(() => deleteFromSyncQueue(qi.id), 5000);
+    }
+
+    // Update local DB with server-confirmed data
+    if (result.saved) {
+      for (const item of result.saved) {
+        // TODO: delete if marked as deleted
+        await save(item);
+      }
+    }
+    
+    // Handle conflicts
+    if (result.conflicts && result.conflicts.length > 0) {
+      console.warn(cursor, 'sync conflicts detected:', result.conflicts);
+      // In a real app, you'd want to show these to the user
+      // For now, we'll use server version (last-write-wins)
+      for (const conflict of result.conflicts) {
+        await save(conflict.serverVersion);
+      }
+    }
   }
 
   // Push local queued changes to server
-  private async pushLocalChanges(): Promise<void> {
+  private async pushLocalChanges(typeConfigs: SyncConfig[]): Promise<void> {
     const items = await getUnsyncedItems();
-    
-    // Group items by type
-    const buttonItems = items.filter(item => item.type === 'button');
-    const timeLogItems = items.filter(item => item.type === 'timelog');
-    const targetItems = items.filter(item => item.type === 'target');
+    const promises = [];
 
-    // Push buttons
-    if (buttonItems.length > 0) {
-      try {
-        const buttons = buttonItems.map(item => ({
-          ...item.data,
-          updated_at: new Date(item.timestamp).toISOString(),
-          deleted_at: item.operation === 'delete' ? new Date(item.timestamp).toISOString() : undefined,
-        }));
-        
-        const result = await buttonApi.pushSyncChanges(buttons);
-        
-        // Save the new cursor
-        await saveSyncCursor('buttons', result.cursor);
-        
-        // Mark items as synced and delete from queue
-        for (const item of buttonItems) {
-          await markItemSynced(item.id);
-          setTimeout(() => deleteFromSyncQueue(item.id), 5000);
-        }
-        
-        // Update local DB with server-confirmed data
-        if (result.saved) {
-          for (const button of result.saved) {
-            await saveButton(button);
-          }
-        }
-        
-        // Handle conflicts
-        if (result.conflicts && result.conflicts.length > 0) {
-          console.warn('Button sync conflicts detected:', result.conflicts);
-          // In a real app, you'd want to show these to the user
-          // For now, we'll use server version (last-write-wins)
-          for (const conflict of result.conflicts) {
-            await saveButton(conflict.serverVersion);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to push button changes:', error);
+    // Push changes for each type
+    for (const config of typeConfigs) {
+      const typeItems = items.filter(item => item.type === config.type);
+      
+      if (typeItems.length > 0) {
+        promises.push(
+          this.pushChanges(config.cursorKey, typeItems,
+            config.api, config.save)
+        );
       }
     }
-
-    // Push time logs
-    if (timeLogItems.length > 0) {
-      try {
-        let timeLogs = timeLogItems.map(item => ({
-          ...item.data,
-          updated_at: new Date(item.timestamp).toISOString(),
-          deleted_at: item.operation === 'delete' ? new Date(item.timestamp).toISOString() : undefined,
-        }));
-        
-        // Validate and fix overlapping timelogs before pushing
-        // This ensures a button is stopped before being started again
-        timeLogs = validateAndFixTimelogs(timeLogs);
-        
-        const result = await timeLogApi.pushSyncChanges(timeLogs);
-        
-        // Save the new cursor
-        await saveSyncCursor('timelogs', result.cursor);
-        
-        // Mark items as synced and delete from queue
-        for (const item of timeLogItems) {
-          await markItemSynced(item.id);
-          setTimeout(() => deleteFromSyncQueue(item.id), 5000);
-        }
-        
-        // Update local DB with server-confirmed data
-        if (result.saved) {
-          for (const timeLog of result.saved) {
-            await saveTimeLog(timeLog);
-          }
-        }
-        
-        // Handle conflicts
-        if (result.conflicts && result.conflicts.length > 0) {
-          console.warn('TimeLog sync conflicts detected:', result.conflicts);
-          // Use server version (last-write-wins)
-          for (const conflict of result.conflicts) {
-            await saveTimeLog(conflict.serverVersion);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to push timelog changes:', error);
-      }
-    }
-
-    // Push targets
-    if (targetItems.length > 0) {
-      try {
-        const targets = targetItems.map(item => ({
-          ...item.data,
-          updated_at: new Date(item.timestamp).toISOString(),
-          deleted_at: item.operation === 'delete' ? new Date(item.timestamp).toISOString() : undefined,
-        }));
-        
-        const result = await targetApi.pushSyncChanges(targets);
-        
-        // Save the new cursor
-        await saveSyncCursor('targets', result.cursor);
-        
-        // Mark items as synced and delete from queue
-        for (const item of targetItems) {
-          await markItemSynced(item.id);
-          setTimeout(() => deleteFromSyncQueue(item.id), 5000);
-        }
-        
-        // Update local DB with server-confirmed data
-        if (result.saved) {
-          for (const target of result.saved) {
-            await saveTarget(target);
-          }
-        }
-        
-        // Handle conflicts
-        if (result.conflicts && result.conflicts.length > 0) {
-          console.warn('Target sync conflicts detected:', result.conflicts);
-          // Use server version (last-write-wins)
-          for (const conflict of result.conflicts) {
-            await saveTarget(conflict.serverVersion);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to push target changes:', error);
-      }
-    }
+    await Promise.all(promises);
   }
 
   // Pull server changes since last cursor
-  private async pullServerChanges(): Promise<void> {
-    try {
-      // Pull button changes
-      let buttonCursor = await getSyncCursor('buttons');
-      if (!buttonCursor) {
-        // First sync - use epoch time to get all data
-        buttonCursor = new Date(0).toISOString();
-      }
-      
-      const buttonResult = await buttonApi.getSyncChanges(buttonCursor);
-      
-      // Update local DB with server changes
-      for (const button of buttonResult.buttons) {
-        if ((button as any).deleted_at) {
-          // Button was deleted on server
-          await deleteButton(button.id);
-        } else {
-          await saveButton(button);
-        }
-      }
-      
-      // Save new cursor
-      await saveSyncCursor('buttons', buttonResult.cursor);
-      
-    } catch (error) {
-      console.error('Failed to pull button changes:', error);
+  private async pullServerChanges(typeConfigs: SyncConfig[]): Promise<void> {
+    // Pull changes for each type
+    const promises = [];
+    for (const config of typeConfigs) {
+      promises.push(this.pullChanges(
+        config.cursorKey,
+        config.api,
+        config.dataKey,
+        config.save,
+        config.delete
+      ));
     }
-
-    try {
-      // Pull timelog changes
-      let timeLogCursor = await getSyncCursor('timelogs');
-      if (!timeLogCursor) {
-        // First sync - use epoch time to get all data
-        timeLogCursor = new Date(0).toISOString();
-      }
-      
-      const timeLogResult = await timeLogApi.getSyncChanges(timeLogCursor);
-      
-      // Update local DB with server changes
-      for (const timeLog of timeLogResult.timeLogs) {
-        if ((timeLog as any).deleted_at) {
-          // TimeLog was deleted on server
-          await deleteTimeLog(timeLog.id);
-        } else {
-          await saveTimeLog(timeLog);
-        }
-      }
-      
-      // Save new cursor
-      await saveSyncCursor('timelogs', timeLogResult.cursor);
-      
-    } catch (error) {
-      console.error('Failed to pull timelog changes:', error);
-    }
-
-    try {
-      // Pull target changes
-      let targetCursor = await getSyncCursor('targets');
-      if (!targetCursor) {
-        // First sync - use epoch time to get all data
-        targetCursor = new Date(0).toISOString();
-      }
-      
-      const targetResult = await targetApi.getSyncChanges(targetCursor);
-      
-      // Update local DB with server changes
-      for (const target of targetResult.targets) {
-        if ((target as any).deleted_at) {
-          // Target was deleted on server
-          await deleteTarget(target.id);
-        } else {
-          await saveTarget(target);
-        }
-      }
-      
-      // Save new cursor
-      await saveSyncCursor('targets', targetResult.cursor);
-      
-    } catch (error) {
-      console.error('Failed to pull target changes:', error);
-    }
+    await Promise.all(promises);
   }
 
   // Add listener for sync events
-  onSync(callback: () => void): () => void {
-    this.syncListeners.push(callback);
-    return () => {
-      this.syncListeners = this.syncListeners.filter(cb => cb !== callback);
-    };
+  afterSync(
+    type: 'timer' | 'timelog' | 'target' | 'balance',
+    callback: () => void
+  ) {
+    console.log('Registering sync listener for', type);
+    this.syncListeners[type].push(callback);
   }
 
-  private notifyListeners(): void {
-    this.syncListeners.forEach(callback => callback());
+  private notifyListeners(type: 'timer' | 'timelog' | 'target' | 'balance'): void {
+    this.syncListeners[type].forEach(callback => callback());
   }
 
   // Check if there are pending sync items
@@ -436,14 +332,3 @@ export class SyncService {
 
 // Export singleton instance
 export const syncService = new SyncService();
-
-// Auto-sync when coming online (if authenticated)
-if (typeof window !== 'undefined') {
-  window.addEventListener('online', async () => {
-    const user = await getUser();
-    if (user) {
-      console.log('App is online, syncing...');
-      syncService.syncAll();
-    }
-  });
-}

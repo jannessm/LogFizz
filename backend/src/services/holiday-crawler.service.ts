@@ -2,16 +2,8 @@ import { AppDataSource } from '../config/database.js';
 import { Holiday } from '../entities/Holiday.js';
 import { HolidayMetadata } from '../entities/HolidayMetadata.js';
 import { MoreThan } from 'typeorm';
+import type { HolidayData } from '../../../lib/types/index.js';
 
-interface HolidayData {
-  date: Date;
-  name: string;
-  localName?: string;
-  countryCode?: string;
-  fixed: boolean;
-  global: boolean;
-  type?: string;
-}
 
 /**
  * Holiday Crawler Service
@@ -85,17 +77,17 @@ export class HolidayCrawlerService {
         countryCode?: string;
         fixed: boolean;
         global: boolean;
-        type?: string;
+        counties?: string[];
+        types?: string[];
       }>;
       
       return data.map((holiday) => ({
+        country: country.toUpperCase(),
+        global: !!holiday.types && holiday.types.includes("Public"),
+        counties: holiday.counties || [],
         date: new Date(holiday.date),
         name: holiday.name,
-        localName: holiday.localName,
-        countryCode: holiday.countryCode,
-        fixed: holiday.fixed,
-        global: holiday.global,
-        type: holiday.type,
+        year: year,
       }));
     } catch (error) {
       console.error(`Error fetching holidays for ${country} ${year}:`, error);
@@ -145,12 +137,7 @@ export class HolidayCrawlerService {
 
       // Insert new holidays
       const holidays = holidayData.map(data => 
-        this.holidayRepository.create({
-          country,
-          date: data.date,
-          name: data.localName || data.name,
-          year,
-        })
+        this.holidayRepository.create(data)
       );
 
       await this.holidayRepository.save(holidays);
@@ -284,10 +271,10 @@ export class HolidayCrawlerService {
    */
   async initializeCommonHolidays(): Promise<void> {
     const currentYear = new Date().getFullYear();
-    const years = [currentYear - 1, currentYear, currentYear + 1];
+    const years = [currentYear - 5, currentYear, currentYear + 5];
     
     // Common countries (can be expanded)
-    const countries = ['DE', 'US', 'GB', 'FR', 'AT', 'CH'];
+    const countries = ['DE', 'AT', 'CH'];//, 'US', 'GB', 'FR', 'AT', 'CH'];
 
     console.log('Initializing holidays for common countries...');
 

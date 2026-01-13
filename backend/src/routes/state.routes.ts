@@ -11,7 +11,6 @@ export async function stateRoutes(fastify: FastifyInstance) {
       tags: ['States'],
       response: {
         200: Type.Array(Type.Object({
-          id: Type.String(),
           country: Type.String(),
           state: Type.String(),
           code: Type.String(),
