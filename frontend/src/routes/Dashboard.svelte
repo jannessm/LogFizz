@@ -5,8 +5,8 @@
   import { authStore } from '../stores/auth';
   import { snackbar } from '../stores/snackbar';
   import { authApi } from '../services/api';
-  import EditOverview from '../components/dashboard/EditOverview.svelte';
-  import TimerGraph from '../components/dashboard/TimerGraph.svelte';
+  import EditOverview from '../components/Dashboard/EditOverview.svelte';
+  import TimerGraph from '../components/Dashboard/TimerGraph.svelte';
 
   import { TargetForm, TimelogForm, TimerForm } from '../components/forms';
   import DailyTargets from '../components/DailyTargets.svelte';
