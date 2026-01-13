@@ -156,7 +156,7 @@
 >
   <!-- Modal Content -->
   <div 
-    class="bg-white rounded-lg shadow-2xl w-full max-w-[500px] max-h-[90vh] overflow-hidden flex flex-col"
+    class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-[500px] max-h-[90vh] overflow-hidden flex flex-col"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}
     role="dialog"
@@ -164,9 +164,9 @@
     tabindex="-1"
   >
     <!-- Header -->
-    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex flex-col">
+    <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex flex-col">
       <div class="flex justify-between items-center">
-        <h2 class="text-xl font-semibold text-gray-800">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
           {#if isTimerStop}
             Stop Timer
           {:else}
@@ -175,13 +175,13 @@
         </h2>
         <button
           onclick={close}
-          class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
           style="width: 28px; height: 28px;"
           aria-label="Close"
         ></button>
       </div>
       {#if isTimerStop}
-        <p class="text-sm text-gray-600 mt-2">
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
           Add notes or adjust end time (optional). Click "Save" to stop the timer or close to keep it running.
         </p>
       {/if}
@@ -191,13 +191,13 @@
     <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="overflow-y-auto flex-1 p-6 space-y-4">
       <!-- Timer Selection -->
       <div>
-        <label for="timer" class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="timer" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Timer *
         </label>
         <select
           id="timer"
           bind:value={newLog.timer_id}
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent"
           required
         >
           <option value="">Select a timer</option>
@@ -211,13 +211,13 @@
 
       <!-- Type Selection -->
       <div>
-        <label for="type" class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Type *
         </label>
         <select
           id="type"
           bind:value={newLog.type}
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent"
           required
         >
           <option value="normal">Normal</option>
@@ -227,7 +227,7 @@
           <option value="child-sick">Child Sick</option>
         </select>
         {#if isSpecialType}
-          <p class="text-xs text-amber-600 mt-1 flex items-start gap-1">
+          <p class="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-start gap-1">
             <span>Special types (Sick, Holiday, Business Trip, Child Sick) require the "Whole Day" flag to be counted in balance calculations.</span>
           </p>
         {/if}
@@ -247,9 +247,9 @@
                   errorMessage = '';
                 }
               }}
-              class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              class="w-4 h-4 text-primary border-gray-300 dark:border-gray-600 rounded focus:ring-primary"
             />
-            <span class="text-sm font-medium text-gray-700">Running</span>
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Running</span>
           </label>
         </div>
       {/if}
@@ -268,12 +268,12 @@
                 errorMessage = '';
               }
             }}
-            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            class="w-4 h-4 text-primary border-gray-300 dark:border-gray-600 rounded focus:ring-primary disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
           />
-          <span class="text-sm font-medium text-gray-700">Whole Day</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Whole Day</span>
         </label>
         {#if isSpecialType}
-          <p class="text-xs text-gray-500 mt-1 ml-6">
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
             Required for special types to ensure proper balance calculation
           </p>
         {/if}
@@ -286,18 +286,18 @@
             id="applyBreakCalculation"
             type="checkbox"
             bind:checked={newLog.apply_break_calculation}
-            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            class="w-4 h-4 text-primary border-gray-300 dark:border-gray-600 rounded focus:ring-primary"
           />
-          <span class="text-sm font-medium text-gray-700">Apply Break Calculation</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Apply Break Calculation</span>
         </label>
-        <p class="text-xs text-gray-500 mt-1 ml-6">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
           Automatically deduct breaks based on German labor law: 30 min for 6-9 hours, 45 min for 9+ hours
         </p>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">
+          <label for="startDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Start Date *
           </label>
           <input
@@ -307,12 +307,12 @@
               () => startTimestamp.tz(newLog.timezone).format('YYYY-MM-DD'),
               (value) => {setTimestamp(startTimestamp, value, 'start')}
             }
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent"
             required
           />
         </div>
         <div>
-          <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">
+          <label for="startTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Start Time *
           </label>
           <input
@@ -323,7 +323,7 @@
               (value) => {setTimestamp(startTimestamp, value, 'start')}
             }
             disabled={newLog.whole_day}
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
             required
           />
         </div>
@@ -333,7 +333,7 @@
         {#if !isRunning || isTimerStop}
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="endDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 End Date *
               </label>
               <input
@@ -343,14 +343,15 @@
                   () => endTimestamp.tz(newLog.timezone).format('YYYY-MM-DD'),
                   (value) => {setTimestamp(endTimestamp, value, 'end')}
                 }
-                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
                 class:border-gray-300={!hasDateError}
+                class:dark:border-gray-600={!hasDateError}
                 class:border-red-500={hasDateError}
                 required
               />
             </div>
             <div>
-              <label for="endTime" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="endTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 End Time *
               </label>
               <input
@@ -361,8 +362,9 @@
                 (value) => {setTimestamp(endTimestamp, value, 'end')}
               }
                 disabled={newLog.whole_day}
-                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
                 class:border-gray-300={!hasDateError}
+                class:dark:border-gray-600={!hasDateError}
                 class:border-red-500={hasDateError}
                 required
               />
@@ -372,7 +374,7 @@
 
       <!-- Notes Field -->
       <div>
-        <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Notes
         </label>
         <textarea
@@ -380,26 +382,26 @@
           bind:value={newLog.notes}
           rows="3"
           placeholder="Add any notes about this time entry..."
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent resize-vertical"
         ></textarea>
       </div>
 
       <!-- Actions -->
       {#if errorMessage}
-        <div class="text-sm text-red-600">{errorMessage}</div>
+        <div class="text-sm text-red-600 dark:text-red-400">{errorMessage}</div>
       {/if}
       <div class="space-y-3 pt-4">
         <div class="flex gap-3">
           <button
             type="button"
             onclick={close}
-            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             {isTimerStop ? 'Keep Running' : 'Cancel'}
           </button>
           <button
             type="submit"
-            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
           >
             {isTimerStop ? 'Stop Timer' : (existingLog ? 'Update' : 'Add')} 
           </button>
@@ -410,7 +412,7 @@
           <button
             type="button"
             onclick={handleDeleteClick}
-            class="w-full px-4 py-2 border-2 border-red-300 text-red-600 rounded-lg hover:bg-red-50 hover:border-red-400 transition-colors flex items-center justify-center gap-2"
+            class="w-full px-4 py-2 border-2 border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-400 dark:hover:border-red-600 transition-colors flex items-center justify-center gap-2"
           >
             <span class="icon-[si--bin-duotone]" style="width: 20px; height: 20px;"></span>
             Delete Entry
@@ -432,7 +434,7 @@
   >
     <!-- Modal Content -->
     <div 
-      class="bg-white rounded-lg shadow-2xl w-full max-w-[400px] overflow-hidden flex flex-col"
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-[400px] overflow-hidden flex flex-col"
       onclick={(e) => e.stopPropagation()}
       onkeydown={(e) => e.stopPropagation()}
       role="dialog"
@@ -440,11 +442,11 @@
       tabindex="-1"
     >
       <!-- Header -->
-      <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-        <h3 class="text-xl font-semibold text-gray-800">Delete Time Entry?</h3>
+      <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Delete Time Entry?</h3>
         <button
           onclick={handleDeleteCancel}
-          class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
           style="width: 28px; height: 28px;"
           aria-label="Close"
         ></button>
@@ -452,11 +454,11 @@
 
       <!-- Content -->
       <div class="p-6 space-y-6">
-        <p class="text-gray-600">This action cannot be undone. Are you sure you want to delete this time entry?</p>
+        <p class="text-gray-600 dark:text-gray-400">This action cannot be undone. Are you sure you want to delete this time entry?</p>
         <div class="flex gap-3">
           <button
             onclick={handleDeleteCancel}
-            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             Cancel
           </button>

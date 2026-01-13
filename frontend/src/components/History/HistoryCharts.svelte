@@ -11,10 +11,10 @@
   } = $props();
 </script>
 
-<div class="bg-white rounded-lg shadow-md p-4 mb-6">
-  <h3 class="text-sm font-semibold text-gray-700 mb-3">Monthly Summary</h3>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+  <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Monthly Summary</h3>
   {#if timeLogs.length === 0}
-    <p class="text-gray-500 text-sm">No time logs for this month.</p>
+    <p class="text-gray-500 dark:text-gray-400 text-sm">No time logs for this month.</p>
   {:else}
     <div class="h-40">
       <PieChart 

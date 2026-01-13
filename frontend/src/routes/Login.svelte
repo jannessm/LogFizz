@@ -101,14 +101,14 @@
   }
 </script>
 
-<div class="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-  <div class="w-full bg-white rounded-lg shadow-md p-8" style="max-width: 500px;">
-    <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">
+<div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
+  <div class="w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-8" style="max-width: 500px;">
+    <h1 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-6">
       {isRegisterMode ? 'Register' : 'Login'} to TapShift
     </h1>
 
     {#if errorMessage}
-      <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+      <div class="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 rounded">
         {errorMessage}
       </div>
     {/if}
@@ -116,7 +116,7 @@
     <form on:submit|preventDefault={handleSubmit} class="space-y-4">
       {#if isRegisterMode}
         <div>
-          <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+          <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Name
           </label>
           <input
@@ -124,14 +124,14 @@
             type="text"
             bind:value={name}
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="Your name"
           />
         </div>
       {/if}
 
       <div>
-        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Email
         </label>
         <input
@@ -141,13 +141,13 @@
           required
           pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]&#123;2,&#125;"
           title="Please enter a valid email address"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder="your@email.com"
         />
       </div>
 
       <div>
-        <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Password
         </label>
         <input
@@ -156,7 +156,7 @@
           bind:value={password}
           required
           minlength={isRegisterMode ? 8 : undefined}
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
           placeholder="••••••••"
         />
         {#if !isRegisterMode}
@@ -165,7 +165,7 @@
               type="button"
               on:click={() => navigate('/forgot-password')}
               disabled={!isOnline}
-              class="text-xs text-blue-600 hover:underline disabled:text-gray-400 disabled:cursor-not-allowed disabled:no-underline"
+              class="text-xs text-primary hover:underline disabled:text-gray-400 disabled:cursor-not-allowed disabled:no-underline"
             >
               Forgot password?
             </button>
@@ -186,7 +186,7 @@
       <button
         type="submit"
         disabled={isLoading || !isOnline || (!hcaptchaToken && !!HCAPTCHA_SITE_KEY)}
-        class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+        class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-hover disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
       >
         {#if !isOnline}
           Offline
@@ -200,7 +200,7 @@
       <button
         on:click={toggleMode}
         disabled={!isOnline}
-        class="text-blue-600 hover:underline text-sm disabled:text-gray-400 disabled:cursor-not-allowed disabled:no-underline"
+        class="text-primary hover:underline text-sm disabled:text-gray-400 disabled:cursor-not-allowed disabled:no-underline"
       >
         {isRegisterMode 
           ? 'Already have an account? Login' 
@@ -208,7 +208,7 @@
       </button>
     </div>
 
-    <div class="mt-4 text-center text-xs text-gray-500">
+    <div class="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
       <p>Offline-first • Your data is stored locally</p>
     </div>
   </div>

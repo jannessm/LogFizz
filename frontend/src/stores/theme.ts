@@ -28,11 +28,15 @@ function createThemeStore() {
 
   function applyThemeToDocument(theme: 'light' | 'dark') {
     if (typeof document !== 'undefined') {
+      console.log('[Theme] Applying theme to document:', theme);
       if (theme === 'dark') {
         document.documentElement.classList.add('dark');
+        console.log('[Theme] Dark class added to html element');
       } else {
         document.documentElement.classList.remove('dark');
+        console.log('[Theme] Dark class removed from html element');
       }
+      console.log('[Theme] Current classes:', document.documentElement.className);
     }
   }
 

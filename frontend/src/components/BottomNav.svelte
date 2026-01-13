@@ -10,11 +10,11 @@
   }
 </script>
 
-<nav class="w-full bg-white border-t border-gray-200 shadow-lg z-40 pb-8 pt-2">
+<nav class="w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg z-40 pb-8 pt-2">
   <div class="flex justify-center items-center h-16 w-full gap-4">
     <button 
       onclick={() => handleNavigate('/')} 
-      class="flex flex-col items-center justify-center h-full transition-colors w-full max-w-[150px] {currentTab === 'timer' ? 'text-blue-600' : 'text-gray-600'}"
+      class="flex flex-col items-center justify-center h-full transition-colors w-full max-w-[150px] {currentTab === 'timer' ? 'text-primary' : 'text-gray-600 dark:text-gray-400'}"
     >
       <span class="w-12 h-12"
         class:icon-[si--clock-alt-duotone]={currentTab === 'timer'}
@@ -24,7 +24,7 @@
 
     <button 
       onclick={() => handleNavigate('/history')} 
-      class="flex flex-col items-center justify-center h-full transition-colors w-full max-w-[150px] {currentTab === 'history' ? 'text-blue-600' : 'text-gray-600'}"
+      class="flex flex-col items-center justify-center h-full transition-colors w-full max-w-[150px] {currentTab === 'history' ? 'text-primary' : 'text-gray-600 dark:text-gray-400'}"
     >
       <span class="w-12 h-12"
         class:icon-[si--bar-chart-duotone]={currentTab === 'history'}
@@ -34,7 +34,7 @@
 
     <button 
       onclick={() => handleNavigate('/settings')} 
-      class="flex flex-col items-center justify-center h-full transition-colors w-full max-w-[150px] {currentTab === 'settings' ? 'text-blue-600' : 'text-gray-600'}"
+      class="flex flex-col items-center justify-center h-full transition-colors w-full max-w-[150px] {currentTab === 'settings' ? 'text-primary' : 'text-gray-600 dark:text-gray-400'}"
     >
       <span class="w-12 h-12"
         class:icon-[si--settings-alt-duotone]={currentTab === 'settings'}

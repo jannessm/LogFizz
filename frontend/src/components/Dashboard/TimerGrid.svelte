@@ -26,7 +26,7 @@
   {/each}
 
   {#if timers.length === 0}
-    <div class="col-span-full text-center py-12 text-gray-500">
+    <div class="col-span-full text-center py-12 text-gray-500 dark:text-gray-400">
       <p class="text-lg mb-2">No tracking buttons yet</p>
       <p class="text-sm">Click "Add Button" to create your first timer</p>
     </div>

@@ -278,7 +278,7 @@
   <div class="flex items-center gap-2">
     <button
       onclick={previousMonth}
-      class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-left-alt-duotone]"
+      class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--chevron-left-alt-duotone] text-gray-600 dark:text-gray-400"
       aria-label="Previous month"
     ></button>
     
@@ -286,7 +286,7 @@
     <select
       onchange={changeMonth}
       value={currentMonth.month()}
-      class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="text-lg text-gray-800 dark:text-gray-100 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
       aria-label="Select month"
     >
       {#each monthOptions as month}
@@ -298,7 +298,7 @@
     <select
       onchange={changeYear}
       value={currentMonth.year()}
-      class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="text-lg text-gray-800 dark:text-gray-100 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
       aria-label="Select year"
     >
       {#each yearOptions as year}
@@ -308,16 +308,17 @@
     
     <button
       onclick={nextMonth}
-      class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-right-alt-duotone]"
+      class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--chevron-right-alt-duotone] text-gray-600 dark:text-gray-400"
       aria-label="Next month"
     ></button>
     
     <!-- Today Button -->
     <button
       onclick={goToToday}
-      class="px-3 py-1 text-sm font-medium text-white hover:bg-blue-600 rounded-lg transition-colors"
-      class:bg-blue-500={!selectedDate.isSame(dayjs(), 'day')}
+      class="px-3 py-1 text-sm font-medium text-white hover:bg-primary-hover rounded-lg transition-colors"
+      class:bg-primary={!selectedDate.isSame(dayjs(), 'day')}
       class:bg-gray-300={selectedDate.isSame(dayjs(), 'day')}
+      class:dark:bg-gray-600={selectedDate.isSame(dayjs(), 'day')}
       disabled={selectedDate.isSame(dayjs(), 'day')}
       aria-label="Go to today"
     >
@@ -326,16 +327,16 @@
   </div>
 </div>
 
-<div class="bg-white rounded-lg shadow-md p-4 mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
 
   <div>
     <!-- Calendar header (day names) -->
     <div class="grid gap-1 mb-2" style="grid-template-columns: 32px repeat(7, 1fr);">
-      <div class="text-center text-xs font-semibold text-gray-500 py-2">
+      <div class="text-center text-xs font-semibold text-gray-500 dark:text-gray-400 py-2">
         
       </div>
       {#each dayNames as day}
-        <div class="text-center text-xs font-semibold text-gray-600 py-2">
+        <div class="text-center text-xs font-semibold text-gray-600 dark:text-gray-400 py-2">
           {day}
         </div>
       {/each}
@@ -345,7 +346,7 @@
     <div class="grid gap-x-1" style="grid-template-columns: 32px repeat(7, 1fr);">
       {#each Array(6) as _, weekIndex}
         <!-- Week number -->
-        <div class="flex items-center justify-center text-xs font-medium text-gray-400 bg-gray-100">
+        <div class="flex items-center justify-center text-xs font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700">
           {weekNumbers[weekIndex]}
         </div>
         
@@ -365,7 +366,9 @@
           onclick={() => selectDate(day)}
           class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 p-1"
           class:text-gray-400={!currentMonthDay}
+          class:dark:text-gray-600={!currentMonthDay}
           class:text-gray-800={currentMonthDay && !selected}
+          class:dark:text-gray-200={currentMonthDay && !selected}
           title={holidayName || ''}
           class:text-white={selected}
           class:font-bold={today || selected}
@@ -448,33 +451,33 @@
   </div>
 
   <!-- Legend -->
-  <div class="mt-4 pt-4 border-t border-gray-200">
-    <h4 class="text-xs font-semibold text-gray-600 mb-2">Legend</h4>
+  <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+    <h4 class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Legend</h4>
     <div class="grid grid-cols-2 gap-2 text-xs">
       <!-- Type indicators -->
       <div class="flex items-center gap-2">
-        <div class="w-4 h-4 rounded-full bg-blue-100 border-2 border-blue-300 flex-shrink-0"></div>
-        <span class="text-gray-600">Today</span>
+        <div class="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-600 flex-shrink-0"></div>
+        <span class="text-gray-600 dark:text-gray-400">Today</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full border-2 border-purple-500 flex-shrink-0"></div>
-        <span class="text-gray-600">Public Holiday</span>
+        <span class="text-gray-600 dark:text-gray-400">Public Holiday</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-red-500 opacity-30 border-2 border-red-500 flex-shrink-0"></div>
-        <span class="text-gray-600">Sick</span>
+        <span class="text-gray-600 dark:text-gray-400">Sick</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-green-500 opacity-30 border-2 border-green-500 flex-shrink-0"></div>
-        <span class="text-gray-600">Holiday (PTO)</span>
+        <span class="text-gray-600 dark:text-gray-400">Holiday (PTO)</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-amber-500 opacity-30 border-2 border-amber-500 flex-shrink-0"></div>
-        <span class="text-gray-600">Business Trip</span>
+        <span class="text-gray-600 dark:text-gray-400">Business Trip</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-pink-500 opacity-30 border-2 border-pink-500 flex-shrink-0"></div>
-        <span class="text-gray-600">Child Sick</span>
+        <span class="text-gray-600 dark:text-gray-400">Child Sick</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="flex gap-0.5 w-4 justify-center items-center flex-shrink-0">
@@ -482,7 +485,7 @@
           <div class="w-1 h-1 rounded-full bg-green-600"></div>
           <div class="w-1 h-1 rounded-full bg-purple-600"></div>
         </div>
-        <span class="text-gray-600">Logged Timers</span>
+        <span class="text-gray-600 dark:text-gray-400">Logged Timers</span>
       </div>
     </div>
   </div>

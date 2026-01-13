@@ -43,8 +43,8 @@
     return [
       'px-3 py-1.5 rounded-full text-sm border transition-colors whitespace-nowrap',
       isSelected
-        ? 'bg-gray-900 text-white border-gray-900'
-        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100',
+        ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-gray-900 dark:border-gray-100'
+        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600',
     ].join(' ');
   }
 
@@ -136,13 +136,13 @@
   });
 </script>
 
-<div class="bg-white rounded-lg shadow-md p-4">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
   <div class="flex justify-between items-center mb-3">
-    <h3 class="text-sm font-semibold text-gray-700">{title}</h3>
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{title}</h3>
   </div>
 
   {#if error}
-    <div class="text-red-600 text-sm mb-2">{error}</div>
+    <div class="text-red-600 dark:text-red-400 text-sm mb-2">{error}</div>
   {/if}
 
   {#if activeTargets.length > 0}
@@ -161,9 +161,9 @@
   {/if}
 
   {#if loading && balancesYearByTargetId.size === 0 && balancesMonthByTargetId.size === 0 && balancesDayByTargetId.size === 0}
-    <div class="text-gray-500 text-sm">Loading balances...</div>
+    <div class="text-gray-500 dark:text-gray-400 text-sm">Loading balances...</div>
   {:else if activeTargets.length === 0}
-    <div class="text-gray-500 text-sm">No targets configured.</div>
+    <div class="text-gray-500 dark:text-gray-400 text-sm">No targets configured.</div>
   {:else}
     <div class="flex flex-col gap-3">
       <BalanceDisplay granularity="day" target={selectedTarget} balance={selectedDayBalance} />

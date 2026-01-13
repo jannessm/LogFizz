@@ -36,60 +36,60 @@
   });
 </script>
 
-<h3 class="text-sm font-semibold text-gray-800">
+<h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
   {granularity === 'year' ? 'Yearly Balance' : granularity === 'month' ? 'Monthly Balance' : 'Daily Balance'}{#if date()}, {date()}{/if}
 </h3>
 {#if !target}
-  <div class="text-gray-500 text-sm">No target selected.</div>
+  <div class="text-gray-500 dark:text-gray-400 text-sm">No target selected.</div>
 {:else if showNoStartingFromWarning && !hasStartingFrom}
-  <div class="border border-amber-200 bg-amber-50 rounded-lg p-3">
+  <div class="border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3">
     <div class="flex justify-between items-start">
       <div>
-        <h4 class="font-medium text-gray-800">{target.name}</h4>
-        <span class="text-xs text-amber-700">
+        <h4 class="font-medium text-gray-800 dark:text-gray-200">{target.name}</h4>
+        <span class="text-xs text-amber-700 dark:text-amber-400">
           No starting date set - balance cannot be calculated
         </span>
       </div>
       <div class="text-right">
-        <div class="text-lg font-bold text-gray-400">--</div>
+        <div class="text-lg font-bold text-gray-400 dark:text-gray-500">--</div>
       </div>
     </div>
   </div>
 {:else if canCalculate && !balance}
-  <div class="text-gray-500 text-sm">No balance data for this period.</div>
+  <div class="text-gray-500 dark:text-gray-400 text-sm">No balance data for this period.</div>
 {:else if balance}
   {#if granularity === 'year'}
     <!-- Year view: includes yearly counters (worked days, sick days, holidays, etc.) -->
-    <div class="border border-gray-200 rounded-lg p-3">
+    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
 
       <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
         <div>
-          <span class="text-gray-600">Worked days:</span>
-          <span class="font-medium text-gray-800 ml-1">{balance.worked_days}</span>
+          <span class="text-gray-600 dark:text-gray-400">Worked days:</span>
+          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.worked_days}</span>
         </div>
         <div>
-          <span class="text-gray-600">Sick days:</span>
-          <span class="font-medium text-gray-800 ml-1">{balance.sick_days}</span>
+          <span class="text-gray-600 dark:text-gray-400">Sick days:</span>
+          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.sick_days}</span>
         </div>
 
         <div>
-          <span class="text-gray-600">Holidays:</span>
-          <span class="font-medium text-gray-800 ml-1">{balance.holidays}</span>
+          <span class="text-gray-600 dark:text-gray-400">Holidays:</span>
+          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.holidays}</span>
         </div>
         <div>
-          <span class="text-gray-600">Business trip:</span>
-          <span class="font-medium text-gray-800 ml-1">{balance.business_trip}</span>
+          <span class="text-gray-600 dark:text-gray-400">Business trip:</span>
+          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.business_trip}</span>
         </div>
 
         <div class="col-span-2">
-          <span class="text-gray-600">Child sick:</span>
-          <span class="font-medium text-gray-800 ml-1">{balance.child_sick}</span>
+          <span class="text-gray-600 dark:text-gray-400">Child sick:</span>
+          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.child_sick}</span>
         </div>
       </div>
     </div>
   {:else}
     <!-- Month + Day view -->
-    <div class="border border-gray-200 rounded-lg p-3">
+    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3">
       <div class="flex justify-between items-start mb-2">
         <div class="text-right">
           <div class={`text-lg font-bold ${getBalanceColor(balance.cumulative_minutes + balance.worked_minutes - balance.due_minutes)}`}>
@@ -100,12 +100,12 @@
 
       <div class="grid grid-cols-2 gap-2 text-sm">
         <div>
-          <span class="text-gray-600">Worked:</span>
-          <span class="font-medium text-gray-800 ml-1">{formatHours(balance.worked_minutes)}</span>
+          <span class="text-gray-600 dark:text-gray-400">Worked:</span>
+          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{formatHours(balance.worked_minutes)}</span>
         </div>
         <div>
-          <span class="text-gray-600">Due:</span>
-          <span class="font-medium text-gray-800 ml-1">{formatHours(balance.due_minutes)}</span>
+          <span class="text-gray-600 dark:text-gray-400">Due:</span>
+          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{formatHours(balance.due_minutes)}</span>
         </div>
       </div>
     </div>

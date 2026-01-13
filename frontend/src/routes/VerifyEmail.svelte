@@ -127,14 +127,14 @@
   });
 </script>
 
-<div class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-  <div class="max-w-md w-full bg-white rounded-lg shadow-md p-8">
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+  <div class="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-8">
     {#if isVerifying}
       <!-- Verifying state -->
       <div class="text-center">
-        <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-6"></div>
-        <h1 class="text-2xl font-bold text-gray-800 mb-2">Verifying Email</h1>
-        <p class="text-gray-600">
+        <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 dark:border-orange-500 mx-auto mb-6"></div>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Verifying Email</h1>
+        <p class="text-gray-600 dark:text-gray-400">
           Please wait while we verify your email address...
         </p>
       </div>
@@ -142,16 +142,16 @@
       <!-- Wrong user error state -->
       <div class="text-center">
         <div class="mb-6">
-          <span class="w-16 h-16 icon-[si--mail-duotone] text-blue-600 mx-auto block"></span>
+          <span class="w-16 h-16 icon-[si--mail-duotone] text-blue-600 dark:text-orange-500 mx-auto block"></span>
         </div>
-        <h1 class="text-2xl font-bold text-gray-800 mb-4">Wrong Account</h1>
-        <p class="text-gray-700 mb-4">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Wrong Account</h1>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
           This verification link is for a different email account. 
           You're currently logged in as <strong>{user?.email}</strong>.
         </p>
         
-        <div class="text-left text-sm text-gray-600 space-y-2 mb-6">
-          <p><strong>Next steps:</strong></p>
+        <div class="text-left text-sm text-gray-600 dark:text-gray-400 space-y-2 mb-6">
+          <p><strong class="dark:text-gray-200">Next steps:</strong></p>
           <ol class="list-decimal list-inside space-y-1 ml-2">
             <li>Log out from your current account</li>
             <li>Log in with the account that received the email</li>
@@ -161,7 +161,7 @@
         
         <button
           on:click={() => navigate('/')}
-          class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+          class="w-full bg-blue-600 dark:bg-orange-500 text-white py-2 px-4 rounded-md hover:bg-blue-700 dark:hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
         >
           Go to Dashboard
         </button>
@@ -170,13 +170,13 @@
       <!-- Expired/invalid token error state -->
       <div class="text-center">
         <div class="mb-6">
-          <span class="w-16 h-16 icon-[si--close-circle-line] text-red-600 mx-auto block"></span>
+          <span class="w-16 h-16 icon-[si--close-circle-line] text-red-600 dark:text-red-400 mx-auto block"></span>
         </div>
-        <h1 class="text-2xl font-bold text-gray-800 mb-2">Verification Failed</h1>
-        <p class="text-gray-600 mb-4">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Verification Failed</h1>
+        <p class="text-gray-600 dark:text-gray-400 mb-4">
           The verification link is invalid or has expired.
         </p>
-        <p class="text-sm text-gray-500">
+        <p class="text-sm text-gray-500 dark:text-gray-500">
           Redirecting to dashboard...
         </p>
       </div>
@@ -184,10 +184,10 @@
       <!-- Success state (will show briefly before redirect) -->
       <div class="text-center">
         <div class="mb-6">
-          <span class="w-16 h-16 icon-[si--check-circle-line] text-green-600 mx-auto block"></span>
+          <span class="w-16 h-16 icon-[si--check-circle-line] text-green-600 dark:text-green-400 mx-auto block"></span>
         </div>
-        <h1 class="text-2xl font-bold text-gray-800 mb-2">Processing...</h1>
-        <p class="text-gray-600">
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Processing...</h1>
+        <p class="text-gray-600 dark:text-gray-400">
           Redirecting you to the dashboard...
         </p>
       </div>

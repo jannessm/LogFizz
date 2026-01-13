@@ -78,14 +78,14 @@
   }
 </script>
 
-<div class="flex flex-col h-screen bg-gray-50">
+<div class="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
   <!-- Header spanning full width -->
   <div class="w-full px-4 pt-6 pb-2">
     <div class="w-full max-w-7xl mx-auto flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-gray-800">History</h1>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">History</h1>
       <button
         onclick={handleImportClick}
-        class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--file-upload-duotone]"
+        class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-upload-duotone] text-gray-600 dark:text-gray-400"
         style="width: 28px; height: 28px;"
         aria-label="Import timelogs"
       ></button>

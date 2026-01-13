@@ -217,12 +217,12 @@
       </div>
 
       <!-- Maintenance -->
-      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Maintenance</h3>
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Maintenance</h3>
         <button
           onclick={handleRecalculateBalances}
           disabled={isRecalculating}
-          class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-hover transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {#if isRecalculating}
             <span class="w-5 h-5 icon-[svg-spinners--3-dots-fade]"></span>
@@ -231,7 +231,7 @@
             Recalculate All Balances
           {/if}
         </button>
-        <p class="text-sm text-gray-500 mt-2">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
           Recalculates all balance data from timelogs. This will mark existing balances as deleted and create new ones.
         </p>
       </div>

@@ -138,17 +138,17 @@
   }
 </script>
 
-<div class="bg-white rounded-lg shadow-md p-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
   <div class="flex justify-between items-center mb-4">
-    <h2 class="text-xl font-semibold text-gray-800">
+    <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
       {selectedDate.format('MMMM D, YYYY')}
       {#if isToday(selectedDate)}
-        <span class="text-sm font-normal text-blue-600">(Today)</span>
+        <span class="text-sm font-normal text-primary">(Today)</span>
       {/if}
     </h2>
     <button
       onclick={handleAddTimelog}
-      class="rounded-full bg-blue-500 hover:bg-blue-700 transition-colors flex items-center gap-1 icon-[si--add-circle-duotone]"
+      class="rounded-full bg-primary hover:bg-primary-hover transition-colors flex items-center gap-1 icon-[si--add-circle-duotone]"
       style="width: 32px; height: 32px;"
       aria-label="Add time entry"
     ></button>
@@ -156,13 +156,13 @@
 
   <!-- Filter Dropdown -->
   <div class="mb-4">
-    <label for="timer-filter" class="block text-sm font-medium text-gray-700 mb-2">
+    <label for="timer-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
       Filter by timer:
     </label>
     <select
       id="timer-filter"
       bind:value={selectedTimerFilter}
-      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
     >
       <option value={null}>All Timers</option>
       {#each uniqueTimers as timer}
