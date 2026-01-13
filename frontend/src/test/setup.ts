@@ -1,5 +1,7 @@
 import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
+import 'fake-indexeddb/auto';
 
 // Set timezone to UTC for consistent test results
 process.env.TZ = 'UTC';

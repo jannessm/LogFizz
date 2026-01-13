@@ -12,7 +12,7 @@ vi.mock('../../../../lib/utils/timeFormat.js', () => ({
 }));
 
 describe('SessionBox Component', () => {
-  let mockButton: any;
+  let mockTimer: any;
   let mockSession: any;
   let timelineStart: dayjs.Dayjs;
   let timelineEnd: dayjs.Dayjs;
@@ -20,7 +20,7 @@ describe('SessionBox Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    mockButton = {
+    mockTimer = {
       id: 'b1',
       name: 'Work',
       emoji: '💼',
@@ -41,11 +41,11 @@ describe('SessionBox Component', () => {
     timelineEnd = dayjs('2024-01-15 18:00:00');
   });
 
-  it('renders session with button name and emoji', () => {
+  it('renders session with timer name and emoji', () => {
     render(SessionBox, {
       props: {
         session: mockSession,
-        button: mockButton,
+        timer: mockTimer,
         timelineStart,
         timelineEnd,
       },
@@ -59,7 +59,7 @@ describe('SessionBox Component', () => {
     render(SessionBox, {
       props: {
         session: mockSession,
-        button: mockButton,
+        timer: mockTimer,
         timelineStart,
         timelineEnd,
       },
@@ -72,14 +72,15 @@ describe('SessionBox Component', () => {
     render(SessionBox, {
       props: {
         session: mockSession,
-        button: mockButton,
+        timer: mockTimer,
         timelineStart,
         timelineEnd,
       },
     });
 
-    expect(screen.getByText(/09:00/)).toBeInTheDocument();
-    expect(screen.getByText(/17:00/)).toBeInTheDocument();
+    // Time format depends on locale (09:00 or 9:00 AM)
+    expect(screen.getByText(/(09:00|9:00)/)).toBeInTheDocument();
+    expect(screen.getByText(/(17:00|5:00)/)).toBeInTheDocument();
   });
 
   it('shows "Running" for active session without end time', () => {
@@ -91,7 +92,7 @@ describe('SessionBox Component', () => {
     render(SessionBox, {
       props: {
         session: activeSession,
-        button: mockButton,
+        timer: mockTimer,
         timelineStart,
         timelineEnd,
       },
@@ -100,49 +101,49 @@ describe('SessionBox Component', () => {
     expect(screen.getByText(/Running/)).toBeInTheDocument();
   });
 
-  it('calls onEdit when clicked', async () => {
-    const onEdit = vi.fn();
+  it('calls edit when clicked', async () => {
+    const edit = vi.fn();
     
     const { container } = render(SessionBox, {
       props: {
         session: mockSession,
-        button: mockButton,
+        timer: mockTimer,
         timelineStart,
         timelineEnd,
-        onEdit,
+        edit,
       },
     });
 
     const box = container.querySelector('[role="button"]')!;
     await fireEvent.click(box);
 
-    expect(onEdit).toHaveBeenCalledWith(mockSession);
+    expect(edit).toHaveBeenCalledWith(mockSession);
   });
 
-  it('calls onEdit when Enter key pressed', async () => {
-    const onEdit = vi.fn();
+  it('calls edit when Enter key pressed', async () => {
+    const edit = vi.fn();
     
     const { container } = render(SessionBox, {
       props: {
         session: mockSession,
-        button: mockButton,
+        timer: mockTimer,
         timelineStart,
         timelineEnd,
-        onEdit,
+        edit,
       },
     });
 
     const box = container.querySelector('[role="button"]')!;
     await fireEvent.keyDown(box, { key: 'Enter' });
 
-    expect(onEdit).toHaveBeenCalledWith(mockSession);
+    expect(edit).toHaveBeenCalledWith(mockSession);
   });
 
   it('shows edit button on hover', () => {
     render(SessionBox, {
       props: {
         session: mockSession,
-        button: mockButton,
+        timer: mockTimer,
         timelineStart,
         timelineEnd,
       },
@@ -152,11 +153,11 @@ describe('SessionBox Component', () => {
     expect(editButton).toBeInTheDocument();
   });
 
-  it('applies custom color from button', () => {
+  it('applies custom color from timer', () => {
     const { container } = render(SessionBox, {
       props: {
         session: mockSession,
-        button: mockButton,
+        timer: mockTimer,
         timelineStart,
         timelineEnd,
       },
@@ -170,7 +171,7 @@ describe('SessionBox Component', () => {
     const { container } = render(SessionBox, {
       props: {
         session: mockSession,
-        button: mockButton,
+        timer: mockTimer,
         timelineStart,
         timelineEnd,
         indentLevel: 2,
@@ -186,7 +187,7 @@ describe('SessionBox Component', () => {
     const { container } = render(SessionBox, {
       props: {
         session: mockSession,
-        button: mockButton,
+        timer: mockTimer,
         timelineStart,
         timelineEnd,
       },

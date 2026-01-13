@@ -19,7 +19,7 @@ const BalanceInputSchema = Type.Object({
   child_sick: Type.Integer(),
   worked_days: Type.Integer(),
   updated_at: Type.Optional(Type.String()),
-  created_at: Type.String(),
+  created_at: Type.Optional(Type.String()),
 });
 
 // Schema for balance output

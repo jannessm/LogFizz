@@ -50,6 +50,7 @@ vi.mock('../services/sync', () => ({
     queueUpsertBalance: vi.fn().mockResolvedValue(undefined),
     queueDeleteBalance: vi.fn().mockResolvedValue(undefined),
     sync: vi.fn().mockResolvedValue(undefined),
+    afterSync: vi.fn(),
   },
 }));
 

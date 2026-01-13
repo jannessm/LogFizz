@@ -3,30 +3,29 @@ import { render, screen } from '@testing-library/svelte';
 import HistoryLogs from './HistoryLogs.svelte';
 import dayjs from '../../../../lib/utils/dayjs.js';
 
-const { mockHolidaysStore } = vi.hoisted(() => {
-  const { writable } = require('svelte/store');
-  return {
-    mockHolidaysStore: writable({ holidays: [] }),
-  };
-});
-
-vi.mock('../../stores/holidays', () => ({
-  holidaysStore: mockHolidaysStore,
+vi.mock('../../lib/utils/computeIndentation', () => ({
+  computeIndentation: vi.fn((sessions) => sessions),
 }));
 
-vi.mock('../../lib/utils/computeIndentation', () => ({
-  computeIndentation: vi.fn(() => new Map()),
+vi.mock('../../stores/timelogs', () => ({
+  timeLogsStore: {
+    delete: vi.fn(),
+  },
+}));
+
+vi.mock('../../services/formHandlers', () => ({
+  saveTimelog: vi.fn().mockResolvedValue({}),
 }));
 
 describe('HistoryLogs Component', () => {
-  let mockButtons: any[];
+  let mockTimers: any[];
   let mockTimeLogs: any[];
   let selectedDate: dayjs.Dayjs;
 
   beforeEach(() => {
     vi.clearAllMocks();
     
-    mockButtons = [
+    mockTimers = [
       { id: 'b1', name: 'Work', emoji: '💼', color: '#3B82F6' },
       { id: 'b2', name: 'Study', emoji: '📚', color: '#10B981' },
     ];
@@ -56,25 +55,21 @@ describe('HistoryLogs Component', () => {
       props: {
         selectedDate,
         timeLogs: mockTimeLogs,
-        buttons: mockButtons,
-        onAddTimelog: vi.fn(),
-        onEditTimelog: vi.fn(),
-        countries: [],
+        timers: mockTimers,
+        relevantHolidays: [],
       },
     });
 
     expect(container).toBeInTheDocument();
   });
 
-  it('renders history logs component', () => {
+  it('renders history logs component with date', () => {
     const { container } = render(HistoryLogs, {
       props: {
         selectedDate,
         timeLogs: mockTimeLogs,
-        buttons: mockButtons,
-        onAddTimelog: vi.fn(),
-        onEditTimelog: vi.fn(),
-        countries: [],
+        timers: mockTimers,
+        relevantHolidays: [],
       },
     });
 
@@ -87,10 +82,8 @@ describe('HistoryLogs Component', () => {
       props: {
         selectedDate,
         timeLogs: mockTimeLogs,
-        buttons: mockButtons,
-        onAddTimelog: vi.fn(),
-        onEditTimelog: vi.fn(),
-        countries: [],
+        timers: mockTimers,
+        relevantHolidays: [],
       },
     });
 
@@ -103,10 +96,8 @@ describe('HistoryLogs Component', () => {
       props: {
         selectedDate,
         timeLogs: [],
-        buttons: mockButtons,
-        onAddTimelog: vi.fn(),
-        onEditTimelog: vi.fn(),
-        countries: [],
+        timers: mockTimers,
+        relevantHolidays: [],
       },
     });
 
@@ -129,73 +120,61 @@ describe('HistoryLogs Component', () => {
       props: {
         selectedDate,
         timeLogs: logsWithDifferentDates,
-        buttons: mockButtons,
-        onAddTimelog: vi.fn(),
-        onEditTimelog: vi.fn(),
-        countries: [],
+        timers: mockTimers,
+        relevantHolidays: [],
       },
     });
 
     // Only logs from selected date should be shown
   });
 
-  it('calls onAddTimelog when add button clicked', () => {
-    const onAddTimelog = vi.fn();
-    
+  it('renders add button', () => {
     render(HistoryLogs, {
       props: {
         selectedDate,
         timeLogs: mockTimeLogs,
-        buttons: mockButtons,
-        onAddTimelog,
-        onEditTimelog: vi.fn(),
-        countries: [],
+        timers: mockTimers,
+        relevantHolidays: [],
       },
     });
 
-    // Add timelog functionality would be tested if button is exposed
+    // Add timelog button should be present
+    expect(screen.getByRole('button', { name: /add time entry/i })).toBeInTheDocument();
   });
 
-  it('calls onEditTimelog when session is edited', () => {
-    const onEditTimelog = vi.fn();
-    
+  it('renders timeline section', () => {
     render(HistoryLogs, {
       props: {
         selectedDate,
         timeLogs: mockTimeLogs,
-        buttons: mockButtons,
-        onAddTimelog: vi.fn(),
-        onEditTimelog,
-        countries: [],
+        timers: mockTimers,
+        relevantHolidays: [],
       },
     });
 
-    // Edit functionality is tested through SessionBox component
+    // Component handles rendering internally
   });
 
   it('displays holidays when available', () => {
-    mockHolidaysStore.set({
-      holidays: [
-        {
-          name: 'New Year',
-          date: '2024-01-15',
-          country: 'US',
-          state: null,
-        },
-      ],
-    });
+    const mockHolidays = [
+      {
+        name: 'New Year',
+        date: '2024-01-15',
+        country: 'US',
+        state: null,
+      },
+    ];
 
     render(HistoryLogs, {
       props: {
         selectedDate,
         timeLogs: mockTimeLogs,
-        buttons: mockButtons,
-        onAddTimelog: vi.fn(),
-        onEditTimelog: vi.fn(),
-        countries: ['US'],
+        timers: mockTimers,
+        relevantHolidays: mockHolidays,
       },
     });
 
-    // Holiday indicator should be shown
+    // Holiday should be shown
+    expect(screen.getByText('New Year')).toBeInTheDocument();
   });
 });

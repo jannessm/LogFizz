@@ -20,16 +20,17 @@ const { mockActiveTimeLogs, mockTimeLogsStore, mockTimersStore } = vi.hoisted(()
   };
 });
 
-vi.mock('../stores/timelogs', () => ({
+vi.mock('../../stores/timelogs', () => ({
   activeTimeLogs: mockActiveTimeLogs,
   timeLogsStore: mockTimeLogsStore,
+  timerlogs: { subscribe: vi.fn((cb) => { cb([]); return () => {}; }) },
 }));
 
-vi.mock('../stores/timers', () => ({
+vi.mock('../../stores/timers', () => ({
   timersStore: mockTimersStore,
 }));
 
-vi.mock('../../../lib/utils/timeFormat.js', () => ({
+vi.mock('../../../../lib/utils/timeFormat.js', () => ({
   formatTime: (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -103,7 +104,7 @@ describe('TimerButton Component', () => {
     const button = screen.getByRole('button');
     
     await fireEvent.click(button);
-    expect(mockTimeLogsStore.startTimer).toHaveBeenCalledWith('t1');
+    expect(mockTimeLogsStore.startTimer).toHaveBeenCalledWith(mockTimer);
   });
 
   it('handles active timer click', async () => {

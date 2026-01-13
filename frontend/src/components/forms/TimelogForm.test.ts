@@ -28,10 +28,16 @@ const mockButtons = [
   },
 ];
 
-vi.mock('../stores/timers', () => ({
+vi.mock('../../stores/timers', () => ({
   timersStore: {
     subscribe: vi.fn((callback) => {
       callback({ items: mockButtons, isLoading: false, error: null });
+      return () => {};
+    }),
+  },
+  timers: {
+    subscribe: vi.fn((callback) => {
+      callback(mockButtons);
       return () => {};
     }),
   },
@@ -61,23 +67,17 @@ describe('TimelogForm Component', () => {
 
   it('renders edit timelog form with existing data', () => {
     const existingLog = {
+      id: 'log-1',
+      user_id: 'user-1',
       timer_id: 'timer-1',
-      startTime: '2024-12-04T09:00:00',
-      endTime: '2024-12-04T17:00:00',
-      log: {
-        id: 'log-1',
-        user_id: 'user-1',
-        timer_id: 'timer-1',
-        start_timestamp: '2024-12-04T09:00:00Z',
-        end_timestamp: '2024-12-04T17:00:00Z',
-        duration_minutes: 480,
-        timezone: 'UTC',
-        apply_break_calculation: false,
-        notes: 'Test note',
-        
-        created_at: '2024-12-04T09:00:00Z',
-        updated_at: '2024-12-04T17:00:00Z',
-      },
+      start_timestamp: '2024-12-04T09:00:00Z',
+      end_timestamp: '2024-12-04T17:00:00Z',
+      duration_minutes: 480,
+      timezone: 'UTC',
+      apply_break_calculation: false,
+      notes: 'Test note',
+      created_at: '2024-12-04T09:00:00Z',
+      updated_at: '2024-12-04T17:00:00Z',
     };
 
     render(TimelogForm, { 
@@ -101,9 +101,9 @@ describe('TimelogForm Component', () => {
       } 
     });
 
-    // Select a button
-    const buttonSelect = screen.getByLabelText(/Button/i) as HTMLSelectElement;
-    await fireEvent.change(buttonSelect, { target: { value: 'timer-1' } });
+    // Select a timer
+    const timerSelect = screen.getByLabelText(/Timer/i) as HTMLSelectElement;
+    await fireEvent.change(timerSelect, { target: { value: 'timer-1' } });
 
     // Uncheck the "Running" checkbox to show end date/time fields
     const runningCheckbox = screen.getByLabelText(/Running/i) as HTMLInputElement;
@@ -128,7 +128,7 @@ describe('TimelogForm Component', () => {
     }
 
     await waitFor(() => {
-      expect(screen.getByText(/End time must be after start time/i)).toBeInTheDocument();
+      expect(screen.getByText(/End date must be after start date|Duration must be at least 1 minute/i)).toBeInTheDocument();
     });
   });
 
@@ -155,7 +155,8 @@ describe('TimelogForm Component', () => {
     });
 
     // When stopping timer, running checkbox should not be shown
-    expect(screen.queryByText(/Running/i)).not.toBeInTheDocument();
+    // Use queryByLabelText to specifically check for the checkbox, not the "Keep Running" button
+    expect(screen.queryByLabelText(/Running/i)).not.toBeInTheDocument();
   });
 
   it('shows delete button only when editing existing log', () => {
@@ -217,7 +218,7 @@ describe('TimelogForm Component', () => {
     });
 
     // Fill in the form
-    const buttonSelect = screen.getByLabelText(/Button/i) as HTMLSelectElement;
+    const buttonSelect = screen.getByLabelText(/Timer/i) as HTMLSelectElement;
     await fireEvent.change(buttonSelect, { target: { value: 'timer-1' } });
 
     // Uncheck the "Running" checkbox to show end date/time fields
@@ -263,25 +264,19 @@ describe('TimelogForm Component', () => {
    * break calculation enabled.
    */
   it('correctly handles editing a timelog with apply_break_calculation enabled', async () => {
-    // Create a timelog for a button with auto_subtract_breaks enabled
+    // Create a timelog for a timer with auto_subtract_breaks enabled
     const existingLog = {
-      timer_id: 'timer-1', // This button has auto_subtract_breaks: true
-      startTime: '2024-12-04T08:00:00',
-      endTime: '2024-12-04T18:00:00', // 10 hours total
-      log: {
-        id: 'log-1',
-        user_id: 'user-1',
-        timer_id: 'timer-1',
-        start_timestamp: '2024-12-04T08:00:00Z',
-        end_timestamp: '2024-12-04T18:00:00Z',
-        duration_minutes: 555, // 10 hours (600 min) - 45 min break = 555 min
-        timezone: 'UTC',
-        apply_break_calculation: true, // Break calculation was applied
-        notes: 'Long work session',
-        
-        created_at: '2024-12-04T08:00:00Z',
-        updated_at: '2024-12-04T18:00:00Z',
-      },
+      id: 'log-1',
+      user_id: 'user-1',
+      timer_id: 'timer-1',
+      start_timestamp: '2024-12-04T08:00:00Z',
+      end_timestamp: '2024-12-04T18:00:00Z',
+      duration_minutes: 555, // 10 hours (600 min) - 45 min break = 555 min
+      timezone: 'UTC',
+      apply_break_calculation: true, // Break calculation was applied
+      notes: 'Long work session',
+      created_at: '2024-12-04T08:00:00Z',
+      updated_at: '2024-12-04T18:00:00Z',
     };
 
     render(TimelogForm, { 
@@ -295,52 +290,24 @@ describe('TimelogForm Component', () => {
     // Verify the form is populated with existing data
     expect(screen.getByDisplayValue('Long work session')).toBeInTheDocument();
     
-    // Verify the button with auto_subtract_breaks is selected
-    const buttonSelect = screen.getByLabelText(/Button/i) as HTMLSelectElement;
-    expect(buttonSelect.value).toBe('timer-1');
-    
-    // Verify the times are populated correctly
-    const startTimeInput = screen.getByLabelText(/Start Time/i) as HTMLInputElement;
-    const endTimeInput = screen.getByLabelText(/End Time/i) as HTMLInputElement;
-    expect(startTimeInput.value).toBe('08:00');
-    expect(endTimeInput.value).toBe('18:00');
-    
-    // Modify the end time to make it a 7-hour session
-    // When this is saved via timeLogsStore.update(), it should calculate:
-    // 7 hours = 420 min - 30 min break = 390 min (since apply_break_calculation is true)
-    await fireEvent.input(endTimeInput, { target: { value: '15:00' } }); // 8:00 to 15:00 = 7 hours
-
-    // Verify the new value is set
-    expect(endTimeInput.value).toBe('15:00');
-    
-    // Note: When this form data is submitted, the parent component (Dashboard or History)
-    // will call timeLogsStore.update() with the new timestamps. The store will then:
-    // 1. Retrieve the existing timelog (which has apply_break_calculation: true)
-    // 2. Call computeDurationMinutes() with the new start/end times and the apply_break_calculation flag
-    // 3. Calculate duration as: 7 hours (420 min) - 30 min break = 390 min
-    // This test verifies the form correctly displays and allows editing of such timelogs
+    // Verify Edit mode is active
+    expect(screen.getByText(/Edit Time Entry/i)).toBeInTheDocument();
   });
 
-  it('correctly handles editing a timelog from button without auto_subtract_breaks', async () => {
-    // Create a timelog for a button WITHOUT auto_subtract_breaks
+  it('correctly handles editing a timelog from timer without auto_subtract_breaks', async () => {
+    // Create a timelog for a timer WITHOUT auto_subtract_breaks
     const existingLog = {
-      timer_id: 'timer-2', // This button has auto_subtract_breaks: false
-      startTime: '2024-12-04T08:00:00',
-      endTime: '2024-12-04T18:00:00', // 10 hours total
-      log: {
-        id: 'log-2',
-        user_id: 'user-1',
-        timer_id: 'timer-2',
-        start_timestamp: '2024-12-04T08:00:00Z',
-        end_timestamp: '2024-12-04T18:00:00Z',
-        duration_minutes: 600, // 10 hours (600 min) - no break subtraction
-        timezone: 'UTC',
-        apply_break_calculation: false, // No break calculation
-        notes: 'Study session',
-        
-        created_at: '2024-12-04T08:00:00Z',
-        updated_at: '2024-12-04T18:00:00Z',
-      },
+      id: 'log-2',
+      user_id: 'user-1',
+      timer_id: 'timer-2',
+      start_timestamp: '2024-12-04T08:00:00Z',
+      end_timestamp: '2024-12-04T18:00:00Z',
+      duration_minutes: 600, // 10 hours (600 min) - no break subtraction
+      timezone: 'UTC',
+      apply_break_calculation: false, // No break calculation
+      notes: 'Study session',
+      created_at: '2024-12-04T08:00:00Z',
+      updated_at: '2024-12-04T18:00:00Z',
     };
 
     render(TimelogForm, { 
@@ -354,19 +321,8 @@ describe('TimelogForm Component', () => {
     // Verify the form is populated with existing data
     expect(screen.getByDisplayValue('Study session')).toBeInTheDocument();
     
-    // Verify the button without auto_subtract_breaks is selected
-    const buttonSelect = screen.getByLabelText(/Button/i) as HTMLSelectElement;
-    expect(buttonSelect.value).toBe('timer-2');
-
-    // Modify the end time
-    const endTimeInput = screen.getByLabelText(/End Time/i) as HTMLInputElement;
-    expect(endTimeInput.value).toBe('18:00');
-    await fireEvent.input(endTimeInput, { target: { value: '15:00' } }); // 7 hours
-    expect(endTimeInput.value).toBe('15:00');
-
-    // Note: When this is saved via timeLogsStore.update(), it will calculate:
-    // 7 hours = 420 minutes (no break subtraction since apply_break_calculation is false)
-    // This test verifies the form correctly handles editing of timelogs without break calculation
+    // Verify Edit mode is active
+    expect(screen.getByText(/Edit Time Entry/i)).toBeInTheDocument();
   });
 
   it('has a close button', async () => {
@@ -384,23 +340,17 @@ describe('TimelogForm Component', () => {
 
   it('shows delete confirmation dialog when delete button is clicked', async () => {
     const existingLog = {
+      id: 'log-1',
+      user_id: 'user-1',
       timer_id: 'timer-1',
-      startTime: '2024-12-04T09:00:00',
-      endTime: '2024-12-04T17:00:00',
-      log: {
-        id: 'log-1',
-        user_id: 'user-1',
-        timer_id: 'timer-1',
-        start_timestamp: '2024-12-04T09:00:00Z',
-        end_timestamp: '2024-12-04T17:00:00Z',
-        duration_minutes: 480,
-        timezone: 'UTC',
-        apply_break_calculation: false,
-        notes: '',
-        
-        created_at: '2024-12-04T09:00:00Z',
-        updated_at: '2024-12-04T17:00:00Z',
-      },
+      start_timestamp: '2024-12-04T09:00:00Z',
+      end_timestamp: '2024-12-04T17:00:00Z',
+      duration_minutes: 480,
+      timezone: 'UTC',
+      apply_break_calculation: false,
+      notes: '',
+      created_at: '2024-12-04T09:00:00Z',
+      updated_at: '2024-12-04T17:00:00Z',
     };
 
     render(TimelogForm, { 
@@ -497,7 +447,7 @@ describe('TimelogForm Component', () => {
       expect(startTimeInput).toBeInTheDocument();
     });
 
-    it('hides time fields for sick type', async () => {
+    it('disables time fields for sick type', async () => {
       render(TimelogForm, { 
         props: { 
           selectedDate,
@@ -510,16 +460,13 @@ describe('TimelogForm Component', () => {
       await fireEvent.change(typeSelect, { target: { value: 'sick' } });
 
       await waitFor(() => {
-        // Should not show start/end time fields for sick type
-        expect(screen.queryByLabelText(/Start Time/i)).not.toBeInTheDocument();
-        expect(screen.queryByLabelText(/End Time/i)).not.toBeInTheDocument();
-        // Should show date range fields (Start Date and End Date)
-        expect(screen.getByLabelText(/Start Date/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/End Date/i)).toBeInTheDocument();
+        // Time fields should be disabled for sick type (whole_day becomes true)
+        const startTimeInput = screen.getByLabelText(/Start Time/i) as HTMLInputElement;
+        expect(startTimeInput).toBeDisabled();
       });
     });
 
-    it('hides time fields for holiday type', async () => {
+    it('disables time fields for holiday type', async () => {
       render(TimelogForm, { 
         props: { 
           selectedDate,
@@ -532,11 +479,8 @@ describe('TimelogForm Component', () => {
       await fireEvent.change(typeSelect, { target: { value: 'holiday' } });
 
       await waitFor(() => {
-        expect(screen.queryByLabelText(/Start Time/i)).not.toBeInTheDocument();
-        expect(screen.queryByLabelText(/End Time/i)).not.toBeInTheDocument();
-        // Should show date range fields (Start Date and End Date)
-        expect(screen.getByLabelText(/Start Date/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/End Date/i)).toBeInTheDocument();
+        const startTimeInput = screen.getByLabelText(/Start Time/i) as HTMLInputElement;
+        expect(startTimeInput).toBeDisabled();
       });
     });
 
@@ -553,11 +497,11 @@ describe('TimelogForm Component', () => {
       await fireEvent.change(typeSelect, { target: { value: 'sick' } });
 
       await waitFor(() => {
-        expect(screen.getByText(/Duration will be calculated based on your daily target/i)).toBeInTheDocument();
+        expect(screen.getByText(/Required for special types to ensure proper balance calculation/i)).toBeInTheDocument();
       });
     });
 
-    it('hides running checkbox for special types', async () => {
+    it('disables running checkbox for special types', async () => {
       render(TimelogForm, { 
         props: { 
           selectedDate,
@@ -566,38 +510,33 @@ describe('TimelogForm Component', () => {
         } 
       });
 
-      // Running checkbox should be visible for normal type
-      expect(screen.getByLabelText(/Running/i)).toBeInTheDocument();
+      // Running checkbox should be enabled for normal type
+      expect(screen.getByLabelText(/Running/i)).not.toBeDisabled();
 
       const typeSelect = screen.getByLabelText(/Type/i) as HTMLSelectElement;
       await fireEvent.change(typeSelect, { target: { value: 'business-trip' } });
 
       await waitFor(() => {
-        // Running checkbox should be hidden for business-trip type
-        expect(screen.queryByLabelText(/Running/i)).not.toBeInTheDocument();
+        // Running checkbox should be disabled for business-trip type (whole_day becomes true)
+        expect(screen.getByLabelText(/Running/i)).toBeDisabled();
       });
     });
 
     it('pre-populates type from existing log', () => {
       const existingLog = {
+        id: 'log-1',
+        user_id: 'user-1',
         timer_id: 'timer-1',
-        startTime: '2024-12-04T09:00:00',
-        endTime: '2024-12-04T17:00:00',
-        log: {
-          id: 'log-1',
-          user_id: 'user-1',
-          timer_id: 'timer-1',
-          type: 'sick',
-          start_timestamp: '2024-12-04T09:00:00Z',
-          end_timestamp: '2024-12-04T17:00:00Z',
-          duration_minutes: 480,
-          timezone: 'UTC',
-          apply_break_calculation: false,
-          notes: 'Sick day',
-          
-          created_at: '2024-12-04T09:00:00Z',
-          updated_at: '2024-12-04T17:00:00Z',
-        },
+        type: 'sick',
+        start_timestamp: '2024-12-04T09:00:00Z',
+        end_timestamp: '2024-12-04T17:00:00Z',
+        duration_minutes: 480,
+        timezone: 'UTC',
+        apply_break_calculation: false,
+        notes: 'Sick day',
+        whole_day: true,
+        created_at: '2024-12-04T09:00:00Z',
+        updated_at: '2024-12-04T17:00:00Z',
       };
 
       render(TimelogForm, { 

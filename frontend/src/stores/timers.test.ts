@@ -19,6 +19,7 @@ vi.mock('../services/sync', () => ({
     queueUpsertTimer: vi.fn().mockResolvedValue(undefined),
     queueDeleteTimer: vi.fn().mockResolvedValue(undefined),
     sync: vi.fn().mockResolvedValue(undefined),
+    afterSync: vi.fn(),
   },
 }));
 

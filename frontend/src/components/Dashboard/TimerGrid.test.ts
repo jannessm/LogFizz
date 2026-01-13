@@ -1,17 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import TimerGrid from './TimerGrid.svelte';
-import type { Timer } from '../types';
+import type { Timer } from '../../types';
 
-const { mockActiveTimers } = vi.hoisted(() => {
+const { mockActiveTimers, mockActiveTimeLogs, mockTimersStore } = vi.hoisted(() => {
   const { writable } = require('svelte/store');
   return {
     mockActiveTimers: writable([]),
+    mockActiveTimeLogs: writable([]),
+    mockTimersStore: {
+      delete: vi.fn(),
+    },
   };
 });
 
-vi.mock('../stores/timers', () => ({
+vi.mock('../../stores/timers', () => ({
   activeTimers: mockActiveTimers,
+  timersStore: mockTimersStore,
+}));
+
+vi.mock('../../stores/timelogs', () => ({
+  activeTimeLogs: mockActiveTimeLogs,
+  timeLogsStore: {
+    startTimer: vi.fn(),
+    stopTimer: vi.fn(),
+  },
+  timerlogs: { subscribe: vi.fn((cb) => { cb([]); return () => {}; }) },
 }));
 
 describe('TimerGrid Component', () => {

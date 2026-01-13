@@ -374,9 +374,9 @@
   }
 
   function handleTimerFormClose() {
-    // After button is created (or form closed), refresh and auto-select the newest button for the project
+    // After timer is created (or form closed), refresh and auto-select the newest timer for the project
     if (currentProjectForTimer) {
-      // Get the most recently created button (last in the list after sorting)
+      // Get the most recently created timer (last in the list after sorting)
       const sortedTimers = [...$timers].sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
@@ -473,7 +473,7 @@
 
         close();
       } else {
-        // No project mapping - use single button
+        // No project mapping - use single timer
         // Show warning if some rows were skipped
         if (result.errors.length > 0) {
           warningMessage = `⚠️ ${result.errors.length} row${result.errors.length !== 1 ? 's' : ''} will be skipped due to errors.\n\nImporting ${result.valid.length} valid timelog${result.valid.length !== 1 ? 's' : ''}.`;

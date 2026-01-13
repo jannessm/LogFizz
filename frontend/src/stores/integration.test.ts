@@ -41,6 +41,7 @@ vi.mock('../services/sync', () => ({
     queueUpsertBalance: vi.fn().mockResolvedValue(undefined),
     queueDeleteBalance: vi.fn().mockResolvedValue(undefined),
     sync: vi.fn().mockResolvedValue(undefined),
+    afterSync: vi.fn(),
   },
 }));
 
@@ -163,7 +164,7 @@ async function initTimeLogsStore(timelogsList: TimeLog[]) {
 }
 
 async function initBalancesStore(balancesList: Balance[]) {
-  vi.mocked(db.getBalancesByDate).mockResolvedValue(balancesList);
+  vi.mocked(db.getAllBalances).mockResolvedValue(balancesList);
   await balancesStore.load();
 }
 

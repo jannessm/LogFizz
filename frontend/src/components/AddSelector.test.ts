@@ -20,14 +20,14 @@ describe('AddSelector Component', () => {
 
   it('renders add button option', () => {
     render(AddSelector);
-    expect(screen.getByText('Add Button')).toBeInTheDocument();
+    expect(screen.getByText('Add Timer')).toBeInTheDocument();
     expect(screen.getByText('Create a new timer button')).toBeInTheDocument();
   });
 
   it('renders add target option', () => {
     render(AddSelector);
     expect(screen.getByText('Add Target')).toBeInTheDocument();
-    expect(screen.getByText('Create a new daily target')).toBeInTheDocument();
+    expect(screen.getByText('Create a new target')).toBeInTheDocument();
   });
 
   it('has proper ARIA attributes for accessibility', () => {
@@ -50,8 +50,8 @@ describe('AddSelector Component', () => {
 
   it('has interactive hover states', () => {
     const { container } = render(AddSelector);
-    const buttonOption = screen.getByText('Add Button').closest('button');
-    expect(buttonOption).toHaveClass('hover:border-blue-500');
+    const timerOption = screen.getByText('Add Timer').closest('button');
+    expect(timerOption).toHaveClass('hover:border-blue-500');
   });
 
   it('has proper structure with overlay', () => {

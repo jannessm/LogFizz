@@ -44,6 +44,12 @@ vi.mock('../../stores/timers', () => ({
       return () => {};
     },
   },
+  timers: {
+    subscribe: (callback: any) => {
+      callback(mockButtons);
+      return () => {};
+    },
+  },
 }));
 
 describe('ImportTimelogsModal Component', () => {
@@ -146,7 +152,7 @@ describe('ImportTimelogsModal Component', () => {
     const dateSelect = screen.getByLabelText(/Date Column/i) as HTMLSelectElement;
     const startSelect = screen.getByLabelText(/Start Time Column/i) as HTMLSelectElement;
     const endSelect = screen.getByLabelText(/End Time Column/i) as HTMLSelectElement;
-    const buttonSelect = screen.getByLabelText(/Assign to Button/i) as HTMLSelectElement;
+    const buttonSelect = screen.getByLabelText(/Assign to Timer/i) as HTMLSelectElement;
     
     // Columns should be auto-detected
     expect(dateSelect.value).toBe('Date');
@@ -307,7 +313,7 @@ describe('ImportTimelogsModal Component', () => {
     await fireEvent.click(continueBtn);
     
     await waitFor(() => {
-      const buttonSelect = screen.getByLabelText(/Assign to Button/i) as HTMLSelectElement;
+      const buttonSelect = screen.getByLabelText(/Assign to Timer/i) as HTMLSelectElement;
       expect(buttonSelect).toBeInTheDocument();
     });
     
@@ -435,7 +441,7 @@ describe('ImportTimelogsModal Component', () => {
     });
     
     // Should still allow continuing (date column is optional)
-    const buttonSelect = screen.getByLabelText(/Assign to Button/i) as HTMLSelectElement;
+    const buttonSelect = screen.getByLabelText(/Assign to Timer/i) as HTMLSelectElement;
     await fireEvent.change(buttonSelect, { target: { value: 'btn-1' } });
     
     const mappingContinueBtn = screen.getByText('Continue');

@@ -834,6 +834,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
      */
     it('should only count whole_day sick timelog on its actual date', () => {
       // Create multiple sick timelogs for different dates in the same month
+      // Using weekdays only (Mon-Fri): Jan 5 (Mon), Jan 12 (Mon), Jan 15 (Thu)
       const sickDay1: TimeLog = {
         id: 'sick-day-1',
         user_id: DEMO_USER_ID,
@@ -856,35 +857,36 @@ describe('Balance Calculation Tests with Seed Data', () => {
         timer_id: WORK_TIMER_ID,
         type: 'sick',
         whole_day: true,
-        start_timestamp: '2026-01-10T08:00:00.000Z',
-        end_timestamp: '2026-01-10T08:00:00.000Z',
+        start_timestamp: '2026-01-12T08:00:00.000Z',  // Monday
+        end_timestamp: '2026-01-12T08:00:00.000Z',
         timezone: 'Europe/Berlin',
         apply_break_calculation: false,
-        created_at: '2026-01-10',
-        updated_at: '2026-01-10',
+        created_at: '2026-01-12',
+        updated_at: '2026-01-12',
         year: 2026,
         month: 1,
       };
       
       const allMonthTimelogs = [sickDay1, sickDay2];
       
-      // When calculating for Jan 5, should only count the sick day from Jan 5
+      // When calculating for Jan 5 (Monday), should only count the sick day from Jan 5
       const jan5Result = calculateWorkedMinutesForDate('2026-01-05', allMonthTimelogs);
       expect(jan5Result.counters.sick_days).toBe(1);
       
-      // When calculating for Jan 10, should only count the sick day from Jan 10
-      const jan10Result = calculateWorkedMinutesForDate('2026-01-10', allMonthTimelogs);
-      expect(jan10Result.counters.sick_days).toBe(1);
+      // When calculating for Jan 12 (Monday), should only count the sick day from Jan 12
+      const jan12Result = calculateWorkedMinutesForDate('2026-01-12', allMonthTimelogs);
+      expect(jan12Result.counters.sick_days).toBe(1);
       
-      // When calculating for Jan 15, should count 0 sick days (no sick day on that date)
+      // When calculating for Jan 15 (Thursday), should count 0 sick days (no sick day on that date)
       const jan15Result = calculateWorkedMinutesForDate('2026-01-15', allMonthTimelogs);
       expect(jan15Result.counters.sick_days).toBe(0);
     });
     
     it('should only count whole_day holiday timelog on its actual date', () => {
-      // Create multiple holiday timelogs for different dates in the same month
+      // Create multiple holiday timelogs for different weekdays in the same month
+      // Using Mon-Thu (Jan 5-8) which are all weekdays
       const holidayLogs: TimeLog[] = [];
-      for (let day = 3; day <= 6; day++) {
+      for (let day = 5; day <= 8; day++) {
         holidayLogs.push({
           id: `holiday-day-${day}`,
           user_id: DEMO_USER_ID,
@@ -902,17 +904,17 @@ describe('Balance Calculation Tests with Seed Data', () => {
         });
       }
       
-      // When calculating for Jan 3, should only count 1 holiday (not all 4)
-      const jan3Result = calculateWorkedMinutesForDate('2026-01-03', holidayLogs);
-      expect(jan3Result.counters.holidays).toBe(1);
+      // When calculating for Jan 5 (Monday), should only count 1 holiday (not all 4)
+      const jan5Result = calculateWorkedMinutesForDate('2026-01-05', holidayLogs);
+      expect(jan5Result.counters.holidays).toBe(1);
       
-      // When calculating for Jan 4, should only count 1 holiday
-      const jan4Result = calculateWorkedMinutesForDate('2026-01-04', holidayLogs);
-      expect(jan4Result.counters.holidays).toBe(1);
+      // When calculating for Jan 6 (Tuesday), should only count 1 holiday
+      const jan6Result = calculateWorkedMinutesForDate('2026-01-06', holidayLogs);
+      expect(jan6Result.counters.holidays).toBe(1);
       
-      // When calculating for Jan 10, should count 0 holidays (no holiday on that date)
-      const jan10Result = calculateWorkedMinutesForDate('2026-01-10', holidayLogs);
-      expect(jan10Result.counters.holidays).toBe(0);
+      // When calculating for Jan 12 (Monday), should count 0 holidays (no holiday on that date)
+      const jan12Result = calculateWorkedMinutesForDate('2026-01-12', holidayLogs);
+      expect(jan12Result.counters.holidays).toBe(0);
     });
     
     it('should correctly count mixed whole_day and normal timelogs', () => {

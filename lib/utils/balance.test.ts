@@ -134,12 +134,12 @@ describe('Balance Calculation Utilities', () => {
     });
 
     it('should increment sick_days counter for whole-day sick logs', () => {
-      const date = '2024-06-15';
+      const date = '2024-06-17'; // Monday (weekday)
       const timelogs: Partial<TimeLog>[] = [
         {
           type: 'sick',
           whole_day: true,
-          start_timestamp: '2024-06-15T08:00:00Z', // Must match the date being calculated
+          start_timestamp: '2024-06-17T08:00:00Z', // Must match the date being calculated
         },
       ];
       

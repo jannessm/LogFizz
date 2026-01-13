@@ -1,15 +1,17 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/svelte';
 import DailyTargets from './DailyTargets.svelte';
 import type { TargetWithSpecs, Timer, TimeLog } from '../types';
 
-const { mockTodayTargets, mockTimersStore, mockTimeLogsStore, mockActiveTimeLogs } = vi.hoisted(() => {
+const { mockTodayTargets, mockTimersStore, mockTimeLogsStore, mockActiveTimeLogs, mockTimers, mockTimerlogs } = vi.hoisted(() => {
   const { writable } = require('svelte/store');
   return {
     mockTodayTargets: writable([]),
     mockTimersStore: writable({ items: [] }),
     mockTimeLogsStore: writable({ items: [] }),
     mockActiveTimeLogs: writable([]),
+    mockTimers: writable([]),
+    mockTimerlogs: writable([]),
   };
 });
 
@@ -19,11 +21,13 @@ vi.mock('../stores/targets', () => ({
 
 vi.mock('../stores/timers', () => ({
   timersStore: mockTimersStore,
+  timers: mockTimers,
 }));
 
 vi.mock('../stores/timelogs', () => ({
   timeLogsStore: mockTimeLogsStore,
   activeTimeLogs: mockActiveTimeLogs,
+  timerlogs: mockTimerlogs,
 }));
 
 vi.mock('../lib/utils/targetSpec', () => ({
@@ -38,6 +42,8 @@ describe('DailyTargets Component', () => {
     mockTimersStore.set({ items: [] });
     mockTimeLogsStore.set({ items: [] });
     mockActiveTimeLogs.set([]);
+    mockTimers.set([]);
+    mockTimerlogs.set([]);
   });
 
   afterEach(() => {
@@ -57,6 +63,7 @@ describe('DailyTargets Component', () => {
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
       target_specs: [{
+        user_id: 'u1',
         id: 'spec1',
         target_id: 'target1',
         duration_minutes: [480, 480, 480, 480, 480],
@@ -83,6 +90,7 @@ describe('DailyTargets Component', () => {
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
       target_specs: [{
+        user_id: 'u1',
         id: 'spec1',
         target_id: 'target1',
         duration_minutes: [240, 240, 240, 240, 240], // 4 hours
@@ -131,6 +139,7 @@ describe('DailyTargets Component', () => {
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
       target_specs: [{
+        user_id: 'u1',
         id: 'spec1',
         target_id: 'target1',
         duration_minutes: [480, 480, 480, 480, 480],
@@ -143,6 +152,7 @@ describe('DailyTargets Component', () => {
 
     mockTodayTargets.set([mockTarget]);
     mockTimersStore.set({ items: [mockButton] });
+    mockTimers.set([mockButton]);
     mockActiveTimeLogs.set([mockActiveLog]);
     mockTimeLogsStore.set({ items: [] });
 
@@ -159,6 +169,7 @@ describe('DailyTargets Component', () => {
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
       target_specs: [{
+        user_id: 'u1',
         id: 'spec1',
         target_id: 'target1',
         duration_minutes: [480, 480, 480, 480, 480],
@@ -186,6 +197,7 @@ describe('DailyTargets Component', () => {
       created_at: '2024-01-01',
       updated_at: '2024-01-01',
       target_specs: [{
+        user_id: 'u1',
         id: 'spec1',
         target_id: 'target1',
         duration_minutes: [90, 90, 90, 90, 90], // 1h 30m
