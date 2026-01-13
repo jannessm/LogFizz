@@ -51,7 +51,7 @@ describe('AddSelector Component', () => {
   it('has interactive hover states', () => {
     const { container } = render(AddSelector);
     const timerOption = screen.getByText('Add Timer').closest('button');
-    expect(timerOption).toHaveClass('hover:border-blue-500');
+    expect(timerOption).toHaveClass('hover:border-primary');
   });
 
   it('has proper structure with overlay', () => {

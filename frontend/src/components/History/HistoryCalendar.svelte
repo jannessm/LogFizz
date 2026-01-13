@@ -4,9 +4,6 @@
   import { onMount } from 'svelte';
   import { getSetting } from '../../lib/db';
 
-  // Get user's timezone
-  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
   let {
     timers,
     timeLogs,

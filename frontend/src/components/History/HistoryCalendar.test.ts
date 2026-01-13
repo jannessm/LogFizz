@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
+import { render } from '@testing-library/svelte';
 import HistoryCalendar from './HistoryCalendar.svelte';
 import dayjs from '../../../../lib/utils/dayjs.js';
 import type { CalendarTimeLogData, MultiDayRangeInfo } from '../../services/calendar';

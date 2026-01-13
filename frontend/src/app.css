@@ -52,3 +52,12 @@ body {
     --tw-ring-color: var(--color-primary);
   }
 }
+
+/* Dark mode support */
+:root {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
