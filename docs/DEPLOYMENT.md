@@ -64,8 +64,11 @@ A    www            your.server.ip.address
 sudo mkdir -p /opt/clock-app
 cd /opt/clock-app
 
-# Clone the repository
-git clone https://github.com/jannessm/TapShift.git .
+# Clone the repository (use main branch or specific release tag)
+git clone -b main --single-branch https://github.com/jannessm/TapShift.git .
+
+# Or clone a specific release version
+# git clone -b v1.0.0 --single-branch https://github.com/jannessm/TapShift.git .
 
 # Set proper permissions
 sudo chown -R $USER:$USER /opt/clock-app
@@ -249,7 +252,10 @@ services:
       - "traefik.http.routers.traefik.service=api@internal"
       - "traefik.http.routers.traefik.middlewares=traefik-auth"
       # Generate password: htpasswd -nb admin your_password
-      - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$xyz$$encrypted_password"
+      # Replace the entire string below with the output from htpasswd command
+      # Example output: admin:$apr1$xyz$encryptedpasswordhash
+      # Remember to escape $ characters with $$ in docker-compose.yml
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=REPLACE_WITH_HTPASSWD_OUTPUT"
 
 networks:
   traefik-public:
@@ -384,7 +390,17 @@ Replace all instances of `yourdomain.com` with your actual domain:
 
 ```bash
 cd /opt/clock-app
+
+# Update application docker-compose file
 sed -i 's/yourdomain.com/your-actual-domain.com/g' docker-compose.prod.yml
+
+# Update backend environment file
+sed -i 's/yourdomain.com/your-actual-domain.com/g' backend/.env
+
+# Update Traefik configuration (if using Traefik dashboard)
+cd /opt/traefik
+sed -i 's/yourdomain.com/your-actual-domain.com/g' docker-compose.yml
+sed -i 's/your-email@example.com/your-actual-email@example.com/g' traefik.yml
 ```
 
 ### 3. Build and Deploy
