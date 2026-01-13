@@ -264,7 +264,6 @@ export async function authRoutes(fastify: FastifyInstance) {
       body: Type.Object({
         token: Type.String(),
         newPassword: Type.String({ minLength: 8 }),
-        email: Type.Optional(Type.String({ format: 'email' })), // Optional for backward compatibility
       }),
       response: {
         200: Type.Object({
@@ -290,7 +289,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // Verify email endpoint (no authentication required)
+  // Verify email endpoint (authentication required)
   fastify.post('/verify-email', {
     ...generalAuthRateLimit,
     schema: {
@@ -305,13 +304,33 @@ export async function authRoutes(fastify: FastifyInstance) {
         400: Type.Object({
           error: Type.String(),
         }),
+        401: Type.Object({
+          error: Type.String(),
+        }),
+        403: Type.Object({
+          error: Type.String(),
+          code: Type.String(),
+        }),
       },
     },
   }, async (request, reply) => {
-    const { token } = request.body as any;
-    const success = await authService.verifyEmail(token);
+    const userId = request.session.userId;
+    
+    if (!userId) {
+      return reply.code(401).send({ error: 'Not authenticated. Please log in first.' });
+    }
 
-    if (!success) {
+    const { token } = request.body as any;
+    const result = await authService.verifyEmail(token, userId);
+
+    if (typeof result === 'object' && result.error === 'wrong_user') {
+      return reply.code(403).send({ 
+        error: 'This verification link is for a different account. A new verification email has been sent to the correct email address.',
+        code: 'WRONG_USER',
+      });
+    }
+
+    if (!result) {
       return reply.code(400).send({ 
         error: 'Invalid or expired verification token' 
       });

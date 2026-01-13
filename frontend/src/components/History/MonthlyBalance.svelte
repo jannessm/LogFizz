@@ -1,21 +1,21 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import type { MonthlyBalance, DailyTarget } from '../../types';
-  import { monthlyBalanceApi, isOnline } from '../../services/api';
+  import type { Balance } from '../../types';
+  import type { TargetWithSpecs } from '../../types';
+  import { balanceApi, isOnline } from '../../services/api';
   import { 
-    getMonthlyBalancesByYearMonth, 
-    saveMonthlyBalance,
+    getBalancesByDate, 
+    saveBalance,
     getSyncCursor,
     saveSyncCursor,
     getAllTargets
   } from '../../lib/db';
   import { formatMinutes, formatHours, getBalanceColor } from '../../../../lib/utils/timeFormat.js';
 
-  export let year: number;
-  export let month: number; // 1-12
+  let { year, month }: { year: number; month: number; } = $props();
 
-  let balances: MonthlyBalance[] = [];
-  let targetsWithoutStartingFrom: DailyTarget[] = [];
+  let balances: Balance[] = [];
+  let targetsWithoutStartingFrom: TargetWithSpecs[] = [];
   let loading = false;
   let error: string | null = null;
   let refreshTick = 0; // Used to trigger reactivity for running sessions
@@ -25,16 +25,17 @@
     loading = true;
     error = null;
     try {
-      // Load targets to find those without starting_from
+      // Load targets to find those without starting_from in any target_spec
       const allTargets = await getAllTargets();
-      targetsWithoutStartingFrom = allTargets.filter(t => !t.starting_from && !t.deleted_at);
+      targetsWithoutStartingFrom = allTargets.filter(t => {
+        // Check if any target_spec has a starting_from date
+        const hasStartingFrom = t.target_specs?.some(spec => spec.starting_from);
+        return !hasStartingFrom && !t.deleted_at;
+      });
 
-      // Check and recalculate missing balances for targets with starting_from
-      const { monthlyBalanceService } = await import('../../services/monthly-balance.service');
-      await monthlyBalanceService.checkAndRecalculateMissingBalances();
-
-      // Load from local DB first (fast - show data immediately)
-      const localBalances = await getMonthlyBalancesByYearMonth(year, month);
+      // Load monthly balances from local DB (date format: YYYY-MM)
+      const dateKey = `${year}-${month.toString().padStart(2, '0')}`;
+      const localBalances = await getBalancesByDate(dateKey);
       balances = localBalances;
 
       // Sync from server in background
@@ -52,39 +53,42 @@
   async function syncFromServer() {
     try {
       // Get last sync cursor
-      let cursor = await getSyncCursor('monthlyBalances');
+      let cursor = await getSyncCursor('balances');
       if (!cursor) {
         // First sync - use epoch time to get all data
         cursor = new Date(0).toISOString();
       }
 
-      const result = await monthlyBalanceApi.getSyncChanges(cursor);
+      const result = await balanceApi.getSyncChanges(cursor);
 
       // Apply changes to local DB
-      for (const balance of result.monthlyBalances) {
-        await saveMonthlyBalance(balance);
+      for (const balance of result.balances) {
+        await saveBalance(balance);
       }
 
       // Save new cursor
-      await saveSyncCursor('monthlyBalances', result.cursor);
+      await saveSyncCursor('balances', result.cursor);
 
       // Reload from DB to reflect changes for current month
-      const updatedBalances = await getMonthlyBalancesByYearMonth(year, month);
+      const dateKey = `${year}-${month.toString().padStart(2, '0')}`;
+      const updatedBalances = await getBalancesByDate(dateKey);
       balances = updatedBalances;
     } catch (err) {
-      console.error('Failed to sync monthly balances from server:', err);
+      console.error('Failed to sync balances from server:', err);
     }
   }
 
   // Load balances when year or month changes
-  $: if (year && month || refreshTick) {
-    loadBalances();
-  }
+  $effect(() => {
+    if (year && month || refreshTick) {
+      loadBalances();
+    }
+  });
 
   // Check if there are any running sessions in current workspace
   async function hasRunningSessions(): Promise<boolean> {
-    const { getAllTimeLogs } = await import('../../lib/db');
-    const timeLogs = await getAllTimeLogs();
+    const { getTimeLogsByYearMonth } = await import('../../lib/db');
+    const timeLogs = await getTimeLogsByYearMonth(year, month);
     return timeLogs.some(tl => tl.start_timestamp && !tl.end_timestamp);
   }
 
@@ -124,20 +128,15 @@
     <div class="text-gray-500 text-sm">No targets configured for this month.</div>
   {:else}
     <div class="space-y-3">
-      {#each balances.slice().sort((a, b) => (a.target?.name || '').localeCompare(b.target?.name || '')) as balance (balance.id)}
+      {#each balances as balance (balance.id)}
         <div class="border border-gray-200 rounded-lg p-3">
           <div class="flex justify-between items-start mb-2">
             <div>
-              <h4 class="font-medium text-gray-800">{balance.target?.name || 'Target'}</h4>
-              {#if balance.exclude_holidays}
-                <span class="text-xs text-gray-500">
-                  (excluding public holidays)
-                </span>
-              {/if}
+              <h4 class="font-medium text-gray-800">Target</h4>
             </div>
             <div class="text-right">
-              <div class={`text-lg font-bold ${getBalanceColor(balance.balance_minutes)}`}>
-                {formatMinutes(balance.balance_minutes)}
+              <div class={`text-lg font-bold ${getBalanceColor(balance.cumulative_minutes)}`}>
+                {formatMinutes(balance.cumulative_minutes)}
               </div>
             </div>
           </div>

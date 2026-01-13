@@ -2,12 +2,13 @@
   import dayjs from 'dayjs';
   import PieChart from './PieChart.svelte';
   import BarChart from './BarChart.svelte';
-
-  export let buttons: any[];
-  export let timeLogs: any[];
-  export let currentMonth: dayjs.Dayjs;
-  export let onDateSelect: ((date: any) => void) | undefined = undefined;
-
+            
+  let { timers, timeLogs, currentMonth, dateSelect }: {
+    timers: any[];
+    timeLogs: any[];
+    currentMonth: dayjs.Dayjs;
+    dateSelect?: (date: any) => void;
+  } = $props();
 </script>
 
 <div class="bg-white rounded-lg shadow-md p-4 mb-6">
@@ -17,17 +18,17 @@
   {:else}
     <div class="h-40">
       <PieChart 
-        {buttons}
+        {timers}
         {currentMonth}
         {timeLogs}
       />
     </div>
     <div class="h-48 mt-4">
       <BarChart
-        {buttons}
+        {timers}
         {currentMonth}
         {timeLogs}
-        {onDateSelect}
+        {dateSelect}
       />
     </div>
   {/if}

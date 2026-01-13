@@ -1,16 +1,22 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  let {
+    email,
+    name = $bindable(),
+    originalName,
+    onsubmit,
+    onerror
+  }: {
+    email: string;
+    name: string;
+    originalName: string;
+    onsubmit: (data: { name: string }) => void;
+    onerror?: (message: string) => void;
+  } = $props();
 
-  export let email: string;
-  export let name: string;
-  export let originalName: string;
-
-  const dispatch = createEventDispatcher();
-
-  $: hasNameChanged = name !== originalName;
+  let hasNameChanged = $derived(name !== originalName);
 
   function handleSubmit() {
-    dispatch('submit', { name });
+    onsubmit({ name });
   }
 </script>
 
@@ -51,7 +57,7 @@
     </div>
 
     <button
-      on:click={handleSubmit}
+      onclick={handleSubmit}
       disabled={!hasNameChanged}
       class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
     >

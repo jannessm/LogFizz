@@ -10,10 +10,14 @@
 
 ### Initial Setup
 
-1. **Clone the repository:**
+1. **Clone the repository (use SSH if you have an SSH key configured):**
    ```bash
-   git clone https://github.com/jannessm/clock.git
+   # SSH (preferred if you have an SSH key configured)
+   git clone git@github.com:jannessm/clock.git
    cd clock
+
+   # OR HTTPS (works without SSH key, may prompt for credentials)
+   # git clone https://github.com/jannessm/clock.git
    ```
 
 2. **Set up the backend:**

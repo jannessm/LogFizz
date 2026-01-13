@@ -35,6 +35,22 @@ vi.mock('../services/api', () => ({
       updated_at: '2024-01-01T00:00:00Z',
     }),
   },
+  timerApi: {
+    sync: vi.fn().mockResolvedValue({ timers: [], cursor: '' }),
+    push: vi.fn().mockResolvedValue({ saved: [], conflicts: [] }),
+  },
+  timeLogApi: {
+    sync: vi.fn().mockResolvedValue({ timeLogs: [], cursor: '' }),
+    push: vi.fn().mockResolvedValue({ saved: [], conflicts: [] }),
+  },
+  targetApi: {
+    sync: vi.fn().mockResolvedValue({ targets: [], cursor: '' }),
+    push: vi.fn().mockResolvedValue({ saved: [], conflicts: [] }),
+  },
+  balanceApi: {
+    sync: vi.fn().mockResolvedValue({ balances: [], cursor: '' }),
+    push: vi.fn().mockResolvedValue({ saved: [], conflicts: [] }),
+  },
 }));
 
 vi.mock('../lib/db', () => ({
@@ -42,6 +58,20 @@ vi.mock('../lib/db', () => ({
   getUser: vi.fn().mockResolvedValue(null),
   clearUser: vi.fn().mockResolvedValue(undefined),
   clearAllData: vi.fn().mockResolvedValue(undefined),
+  saveTimer: vi.fn().mockResolvedValue(undefined),
+  deleteTimer: vi.fn().mockResolvedValue(undefined),
+  getAllTimers: vi.fn().mockResolvedValue([]),
+  saveTimeLog: vi.fn().mockResolvedValue(undefined),
+  deleteTimeLog: vi.fn().mockResolvedValue(undefined),
+  getAllTimeLogs: vi.fn().mockResolvedValue([]),
+  saveTarget: vi.fn().mockResolvedValue(undefined),
+  deleteTarget: vi.fn().mockResolvedValue(undefined),
+  getAllTargets: vi.fn().mockResolvedValue([]),
+  saveBalance: vi.fn().mockResolvedValue(undefined),
+  deleteBalance: vi.fn().mockResolvedValue(undefined),
+  getAllBalances: vi.fn().mockResolvedValue([]),
+  getSyncCursor: vi.fn().mockResolvedValue(null),
+  saveSyncCursor: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe('Auth Store', () => {

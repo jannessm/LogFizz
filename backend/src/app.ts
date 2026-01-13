@@ -4,20 +4,18 @@ import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import session from '@fastify/session';
 import RedisStore from 'fastify-session-redis-store';
-import websocket from '@fastify/websocket';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { AppDataSource } from './config/database.js';
 import { createRedisClient, getRedisClient } from './config/redis.js';
 import { authRoutes } from './routes/auth.routes.js';
-import { buttonRoutes } from './routes/button.routes.js';
+import { timerRoutes } from './routes/timer.routes.js';
 import { timeLogRoutes } from './routes/timelog.routes.js';
 import { holidayRoutes } from './routes/holiday.routes.js';
-import { dailyTargetRoutes } from './routes/daily-target.routes.js';
-import { websocketRoutes } from './routes/websocket.routes.js';
+import { targetRoutes } from './routes/target.routes.js';
 import { stateRoutes } from './routes/state.routes.js';
-import { monthlyBalanceRoutes } from './routes/monthly-balance.routes.js';
+import { balanceRoutes } from './routes/balance.routes.js';
 import { registerRateLimit } from './config/rateLimit.js';
 import { debugRoutes } from './routes/debug.routes.js';
 import './types/session.js';
@@ -74,17 +72,6 @@ export async function buildApp() {
 
   // Register cookie support
   await fastify.register(cookie);
-
-  // Register WebSocket support
-  await fastify.register(websocket, {
-    options: {
-      maxPayload: 1048576, // 1MB
-      verifyClient: ({ req }: { req: any }, next: (result: boolean) => void) => {
-        // Additional verification can be added here if needed
-        next(true);
-      }
-    }
-  });
 
   // Initialize Redis client for session storage
   const redis = createRedisClient();
@@ -159,11 +146,11 @@ export async function buildApp() {
       ],
       tags: [
         { name: 'Authentication', description: 'Authentication endpoints' },
-        { name: 'Buttons', description: 'Button management endpoints' },
+        { name: 'Timers', description: 'Timer management endpoints' },
         { name: 'TimeLogs', description: 'Time logging endpoints' },
         { name: 'Holidays', description: 'Holiday management endpoints' },
-        { name: 'DailyTargets', description: 'Daily target management endpoints' },
-        { name: 'MonthlyBalance', description: 'Monthly balance calculation endpoints' },
+        { name: 'Targets', description: 'Target management endpoints' },
+        { name: 'Balance', description: 'Balance management endpoints' },
         { name: 'States', description: 'German states reference endpoints' },
       ],
     },
@@ -179,13 +166,12 @@ export async function buildApp() {
 
   // Register routes
   await fastify.register(authRoutes, { prefix: '/api/auth' });
-  await fastify.register(buttonRoutes, { prefix: '/api/buttons' });
+  await fastify.register(timerRoutes, { prefix: '/api/timers' });
   await fastify.register(timeLogRoutes, { prefix: '/api/timelogs' });
   await fastify.register(holidayRoutes, { prefix: '/api/holidays' });
-  await fastify.register(dailyTargetRoutes, { prefix: '/api/targets' });
-  await fastify.register(monthlyBalanceRoutes, { prefix: '/api/monthly-balances' });
+  await fastify.register(targetRoutes, { prefix: '/api/targets' });
+  await fastify.register(balanceRoutes, { prefix: '/api/balances' });
   await fastify.register(stateRoutes, { prefix: '/api' });
-  await fastify.register(websocketRoutes, { prefix: '/api' });
 
   if (process.env.NODE_ENV !== 'production') {
     await fastify.register(debugRoutes, { prefix: '/api/debug' });

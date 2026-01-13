@@ -7,8 +7,8 @@ describe('Sync API - Offline-First', () => {
   let app: FastifyInstance;
   let sessionCookie: string;
   let userId: string;
-  let buttonId1: string;
-  let buttonId2: string;
+  let timerId1: string;
+  let timerId2: string;
   let timeLogId1: string;
 
   beforeAll(async () => {
@@ -22,7 +22,7 @@ describe('Sync API - Offline-First', () => {
   beforeEach(async () => {
     // Clean database - delete in order to respect foreign key constraints
     await AppDataSource.getRepository('TimeLog').deleteAll();
-    await AppDataSource.getRepository('Button').deleteAll();
+    await AppDataSource.getRepository('Timer').deleteAll();
     await AppDataSource.getRepository('User').deleteAll();
 
     // Register and login
@@ -49,18 +49,18 @@ describe('Sync API - Offline-First', () => {
     userId = JSON.parse(registerResponse.payload).id;
   });
 
-  describe('Button Sync - Client-Side UUID Generation', () => {
-    it('should accept client-generated UUID for new button', async () => {
+  describe('Timer Sync - Client-Side UUID Generation', () => {
+    it('should accept client-generated UUID for new timer', async () => {
       const clientUUID = '550e8400-e29b-41d4-a716-446655440000';
       
       const response = await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
+          timers: [{
             id: clientUUID,
-            name: 'Client Button',
+            name: 'Client Timer',
             auto_subtract_breaks: false,
           }],
         },
@@ -70,19 +70,19 @@ describe('Sync API - Offline-First', () => {
       const data = JSON.parse(response.payload);
       expect(data.saved).toHaveLength(1);
       expect(data.saved[0].id).toBe(clientUUID);
-      expect(data.saved[0].name).toBe('Client Button');
+      expect(data.saved[0].name).toBe('Client Timer');
       expect(data.cursor).toBeDefined();
     });
 
-    it('should create button with client UUID if not exists', async () => {
+    it('should create timer with client UUID if not exists', async () => {
       const clientUUID = '660e8400-e29b-41d4-a716-446655440001';
       
       const response = await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
+          timers: [{
             id: clientUUID,
             name: 'Offline Created',
             auto_subtract_breaks: true,
@@ -98,18 +98,18 @@ describe('Sync API - Offline-First', () => {
     });
   });
 
-  describe('Button Sync - Conflict Detection', () => {
+  describe('Timer Sync - Conflict Detection', () => {
     beforeEach(async () => {
-      // Create initial button via sync
-      buttonId1 = '550e8400-e29b-41d4-a716-446655441111';
+      // Create initial timer via sync
+      timerId1 = '550e8400-e29b-41d4-a716-446655441111';
       const createResponse = await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId1,
-            name: 'Initial Button',
+          timers: [{
+            id: timerId1,
+            name: 'Initial Timer',
             position: 0,
             auto_subtract_breaks: false,
           }],
@@ -121,43 +121,43 @@ describe('Sync API - Offline-First', () => {
     });
 
     it('should detect conflict when server is newer', async () => {
-      // Get current button with timestamp from sync endpoint
+      // Get current timer with timestamp from sync endpoint
       const getSyncResponse = await app.inject({
         method: 'GET',
-        url: '/api/buttons/sync?since=1970-01-01T00:00:00.000Z',
+        url: '/api/timers/sync?since=1970-01-01T00:00:00.000Z',
         headers: { cookie: sessionCookie },
       });
       const syncData = JSON.parse(getSyncResponse.payload);
-      const currentButton = syncData.buttons.find((b: any) => b.id === buttonId1);
+      const currentTimer = syncData.timers.find((t: any) => t.id === timerId1);
 
-      // Server updates the button via sync
+      // Server updates the timer via sync
       await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId1,
+          timers: [{
+            id: timerId1,
             name: 'Server Updated',
             auto_subtract_breaks: false,
           }],
         },
       });
 
-      // Wait for timestamp to be different
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // Wait for timestamp to be different (SQLite needs more time than PostgreSQL)
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Client tries to update with old timestamp
       const syncResponse = await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId1,
+          timers: [{
+            id: timerId1,
             name: 'Client Updated',
             auto_subtract_breaks: false,
-            updated_at: currentButton.updated_at, // Old timestamp
+            updated_at: currentTimer.updated_at, // Old timestamp
           }],
         },
       });
@@ -166,22 +166,22 @@ describe('Sync API - Offline-First', () => {
       const data = JSON.parse(syncResponse.payload);
       
       expect(data.conflicts).toHaveLength(1);
-      expect(data.conflicts[0].clientVersion.id).toBe(buttonId1);
-      expect(data.conflicts[0].serverVersion.id).toBe(buttonId1);
+      expect(data.conflicts[0].clientVersion.id).toBe(timerId1);
+      expect(data.conflicts[0].serverVersion.id).toBe(timerId1);
       expect(data.conflicts[0].clientVersion.name).toBe('Client Updated');
       expect(data.conflicts[0].serverVersion.name).toBe('Server Updated');
       expect(data.saved).toBeUndefined();
     });
 
     it('should save when client is newer', async () => {
-      // Get current button from sync endpoint
+      // Get current timer from sync endpoint
       const getSyncResponse = await app.inject({
         method: 'GET',
-        url: '/api/buttons/sync?since=1970-01-01T00:00:00.000Z',
+        url: '/api/timers/sync?since=1970-01-01T00:00:00.000Z',
         headers: { cookie: sessionCookie },
       });
       const syncData = JSON.parse(getSyncResponse.payload);
-      const currentButton = syncData.buttons.find((b: any) => b.id === buttonId1);
+      const currentTimer = syncData.timers.find((t: any) => t.id === timerId1);
 
       // Wait to ensure newer timestamp
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -190,11 +190,11 @@ describe('Sync API - Offline-First', () => {
       const futureDate = new Date(Date.now() + 1000).toISOString();
       const syncResponse = await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId1,
+          timers: [{
+            id: timerId1,
             name: 'Client Wins',
             position: 0,
             auto_subtract_breaks: false,
@@ -214,11 +214,11 @@ describe('Sync API - Offline-First', () => {
     it('should save when no updated_at provided (no conflict check)', async () => {
       const syncResponse = await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId1,
+          timers: [{
+            id: timerId1,
             name: 'No Timestamp Update',
             position: 0,
             auto_subtract_breaks: false,
@@ -233,70 +233,70 @@ describe('Sync API - Offline-First', () => {
       expect(data.saved[0].name).toBe('No Timestamp Update');
     });
 
-    it('should handle multiple buttons with mixed conflicts', async () => {
-      // Create second button via sync
-      buttonId2 = '550e8400-e29b-41d4-a716-446655442222';
+    it('should handle multiple timers with mixed conflicts', async () => {
+      // Create second timer via sync
+      timerId2 = '550e8400-e29b-41d4-a716-446655442222';
       await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId2,
-            name: 'Button 2',
+          timers: [{
+            id: timerId2,
+            name: 'Timer 2',
             position: 1,
             auto_subtract_breaks: false,
           }],
         },
       });
 
-      // Get both buttons from sync endpoint
+      // Get both timers from sync endpoint
       const getSyncResponse = await app.inject({
         method: 'GET',
-        url: '/api/buttons/sync?since=1970-01-01T00:00:00.000Z',
+        url: '/api/timers/sync?since=1970-01-01T00:00:00.000Z',
         headers: { cookie: sessionCookie },
       });
       const syncData = JSON.parse(getSyncResponse.payload);
-      const button1 = syncData.buttons.find((b: any) => b.id === buttonId1);
-      const button2 = syncData.buttons.find((b: any) => b.id === buttonId2);
+      const timer1 = syncData.timers.find((t: any) => t.id === timerId1);
+      const timer2 = syncData.timers.find((t: any) => t.id === timerId2);
 
-      // Update button1 on server via sync
+      // Update timer1 on server via sync
       await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId1,
-            name: 'Server Updated B1',
+          timers: [{
+            id: timerId1,
+            name: 'Server Updated T1',
             position: 0,
             auto_subtract_breaks: false,
           }],
         },
       });
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Client tries to sync both: button1 has conflict, button2 succeeds
+      // Client tries to sync both: timer1 has conflict, timer2 succeeds
       const syncResponse = await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [
+          timers: [
             {
-              id: buttonId1,
-              name: 'Client Updated B1',
+              id: timerId1,
+              name: 'Client Updated T1',
               position: 0,
               auto_subtract_breaks: false,
-              updated_at: button1.updated_at,
+              updated_at: timer1.updated_at,
             },
             {
-              id: buttonId2,
-              name: 'Client Updated B2',
+              id: timerId2,
+              name: 'Client Updated T2',
               position: 1,
               auto_subtract_breaks: true,
-              updated_at: button2.updated_at,
+              updated_at: timer2.updated_at,
             },
           ],
         },
@@ -306,19 +306,19 @@ describe('Sync API - Offline-First', () => {
       const data = JSON.parse(syncResponse.payload);
       
       expect(data.conflicts).toHaveLength(1);
-      expect(data.conflicts[0].clientVersion.id).toBe(buttonId1);
-      expect(data.conflicts[0].serverVersion.id).toBe(buttonId1);
+      expect(data.conflicts[0].clientVersion.id).toBe(timerId1);
+      expect(data.conflicts[0].serverVersion.id).toBe(timerId1);
       expect(data.saved).toHaveLength(1);
-      expect(data.saved[0].id).toBe(buttonId2);
-      expect(data.saved[0].name).toBe('Client Updated B2');
+      expect(data.saved[0].id).toBe(timerId2);
+      expect(data.saved[0].name).toBe('Client Updated T2');
     });
   });
 
-  describe('Button Sync - Cursor-Based Sync', () => {
+  describe('Timer Sync - Cursor-Based Sync', () => {
     it('should return cursor in GET sync response', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/buttons/sync?since=1970-01-01T00:00:00.000Z',
+        url: '/api/timers/sync?since=1970-01-01T00:00:00.000Z',
         headers: { cookie: sessionCookie },
       });
 
@@ -332,12 +332,12 @@ describe('Sync API - Offline-First', () => {
     it('should return cursor in POST sync response', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
+          timers: [{
             id: '770e8400-e29b-41d4-a716-446655440000',
-            name: 'Test Button',
+            name: 'Test Timer',
             position: 0,
             auto_subtract_breaks: false,
           }],
@@ -351,17 +351,17 @@ describe('Sync API - Offline-First', () => {
       expect(new Date(data.cursor).getTime()).toBeGreaterThan(0);
     });
 
-    it('should return only changed buttons since cursor', async () => {
-      // Create button 1 via sync
-      buttonId1 = '550e8400-e29b-41d4-a716-446655443333';
+    it('should return only changed timers since cursor', async () => {
+      // Create timer 1 via sync
+      timerId1 = '550e8400-e29b-41d4-a716-446655443333';
       await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId1,
-            name: 'Button 1',
+          timers: [{
+            id: timerId1,
+            name: 'Timer 1',
             position: 0,
             auto_subtract_breaks: false,
           }],
@@ -371,58 +371,58 @@ describe('Sync API - Offline-First', () => {
       // Get sync cursor
       const sync1 = await app.inject({
         method: 'GET',
-        url: '/api/buttons/sync?since=1970-01-01T00:00:00.000Z',
+        url: '/api/timers/sync?since=1970-01-01T00:00:00.000Z',
         headers: { cookie: sessionCookie },
       });
       const cursor1 = JSON.parse(sync1.payload).cursor;
 
       // Wait to ensure timestamp difference between cursor and next creation
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-      // Create button 2 after cursor via sync
-      buttonId2 = '550e8400-e29b-41d4-a716-446655444444';
+      // Create timer 2 after cursor via sync
+      timerId2 = '550e8400-e29b-41d4-a716-446655444444';
       await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId2,
-            name: 'Button 2',
+          timers: [{
+            id: timerId2,
+            name: 'Timer 2',
             position: 1,
             auto_subtract_breaks: false,
           }],
         },
       });
 
-      // Sync with cursor - should only return button 2
+      // Sync with cursor - should only return timer 2
       const sync2 = await app.inject({
         method: 'GET',
-        url: `/api/buttons/sync?since=${encodeURIComponent(cursor1)}`,
+        url: `/api/timers/sync?since=${encodeURIComponent(cursor1)}`,
         headers: { cookie: sessionCookie },
       });
 
       expect(sync2.statusCode).toBe(200);
       const data = JSON.parse(sync2.payload);
       
-      expect(data.buttons).toHaveLength(1);
-      expect(data.buttons[0].id).toBe(buttonId2);
-      expect(data.buttons[0].name).toBe('Button 2');
+      expect(data.timers).toHaveLength(1);
+      expect(data.timers[0].id).toBe(timerId2);
+      expect(data.timers[0].name).toBe('Timer 2');
     });
   });
 
   describe('TimeLog Sync - Client-Side UUID Generation', () => {
     beforeEach(async () => {
-      // Create a button via sync
-      buttonId1 = '550e8400-e29b-41d4-a716-446655448888';
+      // Create a timer via sync
+      timerId1 = '550e8400-e29b-41d4-a716-446655448888';
       await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId1,
-            name: 'Test Button',
+          timers: [{
+            id: timerId1,
+            name: 'Test Timer',
             position: 0,
             auto_subtract_breaks: false,
           }],
@@ -440,7 +440,7 @@ describe('Sync API - Offline-First', () => {
         payload: {
           timeLogs: [{
             id: clientUUID,
-            button_id: buttonId1,
+            timer_id: timerId1,
             start_timestamp: new Date().toISOString(),
             timezone: 'Europe/Berlin',
           }],
@@ -459,16 +459,16 @@ describe('Sync API - Offline-First', () => {
 
   describe('TimeLog Sync - Conflict Detection', () => {
     beforeEach(async () => {
-      // Create button via sync
-      buttonId1 = '550e8400-e29b-41d4-a716-446655445555';
+      // Create timer via sync
+      timerId1 = '550e8400-e29b-41d4-a716-446655445555';
       await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId1,
-            name: 'Test Button',
+          timers: [{
+            id: timerId1,
+            name: 'Test Timer',
             position: 0,
             auto_subtract_breaks: false,
           }],
@@ -485,7 +485,7 @@ describe('Sync API - Offline-First', () => {
           timeLogs: [
             {
               id: timeLogId1,
-              button_id: buttonId1,
+              timer_id: timerId1,
               start_timestamp: new Date(Date.now() - 3600000).toISOString(),
               end_timestamp: new Date().toISOString(),
               timezone: 'Europe/Berlin',
@@ -516,7 +516,7 @@ describe('Sync API - Offline-First', () => {
         payload: {
           timeLogs: [{
             id: timeLogId1,
-            button_id: buttonId1,
+            timer_id: timerId1,
             start_timestamp: currentLog.start_timestamp,
             end_timestamp: currentLog.end_timestamp,
             timezone: currentLog.timezone,
@@ -525,7 +525,7 @@ describe('Sync API - Offline-First', () => {
         },
       });
 
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Client tries to update with old timestamp
       const syncResponse = await app.inject({
@@ -535,7 +535,7 @@ describe('Sync API - Offline-First', () => {
         payload: {
           timeLogs: [{
             id: timeLogId1,
-            button_id: buttonId1,
+            timer_id: timerId1,
             start_timestamp: currentLog.start_timestamp,
             end_timestamp: currentLog.end_timestamp,
             timezone: currentLog.timezone,
@@ -576,7 +576,7 @@ describe('Sync API - Offline-First', () => {
         payload: {
           timeLogs: [{
             id: timeLogId1,
-            button_id: buttonId1,
+            timer_id: timerId1,
             start_timestamp: currentLog.start_timestamp,
             end_timestamp: currentLog.end_timestamp,
             timezone: currentLog.timezone,
@@ -597,16 +597,16 @@ describe('Sync API - Offline-First', () => {
 
   describe('TimeLog Sync - Cursor-Based Sync', () => {
     beforeEach(async () => {
-      // Create button via sync
-      buttonId1 = '550e8400-e29b-41d4-a716-446655446666';
+      // Create timer via sync
+      timerId1 = '550e8400-e29b-41d4-a716-446655446666';
       await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId1,
-            name: 'Test Button',
+          timers: [{
+            id: timerId1,
+            name: 'Test Timer',
             position: 0,
             auto_subtract_breaks: false,
           }],
@@ -639,7 +639,7 @@ describe('Sync API - Offline-First', () => {
           timeLogs: [
             {
               id: log1Id,
-              button_id: buttonId1,
+              timer_id: timerId1,
               start_timestamp: new Date(Date.now() - 7200000).toISOString(),
               end_timestamp: new Date(Date.now() - 3600000).toISOString(),
               timezone: 'Europe/Berlin',
@@ -657,7 +657,7 @@ describe('Sync API - Offline-First', () => {
       const cursor1 = JSON.parse(sync1.payload).cursor;
 
       // Wait to ensure timestamp difference between cursor and next creation
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       // Create log 2 after cursor via sync
       const log2Id = '660e8400-e29b-41d4-a716-446655440013';
@@ -669,7 +669,7 @@ describe('Sync API - Offline-First', () => {
           timeLogs: [
             {
               id: log2Id,
-              button_id: buttonId1,
+              timer_id: timerId1,
               start_timestamp: new Date(Date.now() - 1800000).toISOString(),
               end_timestamp: new Date().toISOString(),
               timezone: 'Europe/Berlin',
@@ -700,15 +700,15 @@ describe('Sync API - Offline-First', () => {
 
   describe('Sync - Soft Delete Handling', () => {
     beforeEach(async () => {
-      // Create button via sync
-      buttonId1 = '550e8400-e29b-41d4-a716-446655447777';
+      // Create timer via sync
+      timerId1 = '550e8400-e29b-41d4-a716-446655447777';
       await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId1,
+          timers: [{
+            id: timerId1,
             name: 'To Delete',
             position: 0,
             auto_subtract_breaks: false,
@@ -717,15 +717,15 @@ describe('Sync API - Offline-First', () => {
       });
     });
 
-    it('should sync soft-deleted buttons', async () => {
-      // Delete button via sync (set deleted_at)
+    it('should sync soft-deleted timers', async () => {
+      // Delete timer via sync (set deleted_at)
       await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
-            id: buttonId1,
+          timers: [{
+            id: timerId1,
             name: 'To Delete',
             position: 0,
             auto_subtract_breaks: false,
@@ -734,31 +734,31 @@ describe('Sync API - Offline-First', () => {
         },
       });
 
-      // Sync should include deleted button
+      // Sync should include deleted timer
       const syncResponse = await app.inject({
         method: 'GET',
-        url: '/api/buttons/sync?since=1970-01-01T00:00:00.000Z',
+        url: '/api/timers/sync?since=1970-01-01T00:00:00.000Z',
         headers: { cookie: sessionCookie },
       });
 
       expect(syncResponse.statusCode).toBe(200);
       const data = JSON.parse(syncResponse.payload);
       
-      const deletedButton = data.buttons.find((b: any) => b.id === buttonId1);
-      expect(deletedButton).toBeDefined();
-      expect(deletedButton.deleted_at).toBeDefined();
-      expect(deletedButton.deleted_at).not.toBeNull();
+      const deletedTimer = data.timers.find((t: any) => t.id === timerId1);
+      expect(deletedTimer).toBeDefined();
+      expect(deletedTimer.deleted_at).toBeDefined();
+      expect(deletedTimer.deleted_at).not.toBeNull();
     });
 
-    it('should accept soft-deleted button from client', async () => {
+    it('should accept soft-deleted timer from client', async () => {
       const clientUUID = '990e8400-e29b-41d4-a716-446655440000';
       
       const response = await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
+          timers: [{
             id: clientUUID,
             name: 'Deleted on Client',
             position: 0,
@@ -780,7 +780,7 @@ describe('Sync API - Offline-First', () => {
     it('should return 400 for invalid timestamp format', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/buttons/sync?since=invalid-date',
+        url: '/api/timers/sync?since=invalid-date',
         headers: { cookie: sessionCookie },
       });
 
@@ -792,7 +792,7 @@ describe('Sync API - Offline-First', () => {
     it('should require authentication for sync', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/buttons/sync?since=1970-01-01T00:00:00.000Z',
+        url: '/api/timers/sync?since=1970-01-01T00:00:00.000Z',
       });
 
       expect(response.statusCode).toBe(401);
@@ -801,10 +801,10 @@ describe('Sync API - Offline-First', () => {
     it('should validate required fields in sync POST', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/buttons/sync',
+        url: '/api/timers/sync',
         headers: { cookie: sessionCookie },
         payload: {
-          buttons: [{
+          timers: [{
             id: '123e4567-e89b-12d3-a456-426614174000',
             // Missing required field: name
             position: 0,

@@ -34,7 +34,10 @@ export class AuthService {
       email_verification_expires_at: verificationExpiresAt,
     });
 
-    const newUser = await this.userRepository.save(user);
+    await this.userRepository.save(user);
+    // Reload to get auto-generated timestamps
+    const newUser = await this.userRepository.findOne({ where: { id: user.id } });
+    if (!newUser) throw new Error('Failed to create user');
 
     // Send welcome email with verification link (async, don't wait)
     this.emailService.sendWelcomeEmail(newUser.email, verificationToken, newUser.name)
@@ -71,7 +74,9 @@ export class AuthService {
     }
 
     Object.assign(user, updates);
-    const updatedUser = await this.userRepository.save(user);
+    await this.userRepository.save(user);
+    // Reload to get auto-generated timestamps
+    const updatedUser = await this.userRepository.findOne({ where: { id: user.id } });
 
     return updatedUser;
   }
@@ -134,6 +139,8 @@ export class AuthService {
       whereCondition.email = email.toLowerCase().trim();
     }
 
+    console.log('Reset password where condition:', whereCondition);
+
     const user = await this.userRepository.findOne({
       where: whereCondition,
     });
@@ -151,7 +158,7 @@ export class AuthService {
     return true;
   }
 
-  async verifyEmail(token: string): Promise<boolean> {
+  async verifyEmail(token: string, userId: string): Promise<boolean | { error: 'wrong_user' }> {
     const user = await this.userRepository.findOne({
       where: {
         email_verification_token: token,
@@ -164,6 +171,36 @@ export class AuthService {
       return false;
     }
 
+    // Check if the token belongs to the authenticated user
+    if (user.id !== userId) {
+      // Generate a new verification token for the correct user
+      const newVerificationToken = crypto.randomBytes(32).toString('hex');
+      const verificationExpiresAt = new Date();
+      verificationExpiresAt.setHours(verificationExpiresAt.getHours() + 24);
+
+      user.email_verification_token = newVerificationToken;
+      user.email_verification_expires_at = verificationExpiresAt;
+      await this.userRepository.save(user);
+
+      // Get the authenticated user who tried to verify
+      const authenticatedUser = await this.getUserById(userId);
+      const attemptedByEmail = authenticatedUser?.email || 'another account';
+
+      // Send new verification email with security notice
+      try {
+        await this.emailService.sendVerificationWithSecurityNotice(
+          user.email,
+          newVerificationToken,
+          user.name,
+          attemptedByEmail
+        );
+      } catch (error) {
+        console.error('Failed to send verification email with security notice:', error);
+      }
+
+      return { error: 'wrong_user' };
+    }
+
     // Mark email as verified and clear verification token
     user.email_verified_at = new Date();
     user.email_verification_token = null as any;
@@ -171,6 +208,18 @@ export class AuthService {
     await this.userRepository.save(user);
 
     return true;
+  }
+
+  private maskEmail(email: string): string {
+    const [localPart, domain] = email.split('@');
+    if (!localPart || !domain) return email;
+    
+    // Show first character and last character before @ if long enough
+    if (localPart.length <= 2) {
+      return `${localPart[0]}***@${domain}`;
+    }
+    
+    return `${localPart[0]}***${localPart[localPart.length - 1]}@${domain}`;
   }
 
   async resendVerificationEmail(email: string): Promise<boolean> {

@@ -2,43 +2,44 @@
   import { onMount, onDestroy } from 'svelte';
   import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
   import { numberToHoursMinutes } from '../../lib/chart_utils';
-  import { createEventDispatcher } from 'svelte';
   import dayjs from 'dayjs';
-  
-  export let buttons: any[];
-  export let currentMonth: any;
-  export let timeLogs: any[];
-  export let onDateSelect: ((date: any) => void) | undefined = undefined;
-  
-  const dispatch = createEventDispatcher();
 
-  let labels: string[];
-  let title: string = '';
+  let { timers, currentMonth, timeLogs, dateSelect }: {
+    timers: any[];
+    currentMonth: any;
+    timeLogs: any[];
+    dateSelect?: ((date: any) => void);
+  } = $props();
+  
+  let labels: string[] = $state([]);
+  let title: string = $state('');
 
-  let canvas: HTMLCanvasElement;
-  let chart: Chart | null = null;
-  let refreshTick = 0; // Used to trigger reactivity for running sessions
+  let canvas: HTMLCanvasElement | null = $state(null);
+  let chart: Chart | null = $state(null);
+  let refreshTick = $state(0); // Used to trigger reactivity for running sessions
   let intervalId: number | undefined;
-  let chartCreated = false;
+  let chartCreated = $state(false);
 
   // Update chart when data changes
-  $: if (canvas && (timeLogs.length > 0 || refreshTick) && buttons.length > 0) {
-    const daysInMonth = currentMonth.daysInMonth();
-    labels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
-    updateChart();
-  }
+  $effect(() => {
+    if (canvas && (timeLogs.length > 0 || refreshTick) && timers.length > 0) {
+      const daysInMonth = currentMonth.daysInMonth();
+      labels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
+      updateChart();
+    }
+  });
 
-  // Calculate daily stats per button for stacked bar chart
-  function getDailyStatsPerButton() {
+  // Calculate daily stats per timer for stacked bar chart
+  function getDailyStatsPerTimer() {
     const daysInMonth = currentMonth.daysInMonth();
     const now = dayjs();
-    
-    // Create a map to store daily durations per button
+
+    // Create a map to store daily durations per timer
     const buttonDailyData = new Map<string, number[]>();
     
     // Initialize arrays for each button
-    buttons.forEach(button => {
-      buttonDailyData.set(button.id, new Array(daysInMonth).fill(0));
+    timers.forEach(timer => {
+      buttonDailyData.set(timer.id, new Array(daysInMonth).fill(0));
     });
     
     for (let day = 1; day <= daysInMonth; day++) {
@@ -66,7 +67,7 @@
         }
         
         if (duration !== undefined && duration !== null) {
-          const buttonData = buttonDailyData.get(log.button_id);
+          const buttonData = buttonDailyData.get(log.timer_id);
           if (buttonData) {
             buttonData[day - 1] += duration / 60; // Convert to hours
           }
@@ -80,27 +81,27 @@
   function updateChart() {
     if (!canvas) return;
 
-    // Get stacked data per button
-    const buttonDailyData = getDailyStatsPerButton();
+    // Get stacked data per timer
+    const timerDailyData = getDailyStatsPerTimer();
 
-    // Create datasets for each button
-    const datasets = buttons.map(button => {
-      const buttonData = buttonDailyData.get(button.id) || [];
+    // Create datasets for each timer
+    const datasets = timers.map(timer => {
+      const timerData = timerDailyData.get(timer.id) || [];
       return {
-        label: button.name,
-        data: buttonData,
-        backgroundColor: button.color || '#3B82F6',
-        borderColor: button.color || '#3B82F6',
+        label: timer.name,
+        data: timerData,
+        backgroundColor: timer.color || '#3B82F6',
+        borderColor: timer.color || '#3B82F6',
         borderWidth: 1
       };
     });
 
     // If chart exists, update data without animation
     if (chart) {
-  chart.data.labels = labels;
-  chart.data.datasets = datasets as any;
-  (chart.options as any).animation = false;
-  chart.update();
+      chart.data.labels = labels;
+      chart.data.datasets = datasets as any;
+      (chart.options as any).animation = false;
+      chart.update();
       chartCreated = true;
       return;
     }
@@ -123,12 +124,9 @@
             const selectedDate = currentMonth.date(dayNumber);
             
             // Call the callback if provided
-            if (onDateSelect) {
-              onDateSelect(selectedDate);
+            if (dateSelect) {
+              dateSelect(selectedDate);
             }
-            
-            // Dispatch event for parent components
-            dispatch('dateSelect', { date: selectedDate });
           }
         },
         scales: {

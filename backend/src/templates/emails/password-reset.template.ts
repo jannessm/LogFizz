@@ -4,6 +4,7 @@ export interface PasswordResetEmailData {
   userName: string;
   resetUrl: string;
   appUrl: string;
+  email: string;
 }
 
 /**

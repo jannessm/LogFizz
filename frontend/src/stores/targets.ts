@@ -1,217 +1,126 @@
-import { writable, derived } from 'svelte/store';
-import type { DailyTarget } from '../types';
-import { saveTarget, getAllTargets, deleteTarget as deleteTargetDB, getSyncCursor, saveSyncCursor } from '../lib/db';
+import { derived, get } from 'svelte/store';
+import type { TargetWithSpecs } from '../types';
+import { saveTarget, getAllTargets, deleteTarget as deleteTargetDB } from '../lib/db';
 import { syncService } from '../services/sync';
-import { targetApi, isOnline } from '../services/api';
+import { createBaseStore, type BaseStoreConfig, mapToArray } from './base-store';
+import { holidaysStore } from './holidays';
+import { timers } from './timers'; 
+import dayjs from '../../../lib/utils/dayjs.js';
 
-interface TargetsStore {
-  targets: DailyTarget[];
-  isLoading: boolean;
-  error: string | null;
-}
-
-function createTargetsStore() {
-  const { subscribe, set, update } = writable<TargetsStore>({
-    targets: [],
-    isLoading: false,
-    error: null,
-  });
-
-  return {
-    subscribe,
-    
-    async load() {
-      update(state => ({ ...state, isLoading: true, error: null }));
-      try {
-        // Load from local DB first
-        const localTargets = await getAllTargets();
-        update(state => ({ ...state, targets: localTargets.filter(t => !t.deleted_at), isLoading: false }));
-
-        // Try to pull incremental changes from server if online
-        if (isOnline()) {
-          try {
-            // Get last sync cursor
-            let cursor = await getSyncCursor('targets');
-            if (!cursor) {
-              // First sync - use epoch time to get all data
-              cursor = new Date(0).toISOString();
-            }
-            
-            const result = await targetApi.getSyncChanges(cursor);
-            
-            // Apply changes to local DB
-            for (const target of result.targets) {
-              if ((target as any).deleted_at) {
-                // Target was deleted on server
-                await deleteTargetDB(target.id);
-              } else {
-                await saveTarget(target);
-              }
-            }
-            
-            // Save new cursor
-            await saveSyncCursor('targets', result.cursor);
-            
-            // Reload from DB to reflect changes
-            const updatedTargets = await getAllTargets();
-            update(state => ({ ...state, targets: updatedTargets.filter(t => !t.deleted_at) }));
-          } catch (error) {
-            console.error('Failed to sync targets from server:', error);
+/**
+ * Configuration for the targets store
+ * Targets define work schedules with target hours per weekday
+ * Each target contains nested target_specs for different date ranges
+ */
+const targetStoreConfig: BaseStoreConfig<TargetWithSpecs> = {
+  db: {
+    getAll: getAllTargets,
+    save: saveTarget,
+    delete: deleteTargetDB,
+  },
+  sync: {
+    queueUpsert: syncService.queueUpsertTarget.bind(syncService),
+    queueDelete: syncService.queueDeleteTarget.bind(syncService),
+    syncType: 'target',
+  },
+  hooks: {
+    afterLoad: (items) => {
+      // Pre-fetch holidays for all state codes referenced in target_specs
+      const stateCodes: string[] = [];
+      for (const target of items) {
+        for (const spec of target.target_specs || []) {
+          if (spec.state_code) {
+            stateCodes.push(spec.state_code);
           }
         }
-      } catch (error: any) {
-        update(state => ({ 
-          ...state, 
-          error: error.message,
-          isLoading: false 
-        }));
       }
+      if (stateCodes.length > 0) {
+        holidaysStore.fetchHolidaysForStates(
+          stateCodes,
+          dayjs().year(),
+        );
+      }
+      return items;
+    },
+  },
+  storeName: 'Target',
+};
+
+const baseStore = createBaseStore<TargetWithSpecs>(targetStoreConfig);
+
+/**
+ * Creates the targets store with custom create method
+ * @returns Enhanced targets store with CRUD operations
+ */
+function createTargetsStore() {
+  return {
+    ...baseStore,
+
+    /**
+     * Create a new target with nested target_specs
+     * @param targetData - Partial target data
+     * @returns Created target
+     */
+    async create(targetData: Partial<TargetWithSpecs>) {
+      return baseStore.create({
+        id: crypto.randomUUID(),
+        user_id: '',
+        name: targetData.name || '',
+        target_specs: targetData.target_specs || [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
     },
 
-    async create(targetData: Partial<DailyTarget>) {
-      update(state => ({ ...state, isLoading: true, error: null }));
-      try {
-        const target: DailyTarget = {
-          id: crypto.randomUUID(),
-          user_id: '',
-          name: targetData.name || '',
-          duration_minutes: targetData.duration_minutes || [60], // Default to 60 minutes
-          weekdays: targetData.weekdays || [1, 2, 3, 4, 5], // Default to weekdays
-          exclude_holidays: targetData.exclude_holidays || false,
-          state_code: targetData.state_code,
-          starting_from: targetData.starting_from,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        // Save locally immediately
-        await saveTarget(target);
-        
-        // Queue for sync
-        await syncService.queueTargetCreate(target);
-        
-        // Update UI
-        update(state => ({ 
-          ...state, 
-          targets: [...state.targets, target],
-          isLoading: false 
-        }));
-        
-        return target;
-      } catch (error: any) {
-        update(state => ({ 
-          ...state, 
-          error: error.message,
-          isLoading: false 
-        }));
-        throw error;
+    async getTargetsByTimerIds(timerIds: string[]): Promise<TargetWithSpecs[]> {
+      if (timerIds.length > 0) {
+        return [];
       }
-    },
 
-    async update(id: string, targetData: Partial<DailyTarget>) {
-      update(state => ({ ...state, isLoading: true, error: null }));
-      try {
-        // Get current target to merge with updates
-        let currentTarget: DailyTarget | undefined;
-        update(state => {
-          currentTarget = state.targets.find(t => t.id === id);
-          return state;
-        });
-
-        if (!currentTarget) {
-          throw new Error(`Target ${id} not found`);
-        }
-
-        const updatedTarget: DailyTarget = {
-          ...currentTarget,
-          ...targetData,
-          id,
-          updated_at: new Date().toISOString(),
-        };
-
-        // Save locally immediately
-        await saveTarget(updatedTarget);
-        
-        // Queue for sync
-        await syncService.queueTargetUpdate(updatedTarget);
-        
-        // Update UI
-        update(state => ({ 
-          ...state, 
-          targets: state.targets.map(t => t.id === id ? updatedTarget : t),
-          isLoading: false 
-        }));
-        
-        return updatedTarget;
-      } catch (error: any) {
-        update(state => ({ 
-          ...state, 
-          error: error.message,
-          isLoading: false 
-        }));
-        throw error;
-      }
-    },
-
-    async delete(id: string) {
-      update(state => ({ ...state, isLoading: true, error: null }));
-      try {
-        // Soft delete locally
-        const deletedTarget: Partial<DailyTarget> = {
-          id,
-          deleted_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        
-        // Queue for sync
-        await syncService.queueTargetDelete(id);
-        
-        // Remove from UI immediately
-        update(state => ({ 
-          ...state, 
-          targets: state.targets.filter(t => t.id !== id),
-          isLoading: false 
-        }));
-      } catch (error: any) {
-        update(state => ({ 
-          ...state, 
-          error: error.message,
-          isLoading: false 
-        }));
-        throw error;
-      }
-    },
-
-    // Method to handle sync updates
-    async applySync(targets: DailyTarget[]) {
-      const activeTargets = targets.filter(t => !t.deleted_at);
+      const _targets = get(targets);
+      const _timers = get(timers).filter(t => !!timerIds.find(i => t.id == i));
       
-      // Save all to local DB
-      for (const target of targets) {
-        if (target.deleted_at) {
-          await deleteTargetDB(target.id);
-        } else {
-          await saveTarget(target);
-        }
+      if (_timers.length == 0) {
+        return [];
       }
-      
-      // Update UI with active targets only
-      update(state => ({ ...state, targets: activeTargets }));
-    },
-
-    clearError() {
-      update(state => ({ ...state, error: null }));
-    },
+      return _targets.filter(target => _timers.find(t => target.id == t.target_id));
+    }
   };
 }
 
+/** Main targets store - manages work schedule targets */
 export const targetsStore = createTargetsStore();
 
-// Derived store for today's targets
+/** Derived store providing direct access to targets array */
+export const targets = derived(
+  targetsStore,
+  ($store) => mapToArray($store.items)
+);
+
+/**
+ * Derived store for targets active today
+ * Filters targets that have a target_spec matching today's date and weekday
+ */
 export const todayTargets = derived(
   targetsStore,
   ($targetsStore) => {
-    const today = new Date().getDay();
-    return $targetsStore.targets.filter(t => t.weekdays.includes(today));
+    const today = dayjs();
+    const todayWeekday = today.day(); // 0=Sunday, 6=Saturday
+    
+    return mapToArray($targetsStore.items).filter(target => {
+      for (const spec of target.target_specs || []) {
+        const startDate = dayjs(spec.starting_from);
+        const endDate = spec.ending_at ? dayjs(spec.ending_at) : null;
+        
+        if (today.isBefore(startDate, 'day')) continue;
+        if (endDate && today.isAfter(endDate, 'day')) continue;
+        
+        // Check if today has a duration > 0 in this spec
+        if (spec.duration_minutes[todayWeekday] > 0) {
+          return true;
+        }
+      }
+      return false;
+    });
   }
 );

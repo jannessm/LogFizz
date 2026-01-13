@@ -2,8 +2,8 @@ import { writable } from 'svelte/store';
 import type { User } from '../types';
 import { authApi } from '../services/api';
 import { saveUser, getUser, clearAllData } from '../lib/db';
-import { wsService } from '../services/websocket';
 import type { HTTPError } from 'ky';
+import { syncService } from '../services/sync';
 
 interface AuthStore {
   user: User | null;
@@ -35,7 +35,6 @@ function createAuthStore() {
             isAuthenticated: true,
             isLoading: false 
           }));
-          wsService.setAuthenticated(true);
         }
 
         // Try to fetch from API if online
@@ -49,12 +48,10 @@ function createAuthStore() {
             isLoading: false,
             error: null
           }));
-          wsService.setAuthenticated(true);
         } catch (error) {
           let herror = error as HTTPError;
           if (!!herror.response && herror.response.status === 401) {
             // Unauthorized - clear local user
-            wsService.setAuthenticated(false);
             await clearAllData();
             set({
               user: null,
@@ -71,11 +68,9 @@ function createAuthStore() {
                 isAuthenticated: false,
                 isLoading: false 
               }));
-              wsService.setAuthenticated(false);
             } else {
               console.log(error);
               update(state => ({ ...state, isLoading: false }));
-              // Keep WebSocket connected if we have a local user
             }
           }
         }
@@ -99,7 +94,6 @@ function createAuthStore() {
           isAuthenticated: true,
           isLoading: false 
         }));
-        wsService.setAuthenticated(true);
         return user;
       } catch (error: any) {
         const errorMessage = error.response?.data?.message || 'Login failed';
@@ -123,7 +117,6 @@ function createAuthStore() {
           isAuthenticated: true,
           isLoading: false 
         }));
-        wsService.setAuthenticated(true);
         return user;
       } catch (error: any) {
         const errorMessage = error.response?.data?.message || 'Registration failed';
@@ -143,7 +136,6 @@ function createAuthStore() {
       } catch (error) {
         console.error('Logout API call failed:', error);
       } finally {
-        wsService.setAuthenticated(false);
         await clearAllData();
         set({
           user: null,

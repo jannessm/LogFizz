@@ -1,29 +1,32 @@
 import { openDB } from 'idb';
 import type { DBSchema, IDBPDatabase } from 'idb';
-import type { Button, TimeLog, User, SyncQueueItem, DailyTarget, MonthlyBalance } from '../../types';
+import type { Timer, TimeLog, User, SyncQueueItem, Balance, Holiday, BalanceCalcMeta } from '../../types';
+import type { TargetWithSpecs } from '../../types';
+import { dayjs, userTimezone } from '../../../../lib/utils/dayjs.js';
 
-interface ClockDB extends DBSchema {
-  buttons: {
+interface TapShiftDB extends DBSchema {
+  timers: {
     key: string;
-    value: Button;
+    value: Timer;
   };
   timelogs: {
     key: string;
     value: TimeLog;
     indexes: { 
-      'by-button': string;
-      'by-start': string;
+      'by-timer': string;
+      'by-year-month': [number, number];
     };
   };
   targets: {
     key: string;
-    value: DailyTarget;
+    value: TargetWithSpecs;
   };
-  monthlyBalances: {
+  balances: {
     key: string;
-    value: MonthlyBalance;
+    value: Balance;
     indexes: {
-      'by-year-month': [number, number];
+      'by-date': string;
+      'by-target-id': string;
     };
   };
   syncQueue: {
@@ -41,31 +44,39 @@ interface ClockDB extends DBSchema {
   states: {
     key: string;
     value: any;
-  }
+  };
+  holidays: {
+    key: string;
+    value: Holiday & { cacheKey: string }; // cacheKey = country-year
+    indexes: {
+      'by-country-year': string;
+      'by-date': string;
+    };
+  };
 }
 
-const DB_NAME = 'tapshift-db';
-const DB_VERSION = 2;
+const DB_NAME = 'tapshift';
+const DB_VERSION = 2; // Incremented to add holidays store
 
-let dbInstance: IDBPDatabase<ClockDB> | null = null;
+let dbInstance: IDBPDatabase<TapShiftDB> | null = null;
 
-export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
+export async function getDB(): Promise<IDBPDatabase<TapShiftDB>> {
   if (dbInstance) {
     return dbInstance;
   }
 
-  dbInstance = await openDB<ClockDB>(DB_NAME, DB_VERSION, {
+  dbInstance = await openDB<TapShiftDB>(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion) {
-      // Buttons store
-      if (!db.objectStoreNames.contains('buttons')) {
-        const buttonStore = db.createObjectStore('buttons', { keyPath: 'id' });
+      // Timers store (formerly buttons)
+      if (!db.objectStoreNames.contains('timers')) {
+        db.createObjectStore('timers', { keyPath: 'id' });
       }
 
       // TimeLogs store
       if (!db.objectStoreNames.contains('timelogs')) {
         const timelogStore = db.createObjectStore('timelogs', { keyPath: 'id' });
-        timelogStore.createIndex('by-button', 'button_id');
-        timelogStore.createIndex('by-start', 'timestamp');
+        timelogStore.createIndex('by-timer', 'timer_id');
+        timelogStore.createIndex('by-year-month', ['year', 'month']);
       }
 
       // Sync queue store
@@ -90,13 +101,22 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
 
       // States store
       if (!db.objectStoreNames.contains('states')) {
-        db.createObjectStore('states', { keyPath: 'id' });
+        db.createObjectStore('states', { keyPath: 'code' });
       }
 
-      // Monthly Balances store (added in version 2)
-      if (!db.objectStoreNames.contains('monthlyBalances')) {
-        const monthlyBalanceStore = db.createObjectStore('monthlyBalances', { keyPath: 'id' });
-        monthlyBalanceStore.createIndex('by-year-month', ['year', 'month']);
+      // Balances store (unified for daily/monthly/yearly)
+      // ID is composite: {target_id}_{date}
+      if (!db.objectStoreNames.contains('balances')) {
+        const balanceStore = db.createObjectStore('balances', { keyPath: 'id' });
+        balanceStore.createIndex('by-date', 'date');
+        balanceStore.createIndex('by-target-id', 'target_id');
+      }
+
+      // Holidays store
+      if (!db.objectStoreNames.contains('holidays')) {
+        const holidayStore = db.createObjectStore('holidays', { keyPath: 'id' });
+        holidayStore.createIndex('by-country-year', 'cacheKey');
+        holidayStore.createIndex('by-date', 'date');
       }
     },
   });
@@ -104,48 +124,57 @@ export async function getDB(): Promise<IDBPDatabase<ClockDB>> {
   return dbInstance;
 }
 
-// Button operations
-export async function saveButton(button: Button): Promise<void> {
+// Timer operations (formerly Button)
+export async function saveTimer(timer: Timer): Promise<void> {
   const db = await getDB();
-  await db.put('buttons', button);
+  await db.put('timers', timer);
 }
 
-export async function getButton(id: string): Promise<Button | undefined> {
+export async function getTimer(id: string): Promise<Timer | undefined> {
   const db = await getDB();
-  return db.get('buttons', id);
+  return db.get('timers', id);
 }
 
-export async function getAllButtons(): Promise<Button[]> {
+export async function getAllTimers(): Promise<Timer[]> {
   const db = await getDB();
-  return db.getAll('buttons');
+  return db.getAll('timers');
 }
 
-export async function deleteButton(id: string): Promise<void> {
+export async function deleteTimer(timer: Timer): Promise<void> {
   const db = await getDB();
-  await db.delete('buttons', id);
+  await db.delete('timers', timer.id);
 }
 
 // TimeLog operations
 export async function saveTimeLog(timelog: TimeLog): Promise<void> {
   const db = await getDB();
   
-  // Calculate duration if it's 0 or undefined and we have both timestamps
+  // For special types (non-normal), preserve duration from backend
+  // For normal type, calculate duration if it's 0 or undefined and we have both timestamps
   let finalTimelog = timelog;
-  if (timelog.start_timestamp && timelog.end_timestamp) {
+  const type = timelog.type || 'normal';
+  // set month and year for indexing
+  finalTimelog = {
+    ...timelog,
+    month: dayjs(timelog.start_timestamp).tz(userTimezone).month() + 1,
+    year: dayjs(timelog.start_timestamp).tz(userTimezone).year(),
+  };
+
+  if (type === 'normal' && timelog.start_timestamp && timelog.end_timestamp) {
     
     // Determine whether to apply break calculation
-    // Priority: timelog's explicit setting > button's auto_subtract_breaks > false
+    // Priority: timelog's explicit setting > timer's auto_subtract_breaks > false
     let applyBreaks = timelog.apply_break_calculation;
     
-    // Only check button setting if apply_break_calculation is not explicitly set
-    if (applyBreaks === undefined && timelog.button_id) {
+    // Only check timer setting if apply_break_calculation is not explicitly set
+    if (applyBreaks === undefined && timelog.timer_id) {
       try {
-        const button = await getButton(timelog.button_id);
-        if (button) {
-          applyBreaks = button.auto_subtract_breaks;
+        const timer = await getTimer(timelog.timer_id);
+        if (timer) {
+          applyBreaks = timer.auto_subtract_breaks;
         }
       } catch (err) {
-        console.warn('Failed to read button for break calculation:', err);
+        console.warn('Failed to read timer for break calculation:', err);
       }
     }
     
@@ -167,11 +196,12 @@ export async function saveTimeLog(timelog: TimeLog): Promise<void> {
     }
     
     finalTimelog = {
-      ...timelog,
+      ...finalTimelog,
       duration_minutes: Math.max(0, minutes),
       apply_break_calculation: applyBreaks,
     };
   }
+  // For special types, keep the duration as-is (calculated by backend from daily target)
 
   await db.put('timelogs', finalTimelog);
 }
@@ -181,19 +211,28 @@ export async function getTimeLog(id: string): Promise<TimeLog | undefined> {
   return db.get('timelogs', id);
 }
 
+export async function getTimeLogsByTimer(timerId: string): Promise<TimeLog[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('timelogs', 'by-timer', timerId);
+}
+
+export async function getTimeLogsByYearMonth(year: number, month: number): Promise<TimeLog[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('timelogs', 'by-year-month', [year, month]);
+}
+
 export async function getAllTimeLogs(): Promise<TimeLog[]> {
   const db = await getDB();
   return db.getAll('timelogs');
 }
 
-export async function getTimeLogsByButton(buttonId: string): Promise<TimeLog[]> {
+export async function deleteTimeLog(timelog: TimeLog): Promise<void> {
+  if (!timelog || !timelog.id) {
+    console.error('Cannot delete timelog: invalid or missing id', timelog);
+    throw new Error('Cannot delete timelog: invalid or missing id');
+  }
   const db = await getDB();
-  return db.getAllFromIndex('timelogs', 'by-button', buttonId);
-}
-
-export async function deleteTimeLog(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete('timelogs', id);
+  await db.delete('timelogs', timelog.id);
 }
 
 // Sync queue operations
@@ -250,34 +289,102 @@ export async function getSetting(key: string): Promise<any> {
   return db.get('settings', key);
 }
 
+// Balance Calc Metadata operations
+const BALANCE_CALC_META_KEY = 'balance_calc_meta_v1';
+
+/**
+ * Get the balance calculation metadata
+ * @returns The metadata or null if not found
+ */
+export async function getBalanceCalcMeta(): Promise<BalanceCalcMeta | null> {
+  const meta = await getSetting(BALANCE_CALC_META_KEY);
+  return meta ?? null;
+}
+
+/**
+ * Set the last updated day for a specific target
+ * @param targetId - Target ID to update
+ * @param lastUpdatedDay - Last day (YYYY-MM-DD) for which balances are derived
+ * @param userId - User ID for metadata
+ */
+export async function setBalanceCalcMetaForTarget(
+  targetId: string,
+  lastUpdatedDay: string,
+  userId: string
+): Promise<void> {
+  const meta = await getBalanceCalcMeta() ?? {
+    schema_version: 1 as const,
+    user_id: userId,
+    targets: {}
+  };
+
+  meta.targets[targetId] = {
+    last_updated_day: lastUpdatedDay,
+    updated_at: new Date().toISOString()
+  };
+
+  await saveSetting(BALANCE_CALC_META_KEY, meta);
+}
+
+/**
+ * Clear balance calculation metadata
+ * @param targetId - Optional target ID to clear. If omitted, clears all metadata.
+ */
+export async function clearBalanceCalcMeta(targetId?: string): Promise<void> {
+  if (!targetId) {
+    const db = await getDB();
+    await db.delete('settings', BALANCE_CALC_META_KEY);
+    return;
+  }
+
+  const meta = await getBalanceCalcMeta();
+  if (meta?.targets[targetId]) {
+    delete meta.targets[targetId];
+    await saveSetting(BALANCE_CALC_META_KEY, meta);
+  }
+}
+
 // Sync cursor operations
-export async function saveSyncCursor(type: 'buttons' | 'timelogs' | 'targets' | 'monthlyBalances', cursor: string): Promise<void> {
+export async function saveSyncCursor(type: 'timers' | 'timelogs' | 'targets' | 'balances', cursor: string): Promise<void> {
   await saveSetting(`sync_cursor_${type}`, cursor);
 }
 
-export async function getSyncCursor(type: 'buttons' | 'timelogs' | 'targets' | 'monthlyBalances'): Promise<string | undefined> {
+export async function getSyncCursor(type: 'timers' | 'timelogs' | 'targets' | 'balances'): Promise<string | undefined> {
   return await getSetting(`sync_cursor_${type}`);
 }
 
-// Target operations
-export async function saveTarget(target: DailyTarget): Promise<void> {
+// Target operations (now with nested target_specs)
+export async function saveTarget(target: TargetWithSpecs): Promise<void> {
   const db = await getDB();
   await db.put('targets', target);
 }
 
-export async function getTarget(id: string): Promise<DailyTarget | undefined> {
+export async function getTarget(id: string): Promise<TargetWithSpecs | undefined> {
   const db = await getDB();
   return db.get('targets', id);
 }
 
-export async function getAllTargets(): Promise<DailyTarget[]> {
+export async function getAllTargets(): Promise<TargetWithSpecs[]> {
   const db = await getDB();
   return db.getAll('targets');
 }
 
-export async function deleteTarget(id: string): Promise<void> {
+export async function getTargetStates(): Promise<string[]> {
+  const targets = await getAllTargets();
+  const states: string[] = [];
+  for (const target of targets) {
+    for (const spec of target.target_specs || []) {
+      if (spec.state_code) {
+        states.push(spec.state_code);
+      }
+    }
+  }
+  return states;
+}
+
+export async function deleteTarget(target: TargetWithSpecs): Promise<void> {
   const db = await getDB();
-  await db.delete('targets', id);
+  await db.delete('targets', target.id);
 }
 
 export async function getAllStates(): Promise<any[]> {
@@ -295,37 +402,47 @@ export async function saveStates(states: any[]): Promise<void> {
 // Clear all data
 export async function clearAllData(): Promise<void> {
   const db = await getDB();
-  await db.clear('buttons');
+  await db.clear('timers');
   await db.clear('timelogs');
   await db.clear('targets');
-  await db.clear('monthlyBalances');
+  await db.clear('balances');
   await db.clear('syncQueue');
   await db.clear('user');
   await db.clear('settings');
 }
 
-// Monthly Balance operations
-export async function saveMonthlyBalance(balance: MonthlyBalance): Promise<void> {
+// Balance operations (unified for daily/monthly/yearly)
+export async function saveBalance(balance: Balance): Promise<void> {
   const db = await getDB();
-  await db.put('monthlyBalances', balance);
+  await db.put('balances', balance);
 }
 
-export async function getMonthlyBalance(id: string): Promise<MonthlyBalance | undefined> {
+export async function getBalance(id: string): Promise<Balance | undefined> {
   const db = await getDB();
-  return db.get('monthlyBalances', id);
+  return db.get('balances', id);
 }
 
-export async function getAllMonthlyBalances(): Promise<MonthlyBalance[]> {
+export async function getAllBalances(): Promise<Balance[]> {
   const db = await getDB();
-  return db.getAll('monthlyBalances');
+  return db.getAll('balances');
 }
 
-export async function getMonthlyBalancesByYearMonth(year: number, month: number): Promise<MonthlyBalance[]> {
+export async function getBalancesCount(): Promise<number> {
   const db = await getDB();
-  return db.getAllFromIndex('monthlyBalances', 'by-year-month', [year, month]);
+  return db.count('balances');
 }
 
-export async function deleteMonthlyBalance(id: string): Promise<void> {
+export async function getBalancesByDate(date: string): Promise<Balance[]> {
   const db = await getDB();
-  await db.delete('monthlyBalances', id);
+  return db.getAllFromIndex('balances', 'by-date', date);
+}
+
+export async function getBalancesByTargetId(targetId: string): Promise<Balance[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('balances', 'by-target-id', targetId);
+}
+
+export async function deleteBalance(balance: Balance): Promise<void> {
+  const db = await getDB();
+  await db.delete('balances', balance.id);
 }
