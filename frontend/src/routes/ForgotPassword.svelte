@@ -53,7 +53,7 @@
   }
 </script>
 
-<div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
+<div class="min-h-screen flex items-center justify-center px-4">
   <div class="w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-8" style="max-width: 500px;">
     <h1 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-6">
       Forgot Password

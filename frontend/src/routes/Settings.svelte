@@ -128,7 +128,7 @@
   }
 </script>
 
-<div class="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+<div class="h-screen flex flex-col">
   <!-- Full-width scrollable settings container -->
   <div class="w-full px-4 py-6 flex-1 overflow-auto">
     <!-- Inner centered container to preserve original max-width layout -->

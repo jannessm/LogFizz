@@ -221,7 +221,7 @@
 
 </script>
 
-<div class="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+<div class="h-screen flex flex-col">
   <!-- Header -->
    <div class="flex flex-col absolute top-0 left-0 right-0">
     <div class="flex mx-auto px-4 pt-4 gap-2 w-full z-20 justify-end grow-0">

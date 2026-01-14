@@ -78,7 +78,7 @@
   }
 </script>
 
-<div class="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
+<div class="flex flex-col h-screen">
   <!-- Header spanning full width -->
   <div class="w-full px-4 pt-6 pb-2">
     <div class="w-full max-w-7xl mx-auto flex justify-between items-center">
