@@ -37,7 +37,12 @@
       successMessage = response.message;
       email = '';
     } catch (error: any) {
-      errorMessage = error.message || 'Failed to send reset email';
+      // Check for rate limiting (429 Too Many Requests)
+      if (error.response?.status === 429) {
+        errorMessage = 'Too many password reset attempts. Please wait 15 minutes before trying again.';
+      } else {
+        errorMessage = error.message || 'Failed to send reset email';
+      }
     } finally {
       isLoading = false;
     }

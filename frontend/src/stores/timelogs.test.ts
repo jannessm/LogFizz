@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { TimeLog, Button } from '../types';
+import type { TimeLog, Timer } from '../types';
 
 // Helper function to calculate duration with break rules
 function calculateDurationWithBreaks(startTs: string, endTs: string, applyBreaks: boolean): number {
@@ -20,19 +20,37 @@ function calculateDurationWithBreaks(startTs: string, endTs: string, applyBreaks
 
 // Mock the db module
 vi.mock('../lib/db', () => ({
-  getAllTimeLogs: vi.fn(),
+  getTimeLogsByYearMonth: vi.fn(),
   saveTimeLog: vi.fn(),
   deleteTimeLog: vi.fn(),
-  getButton: vi.fn(),
+  getAllTimers: vi.fn().mockResolvedValue([]),
+  saveTimer: vi.fn(),
+  deleteTimer: vi.fn(),
+  getAllTargets: vi.fn().mockResolvedValue([]),
+  saveTarget: vi.fn(),
+  deleteTarget: vi.fn(),
+  getAllBalances: vi.fn().mockResolvedValue([]),
+  saveBalance: vi.fn(),
+  deleteBalance: vi.fn(),
   addToSyncQueue: vi.fn(),
+  getSyncCursor: vi.fn().mockResolvedValue({}),
+  saveSyncCursor: vi.fn(),
+  getUser: vi.fn().mockResolvedValue(null),
 }));
 
 // Mock the sync service
-vi.mock('../services/sync.service', () => ({
+vi.mock('../services/sync', () => ({
   syncService: {
-    queueTimeLogUpdate: vi.fn().mockResolvedValue(undefined),
-    queueTimeLogCreation: vi.fn().mockResolvedValue(undefined),
-    queueTimeLogDeletion: vi.fn().mockResolvedValue(undefined),
+    queueUpsertTimeLog: vi.fn().mockResolvedValue(undefined),
+    queueDeleteTimeLog: vi.fn().mockResolvedValue(undefined),
+    queueUpsertTimer: vi.fn().mockResolvedValue(undefined),
+    queueDeleteTimer: vi.fn().mockResolvedValue(undefined),
+    queueUpsertTarget: vi.fn().mockResolvedValue(undefined),
+    queueDeleteTarget: vi.fn().mockResolvedValue(undefined),
+    queueUpsertBalance: vi.fn().mockResolvedValue(undefined),
+    queueDeleteBalance: vi.fn().mockResolvedValue(undefined),
+    sync: vi.fn().mockResolvedValue(undefined),
+    afterSync: vi.fn(),
   },
 }));
 
@@ -46,6 +64,14 @@ vi.mock('../services/monthly-balance.service', () => ({
 import * as db from '../lib/db';
 import { timeLogsStore } from './timelogs';
 import { get } from 'svelte/store';
+
+// Helper to set store state directly for testing
+async function initStoreWithTimeLogs(timeLogs: TimeLog[]) {
+  // Set up the mock to return our timelogs
+  vi.mocked(db.getTimeLogsByYearMonth).mockResolvedValue(timeLogs);
+  // Load the store to populate internal state
+  await timeLogsStore.load();
+}
 
 describe('timeLogsStore - Break Calculation', () => {
   let lastSavedTimeLog: TimeLog | null = null;
@@ -93,19 +119,21 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-1',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T17:00:00Z', // 9 hours
         duration_minutes: 495, // 9 hours (540 min) - 45 min = 495 min
         timezone: 'UTC',
         apply_break_calculation: true,
         notes: 'Work session',
-        is_manual: false,
+        type: 'normal',
+        whole_day: false,
+        
         created_at: '2024-12-04T08:00:00Z',
         updated_at: '2024-12-04T17:00:00Z',
       };
 
-      vi.mocked(db.getAllTimeLogs).mockResolvedValue([existingTimeLog]);
+      await initStoreWithTimeLogs([existingTimeLog]);
 
       // Update to extend the end time by 1 hour (making it 10 hours total)
       await timeLogsStore.update('log-1', {
@@ -127,19 +155,21 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-2',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T18:00:00Z', // 10 hours
         duration_minutes: 555, // 10 hours (600 min) - 45 min = 555 min
         timezone: 'UTC',
         apply_break_calculation: true,
         notes: 'Long work session',
-        is_manual: false,
+        type: 'normal',
+        whole_day: false,
+        
         created_at: '2024-12-04T08:00:00Z',
         updated_at: '2024-12-04T18:00:00Z',
       };
 
-      vi.mocked(db.getAllTimeLogs).mockResolvedValue([existingTimeLog]);
+      await initStoreWithTimeLogs([existingTimeLog]);
 
       // Update to reduce the end time (making it 7 hours total)
       await timeLogsStore.update('log-2', {
@@ -161,19 +191,21 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-3',
         user_id: 'user-1',
-        button_id: 'button-2',
+        timer_id: 'timer-2',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T17:00:00Z', // 9 hours
         duration_minutes: 540, // 9 hours (540 min) - no breaks
         timezone: 'UTC',
         apply_break_calculation: false, // No break calculation
         notes: 'Study session',
-        is_manual: false,
+        type: 'normal',
+        whole_day: false,
+        
         created_at: '2024-12-04T08:00:00Z',
         updated_at: '2024-12-04T17:00:00Z',
       };
 
-      vi.mocked(db.getAllTimeLogs).mockResolvedValue([existingTimeLog]);
+      await initStoreWithTimeLogs([existingTimeLog]);
 
       // Update to extend the end time by 1 hour (making it 10 hours total)
       await timeLogsStore.update('log-3', {
@@ -195,19 +227,21 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-4',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T12:00:00Z', // 4 hours
         duration_minutes: 240, // 4 hours - no break threshold reached
         timezone: 'UTC',
         apply_break_calculation: true, // Flag is set, but no breaks applied yet
         notes: 'Short session',
-        is_manual: false,
+        type: 'normal',
+        whole_day: false,
+        
         created_at: '2024-12-04T08:00:00Z',
         updated_at: '2024-12-04T12:00:00Z',
       };
 
-      vi.mocked(db.getAllTimeLogs).mockResolvedValue([existingTimeLog]);
+      await initStoreWithTimeLogs([existingTimeLog]);
 
       // Update to extend beyond 6 hours (triggering first break rule)
       await timeLogsStore.update('log-4', {
@@ -229,19 +263,21 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-5',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T13:59:00Z', // Just under 6 hours
         duration_minutes: 359, // 5:59 - no break
         timezone: 'UTC',
         apply_break_calculation: true,
         notes: 'Almost 6 hours',
-        is_manual: false,
+        type: 'normal',
+        whole_day: false,
+        
         created_at: '2024-12-04T08:00:00Z',
         updated_at: '2024-12-04T13:59:00Z',
       };
 
-      vi.mocked(db.getAllTimeLogs).mockResolvedValue([existingTimeLog]);
+      await initStoreWithTimeLogs([existingTimeLog]);
 
       // Update to exactly 6 hours
       await timeLogsStore.update('log-5', {
@@ -263,19 +299,21 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-6',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T16:59:00Z', // Just under 9 hours
         duration_minutes: 509, // 8:59 - 30 min break = 509 min
         timezone: 'UTC',
         apply_break_calculation: true,
         notes: 'Almost 9 hours',
-        is_manual: false,
+        type: 'normal',
+        whole_day: false,
+        
         created_at: '2024-12-04T08:00:00Z',
         updated_at: '2024-12-04T16:59:00Z',
       };
 
-      vi.mocked(db.getAllTimeLogs).mockResolvedValue([existingTimeLog]);
+      await initStoreWithTimeLogs([existingTimeLog]);
 
       // Update to exactly 9 hours
       await timeLogsStore.update('log-6', {
@@ -297,19 +335,21 @@ describe('timeLogsStore - Break Calculation', () => {
       const existingTimeLog: TimeLog = {
         id: 'log-7',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: '2024-12-04T17:00:00Z', // 9 hours
         duration_minutes: 495, // 9 hours - 45 min = 495 min
         timezone: 'UTC',
         apply_break_calculation: true,
         notes: 'Full day',
-        is_manual: false,
+        type: 'normal',
+        whole_day: false,
+        
         created_at: '2024-12-04T08:00:00Z',
         updated_at: '2024-12-04T17:00:00Z',
       };
 
-      vi.mocked(db.getAllTimeLogs).mockResolvedValue([existingTimeLog]);
+      await initStoreWithTimeLogs([existingTimeLog]);
 
       // Update both start and end times (shift by 1 hour, keeping 9 hour duration)
       await timeLogsStore.update('log-7', {
@@ -336,22 +376,24 @@ describe('timeLogsStore - Break Calculation', () => {
       const runningTimer: TimeLog = {
         id: 'timer-1',
         user_id: 'user-1',
-        button_id: 'button-1',
+        timer_id: 'timer-1',
         start_timestamp: '2024-12-04T08:00:00Z',
         end_timestamp: undefined, // Still running
         duration_minutes: undefined,
         timezone: 'UTC',
         apply_break_calculation: true, // Timer was started with a button that has auto_subtract_breaks
         notes: '',
-        is_manual: false,
+        type: 'normal',
+        whole_day: false,
+        
         created_at: '2024-12-04T08:00:00Z',
         updated_at: '2024-12-04T08:00:00Z',
       };
 
-      vi.mocked(db.getAllTimeLogs).mockResolvedValue([runningTimer]);
+      await initStoreWithTimeLogs([runningTimer]);
 
       // Stop the timer after 10 hours
-      await timeLogsStore.stopTimer('timer-1', undefined, '2024-12-04T18:00:00Z');
+      await timeLogsStore.stopTimer(runningTimer, undefined, '2024-12-04T18:00:00Z');
 
       // Verify saveTimeLog was called with the correct duration
       expect(db.saveTimeLog).toHaveBeenCalled();

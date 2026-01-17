@@ -80,13 +80,45 @@ export class EmailService {
     }
   }
 
+  async sendVerificationWithSecurityNotice(
+    email: string, 
+    verificationToken: string, 
+    userName: string, 
+    attemptedByEmail: string
+  ): Promise<void> {
+    const verificationUrl = `${this.appUrl}/verify-email?token=${verificationToken}`;
+
+    const emailContent = generateWelcomeEmail({
+      userName,
+      verificationUrl,
+      appUrl: this.appUrl,
+      securityNotice: `Note: Someone logged in as "${attemptedByEmail}" attempted to use your verification link. We've generated a new verification link for your security.`,
+    });
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: email,
+      subject: 'TapShift - New Email Verification Link (Security Notice)',
+      html: emailContent.html,
+      text: emailContent.text,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send verification email with security notice:', error);
+      throw new Error('Failed to send verification email with security notice');
+    }
+  }
+
   async sendPasswordResetEmail(email: string, resetToken: string, userName: string): Promise<void> {
-    const resetUrl = `${this.appUrl}/reset-password?token=${resetToken}`;
+    const resetUrl = `${this.appUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
     const emailContent = generatePasswordResetEmail({
       userName,
       resetUrl,
       appUrl: this.appUrl,
+      email: email
     });
 
     const mailOptions = {

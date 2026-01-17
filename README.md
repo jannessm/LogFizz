@@ -250,7 +250,7 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 - [ ] Create typed API client (if using TypeScript)
 
 #### 4.2 Real-time Features (Optional)
-- [ ] Evaluate need for WebSocket/SSE
+- [x] ~~Evaluate need for WebSocket/SSE~~ (Removed - using polling-based sync)
 - [ ] Implement real-time timer updates
 - [ ] Add real-time notifications
 - [ ] Implement optimistic UI updates

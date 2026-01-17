@@ -20,8 +20,8 @@ export interface State {
   state: string;
 }
 
-// Button types
-export interface Button {
+// Timer types
+export interface Timer {
   id: string;
   user_id: string;
   name: string;
@@ -29,69 +29,131 @@ export interface Button {
   color?: string;
   auto_subtract_breaks: boolean;
   archived: boolean;
-  target_id?: string; // Optional assignment to a daily target
+  target_id?: string; // Optional: link to Target for balance calculation
+  goal_time_minutes?: number; // Optional: daily goal for this timer
   created_at: string;
   updated_at: string;
   deleted_at?: string;
 }
 
-// Daily Target types
-export interface DailyTarget {
+// Target types
+export interface Target {
   id: string;
   user_id: string;
   name: string;
-  duration_minutes: number[]; // Array of duration values (one per weekday if needed)
-  weekdays: number[]; // Array of weekday numbers (0=Sunday, 1=Monday, etc.)
-  exclude_holidays: boolean; // Whether to exclude public holidays from target calculation
-  state_code?: string;
-  starting_from?: string; // Date from which tracking starts (important for saldo computations)
-  ending_at?: string; // Date at which tracking ends (balance calculated only up to this date)
+  target_spec_ids: string[];
   created_at: string;
   updated_at: string;
   deleted_at?: string;
 }
 
-// Monthly Balance types
-export interface MonthlyBalance {
+// Duration Spec types (without timestamps - only in entity)
+export interface TargetSpec {
   id: string;
   user_id: string;
   target_id: string;
-  year: number;
-  month: number; // 1-12
-  worked_minutes: number;
-  due_minutes: number;
-  balance_minutes: number;
+  starting_from: string;
+  ending_at?: string;
+  duration_minutes: number[]; // 7-entry array for Sun-Sat (indices 0-6)
   exclude_holidays: boolean;
+  state_code?: string;
+}
+
+// Balance types
+export interface Balance {
+  id: string; // Composite ID format: {target_id}_{date}
+  user_id: string;
+  target_id: string;
+
+  date: string; // year, year-month, or year-month-date
+  due_minutes: number;
+  worked_minutes: number;
+  cumulative_minutes: number;
+
+  sick_days: number;
+  holidays: number;
+  business_trip: number;
+  child_sick: number;
+  worked_days: number;
+  
   created_at: string;
   updated_at: string;
-  target?: DailyTarget;
+  deleted_at?: string;
 }
+
+/**
+ * Generate a deterministic balance ID from target_id and date
+ * @param targetId - The target ID (UUID)
+ * @param date - The date string (YYYY, YYYY-MM, or YYYY-MM-DD)
+ * @returns Composite ID in format {target_id}_{date}
+ */
+export function generateBalanceId(targetId: string, date: string): string {
+  return `${targetId}_${date}`;
+}
+
+/**
+ * Parse a composite balance ID into its components
+ * @param id - The composite balance ID
+ * @returns Object with targetId and date, or null if invalid
+ */
+export function parseBalanceId(id: string): { targetId: string; date: string } | null {
+  const lastUnderscoreIndex = id.lastIndexOf('_');
+  if (lastUnderscoreIndex === -1) return null;
+  
+  return {
+    targetId: id.substring(0, lastUnderscoreIndex),
+    date: id.substring(lastUnderscoreIndex + 1)
+  };
+}
+
+// TimeLog type enum
+export type TimeLogType = 'normal' | 'sick' | 'holiday' | 'business-trip' | 'child-sick';
 
 // TimeLog types - Time range based system
 // Each TimeLog represents a time tracking session with start/end timestamps
 export interface TimeLog {
   id: string;
   user_id: string;
-  button_id: string;
+  timer_id: string;
+  type: TimeLogType; // Type of timelog entry
+  whole_day: boolean;
   start_timestamp: string; // When the session started
   end_timestamp?: string; // When the session ended (null if still running)
   duration_minutes?: number; // Auto-calculated when end_timestamp is set
   timezone: string;
   apply_break_calculation: boolean;
   notes?: string;
-  is_manual: boolean;
   created_at: string;
   updated_at: string;
   deleted_at?: string; // Soft delete support
+  month?: number; // 1-12 for indexing
+  year?: number; // Full year for indexing
 }
 
 // Holiday types
 export interface Holiday {
   id: string;
   country: string;
+  global: boolean;
+  counties: string[];
   date: string;
   name: string;
   year: number;
+}
+
+/**
+ * Metadata for balance calculation state
+ * Stored in local storage to track which balances are up-to-date
+ */
+export interface BalanceCalcMeta {
+  schema_version: 1;
+  user_id: string;
+  targets: Record<string, {
+    /** Last day (YYYY-MM-DD) for which balances are fully derived */
+    last_updated_day: string;
+    /** Timestamp when metadata was last updated */
+    updated_at: string;
+  }>;
 }
 
 export interface HolidayMetadata {
@@ -111,17 +173,15 @@ export interface ApiResponse<T> {
 // Sync types for offline-first
 export interface SyncQueueItem {
   id: string;
-  type: 'button' | 'timelog' | 'target';
-  operation: 'create' | 'update' | 'delete';
+  type: 'timer' | 'timelog' | 'target' | 'balance';
   data: any;
-  timestamp: number;
   synced: boolean;
   error?: string;
 }
 
 // Goal progress type
 export interface GoalProgress {
-  button_id: string;
+  timer_id: string;
   date: string;
   goal_minutes: number;
   actual_minutes: number;
@@ -129,30 +189,26 @@ export interface GoalProgress {
   percentage: number;
 }
 
-// Statistics types
-export interface YearlyStats {
-  button_id: string;
-  button_name: string;
-  total_minutes: number;
-  total_hours: number;
-  entry_count: number;
-}
-
 // Database entity variants (for backend use with Date objects)
 // These are used by TypeORM entities where Date objects are needed
 
-export interface ButtonEntity extends Omit<Button, 'created_at' | 'updated_at' | 'deleted_at'> {
+export interface TimerEntity extends Omit<Timer, 'created_at' | 'updated_at' | 'deleted_at'> {
   created_at: Date;
   updated_at: Date;
   deleted_at?: Date;
 }
 
-export interface DailyTargetEntity extends Omit<DailyTarget, 'starting_from' | 'ending_at' | 'created_at' | 'updated_at' | 'deleted_at'> {
-  starting_from?: Date;
-  ending_at?: Date;
+export interface TargetEntity extends Omit<Target, 'created_at' | 'updated_at' | 'deleted_at'> {
   created_at: Date;
   updated_at: Date;
   deleted_at?: Date;
+}
+
+export interface TargetSpecEntity extends Omit<TargetSpec, 'starting_from' | 'ending_at'> {
+  starting_from: Date;
+  ending_at?: Date;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface TimeLogEntity extends Omit<TimeLog, 'start_timestamp' | 'end_timestamp' | 'created_at' | 'updated_at' | 'deleted_at'> {
@@ -163,10 +219,10 @@ export interface TimeLogEntity extends Omit<TimeLog, 'start_timestamp' | 'end_ti
   deleted_at?: Date;
 }
 
-export interface MonthlyBalanceEntity extends Omit<MonthlyBalance, 'created_at' | 'updated_at' | 'target'> {
+export interface BalanceEntity extends Omit<Balance, 'created_at' | 'updated_at' | 'deleted_at'> {
   created_at: Date;
   updated_at: Date;
-  target?: DailyTargetEntity;
+  deleted_at?: Date;
 }
 
 export interface UserEntity extends Omit<User, 'created_at' | 'updated_at' | 'deleted_at' | 'email_verified_at'> {
@@ -184,6 +240,7 @@ export interface UserEntity extends Omit<User, 'created_at' | 'updated_at' | 'de
 export interface HolidayEntity extends Omit<Holiday, 'date'> {
   date: Date;
 }
+export interface HolidayData extends Omit<HolidayEntity, 'id'> {}
 
 export interface HolidayMetadataEntity extends Omit<HolidayMetadata, 'last_updated'> {
   last_updated: Date;

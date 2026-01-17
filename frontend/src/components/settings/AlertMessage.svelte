@@ -1,6 +1,8 @@
 <script lang="ts">
-  export let type: 'error' | 'success' = 'error';
-  export let message: string = '';
+  let { type = 'error', message = '' }: {
+    type?: 'error' | 'success';
+    message?: string;
+  } = $props();
 </script>
 
 {#if message}

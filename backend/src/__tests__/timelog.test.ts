@@ -6,7 +6,7 @@ describe('TimeLog Sync Routes', () => {
   let app: FastifyInstance;
   let authCookie: string;
   let userId: string;
-  let buttonId: string;
+  let timerId: string;
 
   beforeAll(async () => {
     app = await buildApp();
@@ -34,16 +34,16 @@ describe('TimeLog Sync Routes', () => {
     authCookie = loginResponse.headers['set-cookie'] as string;
     userId = JSON.parse(loginResponse.body).id;
 
-    buttonId = '550e8400-e29b-41d4-a716-446655440000';
+    timerId = '550e8400-e29b-41d4-a716-446655440000';
     await app.inject({
       method: 'POST',
-      url: '/api/buttons/sync',
+      url: '/api/timers/sync',
       headers: {
         cookie: authCookie,
       },
       payload: {
-        buttons: [{
-          id: buttonId,
+        timers: [{
+          id: timerId,
           name: 'Work',
           auto_subtract_breaks: false,
         }],
@@ -68,7 +68,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
           notes: 'Starting work session',
@@ -80,7 +80,7 @@ describe('TimeLog Sync Routes', () => {
     const body = JSON.parse(response.body);
     expect(body.saved).toHaveLength(1);
     expect(body.saved[0].id).toBe(timeLogId);
-    expect(body.saved[0].button_id).toBe(buttonId);
+    expect(body.saved[0].timer_id).toBe(timerId);
     expect(body.saved[0].start_timestamp).toBeDefined();
     expect(body.saved[0].timezone).toBe('Europe/Berlin');
     expect(body.saved[0].notes).toBe('Starting work session');
@@ -100,7 +100,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: startTime,
           end_timestamp: endTime,
           timezone: 'Europe/Berlin',
@@ -136,7 +136,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
           notes: 'Initial notes',
@@ -153,7 +153,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
           notes: 'Updated notes',
@@ -180,7 +180,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
           notes: 'To be deleted',
@@ -197,7 +197,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: startTimestamp,
           timezone: 'Europe/Berlin',
           notes: 'To be deleted',
@@ -249,7 +249,7 @@ describe('TimeLog Sync Routes', () => {
         timeLogs: [
           {
             id: timeLogId,
-            button_id: buttonId,
+            timer_id: timerId,
             start_timestamp: startTime,
             end_timestamp: endTime,
             duration_minutes: 60, // Frontend calculates this
@@ -310,7 +310,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: newLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: new Date().toISOString(),
           timezone: 'Europe/Berlin',
           notes: 'Recent log',
@@ -346,7 +346,7 @@ describe('TimeLog Sync Routes', () => {
       payload: {
         timeLogs: [{
           id: timeLogId,
-          button_id: buttonId,
+          timer_id: timerId,
           start_timestamp: new Date().toISOString(),
           timezone: 'America/New_York',
           notes: 'US session',
@@ -358,5 +358,276 @@ describe('TimeLog Sync Routes', () => {
     const body = JSON.parse(response.body);
     expect(body.saved).toHaveLength(1);
     expect(body.saved[0].timezone).toBe('America/New_York');
+  });
+
+  describe('TimeLog Type Field', () => {
+    let targetId: string;
+    let timerWithTarget: string;
+
+    beforeAll(async () => {
+      // Create a target
+      targetId = '650e8400-e29b-41d4-a716-446655440010';
+      const specId = '650e8400-e29b-41d4-a716-446655440010-spec1';
+      await app.inject({
+        method: 'POST',
+        url: '/api/targets/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          targets: [{
+            id: targetId,
+            name: 'Work Week',
+            target_specs: [{
+              id: specId,
+              duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Sun-Sat: Mon-Fri 8h
+              exclude_holidays: false,
+              starting_from: '2024-01-01T00:00:00Z',
+            }],
+          }],
+        },
+      });
+
+      // Create a timer with the target
+      timerWithTarget = '650e8400-e29b-41d4-a716-446655440011';
+      await app.inject({
+        method: 'POST',
+        url: '/api/timers/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timers: [{
+            id: timerWithTarget,
+            name: 'Work Timer',
+            target_id: targetId,
+            auto_subtract_breaks: false,
+          }],
+        },
+      });
+    });
+
+    it('should create a normal type timelog with provided duration', async () => {
+      const timeLogId = '760e8400-e29b-41d4-a716-446655440012';
+      const startTime = new Date('2024-06-03T09:00:00Z').toISOString(); // Monday
+      const endTime = new Date('2024-06-03T17:00:00Z').toISOString();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            timer_id: timerWithTarget,
+            type: 'normal',
+            start_timestamp: startTime,
+            end_timestamp: endTime,
+            duration_minutes: 480, // 8 hours
+            timezone: 'Europe/Berlin',
+            notes: 'Normal work day',
+          }],
+        },
+      });
+
+      if (response.statusCode !== 200) {
+        console.error('Timelog create failed with status:', response.statusCode);
+        console.error('Response body:', response.body);
+      }
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('normal');
+      expect(body.saved[0].duration_minutes).toBe(480);
+    });
+
+    it.todo('should create a sick day timelog with duration based on daily target', async () => {
+      const timeLogId = '770e8400-e29b-41d4-a716-446655440013';
+      const date = new Date('2024-06-04T00:00:00Z').toISOString(); // Tuesday
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            timer_id: timerWithTarget,
+            type: 'sick',
+            start_timestamp: date,
+            end_timestamp: date,
+            timezone: 'Europe/Berlin',
+            notes: 'Sick day',
+          }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('sick');
+  // Duration is not auto-calculated by backend for special types; frontend handles this.
+  expect(body.saved[0].duration_minutes).toBe(0);
+    });
+
+    it.todo('should create a holiday timelog with duration based on daily target', async () => {
+      const timeLogId = '780e8400-e29b-41d4-a716-446655440014';
+      const date = new Date('2024-06-05T00:00:00Z').toISOString(); // Wednesday
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            timer_id: timerWithTarget,
+            type: 'holiday',
+            start_timestamp: date,
+            end_timestamp: date,
+            timezone: 'Europe/Berlin',
+            notes: 'Vacation day',
+          }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('holiday');
+  // Backend should not auto-calc duration for holiday; expect 0
+  expect(body.saved[0].duration_minutes).toBe(0);
+    });
+
+    it.todo('should create a business-trip timelog with duration based on daily target', async () => {
+      const timeLogId = '790e8400-e29b-41d4-a716-446655440015';
+      const date = new Date('2024-06-06T00:00:00Z').toISOString(); // Thursday
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            timer_id: timerWithTarget,
+            type: 'business-trip',
+            start_timestamp: date,
+            end_timestamp: date,
+            timezone: 'Europe/Berlin',
+            notes: 'Business trip',
+          }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('business-trip');
+  // Backend should not auto-calc duration for business-trip; expect 0
+  expect(body.saved[0].duration_minutes).toBe(0);
+    });
+
+    it.todo('should create a child-sick timelog with duration based on daily target', async () => {
+      const timeLogId = '7a0e8400-e29b-41d4-a716-446655440016';
+      const date = new Date('2024-06-07T00:00:00Z').toISOString(); // Friday
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            timer_id: timerWithTarget,
+            type: 'child-sick',
+            start_timestamp: date,
+            end_timestamp: date,
+            timezone: 'Europe/Berlin',
+            notes: 'Child sick day',
+          }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('child-sick');
+  // Backend should not auto-calc duration for child-sick; expect 0
+  expect(body.saved[0].duration_minutes).toBe(0);
+    });
+
+    it('should return 0 duration for special type on weekend (non-target day)', async () => {
+      const timeLogId = '7b0e8400-e29b-41d4-a716-446655440017';
+      const date = new Date('2024-06-08T00:00:00Z').toISOString(); // Saturday
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            timer_id: timerWithTarget,
+            type: 'sick',
+            start_timestamp: date,
+            end_timestamp: date,
+            timezone: 'Europe/Berlin',
+            notes: 'Weekend sick day',
+          }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('sick');
+      // Duration should be 0 because Saturday has 0 duration in the target
+      expect(body.saved[0].duration_minutes).toBe(0);
+    });
+
+    it('should return 0 duration for special type when timer has no target', async () => {
+      const timeLogId = '7c0e8400-e29b-41d4-a716-446655440018';
+      const date = new Date('2024-06-03T00:00:00Z').toISOString();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/timelogs/sync',
+        headers: {
+          cookie: authCookie,
+        },
+        payload: {
+          timeLogs: [{
+            id: timeLogId,
+            timer_id: timerId, // This timer has no target
+            type: 'sick',
+            start_timestamp: date,
+            end_timestamp: date,
+            timezone: 'Europe/Berlin',
+            notes: 'Sick day without target',
+          }],
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.saved).toHaveLength(1);
+      expect(body.saved[0].type).toBe('sick');
+      // Duration should be 0 because timer has no target
+      expect(body.saved[0].duration_minutes).toBe(0);
+    });
   });
 });

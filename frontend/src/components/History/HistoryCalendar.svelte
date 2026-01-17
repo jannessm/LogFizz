@@ -1,30 +1,158 @@
 <script lang="ts">
-  import dayjs from 'dayjs';
-  import weekOfYear from 'dayjs/plugin/weekOfYear';
+  import { dayjs, type TargetWithSpecs, type TimeLog, type Timer } from '../../types';
+  import { hasSpecialType, type CalendarTimeLogData } from '../../services/calendar';
 
-  dayjs.extend(weekOfYear);
+  // Get user's timezone
+  const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  export let currentMonth: dayjs.Dayjs;
-  export let selectedDate: dayjs.Dayjs;
-  export let buttons: any[];
-  export let timeLogs: any[];
-  export let onSelectDate: (date: dayjs.Dayjs) => void;
+  let {
+    timers,
+    timeLogs,
+    calendarData,
+    targets,
+    onDateChange
+  }: {
+    timers: Timer[];
+    timeLogs: TimeLog[];
+    calendarData: CalendarTimeLogData;
+    targets: TargetWithSpecs[];
+    onDateChange?: (selectedDate: dayjs.Dayjs, currentMonth: dayjs.Dayjs) => void;
+  } = $props();
 
-  let calendarDays: dayjs.Dayjs[];
-  let weekNumbers: number[];
-  let buttonColors: Map<string, string[]> = new Map();
-
-  // Get calendar days for current month - ensure we have exactly 6 weeks (42 days)
-  function getCalendarDays() {
-    const firstDay = currentMonth.startOf('month');
-
-    // Get the day of week for the first day (0 = Sunday, 6 = Saturday)
-    const firstDayOfWeek = firstDay.day();
+  // Initialize from URL query parameters if available
+  function getInitialDates() {
+    const params = new URLSearchParams(window.location.search);
+    const dateParam = params.get('date');
+    const monthParam = params.get('month');
     
-    // Calculate how many days to show before the first of the month
+    let selected = dayjs();
+    let current = dayjs();
+    
+    if (dateParam) {
+      const parsed = dayjs(dateParam);
+      if (parsed.isValid()) {
+        selected = parsed;
+      }
+    }
+    
+    if (monthParam) {
+      const parsed = dayjs(monthParam);
+      if (parsed.isValid()) {
+        current = parsed;
+      }
+    } else if (dateParam) {
+      // If no month param but date param exists, set current month to selected date's month
+      current = selected.startOf('month');
+    }
+    
+    return { selected, current };
+  }
+
+  const initialDates = getInitialDates();
+  let selectedDate = $state(initialDates.selected); // actual selected date
+  let currentMonth = $state(initialDates.current);  // month being viewed in calendar
+
+  // Update URL when dates change
+  function updateURL() {
+    const params = new URLSearchParams();
+    params.set('date', selectedDate.format('YYYY-MM-DD'));
+    params.set('month', currentMonth.format('YYYY-MM'));
+    
+    const newURL = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, '', newURL);
+  }
+
+  // Watch for date changes and update URL + notify parent
+  $effect(() => {
+    if (selectedDate && currentMonth) {
+      updateURL();
+      if (onDateChange) {
+        onDateChange(selectedDate, currentMonth);
+      }
+    }
+  });
+
+  // Get unique state codes from all daily targets
+  function getTargetCountries(): string[] {
+    const countries: string[] = [];
+    for (const t of targets) {
+      for (const spec of t.target_specs || []) {
+        if (spec.state_code) {
+          countries.push(spec.state_code);
+        }
+      }
+    }
+    return Array.from(new Set(countries)); // Remove duplicates
+  }
+
+  let countries = $derived(getTargetCountries());
+
+  // Month navigation functions
+  function previousMonth() {
+    currentMonth = currentMonth.subtract(1, 'month');
+  }
+
+  function nextMonth() {
+    currentMonth = currentMonth.add(1, 'month');
+  }
+
+  function goToToday() {
+    currentMonth = dayjs();
+    selectedDate = dayjs();
+  }
+
+  function changeMonth(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    const newMonth = parseInt(target.value);
+    currentMonth = currentMonth.month(newMonth);
+  }
+
+  function changeYear(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    const newYear = parseInt(target.value);
+    currentMonth = currentMonth.year(newYear);
+  }
+
+  // Generate month options (0-11 for dayjs)
+  function getMonthOptions() {
+    return [
+      { value: 0, label: 'January' },
+      { value: 1, label: 'February' },
+      { value: 2, label: 'March' },
+      { value: 3, label: 'April' },
+      { value: 4, label: 'May' },
+      { value: 5, label: 'June' },
+      { value: 6, label: 'July' },
+      { value: 7, label: 'August' },
+      { value: 8, label: 'September' },
+      { value: 9, label: 'October' },
+      { value: 10, label: 'November' },
+      { value: 11, label: 'December' }
+    ];
+  }
+
+  // Generate year options (current year ± 5 years)
+  function getYearOptions() {
+    const currentYear = dayjs().year();
+    const years = [];
+    for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+      years.push(i);
+    }
+    return years;
+  }
+
+  let monthOptions = $derived(getMonthOptions());
+  let yearOptions = $derived(getYearOptions());
+
+  function selectDate(date: dayjs.Dayjs) {
+    selectedDate = date;
+  }
+
+  let calendarDays = $derived.by(() => {
+    const firstDay = currentMonth.startOf('month');
+    const firstDayOfWeek = firstDay.day();
     const startDate = firstDay.subtract(firstDayOfWeek, 'day');
     
-    // Always show 6 weeks (42 days) for consistent layout
     const days = [];
     let current = startDate;
     
@@ -34,54 +162,54 @@
     }
     
     return days;
-  }
+  });
 
-  // Get week numbers for the calendar (6 weeks)
-  function getWeekNumbers() {
+  let weekNumbers = $derived.by(() => {
     const weeks = [];
-    const days = getCalendarDays();
-    
-    // Get week number for the first day of each week (every 7 days)
     for (let i = 0; i < 42; i += 7) {
-      weeks.push(days[i].week());
+      weeks.push(calendarDays[i].week());
     }
-    
     return weeks;
+  });
+
+  // Use the pre-computed data from calendar service
+  let timeLogsByDate = $derived(calendarData.timeLogsByDate);
+  let dotColors = $derived(calendarData.dotColors);
+  let multiDayRanges = $derived(calendarData.multiDayRanges);
+
+  // Check if date has any special type timelogs (non-normal) - single day only
+  function hasSpecialTypeForDate(date: dayjs.Dayjs): { hasSpecial: boolean; color: string | null } {
+    return hasSpecialType(date, timeLogsByDate, timeLogs, getMultiDayRangeForDate(date));
   }
 
-  $: if (currentMonth && selectedDate) {
-    calendarDays = getCalendarDays();
-    weekNumbers = getWeekNumbers();
-  }
-
-  $: if (timeLogs.length > 0) {
-    buttonColors = getButtonColorsMap();
-  }
-
-  function getButtonColorsMap(): Map<string, string[]> {
-    const colorMap = new Map<string, string[]>();
-    for (const day of calendarDays) {
-      const colors = getButtonColorsForDate(day);
-      colorMap.set(day.format('YYYY-MM-DD'), colors); 
-    }
-    return colorMap;
-  }
-
-  // Get button activities for a specific date
-  function getButtonsForDate(date: dayjs.Dayjs) {
+  // Check if date is within a multi-day timelog range - use pre-computed data
+  function getMultiDayRangeForDate(date: dayjs.Dayjs) {
     const dateStr = date.format('YYYY-MM-DD');
-    const buttonIds = new Set(
-      timeLogs
-        .filter(tl => tl.start_timestamp && tl.start_timestamp.startsWith(dateStr))
-        .map(tl => tl.button_id)
-    );
-    return buttons.filter(b => buttonIds.has(b.id));
+    const info = multiDayRanges.get(dateStr) || {
+      isInRange: false,
+      isStart: false,
+      isEnd: false,
+      isMiddle: false,
+      colors: [],
+    };
+    console.log('Multi-day range info for', dateStr, info);
+    return info;
   }
 
-  // Get button colors for date (for dots display)
-  function getButtonColorsForDate(date: dayjs.Dayjs): string[] {
-    const dateButtons = getButtonsForDate(date);
-    return dateButtons.slice(0, 3).map(b => b.color || '#3B82F6');
+  /**
+   * Create a gradient CSS string from an array of colors
+   */
+  function createGradient(colors: string[]): string {
+    if (colors.length === 0) return '';
+    if (colors.length === 1) return colors[0];
+    
+    // Create a linear gradient with equal distribution
+    const stops = colors.map((color, index) => {
+      const percentage = (index / (colors.length - 1)) * 100;
+      return `${color} ${percentage}%`;
+    }).join(', ');
+    
+    return `linear-gradient(to right bottom, ${stops})`;
   }
 
   function isToday(date: dayjs.Dayjs): boolean {
@@ -95,9 +223,75 @@
   function isCurrentMonth(date: dayjs.Dayjs): boolean {
     return date.isSame(currentMonth, 'month');
   }
+
+  /**
+   * Get the name of the public holiday for a date if it affects balance calculations.
+   * Returns null if not a relevant holiday.
+   */
+  function getPublicHolidayName(date: dayjs.Dayjs): string | null {
+    const dateStr = date.format('YYYY-MM-DD');
+    const holidays = calendarData.relevantHolidays.get(dateStr);
+    
+    // Return the first holiday's name if any exist
+    return holidays && holidays.length > 0 ? holidays[0].name : null;
+  }
 </script>
 
+<!-- Month Navigation -->
+<div class="flex justify-between items-center mb-4">
+  <div class="flex items-center gap-2">
+    <button
+      onclick={previousMonth}
+      class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-left-alt-duotone]"
+      aria-label="Previous month"
+    ></button>
+    
+    <!-- Month Dropdown -->
+    <select
+      onchange={changeMonth}
+      value={currentMonth.month()}
+      class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+      aria-label="Select month"
+    >
+      {#each monthOptions as month}
+        <option value={month.value}>{month.label}</option>
+      {/each}
+    </select>
+    
+    <!-- Year Dropdown -->
+    <select
+      onchange={changeYear}
+      value={currentMonth.year()}
+      class="text-lg text-gray-800 bg-transparent border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+      aria-label="Select year"
+    >
+      {#each yearOptions as year}
+        <option value={year}>{year}</option>
+      {/each}
+    </select>
+    
+    <button
+      onclick={nextMonth}
+      class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--chevron-right-alt-duotone]"
+      aria-label="Next month"
+    ></button>
+    
+    <!-- Today Button -->
+    <button
+      onclick={goToToday}
+      class="px-3 py-1 text-sm font-medium text-white hover:bg-blue-600 rounded-lg transition-colors"
+      class:bg-blue-500={!selectedDate.isSame(dayjs(), 'day')}
+      class:bg-gray-300={selectedDate.isSame(dayjs(), 'day')}
+      disabled={selectedDate.isSame(dayjs(), 'day')}
+      aria-label="Go to today"
+    >
+      Today
+    </button>
+  </div>
+</div>
+
 <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+
   <div>
     <!-- Calendar header (day names) -->
     <div class="grid gap-1 mb-2" style="grid-template-columns: 32px repeat(7, 1fr);">
@@ -121,21 +315,73 @@
         
         <!-- Days of the week -->
         {#each calendarDays.slice(weekIndex * 7, (weekIndex + 1) * 7) as day}
-        {@const _buttonColors = buttonColors.get(day.format('YYYY-MM-DD')) || []}
+        {@const _timelogsColors = dotColors.get(day.format('YYYY-MM-DD')) || []}
         {@const today = isToday(day)}
         {@const selected = isSelected(day)}
         {@const currentMonthDay = isCurrentMonth(day)}
+        {@const specialType = hasSpecialTypeForDate(day)}
+        {@const multiDayRange = getMultiDayRangeForDate(day)}
+        {@const holidayName = getPublicHolidayName(day)}
+        {@const isHoliday = holidayName !== null}
+        {@const gradient = createGradient(multiDayRange.colors)}
+        {@const borderColor = isHoliday ? '#a855f7' : null}
         <button
-          on:click={() => onSelectDate(day)}
-          class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 py-1"
+          onclick={() => selectDate(day)}
+          class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 p-1"
           class:text-gray-400={!currentMonthDay}
           class:text-gray-800={currentMonthDay && !selected}
+          title={holidayName || ''}
           class:text-white={selected}
           class:font-bold={today || selected}
         >
-          <!-- Today indicator (light blue circle behind) -->
+          <!-- Multi-day range indicator (rounded rectangle connecting days with gradient) -->
+          {#if multiDayRange.isInRange && !today && !selected && multiDayRange.colors.length > 0}
+            {#if multiDayRange.isStart}
+              <!-- Start of range -->
+              <div 
+                class="absolute top-1 bottom-1 left-1 right-0 opacity-30 rounded-l-full"
+                class:border-2={isHoliday}
+                class:border-purple-500={isHoliday}
+                style="background: {gradient};"
+
+              ></div>
+            {:else if multiDayRange.isEnd}
+              <!-- End of range -->
+              <div 
+                class="absolute top-1 bottom-1 left-0 right-1 opacity-30 rounded-r-full"
+                class:border-2={isHoliday}
+                class:border-purple-500={isHoliday}
+                style="background: {gradient};"
+              ></div>
+            {:else if multiDayRange.isMiddle}
+              <!-- Middle of range (including overlaps) -->
+              <div 
+                class="absolute top-1 bottom-1 left-0 right-0 opacity-30"
+                class:border-2={isHoliday}
+                class:border-purple-500={isHoliday}
+                style="background: {gradient}; border-radius: 0;"
+              ></div>
+            {/if}
+          {/if}
+          
+          <!-- Holiday indicator (purple border only, when no other circle present) -->
+          {#if isHoliday && currentMonthDay && !selected && !multiDayRange.isInRange && !specialType.hasSpecial}
+            <div class="absolute inset-1 rounded-full border-2 border-purple-500"></div>
+          {/if}
+
+          <!-- Today indicator (light blue circle behind) - FULL SIZE -->
           {#if today && !selected}
             <div class="absolute inset-0 rounded-full bg-blue-100 border-2 border-blue-300"></div>
+          {/if}
+          
+          <!-- Special type indicator (colored circle behind, not today and not selected) - single day only -->
+          {#if specialType.hasSpecial && !today && !selected && specialType.color}
+            <div 
+              class="absolute inset-1 rounded-full opacity-30"
+              class:border-2={isHoliday}
+              class:border-purple-500={isHoliday}
+              style="background-color: {specialType.color};"
+            ></div>
           {/if}
           
           <!-- Selected indicator (solid blue circle) -->
@@ -144,14 +390,14 @@
           {/if}
           
           <!-- Date number -->
-          <span class="relative text-sm z-10 mb-1">
+          <span class="relative text-sm z-10">
             {day.format('D')}
           </span>
           
-          <!-- Activity dots -->
-          {#if _buttonColors && _buttonColors.length > 0}
+          <!-- Activity dots - only show if no circle indicator present -->
+          {#if _timelogsColors && _timelogsColors.length > 0 && !today && !selected}
             <div class="relative flex gap-0.5 z-10">
-              {#each _buttonColors as color}
+              {#each _timelogsColors as color}
                 <div 
                   class="w-1 h-1 rounded-full"
                   style="background-color: {color};"
@@ -162,6 +408,46 @@
         </button>
         {/each}
       {/each}
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="mt-4 pt-4 border-t border-gray-200">
+    <h4 class="text-xs font-semibold text-gray-600 mb-2">Legend</h4>
+    <div class="grid grid-cols-2 gap-2 text-xs">
+      <!-- Type indicators -->
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full bg-blue-100 border-2 border-blue-300 flex-shrink-0"></div>
+        <span class="text-gray-600">Today</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full border-2 border-purple-500 flex-shrink-0"></div>
+        <span class="text-gray-600">Public Holiday</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full bg-red-500 opacity-30 border-2 border-red-500 flex-shrink-0"></div>
+        <span class="text-gray-600">Sick</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full bg-green-500 opacity-30 border-2 border-green-500 flex-shrink-0"></div>
+        <span class="text-gray-600">Holiday (PTO)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full bg-amber-500 opacity-30 border-2 border-amber-500 flex-shrink-0"></div>
+        <span class="text-gray-600">Business Trip</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full bg-pink-500 opacity-30 border-2 border-pink-500 flex-shrink-0"></div>
+        <span class="text-gray-600">Child Sick</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="flex gap-0.5 w-4 justify-center items-center flex-shrink-0">
+          <div class="w-1 h-1 rounded-full bg-blue-600"></div>
+          <div class="w-1 h-1 rounded-full bg-green-600"></div>
+          <div class="w-1 h-1 rounded-full bg-purple-600"></div>
+        </div>
+        <span class="text-gray-600">Logged Timers</span>
+      </div>
     </div>
   </div>
 </div>

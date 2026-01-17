@@ -1,18 +1,20 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { todayTargets } from '../stores/targets';
-  import { buttonsStore } from '../stores/buttons';
-  import { timeLogsStore } from '../stores/timelogs';
-  import type { DailyTarget } from '../types';
+  import { timers } from '../stores/timers';
+  import { timerlogs } from '../stores/timelogs';
+  import { activeTimeLogs } from '../stores/timelogs';
+  import type { TargetWithSpecs } from '../types';
   import dayjs from 'dayjs';
+  import { getActiveTargetSpec } from '../lib/utils/targetSpec';
 
-  let activeTargets: DailyTarget[] = [];
-  let inactiveTargets: DailyTarget[] = [];
-  let displayedTargets: DailyTarget[] = [];
+  let activeTargets: TargetWithSpecs[] = [];
+  let inactiveTargets: TargetWithSpecs[] = [];
+  let displayedTargets: TargetWithSpecs[] = [];
   let progressMap = new Map<string, { totalMinutes: number; targetDuration: number; percentage: number; completed: boolean }>();
   let interval: number | null = null;
 
-  $: if ($todayTargets.length > 0 && $buttonsStore.buttons && $timeLogsStore.timeLogs) {
+  $: if ($todayTargets.length > 0 && $timers && $timerlogs) {
     updateProgressMap();
     
     // Separate active and inactive targets
@@ -67,22 +69,21 @@
     if (interval) clearInterval(interval);
   });
 
-
   // Check if target is currently active (any assigned button is running)
-  function isTargetActive(target: DailyTarget): boolean {
+  function isTargetActive(target: TargetWithSpecs): boolean {
     // Find all buttons assigned to this target
-    const assignedButtons = $buttonsStore.buttons.filter(b => b.target_id === target.id);
+    const assignedButtons = $timers.filter(b => b.target_id === target.id);
     
     // Check if any of these buttons have active timers
     return assignedButtons.some(button => 
-      $timeLogsStore.activeTimers.some(timer => timer.button_id === button.id)
+      $activeTimeLogs.some(timer => timer.timer_id === button.id)
     );
   }
 
   // Calculate progress for each target
-  function calculateTargetProgress(target: DailyTarget) {
+  function calculateTargetProgress(target: TargetWithSpecs) {
     // Find all buttons assigned to this target
-    const assignedButtons = $buttonsStore.buttons.filter(b => b.target_id === target.id);
+    const assignedButtons = $timers.filter(b => b.target_id === target.id);
     
     // Get today's start/end
     const todayStart = dayjs().startOf('day');
@@ -93,8 +94,8 @@
     
     for (const button of assignedButtons) {
       // Get today's logs for this button
-      const buttonLogs = $timeLogsStore.timeLogs.filter(log => 
-        log.button_id === button.id &&
+      const buttonLogs = $timerlogs.filter(log => 
+        log.timer_id === button.id &&
         log.start_timestamp &&
         dayjs(log.start_timestamp).isAfter(todayStart) &&
         dayjs(log.start_timestamp).isBefore(todayEnd)
@@ -121,10 +122,10 @@
     }
     
     // Get duration for today's weekday
-    // duration_minutes is an array with one value per weekday in target.weekdays
-    const today = new Date().getDay();
-    const todayIndex = target.weekdays.indexOf(today);
-    const targetDuration = todayIndex >= 0 ? target.duration_minutes[todayIndex] : (target.duration_minutes[0] || 60);
+    // Get active target spec for today
+    const activeSpec = getActiveTargetSpec(target);
+    const today = new Date().getDay(); // 0=Sunday, 6=Saturday
+    const targetDuration = activeSpec?.duration_minutes[today] ?? 60;
     
     const percentage = Math.min(100, Math.round((totalMinutes / targetDuration) * 100));
     const completed = totalMinutes >= targetDuration;

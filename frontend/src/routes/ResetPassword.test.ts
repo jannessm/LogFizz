@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/svelte';
 import ResetPassword from './ResetPassword.svelte';
+import { authApi } from '../services/api';
+import { navigate } from '../lib/navigation';
 
 // Mock the API
 vi.mock('../services/api', () => ({
   authApi: {
-    resetPassword: vi.fn().mockResolvedValue({ 
-      message: 'Password has been reset successfully' 
-    }),
+    resetPassword: vi.fn(),
   },
 }));
 
@@ -19,9 +19,14 @@ vi.mock('../lib/navigation', () => ({
 describe('ResetPassword Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
     // Mock URL search params with token and email
     delete (window as any).location;
     (window as any).location = { search: '?token=test-token-123&email=test@example.com' };
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders reset password form', () => {
@@ -67,12 +72,217 @@ describe('ResetPassword Component', () => {
     expect(screen.getByText(/Invalid reset link/i)).toBeInTheDocument();
   });
 
-  it('works with token only (no email) for backward compatibility', () => {
+  it('shows error when only token provided (no email)', () => {
     (window as any).location = { search: '?token=test-token-123' };
     render(ResetPassword);
     
-    // Should render the form, not show an error
-    expect(screen.getByRole('heading', { name: /Reset Password/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/New Password/i)).toBeInTheDocument();
+    // Should show error since email is now required
+    expect(screen.getByText(/Invalid reset link/i)).toBeInTheDocument();
+  });
+
+  it('shows error when passwords do not match', async () => {
+    render(ResetPassword);
+    
+    const newPasswordInput = screen.getByLabelText(/New Password/i);
+    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const submitButton = screen.getByRole('button', { name: /Reset Password/i });
+
+    await fireEvent.input(newPasswordInput, { target: { value: 'password123' } });
+    await fireEvent.input(confirmPasswordInput, { target: { value: 'differentpass' } });
+    await fireEvent.click(submitButton);
+
+    expect(screen.getByText(/Passwords do not match/i)).toBeInTheDocument();
+    expect(authApi.resetPassword).not.toHaveBeenCalled();
+  });
+
+  it('shows error when password is too short', async () => {
+    render(ResetPassword);
+    
+    const newPasswordInput = screen.getByLabelText(/New Password/i);
+    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const submitButton = screen.getByRole('button', { name: /Reset Password/i });
+
+    await fireEvent.input(newPasswordInput, { target: { value: 'short' } });
+    await fireEvent.input(confirmPasswordInput, { target: { value: 'short' } });
+    await fireEvent.click(submitButton);
+
+    expect(screen.getByText(/Password must be at least 8 characters/i)).toBeInTheDocument();
+    expect(authApi.resetPassword).not.toHaveBeenCalled();
+  });
+
+  it('successfully resets password and redirects to login', async () => {
+    vi.mocked(authApi.resetPassword).mockResolvedValue({ 
+      message: 'Password has been reset successfully' 
+    });
+
+    render(ResetPassword);
+    
+    const newPasswordInput = screen.getByLabelText(/New Password/i);
+    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const submitButton = screen.getByRole('button', { name: /Reset Password/i });
+
+    await fireEvent.input(newPasswordInput, { target: { value: 'newpassword123' } });
+    await fireEvent.input(confirmPasswordInput, { target: { value: 'newpassword123' } });
+    await fireEvent.click(submitButton);
+
+    // Should call API with correct parameters
+    await waitFor(() => {
+      expect(authApi.resetPassword).toHaveBeenCalledWith('test-token-123', 'newpassword123', 'test@example.com');
+    });
+
+    // Should show success message
+    expect(screen.getByText(/Password has been reset successfully/i)).toBeInTheDocument();
+    expect(screen.getByText(/Redirecting to login/i)).toBeInTheDocument();
+
+    // Should redirect after 2 seconds
+    vi.advanceTimersByTime(2000);
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith('/login');
+    });
+  });
+
+  it('shows loading state during password reset', async () => {
+    let resolvePromise: (value: any) => void;
+    const promise = new Promise(resolve => {
+      resolvePromise = resolve;
+    });
+    
+    vi.mocked(authApi.resetPassword).mockReturnValue(promise as any);
+
+    render(ResetPassword);
+    
+    const newPasswordInput = screen.getByLabelText(/New Password/i);
+    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const submitButton = screen.getByRole('button', { name: /Reset Password/i });
+
+    await fireEvent.input(newPasswordInput, { target: { value: 'newpassword123' } });
+    await fireEvent.input(confirmPasswordInput, { target: { value: 'newpassword123' } });
+    await fireEvent.click(submitButton);
+
+    // Should show loading state
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Resetting.../i })).toBeInTheDocument();
+      expect(submitButton).toBeDisabled();
+    });
+
+    // Resolve the promise
+    resolvePromise!({ message: 'Success' });
+
+    // Wait for completion
+    await waitFor(() => {
+      expect(screen.getByText(/Success/i)).toBeInTheDocument();
+    });
+  });
+
+  it('handles API error when reset fails', async () => {
+    vi.mocked(authApi.resetPassword).mockRejectedValue(
+      new Error('Failed to reset password. The link may be invalid or expired.')
+    );
+
+    render(ResetPassword);
+    
+    const newPasswordInput = screen.getByLabelText(/New Password/i);
+    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const submitButton = screen.getByRole('button', { name: /Reset Password/i });
+
+    await fireEvent.input(newPasswordInput, { target: { value: 'newpassword123' } });
+    await fireEvent.input(confirmPasswordInput, { target: { value: 'newpassword123' } });
+    await fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to reset password. The link may be invalid or expired./i)).toBeInTheDocument();
+    });
+
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('handles rate limiting error (429)', async () => {
+    vi.mocked(authApi.resetPassword).mockRejectedValue({
+      response: { status: 429 },
+      message: 'Too Many Requests'
+    });
+
+    render(ResetPassword);
+    
+    const newPasswordInput = screen.getByLabelText(/New Password/i);
+    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const submitButton = screen.getByRole('button', { name: /Reset Password/i });
+
+    await fireEvent.input(newPasswordInput, { target: { value: 'newpassword123' } });
+    await fireEvent.input(confirmPasswordInput, { target: { value: 'newpassword123' } });
+    await fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Too many password reset attempts. Please wait 15 minutes before trying again./i)).toBeInTheDocument();
+    });
+  });
+
+  it('disables form inputs after successful reset', async () => {
+    vi.mocked(authApi.resetPassword).mockResolvedValue({ 
+      message: 'Password has been reset successfully' 
+    });
+
+    render(ResetPassword);
+    
+    const newPasswordInput = screen.getByLabelText(/New Password/i) as HTMLInputElement;
+    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i) as HTMLInputElement;
+    const submitButton = screen.getByRole('button', { name: /Reset Password/i });
+
+    await fireEvent.input(newPasswordInput, { target: { value: 'newpassword123' } });
+    await fireEvent.input(confirmPasswordInput, { target: { value: 'newpassword123' } });
+    await fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Password has been reset successfully/i)).toBeInTheDocument();
+    });
+
+    // Inputs should be disabled
+    expect(newPasswordInput.disabled).toBe(true);
+    expect(confirmPasswordInput.disabled).toBe(true);
+    expect(submitButton).toBeDisabled();
+  });
+
+  it('navigates to login when "Back to Login" is clicked', async () => {
+    render(ResetPassword);
+    
+    const backButton = screen.getByRole('button', { name: /Back to Login/i });
+    await fireEvent.click(backButton);
+
+    expect(navigate).toHaveBeenCalledWith('/login');
+  });
+
+  it('hides form when invalid reset link error is shown without token', async () => {
+    (window as any).location = { search: '' };
+    render(ResetPassword);
+    
+    expect(screen.getByText(/Invalid reset link/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/New Password/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Confirm Password/i)).not.toBeInTheDocument();
+  });
+
+  it('clears error messages on new submission', async () => {
+    render(ResetPassword);
+    
+    const newPasswordInput = screen.getByLabelText(/New Password/i);
+    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const submitButton = screen.getByRole('button', { name: /Reset Password/i });
+
+    // First submission - password mismatch
+    await fireEvent.input(newPasswordInput, { target: { value: 'password123' } });
+    await fireEvent.input(confirmPasswordInput, { target: { value: 'different' } });
+    await fireEvent.click(submitButton);
+
+    expect(screen.getByText(/Passwords do not match/i)).toBeInTheDocument();
+
+    // Second submission - should clear previous error
+    await fireEvent.input(confirmPasswordInput, { target: { value: 'password123' } });
+    
+    vi.mocked(authApi.resetPassword).mockResolvedValue({ message: 'Success' });
+    await fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Passwords do not match/i)).not.toBeInTheDocument();
+      expect(screen.getByText(/Success/i)).toBeInTheDocument();
+    });
   });
 });

@@ -2,12 +2,13 @@
   import { onMount } from 'svelte';
   import { authStore } from '../stores/auth';
   import { snackbar } from '../stores/snackbar';
-  import { navigate, currentPath } from '../lib/navigation';
+  import { navigate } from '../lib/navigation';
   import { authApi } from '../services/api';
 
   let isVerifying = true;
   let verificationToken = '';
   let savedPath = '';
+  let errorType: 'wrong_user' | 'expired' | 'generic' | null = null;
 
   $: user = $authStore.user;
   $: isAuthenticated = $authStore.isAuthenticated;
@@ -40,6 +41,7 @@
 
   async function verifyEmail() {
     isVerifying = true;
+    errorType = null;
     
     try {
       const response = await authApi.verifyEmail(verificationToken);
@@ -58,17 +60,40 @@
       const errorMessage = error.response?.data?.error || 
                           error.message || 
                           'Email verification failed';
+      const errorCode = error.response?.data?.code;
       
       console.log('Verification error:', error);
-      snackbar.error('The verification link is invalid or has expired.', 8000);
       
-      // Redirect to dashboard after error
-      setTimeout(() => {
-        navigate('/');
-      }, 3000);
+      if (error.response?.status === 429) {
+        // Rate limit exceeded
+        errorType = 'expired';
+      } else if (errorCode === 'WRONG_USER') {
+        // User is logged in as a different account - email already resent
+        errorType = 'wrong_user';
+      } else if (error.response?.status === 401) {
+        // Not authenticated
+        snackbar.error('Please log in first to verify your email.', 8000);
+        // The onMount logic will handle redirecting to login
+        navigate('/login');
+        return;
+      } else {
+        // Generic error
+        errorType = 'expired';
+      }
+      
+      isVerifying = false;
+      
+      // Auto-redirect after showing the message
+      if (errorType === 'expired') {
+        setTimeout(() => {
+          navigate('/');
+        }, 3000);
+      }
       
     } finally {
-      isVerifying = false;
+      if (errorType !== 'wrong_user' && errorType !== 'expired') {
+        isVerifying = false;
+      }
     }
   }
 
@@ -113,8 +138,50 @@
           Please wait while we verify your email address...
         </p>
       </div>
+    {:else if errorType === 'wrong_user'}
+      <!-- Wrong user error state -->
+      <div class="text-center">
+        <div class="mb-6">
+          <span class="w-16 h-16 icon-[si--mail-duotone] text-blue-600 mx-auto block"></span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Wrong Account</h1>
+        <p class="text-gray-700 mb-4">
+          This verification link is for a different email account. 
+          You're currently logged in as <strong>{user?.email}</strong>.
+        </p>
+        
+        <div class="text-left text-sm text-gray-600 space-y-2 mb-6">
+          <p><strong>Next steps:</strong></p>
+          <ol class="list-decimal list-inside space-y-1 ml-2">
+            <li>Log out from your current account</li>
+            <li>Log in with the account that received the email</li>
+            <li>Click the new verification link in your email</li>
+          </ol>
+        </div>
+        
+        <button
+          on:click={() => navigate('/')}
+          class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+        >
+          Go to Dashboard
+        </button>
+      </div>
+    {:else if errorType === 'expired'}
+      <!-- Expired/invalid token error state -->
+      <div class="text-center">
+        <div class="mb-6">
+          <span class="w-16 h-16 icon-[si--close-circle-line] text-red-600 mx-auto block"></span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">Verification Failed</h1>
+        <p class="text-gray-600 mb-4">
+          The verification link is invalid or has expired.
+        </p>
+        <p class="text-sm text-gray-500">
+          Redirecting to dashboard...
+        </p>
+      </div>
     {:else}
-      <!-- Success/Error state (will show briefly before redirect) -->
+      <!-- Success state (will show briefly before redirect) -->
       <div class="text-center">
         <div class="mb-6">
           <span class="w-16 h-16 icon-[si--check-circle-line] text-green-600 mx-auto block"></span>

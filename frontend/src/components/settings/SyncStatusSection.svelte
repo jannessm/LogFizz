@@ -1,13 +1,16 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
-
-  export let hasPendingSync: boolean = false;
-  export let isOnline: boolean = true;
-
-  const dispatch = createEventDispatcher();
+  let {
+    hasPendingSync = false,
+    isOnline = true,
+    onsync
+  }: {
+    hasPendingSync?: boolean;
+    isOnline?: boolean;
+    onsync: () => void;
+  } = $props();
 
   function handleSync() {
-    dispatch('sync');
+    onsync();
   }
 </script>
 
@@ -42,7 +45,7 @@
       {/if}
     </div>
     <button
-      on:click={handleSync}
+      onclick={handleSync}
       disabled={!isOnline}
       class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 transition-colors flex items-center gap-2"
     >

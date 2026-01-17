@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { authStore } from './stores/auth';
+  import { get } from 'svelte/store';
   import Login from './routes/Login.svelte';
   import Dashboard from './routes/Dashboard.svelte';
   import History from './routes/History.svelte';
@@ -11,10 +12,13 @@
   import Snackbar from './components/Snackbar.svelte';
   import { syncService } from './services/sync';
   import { currentPath, navigate } from './lib/navigation';
+  import { loadData } from './services/data';
+    import { getDB } from './lib/db';
+    import { snackbar } from './stores/snackbar';
 
   let isLoading = true;
 
-  $: auth = $authStore;
+  $: authenticated = $authStore.isAuthenticated;
   $: path = $currentPath;
 
   // Public routes that don't require authentication
@@ -22,21 +26,36 @@
   const isPublicRoute = (path: string) => publicRoutes.includes(path);
 
   onMount(async () => {
+    await getDB(); // ensure DB is initialized
     await authStore.init();
+    await loadData(authenticated); // initializes all necessary data stores if logged in
     isLoading = false;
 
     // Auto-sync every minute if online and authenticated
     setInterval(() => {
-      if (navigator.onLine && $authStore.isAuthenticated) {
-        syncService.syncAll();
+      if (navigator.onLine && authenticated) {
+        syncService.sync('all');
       }
     }, 1 * 60 * 1000);
   });
 
   // Redirect to login if not authenticated and not on a public route
   $: {
+    const auth = get(authStore);
     if (!isLoading && !auth.isAuthenticated && !isPublicRoute(path)) {
       navigate('/login', { replace: true });
+    }
+
+    if (!isLoading && auth.isAuthenticated) {
+      loadData(true); // ensure data is loaded when authenticated
+    }
+
+    // Redirect to dashboard if authenticated and on a public route
+    if (!isLoading && auth.isAuthenticated && isPublicRoute(path)) {
+      if (path === '/reset-password') {
+        snackbar.info('To reset your password, logout first.', 6000);
+      }
+      navigate('/', { replace: true });
     }
   }
 </script>

@@ -2,12 +2,13 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { User } from '../entities/User.js';
-import { Button } from '../entities/Button.js';
-import { DailyTarget } from '../entities/DailyTarget.js';
+import { Timer } from '../entities/Timer.js';
+import { Target } from '../entities/Target.js';
+import { TargetSpec } from '../entities/TargetSpec.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { State } from '../entities/State.js';
-import { MonthlyBalance } from '../entities/MonthlyBalance.js';
+import { Balance } from '../entities/Balance.js';
 import { HolidayMetadata } from '../entities/HolidayMetadata.js';
 import { InitialSchema1699700000000 } from '../migrations/1699700000000-InitialSchema.js';
 
@@ -59,7 +60,7 @@ async function testMigrations() {
       database: TEST_DB_NAME,
       synchronize: false,
       logging: false,
-      entities: [User, Button, DailyTarget, TimeLog, Holiday, State, MonthlyBalance, HolidayMetadata],
+      entities: [User, Timer, Target, TargetSpec, TimeLog, Holiday, State, Balance, HolidayMetadata],
       migrations: [InitialSchema1699700000000],
     });
 
@@ -82,8 +83,8 @@ async function testMigrations() {
       const tableNames = tables.map(t => t.name);
       
       const expectedTables = [
-        'users', 'buttons', 'daily_targets', 'time_logs', 
-        'holidays', 'holiday_metadata', 'states', 'monthly_balances', 'migrations'
+        'users', 'timers', 'targets', 'target_specs', 'time_logs', 
+        'holidays', 'holiday_metadata', 'states', 'balances', 'migrations'
       ];
       
       const missingTables = expectedTables.filter(t => !tableNames.includes(t));
@@ -133,11 +134,11 @@ async function testMigrations() {
     
     const userRepo = testConnection.getRepository(User);
     const { hashPassword } = await import('../utils/password.js');
-    const { hashPasswordForTransport } = await import('../../../lib/utils/passwordHash.node.js');
+    const { hashPasswordForTransport } = await import('../../../lib/utils/passwordHash.js');
     
     const testEmail = 'migration-test@example.com';
     const testPassword = 'test123';
-    const hashedForTransport = hashPasswordForTransport(testPassword, testEmail);
+    const hashedForTransport = await hashPasswordForTransport(testPassword, testEmail);
     
     const testUser = userRepo.create({
       email: testEmail,
@@ -159,47 +160,38 @@ async function testMigrations() {
     // Step 5: Test foreign key constraints
     console.log('\n🔗 Testing foreign key constraints...');
     
-    const buttonRepo = testConnection.getRepository(Button);
-    const button = buttonRepo.create({
+    const timerRepo = testConnection.getRepository(Timer);
+    const timer = timerRepo.create({
       user_id: savedUser.id,
-      name: 'Test Button',
+      name: 'Test Timer',
       color: '#3B82F6',
     });
     
-    await buttonRepo.save(button);
+    await timerRepo.save(timer);
     console.log('✅ Foreign key constraints working correctly');
 
-    // Step 6: Test ending_at column in daily targets
-    console.log('\n📅 Testing ending_at column in daily targets...');
+    // Step 6: Test target creation
+    console.log('\n📅 Testing target creation...');
     
-    const targetRepo = testConnection.getRepository(DailyTarget);
-    const startDate = new Date('2025-01-01T00:00:00.000Z');
-    const endDate = new Date('2025-12-31T23:59:59.999Z');
+    const targetRepo = testConnection.getRepository(Target);
     
-    const targetWithEnd = targetRepo.create({
+    const target = targetRepo.create({
       user_id: savedUser.id,
-      name: 'Test Target with End Date',
-      duration_minutes: [480],
-      weekdays: [1, 2, 3, 4, 5],
-      starting_from: startDate,
-      ending_at: endDate,
+      name: 'Test Target',
+      target_spec_ids: [],
     });
     
-    await targetRepo.save(targetWithEnd);
+    await targetRepo.save(target);
     
     const savedTarget = await targetRepo.findOne({ 
-      where: { id: targetWithEnd.id } 
+      where: { id: target.id } 
     });
     
-    if (!savedTarget?.ending_at) {
-      throw new Error('ending_at column not saved correctly');
+    if (!savedTarget) {
+      throw new Error('Target not saved correctly');
     }
     
-    if (savedTarget.ending_at.getTime() !== endDate.getTime()) {
-      throw new Error(`ending_at value mismatch: expected ${endDate.toISOString()}, got ${savedTarget.ending_at.toISOString()}`);
-    }
-    
-    console.log('✅ ending_at column working correctly');
+    console.log('✅ Target creation working correctly');
 
     // Success!
     console.log('\n✅ All migration and schema tests passed! ✅\n');

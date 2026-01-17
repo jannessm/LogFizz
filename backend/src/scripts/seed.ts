@@ -1,16 +1,18 @@
 import 'reflect-metadata';
 import { AppDataSource } from '../config/database.js';
 import { User } from '../entities/User.js';
-import { Button } from '../entities/Button.js';
-import { DailyTarget } from '../entities/DailyTarget.js';
+import { Timer } from '../entities/Timer.js';
+import { Target } from '../entities/Target.js';
+import { TargetSpec } from '../entities/TargetSpec.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
 import { hashPassword } from '../utils/password.js';
-import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.node.js';
+import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.js';
+import { HolidayCrawlerService } from '../services/holiday-crawler.service.js';
 
 /**
  * Seed script for development environment
- * Creates sample users, buttons, time logs, and holidays
+ * Creates sample users, timers, time logs, and holidays
  * 
  * Usage: npm run seed
  */
@@ -29,8 +31,25 @@ async function seed() {
     if (process.env.NODE_ENV !== 'production') {
       console.log('🧹 Clearing existing data...');
       // Use raw SQL to truncate with CASCADE to handle foreign key constraints
-      await AppDataSource.query('TRUNCATE TABLE time_logs, buttons, daily_targets, holidays, users RESTART IDENTITY CASCADE');
+      await AppDataSource.query('TRUNCATE TABLE time_logs, timers, target_specs, targets, holidays, holiday_metadata, users RESTART IDENTITY CASCADE');
       console.log('✅ Existing data cleared');
+    }
+
+    // Fetch holidays for German states used in seed data
+    console.log('🎄 Fetching holiday data...');
+    const holidayCrawler = new HolidayCrawlerService();
+    
+    // Fetch holidays for 2025 and 2026 for Germany
+    const years = [2025, 2026];
+    for (const year of years) {
+      const result = await holidayCrawler.crawlHolidays('DE', year, true);
+      if (result.success) {
+        console.log(`✅ Fetched ${result.holidayCount} holidays for Germany ${year}`);
+      } else {
+        console.warn(`⚠️  Failed to fetch holidays for Germany ${year}: ${result.message}`);
+      }
+      // Small delay between requests
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     // Create sample users
@@ -41,7 +60,7 @@ async function seed() {
     // Then bcrypt hash them for storage
     const demoEmail = 'demo@example.com';
     const demoPassword = 'demo123';
-    const demoHashedForTransport = hashPasswordForTransport(demoPassword, demoEmail);
+    const demoHashedForTransport = await hashPasswordForTransport(demoPassword, demoEmail);
     
     const demoUser = userRepo.create({
       email: demoEmail,
@@ -52,7 +71,7 @@ async function seed() {
     
     const testEmail = 'test@example.com';
     const testPassword = 'test123';
-    const testHashedForTransport = hashPasswordForTransport(testPassword, testEmail);
+    const testHashedForTransport = await hashPasswordForTransport(testPassword, testEmail);
     
     const testUser = userRepo.create({
       email: testEmail,
@@ -65,30 +84,78 @@ async function seed() {
     console.log('   - demo@example.com (password: demo123)');
     console.log('   - test@example.com (password: test123)');
 
-    // Create sample daily targets for demo user (before buttons so we can link them)
-    console.log('🎯 Creating sample daily targets...');
-    const targetRepo = AppDataSource.getRepository(DailyTarget);
+    // Create sample targets and target specs for demo user
+    console.log('🎯 Creating sample targets...');
+    const targetRepo = AppDataSource.getRepository(Target);
+    const targetSpecRepo = AppDataSource.getRepository(TargetSpec);
     
-    // Create work target starting from October 2025 (to test cumulative balance)
-    const workStartingFrom = new Date(Date.UTC(2025, 9, 1)); // October 1, 2025
+    // Create work target with MULTIPLE specs at different times to test the new UI
     const workTarget = targetRepo.create({
       user_id: demoUser.id,
       name: 'Work Target',
-      duration_minutes: [480, 480, 480, 480, 480], // 8 hours per day
-      weekdays: [1, 2, 3, 4, 5], // Monday to Friday
-      starting_from: workStartingFrom,
+      target_spec_ids: [], // Will be updated after creating specs
     });
     await targetRepo.save(workTarget);
+    
+    // Current spec: January 2026 onwards (back to 8h, with holidays)
+    // This is created first since specs should be sorted descending by start date
+    const workSpecCurrent = targetSpecRepo.create({
+      user_id: demoUser.id,
+      target_id: workTarget.id,
+      duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Sun-Sat: 0, 8h, 8h, 8h, 8h, 8h, 0
+      starting_from: new Date(Date.UTC(2026, 0, 1)), // January 1, 2026
+      // No ending_at - this is the current active spec
+      exclude_holidays: true,
+      state_code: 'DE-BY', // Bavaria
+    });
+    await targetSpecRepo.save(workSpecCurrent);
+    
+    // Middle spec: December 2025 (7h workdays - reduced hours)
+    // ending_at is 1 day before next spec starts (Dec 31, 2025)
+    const workSpecMiddle = targetSpecRepo.create({
+      user_id: demoUser.id,
+      target_id: workTarget.id,
+      duration_minutes: [0, 420, 420, 420, 420, 420, 0], // Sun-Sat: 0, 7h, 7h, 7h, 7h, 7h, 0
+      starting_from: new Date(Date.UTC(2025, 11, 1)), // December 1, 2025
+      ending_at: new Date(Date.UTC(2025, 11, 31)), // December 31, 2025 (1 day before Jan 1)
+      exclude_holidays: true,
+      state_code: 'DE-BW', // Baden-Württemberg
+    });
+    await targetSpecRepo.save(workSpecMiddle);
+    
+    // Oldest spec: October-November 2025 (8h workdays)
+    // ending_at is 1 day before next spec starts (Nov 30, 2025)
+    const workSpecOld = targetSpecRepo.create({
+      user_id: demoUser.id,
+      target_id: workTarget.id,
+      duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Sun-Sat: 0, 8h, 8h, 8h, 8h, 8h, 0
+      starting_from: new Date(Date.UTC(2025, 9, 1)), // October 1, 2025
+      ending_at: new Date(Date.UTC(2025, 10, 30)), // November 30, 2025 (1 day before Dec 1)
+      exclude_holidays: false,
+    });
+    await targetSpecRepo.save(workSpecOld);
+    
+    workTarget.target_spec_ids = [workSpecOld.id, workSpecMiddle.id, workSpecCurrent.id];
+    await targetRepo.save(workTarget);
 
-    // Create study target starting from November 2025
+    // Create study target with spec starting from November 2025
     const studyStartingFrom = new Date(Date.UTC(2025, 10, 1)); // November 1, 2025
     const studyTarget = targetRepo.create({
       user_id: demoUser.id,
       name: 'Study Target',
-      duration_minutes: [120, 120], // 2 hours per day
-      weekdays: [2, 4], // Tuesday and Thursday
-      starting_from: studyStartingFrom,
+      target_spec_ids: [],
     });
+    await targetRepo.save(studyTarget);
+    
+    const studySpec = targetSpecRepo.create({
+      user_id: demoUser.id,
+      target_id: studyTarget.id,
+      duration_minutes: [0, 0, 120, 0, 120, 0, 0], // Sun-Sat: 0, 0, 2h, 0, 2h, 0, 0
+      starting_from: studyStartingFrom,
+      exclude_holidays: false,
+    });
+    await targetSpecRepo.save(studySpec);
+    studyTarget.target_spec_ids = [studySpec.id];
     await targetRepo.save(studyTarget);
 
     // Create exercise target with ending_at date (to test targets that end)
@@ -97,23 +164,32 @@ async function seed() {
     const exerciseTarget = targetRepo.create({
       user_id: demoUser.id,
       name: 'Exercise Target (Ended)',
-      duration_minutes: [60, 60, 60], // 1 hour per day
-      weekdays: [1, 3, 5], // Monday, Wednesday, Friday
-      starting_from: exerciseStartingFrom,
-      ending_at: exerciseEndingAt,
+      target_spec_ids: [],
     });
     await targetRepo.save(exerciseTarget);
+    
+    const exerciseSpec = targetSpecRepo.create({
+      user_id: demoUser.id,
+      target_id: exerciseTarget.id,
+      duration_minutes: [0, 60, 0, 60, 0, 60, 0], // Sun-Sat: 0, 1h, 0, 1h, 0, 1h, 0
+      starting_from: exerciseStartingFrom,
+      ending_at: exerciseEndingAt,
+      exclude_holidays: false,
+    });
+    await targetSpecRepo.save(exerciseSpec);
+    exerciseTarget.target_spec_ids = [exerciseSpec.id];
+    await targetRepo.save(exerciseTarget);
 
-    console.log('✅ Created 3 sample daily targets');
-    console.log('   - Work Target: starting from Oct 2025, Mon-Fri 8h');
+    console.log('✅ Created 3 sample targets with specs');
+    console.log('   - Work Target: 3 specs (Oct-Nov 2025: 8h, Dec 2025: 7h+DE-BW holidays, Jan 2026+: 8h+DE-BY holidays)');
     console.log('   - Study Target: starting from Nov 2025, Tue/Thu 2h');
     console.log('   - Exercise Target (Ended): Sep-Oct 2025, Mon/Wed/Fri 1h');
 
-    // Create sample buttons for demo user
-    console.log('🔘 Creating sample buttons...');
-    const buttonRepo = AppDataSource.getRepository(Button);
+    // Create sample timers for demo user
+    console.log('⏱️  Creating sample timers...');
+    const timerRepo = AppDataSource.getRepository(Timer);
     
-    const workButton = buttonRepo.create({
+    const workTimer = timerRepo.create({
       user_id: demoUser.id,
       name: 'Work',
       emoji: '💼',
@@ -122,9 +198,9 @@ async function seed() {
       auto_subtract_breaks: true,
       archived: false,
     });
-    await buttonRepo.save(workButton);
+    await timerRepo.save(workTimer);
 
-    const studyButton = buttonRepo.create({
+    const studyTimer = timerRepo.create({
       user_id: demoUser.id,
       name: 'Study',
       emoji: '📚',
@@ -133,9 +209,9 @@ async function seed() {
       auto_subtract_breaks: false,
       archived: false,
     });
-    await buttonRepo.save(studyButton);
+    await timerRepo.save(studyTimer);
 
-    const exerciseButton = buttonRepo.create({
+    const exerciseTimer = timerRepo.create({
       user_id: demoUser.id,
       name: 'Exercise',
       emoji: '🏃',
@@ -143,9 +219,9 @@ async function seed() {
       auto_subtract_breaks: false,
       archived: false,
     });
-    await buttonRepo.save(exerciseButton);
+    await timerRepo.save(exerciseTimer);
 
-    const projectButton = buttonRepo.create({
+    const projectTimer = timerRepo.create({
       user_id: demoUser.id,
       name: 'Side Project',
       emoji: '🚀',
@@ -153,10 +229,10 @@ async function seed() {
       auto_subtract_breaks: false,
       archived: false,
     });
-    await buttonRepo.save(projectButton);
+    await timerRepo.save(projectTimer);
 
-    // Create buttons for test user
-    const meetingButton = buttonRepo.create({
+    // Create timers for test user
+    const meetingTimer = timerRepo.create({
       user_id: testUser.id,
       name: 'Meetings',
       emoji: '📞',
@@ -164,10 +240,10 @@ async function seed() {
       auto_subtract_breaks: false,
       archived: false,
     });
-    await buttonRepo.save(meetingButton);
+    await timerRepo.save(meetingTimer);
 
-    // Create button linked to the ended exercise target (to test ended target behavior)
-    const exerciseButtonOld = buttonRepo.create({
+    // Create timer linked to the ended exercise target (to test ended target behavior)
+    const exerciseTimerOld = timerRepo.create({
       user_id: demoUser.id,
       name: 'Old Exercise',
       emoji: '🏋️',
@@ -176,9 +252,9 @@ async function seed() {
       auto_subtract_breaks: false,
       archived: true, // Mark as archived for testing
     });
-    await buttonRepo.save(exerciseButtonOld);
+    await timerRepo.save(exerciseTimerOld);
 
-    console.log('✅ Created 6 sample buttons (3 linked to daily targets)');
+    console.log('✅ Created 6 sample timers (3 linked to targets)');
 
     // Create sample time logs for demo user
     // Now using the new structure with start_timestamp, end_timestamp, and duration_minutes
@@ -198,12 +274,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: exerciseButtonOld.id,
+          timer_id: exerciseTimerOld.id,
           start_timestamp: exerciseStart,
           end_timestamp: exerciseEnd,
           timezone: 'Europe/Berlin',
           notes: 'Morning exercise',
-          apply_break_calculation: exerciseButtonOld.auto_subtract_breaks,
+          apply_break_calculation: exerciseTimerOld.auto_subtract_breaks,
         }));
       }
     }
@@ -222,12 +298,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: workButton.id,
+          timer_id: workTimer.id,
           start_timestamp: workStart,
           end_timestamp: workEnd,
           timezone: 'Europe/Berlin',
           notes: 'October work session',
-          apply_break_calculation: workButton.auto_subtract_breaks,
+          apply_break_calculation: workTimer.auto_subtract_breaks,
         }));
       }
 
@@ -238,12 +314,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: exerciseButtonOld.id,
+          timer_id: exerciseTimerOld.id,
           start_timestamp: exerciseStart,
           end_timestamp: exerciseEnd,
           timezone: 'Europe/Berlin',
           notes: 'Morning exercise (last month)',
-          apply_break_calculation: exerciseButtonOld.auto_subtract_breaks,
+          apply_break_calculation: exerciseTimerOld.auto_subtract_breaks,
         }));
       }
     }
@@ -262,12 +338,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: workButton.id,
+          timer_id: workTimer.id,
           start_timestamp: workStart,
           end_timestamp: workEnd,
           timezone: 'Europe/Berlin',
           notes: 'November work session',
-          apply_break_calculation: workButton.auto_subtract_breaks,
+          apply_break_calculation: workTimer.auto_subtract_breaks,
         }));
 
         // Study sessions on Tue & Thu
@@ -277,12 +353,12 @@ async function seed() {
 
           await timeLogRepo.save(timeLogRepo.create({
             user_id: demoUser.id,
-            button_id: studyButton.id,
+            timer_id: studyTimer.id,
             start_timestamp: studyStart,
             end_timestamp: studyEnd,
             timezone: 'Europe/Berlin',
             notes: 'November study session',
-            apply_break_calculation: studyButton.auto_subtract_breaks,
+            apply_break_calculation: studyTimer.auto_subtract_breaks,
           }));
         }
       }
@@ -310,12 +386,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: workButton.id,
+          timer_id: workTimer.id,
           start_timestamp: workStart,
           end_timestamp: workEnd,
           timezone: 'Europe/Berlin',
           notes: 'Work day',
-          apply_break_calculation: workButton.auto_subtract_breaks,
+          apply_break_calculation: workTimer.auto_subtract_breaks,
         }));
 
         // Study session: 7:00 PM - 9:00 PM
@@ -327,12 +403,12 @@ async function seed() {
 
           await timeLogRepo.save(timeLogRepo.create({
             user_id: demoUser.id,
-            button_id: studyButton.id,
+            timer_id: studyTimer.id,
             start_timestamp: studyStart,
             end_timestamp: studyEnd,
             timezone: 'Europe/Berlin',
             notes: 'Evening study session',
-            apply_break_calculation: studyButton.auto_subtract_breaks,
+            apply_break_calculation: studyTimer.auto_subtract_breaks,
           }));
         }
       }
@@ -346,12 +422,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: exerciseButton.id,
+          timer_id: exerciseTimer.id,
           start_timestamp: exerciseStart,
           end_timestamp: exerciseEnd,
           timezone: 'Europe/Berlin',
           notes: 'Morning workout',
-          apply_break_calculation: exerciseButton.auto_subtract_breaks,
+          apply_break_calculation: exerciseTimer.auto_subtract_breaks,
         }));
       }
 
@@ -364,12 +440,12 @@ async function seed() {
 
         await timeLogRepo.save(timeLogRepo.create({
           user_id: demoUser.id,
-          button_id: projectButton.id,
+          timer_id: projectTimer.id,
           start_timestamp: projectStart,
           end_timestamp: projectEnd,
           timezone: 'Europe/Berlin',
           notes: 'Weekend coding session',
-          apply_break_calculation: projectButton.auto_subtract_breaks,
+          apply_break_calculation: projectTimer.auto_subtract_breaks,
         }));
       }
     }
@@ -380,12 +456,177 @@ async function seed() {
     
     await timeLogRepo.save(timeLogRepo.create({
       user_id: demoUser.id,
-      button_id: workButton.id,
+      timer_id: workTimer.id,
       start_timestamp: activeStart,
       // No end_timestamp - this is an active timer
       timezone: 'Europe/Berlin',
       notes: 'Currently working',
-      apply_break_calculation: workButton.auto_subtract_breaks,
+      apply_break_calculation: workTimer.auto_subtract_breaks,
+      type: 'normal',
+    }));
+
+    // Add timelogs with different types for debugging
+    console.log('   - Creating timelogs with different types for debugging...');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Sick day (yesterday) - whole day flag set
+    const sickDate = new Date(today);
+    sickDate.setDate(sickDate.getDate() - 1);
+    const sickStart = new Date(sickDate);
+    sickStart.setHours(8, 0, 0, 0); // Time doesn't matter with whole_day flag
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      timer_id: workTimer.id,
+      start_timestamp: sickStart,
+      end_timestamp: sickStart, // Same as start, whole_day flag is what matters
+      timezone: 'Europe/Berlin',
+      notes: 'Sick day - stayed home',
+      apply_break_calculation: false,
+      type: 'sick',
+      whole_day: true,
+    }));
+
+    // Holiday (2 days ago) - whole day flag set
+    const holidayDate = new Date(today);
+    holidayDate.setDate(holidayDate.getDate() - 2);
+    const holidayStart = new Date(holidayDate);
+    holidayStart.setHours(8, 0, 0, 0); // Time doesn't matter with whole_day flag
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      timer_id: workTimer.id,
+      start_timestamp: holidayStart,
+      end_timestamp: holidayStart, // Same as start, whole_day flag is what matters
+      timezone: 'Europe/Berlin',
+      notes: 'Vacation day',
+      apply_break_calculation: false,
+      type: 'holiday',
+      whole_day: true,
+    }));
+
+    // Business trip (3 days ago) - normal timelog with specific hours
+    const businessTripDate = new Date(today);
+    businessTripDate.setDate(businessTripDate.getDate() - 3);
+    const businessTripStart = new Date(businessTripDate);
+    businessTripStart.setHours(8, 0, 0, 0);
+    const businessTripEnd = new Date(businessTripDate);
+    businessTripEnd.setHours(18, 0, 0, 0);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      timer_id: workTimer.id,
+      start_timestamp: businessTripStart,
+      end_timestamp: businessTripEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Business trip to Berlin office',
+      apply_break_calculation: true,
+      type: 'business-trip',
+      whole_day: false,
+    }));
+
+    // Child sick day (4 days ago) - half day, so NOT whole_day
+    const childSickDate = new Date(today);
+    childSickDate.setDate(childSickDate.getDate() - 4);
+    const childSickStart = new Date(childSickDate);
+    childSickStart.setHours(8, 0, 0, 0);
+    const childSickEnd = new Date(childSickDate);
+    childSickEnd.setHours(12, 0, 0, 0);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      timer_id: workTimer.id,
+      start_timestamp: childSickStart,
+      end_timestamp: childSickEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Taking care of sick child - half day',
+      apply_break_calculation: false,
+      type: 'child-sick',
+      whole_day: false, // Half day - use actual time range
+    }));
+
+    // Normal work day with explicit type (5 days ago)
+    const normalDate = new Date(today);
+    normalDate.setDate(normalDate.getDate() - 5);
+    const normalStart = new Date(normalDate);
+    normalStart.setHours(9, 0, 0, 0);
+    const normalEnd = new Date(normalDate);
+    normalEnd.setHours(17, 30, 0, 0);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      timer_id: workTimer.id,
+      start_timestamp: normalStart,
+      end_timestamp: normalEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Regular work day with explicit type',
+      apply_break_calculation: true,
+      type: 'normal',
+      whole_day: false,
+    }));
+
+    // Multi-day holiday (6-9 days ago - 4 consecutive days)
+    // Create a single timelog spanning the entire range
+    const holidayMultiStart = new Date(today);
+    holidayMultiStart.setDate(holidayMultiStart.getDate() - 9);
+    holidayMultiStart.setHours(0, 0, 0, 0);
+    const holidayMultiEnd = new Date(today);
+    holidayMultiEnd.setDate(holidayMultiEnd.getDate() - 6);
+    holidayMultiEnd.setHours(23, 59, 59, 999);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      timer_id: workTimer.id,
+      start_timestamp: holidayMultiStart,
+      end_timestamp: holidayMultiEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Multi-day vacation (4 days)',
+      apply_break_calculation: false,
+      type: 'holiday',
+      whole_day: true,
+    }));
+
+    // Multi-day sick leave (10-11 days ago - 2 consecutive days)
+    // Create a single timelog spanning the entire range
+    const sickMultiStart = new Date(today);
+    sickMultiStart.setDate(sickMultiStart.getDate() - 11);
+    sickMultiStart.setHours(0, 0, 0, 0);
+    const sickMultiEnd = new Date(today);
+    sickMultiEnd.setDate(sickMultiEnd.getDate() - 10);
+    sickMultiEnd.setHours(23, 59, 59, 999);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      timer_id: workTimer.id,
+      start_timestamp: sickMultiStart,
+      end_timestamp: sickMultiEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Sick leave (2 days)',
+      apply_break_calculation: false,
+      type: 'sick',
+      whole_day: true,
+    }));
+
+    // Overlapping ranges test: Business trip (7-8 days ago) overlaps with holiday (6-9 days ago)
+    // This tests the gradient feature where ranges blend together
+    const businessTripMultiStart = new Date(today);
+    businessTripMultiStart.setDate(businessTripMultiStart.getDate() - 8);
+    businessTripMultiStart.setHours(0, 0, 0, 0);
+    const businessTripMultiEnd = new Date(today);
+    businessTripMultiEnd.setDate(businessTripMultiEnd.getDate() - 7);
+    businessTripMultiEnd.setHours(23, 59, 59, 999);
+    
+    await timeLogRepo.save(timeLogRepo.create({
+      user_id: demoUser.id,
+      timer_id: workTimer.id,
+      start_timestamp: businessTripMultiStart,
+      end_timestamp: businessTripMultiEnd,
+      timezone: 'Europe/Berlin',
+      notes: 'Business trip overlapping with vacation (2 days)',
+      apply_break_calculation: false,
+      type: 'business-trip',
+      whole_day: true,
     }));
 
     console.log('✅ Created sample time logs');
@@ -394,19 +635,30 @@ async function seed() {
     console.log('   - November 2025: Work + overtime (8.5h/day) and study sessions');
     console.log('   - Current week: Regular time logs');
     console.log('   - Including an active timer for demo user');
+    console.log('   - Different types with whole_day flag:');
+    console.log('     * Sick days: whole_day=true (counts as full day)');
+    console.log('     * Holidays: whole_day=true (counts as full day)');
+    console.log('     * Child-sick: whole_day=false (half-day, uses time range)');
+    console.log('     * Business-trip: whole_day=false (uses time range)');
+    console.log('     * Normal: whole_day=false (uses time range)');
+    console.log('   - Multi-day timelogs:');
+    console.log('     * 1 holiday entry (4 days, 6-9 days ago)');
+    console.log('     * 1 sick leave entry (2 days, 10-11 days ago)');
+    console.log('     * 1 business trip entry (2 days, 7-8 days ago) - OVERLAPS with holiday for gradient test');
 
     
 
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\n📝 Summary:');
+    console.log('   - German holidays fetched for 2025-2026');
     console.log('   - 2 users created (demo@example.com, test@example.com)');
-    console.log('   - 3 daily targets created:');
+    console.log('   - 3 targets created:');
     console.log('     * Work: Mon-Fri 8h, starting Oct 2025');
     console.log('     * Study: Tue/Thu 2h, starting Nov 2025');
     console.log('     * Exercise (Ended): Mon/Wed/Fri 1h, Sep-Oct 2025 (with ending_at date)');
-    console.log('   - 6 buttons created (3 linked to targets)');
+    console.log('   - 6 timers created (3 linked to targets)');
     console.log('   - Historical time logs for Sep-Nov 2025 (for testing cumulative balance & ended targets)');
-    console.log('   - Current week time logs');
+    console.log('   - Current week time logs with various types (normal, sick, holiday, business-trip, child-sick)');
     console.log('   - 1 active timer');
     console.log('\n💡 You can now login with:');
     console.log('   Email: demo@example.com');

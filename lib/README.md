@@ -17,7 +17,7 @@ This library is consumed by both the frontend and backend modules. The password 
 ### Backend
 
 ```typescript
-import { hashPasswordForTransport } from '../../lib/utils/passwordHash.node.js';
+import { hashPasswordForTransport } from '../../lib/utils/passwordHash.js';
 ```
 
 ### Frontend

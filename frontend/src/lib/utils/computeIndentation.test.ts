@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { computeIndentation } from './computeIndentation';
-import dayjs from 'dayjs';
+import dayjs from '../../../../lib/utils/dayjs.js';
 
 describe('computeIndentation', () => {
   it('assigns level 0 for non-overlapping sessions', () => {
