@@ -9,11 +9,11 @@
     type ButtonLongpressCallback,
     type ButtonTimerStoppedCallback
   } from './TimerButton.svelte';
+    import { getSetting } from '../../lib/db';
 
   let { 
     buttons,
     editMode = false,
-    toggleMode = true,
     edit,
     longpress,
     timerstopped
@@ -30,6 +30,7 @@
 
   let containerWidth = $state(500);
   let containerHeight = $state(600);
+  let toggleMode = $state(false);
   let containerEl: HTMLDivElement;
   let timerPositions: Map<string, { x: number; y: number }> = $state(new Map());
 
@@ -40,6 +41,10 @@
       containerHeight = Math.max(rect.height, 600);
       timerPositions = computeTimerLayout(buttons, mapToArray($timeLogsStore.items), containerWidth, containerHeight, timerSize);
     }
+
+    getSetting('autoToggle').then((value) => {
+      toggleMode = value !== false; // default true
+    });
   });
 
   $effect(() => {

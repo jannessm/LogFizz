@@ -19,6 +19,7 @@
   let originalName = $state('');
   let hasPendingSync = $state(false);
   let editOnStopEnabled = $state(true);
+  let autoToggle = $state(true);
   let isRecalculating = $state(false);
   let themeMode: ThemeMode = $state('auto');
   let firstDayOfWeek: 'sunday' | 'monday' = $state('sunday');
@@ -34,7 +35,9 @@
     hasPendingSync = await syncService.hasPendingSync();
     const setting = await getSetting('editOnStop');
     editOnStopEnabled = setting !== false; // default true
-    
+    const autoToggleSetting = await getSetting('autoToggle');
+    autoToggle = autoToggleSetting !== false; // default true
+
     // Load theme setting
     themeMode = $themeStore.mode;
     
@@ -117,6 +120,10 @@
 
   async function handleToggleEditOnStop() {
     await saveSetting('editOnStop', editOnStopEnabled);
+  }
+
+  async function handleToggleAutoToggle() {
+    await saveSetting('autoToggle', autoToggle);
   }
 
   async function handleThemeChange() {
@@ -213,6 +220,18 @@
         </label>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 ml-6">
           When enabled, stopping a timer will open the edit form so you can add notes immediately.
+        </p>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            bind:checked={autoToggle}
+            onchange={handleToggleAutoToggle}
+            class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+          />
+          <span class="text-gray-700 dark:text-gray-300">Stop all timers when starting a new one</span>
+        </label>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2 ml-6">
+          When enabled, starting a timer will stop all other running timers.
         </p>
       </div>
 
