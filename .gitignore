@@ -1,3 +1,13 @@
+# Backup files and directories
+backups/
+*.sql
+*.sql.gz
+cron.log
+
+# Temporary files
+/tmp/
+*.tmp
+*.log
 # Environment files
 .env
 .env.local
