@@ -14,7 +14,7 @@
   import AddSelector from '../components/AddSelector.svelte';
   import dayjs from 'dayjs';
   import type { Timer, TargetWithSpecs, TimeLog } from '../types';
-  import { getSetting } from '../lib/db';
+  import { getSetting, saveSetting } from '../lib/db';
   import { saveTimelog, deleteTimelog } from '../services/formHandlers';
 
   let showTimerForm = $state(false);
@@ -27,7 +27,6 @@
   let editingTimelog: TimeLog | null = $state(null);
   let editingTarget: TargetWithSpecs | null = $state(null);
   let editFromOverview = $state(false);
-  let toggleMode = $state(true);
   let verificationReminderShown = $state(false);
   let editOnStopEnabled = $state(true);
   let timerToStop: any = $state(null);
@@ -37,8 +36,8 @@
 
   onMount(async () => {
     // Load edit-on-stop setting
-    const setting = await getSetting('editOnStop');
-    editOnStopEnabled = setting !== false; // default to true if not set
+    const formOnStop = await getSetting('editOnStop');
+    editOnStopEnabled = formOnStop !== false; // default to true if not set
 
     // Check if email is verified and show reminder
     checkEmailVerification();
@@ -155,8 +154,9 @@
     showEditOverview = false;
   }
 
-  function toggleToggleMode() {
-    toggleMode = !toggleMode;
+  function toggleFormOnStop() {
+    editOnStopEnabled = !editOnStopEnabled;
+    saveSetting('editOnStop', editOnStopEnabled);
   }
 
   function handleLongPress(timer: Timer, timelog: TimeLog | undefined, isActive: boolean) {
@@ -224,15 +224,15 @@
    <div class="flex flex-col absolute top-0 left-0 right-0">
     <div class="flex mx-auto px-4 pt-4 gap-2 w-full z-20 justify-end grow-0">
       <button
-        onclick={toggleToggleMode}
+        onclick={toggleFormOnStop}
         class="flex gap-2 text-gray-500 dark:text-gray-400 transition-colors"
       >
-        <span class:icon-[si--toggle-off-line]={!toggleMode}
-              class:icon-[si--toggle-on-duotone]={toggleMode}
-              class:text-primary={toggleMode}
-              class:hover:bg-primary-hover={toggleMode}
+        <span class:icon-[si--toggle-off-line]={!editOnStopEnabled}
+              class:icon-[si--toggle-on-duotone]={editOnStopEnabled}
+              class:text-primary={editOnStopEnabled}
+              class:hover:bg-primary-hover={editOnStopEnabled}
               style="width: 32px; height: 32px;"></span>
-        <span class="py-1">Auto Stop</span>
+        <span class="py-1">Form on Stop</span>
       </button>
       <button
         onclick={toggleEditMode}
@@ -266,7 +266,6 @@
       <TimerGraph
         buttons={$timers}
         {editMode}
-        {toggleMode}
         edit={handleEditTimer}
         longpress={handleLongPress}
         timerstopped={handleTimerStopped}

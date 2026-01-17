@@ -62,7 +62,7 @@
     <div class="absolute inset-0 flex items-center justify-center text-center py-12 text-gray-500">
       <div>
         <p class="text-lg mb-2">No tracking buttons yet</p>
-        <p class="text-sm">Click "Add Button" to create your first timer</p>
+        <p class="text-sm">Click "Add Timer" to create your first timer</p>
       </div>
     </div>
   {:else}
