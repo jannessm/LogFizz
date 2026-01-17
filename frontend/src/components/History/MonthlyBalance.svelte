@@ -113,26 +113,26 @@
   });
 </script>
 
-<div class="bg-white rounded-lg shadow-md p-4 mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
   <div class="flex justify-between items-center mb-3">
-    <h3 class="text-sm font-semibold text-gray-700">Monthly Balance</h3>
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Monthly Balance</h3>
   </div>
 
   {#if error}
-    <div class="text-red-600 text-sm mb-2">{error}</div>
+    <div class="text-red-600 dark:text-red-400 text-sm mb-2">{error}</div>
   {/if}
 
   {#if loading && balances.length === 0 && targetsWithoutStartingFrom.length === 0}
-    <div class="text-gray-500 text-sm">Loading balances...</div>
+    <div class="text-gray-500 dark:text-gray-400 text-sm">Loading balances...</div>
   {:else if balances.length === 0 && targetsWithoutStartingFrom.length === 0}
-    <div class="text-gray-500 text-sm">No targets configured for this month.</div>
+    <div class="text-gray-500 dark:text-gray-400 text-sm">No targets configured for this month.</div>
   {:else}
     <div class="space-y-3">
       {#each balances as balance (balance.id)}
-        <div class="border border-gray-200 rounded-lg p-3">
+        <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
           <div class="flex justify-between items-start mb-2">
             <div>
-              <h4 class="font-medium text-gray-800">Target</h4>
+              <h4 class="font-medium text-gray-800 dark:text-gray-100">Target</h4>
             </div>
             <div class="text-right">
               <div class={`text-lg font-bold ${getBalanceColor(balance.cumulative_minutes)}`}>
@@ -143,28 +143,28 @@
           
           <div class="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <span class="text-gray-600">Worked:</span>
-              <span class="font-medium text-gray-800 ml-1">{formatHours(balance.worked_minutes)}</span>
+              <span class="text-gray-600 dark:text-gray-400">Worked:</span>
+              <span class="font-medium text-gray-800 dark:text-gray-100 ml-1">{formatHours(balance.worked_minutes)}</span>
             </div>
             <div>
-              <span class="text-gray-600">Due:</span>
-              <span class="font-medium text-gray-800 ml-1">{formatHours(balance.due_minutes)}</span>
+              <span class="text-gray-600 dark:text-gray-400">Due:</span>
+              <span class="font-medium text-gray-800 dark:text-gray-100 ml-1">{formatHours(balance.due_minutes)}</span>
             </div>
           </div>
         </div>
       {/each}
       
       {#each targetsWithoutStartingFrom.sort((a, b) => a.name.localeCompare(b.name)) as target (target.id)}
-        <div class="border border-amber-200 bg-amber-50 rounded-lg p-3">
+        <div class="border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 rounded-lg p-3">
           <div class="flex justify-between items-start">
             <div>
-              <h4 class="font-medium text-gray-800">{target.name}</h4>
-              <span class="text-xs text-amber-700">
+              <h4 class="font-medium text-gray-800 dark:text-gray-100">{target.name}</h4>
+              <span class="text-xs text-amber-700 dark:text-amber-400">
                 ⚠️ No starting date set - balance cannot be calculated
               </span>
             </div>
             <div class="text-right">
-              <div class="text-lg font-bold text-gray-400">
+              <div class="text-lg font-bold text-gray-400 dark:text-gray-500">
                 --
               </div>
             </div>

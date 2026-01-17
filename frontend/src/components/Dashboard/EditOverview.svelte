@@ -145,37 +145,37 @@
       <!-- Targets Section -->
       <div>
         <div class="flex justify-between items-center mb-2">
-            <h3 class="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
               <span class="bg-green-600 icon-[si--clipboard-check-alt-duotone]" style="width: 24px; height: 24px;"></span>
               Targets
             </h3>
             <button
                 onclick={addTarget}
-                class="icon-[si--add-circle-duotone] bg-blue-400 hover:bg-blue-600"
+                class="icon-[si--add-circle-duotone] bg-blue-400 dark:bg-orange-500 hover:bg-blue-600 dark:hover:bg-orange-600"
                 aria-label="Add"
                 style="width: 24px; height: 24px;"
             ></button>
         </div>
         
         {#if activeTargets.length === 0}
-          <p class="text-gray-500 text-sm italic">No active targets yet</p>
+          <p class="text-gray-500 dark:text-gray-400 text-sm italic">No active targets yet</p>
         {:else}
           <div class="space-y-2">
             {#each activeTargets.slice().sort((a, b) => a.name.localeCompare(b.name)) as target}
               {@const progress = calculateTargetProgress(target)}
-              <div class="border border-gray-200 rounded-lg p-3 hover:border-gray-300 transition-colors">
+              <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
                 <div class="flex justify-between items-center mb-2">
-                  <h4 class="font-medium text-gray-800">{target.name}</h4>
+                  <h4 class="font-medium text-gray-800 dark:text-gray-100">{target.name}</h4>
                   <div class="flex gap-1">
                     <button
                       onclick={() => editTarget(target)}
-                      class="p-1 text-blue-600 hover:text-blue-700 icon-[si--edit-detailed-duotone]"
+                      class="p-1 text-blue-600 dark:text-orange-400 hover:text-blue-700 dark:hover:text-orange-300 icon-[si--edit-detailed-duotone]"
                       style="width: 20px; height: 20px;"
                       aria-label="Edit Target"
                     ></button>
                     <button
                       onclick={() => handleDeleteTarget(target)}
-                      class="p-1 text-red-600 hover:text-red-700 icon-[si--bin-duotone]"
+                      class="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 icon-[si--bin-duotone]"
                       style="width: 20px; height: 20px;"
                       aria-label="Delete Target"
                     ></button>
@@ -183,20 +183,20 @@
                 </div>
                 
                 <!-- Progress bar -->
-                <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden mb-1">
+                <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 overflow-hidden mb-1">
                   <div
-                    class="h-full rounded-full transition-all duration-500 bg-blue-500"
+                    class="h-full rounded-full transition-all duration-500 bg-blue-500 dark:bg-orange-500"
                     style="width: {progress.percentage}%"
                   ></div>
                 </div>
                 
                 <div class="flex justify-between items-center text-xs">
-                  <span class="text-gray-500">
+                  <span class="text-gray-500 dark:text-gray-400">
                     {progress.percentage}% ({formatDuration(progress.totalMinutes)} / {formatDuration(progress.targetDuration)})
                   </span>
                   {#each [getActiveTargetSpec(target)] as activeSpec}
                     {#if activeSpec}
-                      <span class="text-gray-400">{getActiveWeekdays(activeSpec)}</span>
+                      <span class="text-gray-400 dark:text-gray-500">{getActiveWeekdays(activeSpec)}</span>
                     {/if}
                   {/each}
                 </div>
@@ -209,24 +209,24 @@
       <!-- Timers Section -->
       <div>
         <div class="flex justify-between items-center mb-2">
-            <h3 class="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <span class="bg-blue-500 icon-[si--clock-alt-duotone]" style="width: 24px; height: 24px;"></span>
+            <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+              <span class="bg-blue-500 dark:bg-orange-500 icon-[si--clock-alt-duotone]" style="width: 24px; height: 24px;"></span>
               Timers
             </h3>
             <button
                 onclick={addTimer}
-                class="icon-[si--add-circle-duotone] bg-blue-400 hover:bg-blue-600"
+                class="icon-[si--add-circle-duotone] bg-blue-400 dark:bg-orange-500 hover:bg-blue-600 dark:hover:bg-orange-600"
                 aria-label="Add"
                 style="width: 24px; height: 24px;"
             ></button>
         </div>
 
         {#if activeTimers.length === 0}
-          <p class="text-gray-500 text-sm italic">No active timers yet</p>
+          <p class="text-gray-500 dark:text-gray-400 text-sm italic">No active timers yet</p>
         {:else}
           <div class="space-y-2">
             {#each activeTimers as timer}
-              <div class="border border-gray-200 rounded-lg p-3 hover:border-gray-300 transition-colors">
+              <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
                 <div class="flex justify-between items-center">
                   <div class="flex items-center gap-3 flex-1">
                     <div 
@@ -236,8 +236,8 @@
                       {timer.emoji || '⏱️'}
                     </div>
                     <div>
-                      <h4 class="font-medium text-gray-800">{timer.name}</h4>
-                      <div class="text-xs text-gray-500 flex gap-2">
+                      <h4 class="font-medium text-gray-800 dark:text-gray-100">{timer.name}</h4>
+                      <div class="text-xs text-gray-500 dark:text-gray-400 flex gap-2">
                         {#if timer.auto_subtract_breaks}
                           <span class="flex items-center gap-1">
                             <span class="icon-[proicons--coffee-hot]" style="width: 12px; height: 12px;"></span>
@@ -259,13 +259,13 @@
                   <div class="flex gap-1">
                     <button
                       onclick={() => editTimer(timer)}
-                      class="p-1 text-blue-600 hover:text-blue-700 icon-[si--edit-detailed-duotone]"
+                      class="p-1 text-blue-600 dark:text-orange-400 hover:text-blue-700 dark:hover:text-orange-300 icon-[si--edit-detailed-duotone]"
                       style="width: 20px; height: 20px;"
                       aria-label="Edit Timer"
                     ></button>
                     <button
                       onclick={() => handleDeleteTimer(timer)}
-                      class="p-1 text-red-600 hover:text-red-700 icon-[si--bin-duotone]"
+                      class="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 icon-[si--bin-duotone]"
                       style="width: 20px; height: 20px;"
                       aria-label="Delete Timer"
                     ></button>
@@ -279,8 +279,8 @@
 
       <!-- Archived Section (Ended Targets and Buttons) -->
       {#if archivedTargets.length > 0 || archivedTimers.length > 0}
-        <div class="border-t-2 border-gray-300 pt-6 mt-6">
-          <h3 class="text-lg font-semibold text-gray-500 mb-3 flex items-center gap-2">
+        <div class="border-t-2 border-gray-300 dark:border-gray-600 pt-6 mt-6">
+          <h3 class="text-lg font-semibold text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
             <span class="bg-gray-400 icon-[si--archive-duotone]" style="width: 24px; height: 24px;"></span>
             Archived (Ended)
           </h3>
@@ -288,34 +288,34 @@
           <!-- Archived Targets -->
           {#if archivedTargets.length > 0}
             <div class="mb-4">
-              <h4 class="text-sm font-medium text-gray-600 mb-2">Ended Targets</h4>
+              <h4 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Ended Targets</h4>
               <div class="space-y-2 opacity-70">
                 {#each archivedTargets.slice().sort((a, b) => a.name.localeCompare(b.name)) as target}
-                  <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/50">
                     <div class="flex justify-between items-center mb-2">
-                      <h4 class="font-medium text-gray-700">{target.name}</h4>
+                      <h4 class="font-medium text-gray-700 dark:text-gray-300">{target.name}</h4>
                       <div class="flex gap-1">
                         <button
                           onclick={() => editTarget(target)}
-                          class="p-1 text-blue-600 hover:text-blue-700 icon-[si--edit-detailed-duotone]"
+                          class="p-1 text-blue-600 dark:text-orange-400 hover:text-blue-700 dark:hover:text-orange-300 icon-[si--edit-detailed-duotone]"
                           style="width: 20px; height: 20px;"
                           aria-label="Edit Target"
                         ></button>
                         <button
                           onclick={() => handleDeleteTarget(target)}
-                          class="p-1 text-red-600 hover:text-red-700 icon-[si--bin-duotone]"
+                          class="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 icon-[si--bin-duotone]"
                           style="width: 20px; height: 20px;"
                           aria-label="Delete Target"
                         ></button>
                       </div>
                     </div>
                     
-                    <div class="flex justify-between items-center text-xs text-gray-500">
+                    <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
                       {#each [getActiveTargetSpec(target)] as latestSpec}
                         {#if latestSpec}
                           <span>{getActiveWeekdays(latestSpec)}</span>
                           {#if latestSpec.ending_at}
-                            <span class="text-red-600 font-medium">Ended: {dayjs(latestSpec.ending_at).format('MMM D, YYYY')}</span>
+                            <span class="text-red-600 dark:text-red-400 font-medium">Ended: {dayjs(latestSpec.ending_at).format('MMM D, YYYY')}</span>
                           {/if}
                         {/if}
                       {/each}
@@ -329,10 +329,10 @@
           <!-- Archived Timers -->
           {#if archivedTimers.length > 0}
             <div>
-              <h4 class="text-sm font-medium text-gray-600 mb-2">Timers Linked to Ended Targets</h4>
+              <h4 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Timers Linked to Ended Targets</h4>
               <div class="space-y-2 opacity-70">
                 {#each archivedTimers as timer}
-                  <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/50">
                     <div class="flex justify-between items-center">
                       <div class="flex items-center gap-3 flex-1">
                         <div 
@@ -342,8 +342,8 @@
                           {timer.emoji || '⏱️'}
                         </div>
                         <div>
-                          <h4 class="font-medium text-gray-700">{timer.name}</h4>
-                          <div class="text-xs text-gray-500 flex gap-2">
+                          <h4 class="font-medium text-gray-700 dark:text-gray-300">{timer.name}</h4>
+                          <div class="text-xs text-gray-500 dark:text-gray-400 flex gap-2">
                             {#if timer.auto_subtract_breaks}
                               <span class="flex items-center gap-1">
                                 <span class="icon-[proicons--coffee-hot]" style="width: 12px; height: 12px;"></span>
@@ -353,7 +353,7 @@
                             {#if timer.target_id}
                               {@const linkedTarget = $targetsStore.items.get(timer.target_id)}
                               {#if linkedTarget}
-                                <span class="flex items-center gap-1 text-red-600">
+                                <span class="flex items-center gap-1 text-red-600 dark:text-red-400">
                                   <span class="icon-[proicons--link]" style="width: 12px; height: 12px;"></span>
                                   {linkedTarget.name} (Ended)
                                 </span>
@@ -365,13 +365,13 @@
                       <div class="flex gap-1">
                         <button
                           onclick={() => editTimer(timer)}
-                          class="p-1 text-blue-600 hover:text-blue-700 icon-[si--edit-detailed-duotone]"
+                          class="p-1 text-blue-600 dark:text-orange-400 hover:text-blue-700 dark:hover:text-orange-300 icon-[si--edit-detailed-duotone]"
                           style="width: 20px; height: 20px;"
                           aria-label="Edit Button"
                         ></button>
                         <button
                           onclick={() => handleDeleteTimer(timer)}
-                          class="p-1 text-red-600 hover:text-red-700 icon-[si--bin-duotone]"
+                          class="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 icon-[si--bin-duotone]"
                           style="width: 20px; height: 20px;"
                           aria-label="Delete Button"
                         ></button>

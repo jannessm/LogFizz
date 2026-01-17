@@ -532,7 +532,7 @@
 >
   <!-- Modal Content -->
   <div 
-    class="bg-white rounded-lg shadow-2xl w-full max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col"
+    class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}
     role="dialog"
@@ -540,75 +540,85 @@
     tabindex="-1"
   >
     <!-- Header -->
-    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-800">
+    <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
+      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
         Import Timelogs{#if fileType} from {fileType.toUpperCase()}{/if}
       </h2>
       <button
         onclick={close}
-        class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
+        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
         style="width: 28px; height: 28px;"
         aria-label="Close"
       ></button>
     </div>
 
     <!-- Progress Steps -->
-    <div class="px-6 py-3 bg-gray-50 border-b border-gray-200">
+    <div class="px-6 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
       <div class="flex items-center justify-center gap-2">
         <div class="flex items-center gap-2">
           <span 
             class="w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium text-white"
             class:bg-blue-500={step === 'upload'}
+            class:dark:bg-orange-500={step === 'upload'}
             class:bg-green-500={step !== 'upload'}
           >1</span>
-          <span class="text-sm" class:font-medium={step === 'upload'}>Upload</span>
+          <span class="text-sm dark:text-gray-200" class:font-medium={step === 'upload'}>Upload</span>
         </div>
-        <div class="w-6 h-0.5 bg-gray-300"></div>
+        <div class="w-6 h-0.5 bg-gray-300 dark:bg-gray-500"></div>
         <div class="flex items-center gap-2">
           <span 
             class="w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium"
             class:bg-blue-500={step === 'mapping'}
+            class:dark:bg-orange-500={step === 'mapping'}
             class:bg-green-500={step === 'project-mapping' || step === 'confirm'}
             class:bg-gray-300={step === 'upload'}
+            class:dark:bg-gray-500={step === 'upload'}
             class:text-white={step !== 'upload'}
             class:text-gray-600={step === 'upload'}
+            class:dark:text-gray-300={step === 'upload'}
           >2</span>
-          <span class="text-sm" class:font-medium={step === 'mapping'}>Columns</span>
+          <span class="text-sm dark:text-gray-200" class:font-medium={step === 'mapping'}>Columns</span>
         </div>
         {#if projectColumn}
-          <div class="w-6 h-0.5 bg-gray-300"></div>
+          <div class="w-6 h-0.5 bg-gray-300 dark:bg-gray-500"></div>
           <div class="flex items-center gap-2">
             <span 
               class="w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium"
               class:bg-blue-500={step === 'project-mapping'}
+              class:dark:bg-orange-500={step === 'project-mapping'}
               class:bg-green-500={step === 'confirm'}
               class:bg-gray-300={step === 'upload' || step === 'mapping'}
+              class:dark:bg-gray-500={step === 'upload' || step === 'mapping'}
               class:text-white={step === 'project-mapping' || step === 'confirm'}
               class:text-gray-600={step === 'upload' || step === 'mapping'}
+              class:dark:text-gray-300={step === 'upload' || step === 'mapping'}
             >3</span>
-            <span class="text-sm" class:font-medium={step === 'project-mapping'}>Projects</span>
+            <span class="text-sm dark:text-gray-200" class:font-medium={step === 'project-mapping'}>Projects</span>
           </div>
         {/if}
-        <div class="w-6 h-0.5 bg-gray-300"></div>
+        <div class="w-6 h-0.5 bg-gray-300 dark:bg-gray-500"></div>
         <div class="flex items-center gap-2">
           <span 
             class="w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium"
             class:bg-blue-500={step === 'confirm'}
+            class:dark:bg-orange-500={step === 'confirm'}
             class:bg-gray-300={step !== 'confirm'}
+            class:dark:bg-gray-500={step !== 'confirm'}
             class:text-white={step === 'confirm'}
             class:text-gray-600={step !== 'confirm'}
+            class:dark:text-gray-300={step !== 'confirm'}
           >{projectColumn ? '4' : '3'}</span>
-          <span class="text-sm" class:font-medium={step === 'confirm'}>Confirm</span>
+          <span class="text-sm dark:text-gray-200" class:font-medium={step === 'confirm'}>Confirm</span>
         </div>
       </div>
     </div>
 
     <!-- Content -->
-    <div class="overflow-y-auto flex-1 p-6">
+    <div class="overflow-y-auto flex-1 p-6 dark:bg-gray-800">
       {#if step === 'upload'}
         <!-- File Upload Step -->
         <div
-          class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
+          class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-blue-400 dark:hover:border-orange-400 transition-colors cursor-pointer"
           ondrop={handleDrop}
           ondragover={handleDragOver}
           onclick={() => fileInput?.click()}
@@ -623,25 +633,25 @@
             onchange={handleFileSelect}
             class="hidden"
           />
-          <span class="icon-[si--file-upload-duotone] text-gray-400 mx-auto mb-4" style="width: 48px; height: 48px;"></span>
-          <p class="text-gray-600 mb-2">
+          <span class="icon-[si--file-upload-duotone] text-gray-400 dark:text-gray-500 mx-auto mb-4" style="width: 48px; height: 48px;"></span>
+          <p class="text-gray-600 dark:text-gray-300 mb-2">
             {#if file}
               Selected: <span class="font-medium">{file.name}</span>
             {:else}
               Drag and drop your CSV or PDF file here
             {/if}
           </p>
-          <p class="text-sm text-gray-500">or click to browse</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">or click to browse</p>
         </div>
 
         {#if errorMessage}
-          <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm whitespace-pre-line">
+          <div class="mt-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-800 dark:text-red-300 text-sm whitespace-pre-line">
             {errorMessage}
           </div>
         {/if}
 
         {#if warningMessage}
-          <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm whitespace-pre-line">
+          <div class="mt-4 p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg text-amber-800 dark:text-amber-300 text-sm whitespace-pre-line">
             {warningMessage}
           </div>
         {/if}
@@ -649,14 +659,14 @@
         <div class="mt-6 flex justify-end gap-3">
           <button
             onclick={close}
-            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             Cancel
           </button>
           <button
             onclick={parseFile}
             disabled={!file}
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            class="px-4 py-2 bg-blue-600 dark:bg-orange-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-orange-600 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
           >
             Continue
           </button>
@@ -666,32 +676,32 @@
         <!-- Column Mapping Step -->
         <div class="space-y-4">
           <div>
-            <label for="date-column" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="date-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
               Date Column (optional)
             </label>
             <select
               id="date-column"
               bind:value={dateColumn}
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="">None (times include dates)</option>
               {#each headers as header}
                 <option value={header}>{header}</option>
               {/each}
             </select>
-            <p class="text-xs text-gray-500 mt-1">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Select if your start/end times don't include the date
             </p>
           </div>
 
           <div>
-            <label for="start-column" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="start-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
               Start Time Column *
             </label>
             <select
               id="start-column"
               bind:value={startTimeColumn}
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="">Select column...</option>
               {#each headers as header}
@@ -701,13 +711,13 @@
           </div>
 
           <div>
-            <label for="end-column" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="end-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
               End Time Column *
             </label>
             <select
               id="end-column"
               bind:value={endTimeColumn}
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="">Select column...</option>
               {#each headers as header}
@@ -717,52 +727,52 @@
           </div>
 
           <div>
-            <label for="notes-column" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="notes-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
               Notes/Description Column (optional)
             </label>
             <select
               id="notes-column"
               bind:value={notesColumn}
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="">None</option>
               {#each headers as header}
                 <option value={header}>{header}</option>
               {/each}
             </select>
-            <p class="text-xs text-gray-500 mt-1">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Select to import notes or descriptions for each timelog
             </p>
           </div>
 
           <div>
-            <label for="project-column" class="block text-sm font-medium text-gray-700 mb-1">
+            <label for="project-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
               Project Column (optional)
             </label>
             <select
               id="project-column"
               bind:value={projectColumn}
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="">None (assign all to one timer)</option>
               {#each headers as header}
                 <option value={header}>{header}</option>
               {/each}
             </select>
-            <p class="text-xs text-gray-500 mt-1">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Select if your CSV has different projects to map to different timers
             </p>
           </div>
 
           {#if !projectColumn}
             <div>
-              <label for="timer-select" class="block text-sm font-medium text-gray-700 mb-1">
+              <label for="timer-select" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                 Assign to Timer *
               </label>
               <select
                 id="timer-select"
                 bind:value={selectedTimerId}
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="">Select a timer...</option>
                 {#each $timers as timer}
@@ -777,19 +787,15 @@
           {#if previewLogs.length > 0}
             <div class="mt-4">
               <div class="flex items-center justify-between mb-2">
-                <h3 class="text-sm font-medium text-gray-700">Preview (first 5 rows):</h3>
-                <span class="text-xs text-gray-500">
+                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-200">Preview (first 5 rows):</h3>
+                <span class="text-xs text-gray-500 dark:text-gray-400">
                   {previewLogs.filter(l => l.isValid).length} / {previewLogs.length} valid
                 </span>
               </div>
-              <div class="bg-gray-50 rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
+              <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
                 {#each previewLogs as log, index}
                   <div 
-                    class="flex items-start gap-2 text-sm p-2 rounded"
-                    class:bg-green-50={log.isValid}
-                    class:text-green-700={log.isValid}
-                    class:bg-red-50={!log.isValid}
-                    class:text-red-600={!log.isValid}
+                    class="flex items-start gap-2 text-sm p-2 rounded {log.isValid ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'}"
                   >
                     <span class="w-4 h-4 mt-0.5 flex-shrink-0" 
                       class:icon-[si--check-circle-line]={log.isValid}
@@ -808,13 +814,13 @@
           {/if}
 
           {#if errorMessage}
-            <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm whitespace-pre-line">
+            <div class="mt-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-800 dark:text-red-300 text-sm whitespace-pre-line">
               {errorMessage}
             </div>
           {/if}
 
           {#if warningMessage}
-            <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm whitespace-pre-line">
+            <div class="mt-4 p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg text-amber-800 dark:text-amber-300 text-sm whitespace-pre-line">
               {warningMessage}
             </div>
           {/if}
@@ -822,14 +828,14 @@
           <div class="mt-6 flex justify-end gap-3">
             <button
               onclick={close}
-              class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Cancel
             </button>
             <button
               onclick={goToProjectMapping}
               disabled={!startTimeColumn || !endTimeColumn || (!projectColumn && !selectedTimerId)}
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-blue-600 dark:bg-orange-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-orange-600 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
             >
               Continue
             </button>
@@ -839,9 +845,9 @@
       {:else if step === 'project-mapping'}
         <!-- Project Mapping Step -->
         <div class="space-y-4">
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <h3 class="text-sm font-medium text-blue-800 mb-1">Map Projects to Timers</h3>
-            <p class="text-sm text-blue-700">
+          <div class="bg-blue-50 dark:bg-orange-900/30 border border-blue-200 dark:border-orange-700 rounded-lg p-4 mb-4">
+            <h3 class="text-sm font-medium text-blue-800 dark:text-orange-300 mb-1">Map Projects to Timers</h3>
+            <p class="text-sm text-blue-700 dark:text-orange-200">
               Found {detectedProjects.length} project{detectedProjects.length !== 1 ? 's' : ''} in your CSV.
               Choose how to handle each one:
             </p>
@@ -850,16 +856,16 @@
           <div class="space-y-3 max-h-96 overflow-y-auto">
             {#each detectedProjects as project}
               {@const mapping = projectMappings.get(project.name) || { action: 'assign' }}
-              <div class="border border-gray-200 rounded-lg p-4 bg-white">
+              <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-white dark:bg-gray-700">
                 <div class="flex items-start justify-between mb-3">
                   <div>
-                    <h4 class="font-medium text-gray-800">{project.name}</h4>
-                    <p class="text-sm text-gray-500">{project.count} timelog{project.count !== 1 ? 's' : ''}</p>
+                    <h4 class="font-medium text-gray-800 dark:text-gray-100">{project.name}</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{project.count} timelog{project.count !== 1 ? 's' : ''}</p>
                   </div>
                 </div>
 
                 <div class="space-y-2">
-                  <div class="block text-sm font-medium text-gray-700 mb-2">Action:</div>
+                  <div class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Action:</div>
                   <div class="flex gap-2">
                     <label class="flex-1">
                       <input
@@ -870,7 +876,7 @@
                         onchange={() => handleProjectActionChange(project.name, 'assign')}
                         class="sr-only peer"
                       />
-                      <div class="px-3 py-2 border border-gray-300 rounded-lg cursor-pointer text-center text-sm peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 hover:bg-gray-50">
+                      <div class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer text-center text-sm peer-checked:border-blue-500 dark:peer-checked:border-orange-500 peer-checked:bg-blue-50 dark:peer-checked:bg-orange-900/30 peer-checked:text-blue-700 dark:peer-checked:text-orange-300 hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-200">
                         Assign to Timer
                       </div>
                     </label>
@@ -883,7 +889,7 @@
                         onchange={() => handleProjectActionChange(project.name, 'create')}
                         class="sr-only peer"
                       />
-                      <div class="px-3 py-2 border border-gray-300 rounded-lg cursor-pointer text-center text-sm peer-checked:border-green-500 peer-checked:bg-green-50 peer-checked:text-green-700 hover:bg-gray-50">
+                      <div class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer text-center text-sm peer-checked:border-green-500 peer-checked:bg-green-50 dark:peer-checked:bg-green-900/30 peer-checked:text-green-700 dark:peer-checked:text-green-400 hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-200">
                         Create Timer
                       </div>
                     </label>
@@ -896,7 +902,7 @@
                         onchange={() => handleProjectActionChange(project.name, 'ignore')}
                         class="sr-only peer"
                       />
-                      <div class="px-3 py-2 border border-gray-300 rounded-lg cursor-pointer text-center text-sm peer-checked:border-gray-500 peer-checked:bg-gray-100 peer-checked:text-gray-700 hover:bg-gray-50">
+                      <div class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer text-center text-sm peer-checked:border-gray-500 peer-checked:bg-gray-100 dark:peer-checked:bg-gray-600 peer-checked:text-gray-700 dark:peer-checked:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 dark:text-gray-200">
                         Ignore
                       </div>
                     </label>
@@ -906,7 +912,7 @@
                     <select
                       bind:value={mapping.timerId}
                       onchange={(e) => handleProjectTimerSelect(project.name, e.currentTarget.value)}
-                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     >
                       <option value="">Select a timer...</option>
                       {#each $timers as timer}
@@ -922,13 +928,13 @@
           </div>
 
           {#if errorMessage}
-            <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm whitespace-pre-line">
+            <div class="mt-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-800 dark:text-red-300 text-sm whitespace-pre-line">
               {errorMessage}
             </div>
           {/if}
 
           {#if warningMessage}
-            <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm whitespace-pre-line">
+            <div class="mt-4 p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg text-amber-800 dark:text-amber-300 text-sm whitespace-pre-line">
               {warningMessage}
             </div>
           {/if}
@@ -936,13 +942,13 @@
           <div class="mt-6 flex justify-end gap-3">
             <button
               onclick={goBackToMapping}
-              class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Back
             </button>
             <button
               onclick={goToConfirm}
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              class="px-4 py-2 bg-blue-600 dark:bg-orange-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-orange-600 transition-colors"
             >
               Continue
             </button>
@@ -952,39 +958,39 @@
       {:else if step === 'confirm'}
         <!-- Confirmation Step -->
         <div class="space-y-4">
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 class="text-lg font-medium text-blue-800 mb-2">Ready to Import</h3>
+          <div class="bg-blue-50 dark:bg-orange-900/30 border border-blue-200 dark:border-orange-700 rounded-lg p-4">
+            <h3 class="text-lg font-medium text-blue-800 dark:text-orange-300 mb-2">Ready to Import</h3>
             {#if projectColumn && detectedProjects.length > 0}
               {@const ignoredProjects = detectedProjects.filter(p => projectMappings.get(p.name)?.action === 'ignore')}
               {@const ignoredCount = ignoredProjects.reduce((sum, p) => sum + p.count, 0)}
-              <p class="text-blue-700">
+              <p class="text-blue-700 dark:text-orange-200">
                 <strong>{getValidLogCount() - ignoredCount}</strong> timelogs will be imported from {detectedProjects.length - ignoredProjects.length} project{detectedProjects.length - ignoredProjects.length !== 1 ? 's' : ''}
               </p>
               {#if ignoredCount > 0}
-                <p class="text-amber-700 mt-2">
+                <p class="text-amber-700 dark:text-amber-400 mt-2">
                   ⚠️ {ignoredCount} timelog{ignoredCount !== 1 ? 's' : ''} from {ignoredProjects.length} ignored project{ignoredProjects.length !== 1 ? 's' : ''} will be skipped
                 </p>
               {/if}
             {:else}
-              <p class="text-blue-700">
+              <p class="text-blue-700 dark:text-orange-200">
                 <strong>{getValidLogCount()}</strong> timelogs will be imported and assigned to:
               </p>
-              <p class="text-blue-800 font-medium mt-1">
+              <p class="text-blue-800 dark:text-orange-100 font-medium mt-1">
                 {#each $timers.filter(b => b.id === selectedTimerId) as timer}
                   {timer.emoji ? timer.emoji + ' ' : ''}{timer.name}
                 {/each}
               </p>
             {/if}
             {#if parsedData.length - getValidLogCount() > 0}
-              <p class="text-amber-700 mt-2">
+              <p class="text-amber-700 dark:text-amber-400 mt-2">
                 ⚠️ {parsedData.length - getValidLogCount()} rows will be skipped due to invalid data
               </p>
             {/if}
           </div>
 
-          <div class="bg-gray-50 rounded-lg p-4">
-            <h4 class="text-sm font-medium text-gray-700 mb-2">Column Mapping:</h4>
-            <ul class="text-sm text-gray-600 space-y-1">
+          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Column Mapping:</h4>
+            <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
               {#if dateColumn}
                 <li>Date: <span class="font-medium">{dateColumn}</span></li>
               {/if}
@@ -1000,16 +1006,16 @@
           </div>
 
           {#if projectColumn && detectedProjects.length > 0}
-            <div class="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
-              <h4 class="text-sm font-medium text-gray-700 mb-2">Project Mappings:</h4>
-              <ul class="text-sm text-gray-600 space-y-2">
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 max-h-64 overflow-y-auto">
+              <h4 class="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Project Mappings:</h4>
+              <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-2">
                 {#each detectedProjects as project}
                   {@const mapping = projectMappings.get(project.name)}
                   {#if mapping?.action !== 'ignore'}
                     {@const timer = $timers.find(b => b.id === mapping?.timerId)}
-                    <li class="flex items-center justify-between py-1 border-b border-gray-200 last:border-0">
+                    <li class="flex items-center justify-between py-1 border-b border-gray-200 dark:border-gray-600 last:border-0">
                       <span class="font-medium">{project.name}</span>
-                      <span class="text-gray-500">
+                      <span class="text-gray-500 dark:text-gray-400">
                         → {timer?.emoji ? timer.emoji + ' ' : ''}{timer?.name || 'Unknown'}
                         <span class="text-xs ml-1">({project.count})</span>
                       </span>
@@ -1021,27 +1027,27 @@
           {/if}
 
           {#if errorMessage}
-            <div class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm whitespace-pre-line">
+            <div class="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-red-800 dark:text-red-300 text-sm whitespace-pre-line">
               {errorMessage}
             </div>
           {/if}
 
           {#if warningMessage}
-            <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm whitespace-pre-line">
+            <div class="p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg text-amber-800 dark:text-amber-300 text-sm whitespace-pre-line">
               {warningMessage}
             </div>
           {/if}
 
           {#if validationErrors.length > 0}
-            <details class="bg-gray-50 rounded-lg border border-gray-200">
-              <summary class="p-3 cursor-pointer hover:bg-gray-100 rounded-lg text-sm font-medium text-gray-700 flex items-center gap-2">
-                <span class="icon-[si--warning-duotone] text-amber-600" style="width: 16px; height: 16px;"></span>
+            <details class="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+              <summary class="p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                <span class="icon-[si--warning-duotone] text-amber-600 dark:text-amber-400" style="width: 16px; height: 16px;"></span>
                 View {validationErrors.length} validation error{validationErrors.length !== 1 ? 's' : ''}
               </summary>
               <div class="p-3 pt-0 max-h-48 overflow-y-auto">
-                <ul class="space-y-1 text-xs text-gray-600">
+                <ul class="space-y-1 text-xs text-gray-600 dark:text-gray-300">
                   {#each validationErrors as error}
-                    <li class="py-1 border-b border-gray-200 last:border-0">{error}</li>
+                    <li class="py-1 border-b border-gray-200 dark:border-gray-600 last:border-0">{error}</li>
                   {/each}
                 </ul>
               </div>
@@ -1051,14 +1057,14 @@
           <div class="mt-6 flex justify-end gap-3">
             <button
               onclick={projectColumn ? goBackToProjectMapping : goBackToMapping}
-              class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Back
             </button>
             <button
               onclick={handleImport}
               disabled={getValidLogCount() === 0}
-              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
             >
               Import {getValidLogCount()} Timelogs
             </button>

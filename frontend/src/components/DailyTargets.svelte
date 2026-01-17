@@ -167,22 +167,25 @@
           <p 
             class="shrink-0 transition-colors duration-300"
             class:text-gray-800={isActive}
+            class:dark:text-gray-200={isActive}
             class:text-gray-500={!isActive}
+            class:dark:text-gray-500={!isActive}
           >
             {target.name}
           </p>
           <div class="w-full flex flex-col items-end">
-            <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden mt-2 mb-1">
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden mt-2 mb-1">
               <div
                 class="h-full rounded-full transition-all duration-500"
                 class:bg-green-500={isActive && progress.completed}
-                class:bg-blue-500={isActive && !progress.completed}
+                class:bg-primary={isActive && !progress.completed}
                 class:bg-gray-400={!isActive}
+                class:dark:bg-gray-500={!isActive}
                 style="width: {progress.percentage}%"
               ></div>
             </div>
             <div 
-              class="text-xs transition-colors duration-300 text-gray-500"
+              class="text-xs transition-colors duration-300 text-gray-500 dark:text-gray-400"
             >
               {isActive ? Math.ceil(progress.percentage) : progress.percentage}% ({formatDuration(progress.totalMinutes)} / {formatDuration(progress.targetDuration)})
             </div>

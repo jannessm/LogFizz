@@ -51,10 +51,10 @@ async function main() {
       console.log(`Active Users (Last 30 Days): ${statistics.users.active}`);
       console.log(`New Users (Last 30 Days): ${statistics.users.new}\n`);
 
-      console.log('🎯 BUTTON STATISTICS');
+      console.log('🎯 TIMER STATISTICS');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log(`Total Buttons: ${statistics.buttons.total}`);
-      console.log(`Average per User: ${statistics.buttons.average_per_user}\n`);
+      console.log(`Total Timers: ${statistics.timers.total}`);
+      console.log(`Average per User: ${statistics.timers.average_per_user}\n`);
 
       console.log('⏱️  TIME TRACKING STATISTICS');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -74,12 +74,12 @@ async function main() {
       }
       console.log('');
 
-      if (statistics.activity.most_used_button) {
-        const emoji = statistics.activity.most_used_button.emoji || '';
-        console.log(`Most Used Button: ${emoji} ${statistics.activity.most_used_button.name}`);
-        console.log(`  Times Used: ${statistics.activity.most_used_button.usage_count.toLocaleString()}`);
+      if (statistics.activity.most_used_timer) {
+        const emoji = statistics.activity.most_used_timer.emoji || '';
+        console.log(`Most Used Timer: ${emoji} ${statistics.activity.most_used_timer.name}`);
+        console.log(`  Times Used: ${statistics.activity.most_used_timer.usage_count.toLocaleString()}`);
       } else {
-        console.log('Most Used Button: No button activity found');
+        console.log('Most Used Timer: No timer activity found');
       }
 
       console.log('\n═══════════════════════════════════════\n');

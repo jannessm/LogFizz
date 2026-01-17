@@ -31,24 +31,24 @@
   }
 </script>
 
-<div class="bg-white rounded-lg shadow-md p-6 mb-6">
-  <h2 class="text-xl font-semibold text-gray-800 mb-4">Change Password</h2>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+  <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Change Password</h2>
   
   <div class="space-y-4">
     <div>
-      <label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-1">
+      <label for="currentPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
         Current Password
       </label>
       <input
         id="currentPassword"
         type="password"
         bind:value={currentPassword}
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
       />
     </div>
 
     <div>
-      <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">
+      <label for="newPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
         New Password
       </label>
       <input
@@ -56,12 +56,12 @@
         type="password"
         bind:value={newPassword}
         minlength="8"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
       />
     </div>
 
     <div>
-      <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">
+      <label for="confirmPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
         Confirm New Password
       </label>
       <input
@@ -69,13 +69,13 @@
         type="password"
         bind:value={confirmPassword}
         minlength="8"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
       />
     </div>
 
     <button
       onclick={handlePasswordChange}
-      class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+      class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-hover transition-colors flex items-center justify-center gap-2"
     >
       <span class="w-5 h-5 icon-[si--key-line]"></span>
       Change Password

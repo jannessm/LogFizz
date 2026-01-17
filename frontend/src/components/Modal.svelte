@@ -44,7 +44,7 @@
 >
   <!-- Modal Content -->
   <div 
-    class="bg-white rounded-lg shadow-2xl w-full {maxWidth} {maxHeight} overflow-hidden flex flex-col"
+    class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full {maxWidth} {maxHeight} overflow-hidden flex flex-col"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}
     role="dialog"
@@ -53,16 +53,16 @@
   >
     <!-- Header -->
     {#if showHeader}
-      <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+      <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
         {#if header}
           {@render header()}
         {:else}
-          <h2 class="text-xl font-semibold text-gray-800">{title}</h2>
+          <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{title}</h2>
         {/if}
         {#if showCloseButton}
           <button
             onclick={handleClose}
-            class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
+            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
             style="width: 28px; height: 28px;"
             aria-label="Close"
           ></button>
@@ -79,7 +79,7 @@
 
     <!-- Footer -->
     {#if footer}
-      <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+      <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-t border-gray-200 dark:border-gray-600">
         {@render footer()}
       </div>
     {/if}

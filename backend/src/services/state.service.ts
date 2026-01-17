@@ -28,7 +28,7 @@ export class StateService {
    */
   async getStateById(id: string): Promise<State | null> {
     return this.stateRepository.findOne({
-      where: { id },
+      where: { code: id },
     });
   }
 

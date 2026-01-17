@@ -15,27 +15,27 @@
     <div class="space-y-3">
       <button
         onclick={() => select('timer')}
-        class="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center gap-4 group"
+        class="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-primary hover:bg-primary-light dark:hover:bg-gray-700 transition-all flex items-center gap-4 group"
       >
-        <div class="w-12 h-12 rounded-full bg-blue-100 group-hover:bg-blue-500 flex items-center justify-center transition-colors">
-          <span class="icon-[si--clock-alt-duotone] text-blue-600 group-hover:text-white" style="width: 28px; height: 28px;"></span>
+        <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 group-hover:bg-primary flex items-center justify-center transition-colors">
+          <span class="icon-[si--clock-alt-duotone] text-blue-600 dark:text-blue-400 group-hover:text-white" style="width: 28px; height: 28px;"></span>
         </div>
         <div class="text-left">
-          <h3 class="font-semibold text-gray-800 group-hover:text-blue-700">Add Timer</h3>
-          <p class="text-sm text-gray-600">Create a new timer button</p>
+          <h3 class="font-semibold text-gray-800 dark:text-gray-100 group-hover:text-primary">Add Timer</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Create a new timer button</p>
         </div>
       </button>
 
       <button
         onclick={() => select('target')}
-        class="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all flex items-center gap-4 group"
+        class="w-full p-4 border-2 border-gray-200 dark:border-gray-600 rounded-lg hover:border-green-500 hover:bg-green-50 dark:hover:bg-gray-700 transition-all flex items-center gap-4 group"
       >
-        <div class="w-12 h-12 rounded-full bg-green-100 group-hover:bg-green-500 flex items-center justify-center transition-colors">
-          <span class="icon-[si--clipboard-check-alt-duotone] text-green-600 group-hover:text-white" style="width: 28px; height: 28px;"></span>
+        <div class="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900 group-hover:bg-green-500 flex items-center justify-center transition-colors">
+          <span class="icon-[si--clipboard-check-alt-duotone] text-green-600 dark:text-green-400 group-hover:text-white" style="width: 28px; height: 28px;"></span>
         </div>
         <div class="text-left">
-          <h3 class="font-semibold text-gray-800 group-hover:text-green-700">Add Target</h3>
-          <p class="text-sm text-gray-600">Create a new target</p>
+          <h3 class="font-semibold text-gray-800 dark:text-gray-100 group-hover:text-green-700 dark:group-hover:text-green-400">Add Target</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Create a new target</p>
         </div>
       </button>
     </div>

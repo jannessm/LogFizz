@@ -8,6 +8,8 @@ import { dayjs } from '../types';
 // Get user's timezone
 const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+
+
 /**
  * Interface for multi-day range information
  * Supports multiple overlapping ranges with gradient colors
