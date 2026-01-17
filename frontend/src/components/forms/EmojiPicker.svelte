@@ -59,20 +59,20 @@
     <button
       type="button"
       onclick={togglePicker}
-      class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-lg min-w-[50px] min-h-[42px] flex items-center justify-center"
+      class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-lg min-w-[50px] min-h-[42px] flex items-center justify-center bg-white dark:bg-gray-700"
       aria-label={value ? 'Change emoji' : 'Select emoji'}
     >
       {#if value}
         <span>{value}</span>
       {:else}
-        <span class="text-gray-400">Emoji (optional)</span>
+        <span class="text-gray-400 dark:text-gray-500">Emoji (optional)</span>
       {/if}
     </button>
     {#if value}
       <button
         type="button"
         onclick={clearEmoji}
-        class="text-gray-400 hover:text-gray-600 transition-colors"
+        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
         aria-label="Clear emoji"
       >
         <span class="icon-[si--close-circle-duotone]" style="width: 20px; height: 20px;"></span>

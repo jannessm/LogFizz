@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { authStore } from './stores/auth';
   import { get } from 'svelte/store';
+  import { themeStore } from './stores/theme';
   import Login from './routes/Login.svelte';
   import Dashboard from './routes/Dashboard.svelte';
   import History from './routes/History.svelte';
@@ -28,6 +29,7 @@
   onMount(async () => {
     await getDB(); // ensure DB is initialized
     await authStore.init();
+    await themeStore.init();
     await loadData(authenticated); // initializes all necessary data stores if logged in
     isLoading = false;
 
@@ -63,8 +65,8 @@
 {#if isLoading}
   <div class="min-h-screen flex items-center justify-center">
     <div class="text-center">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-      <p class="mt-4 text-gray-600">Loading...</p>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+      <p class="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
     </div>
   </div>
 {:else}

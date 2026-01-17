@@ -65,7 +65,7 @@
   tabindex="0"
 >
   <div 
-    class="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
+    class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}
     role="dialog"
@@ -73,11 +73,11 @@
     tabindex="-1"
   >
     <!-- Header -->
-    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-800">{timer ? 'Edit' : 'Add'} Timer</h2>
+    <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
+      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{timer ? 'Edit' : 'Add'} Timer</h2>
       <button
         onclick={close}
-        class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
+        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
         style="width: 28px; height: 28px;"
         aria-label="Close"
       ></button>
@@ -86,7 +86,7 @@
     <!-- Content -->
     <div class="overflow-y-auto flex-1 p-6">
       {#if errorMessage}
-        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div class="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 rounded">
           {errorMessage}
         </div>
       {/if}
@@ -100,7 +100,7 @@
 
         <!-- Name -->
         <div>
-          <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+          <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Button Name *
           </label>
           <input
@@ -108,14 +108,14 @@
             type="text"
             bind:value={name}
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="e.g., Work, Exercise"
           />
         </div>
 
         <!-- Color -->
         <div>
-          <label for="colorPicker" class="block text-sm font-medium text-gray-700 mb-2">
+          <label for="colorPicker" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Color
           </label>
           <div class="flex gap-2 flex-wrap mb-2">
@@ -125,7 +125,9 @@
                 onclick={() => color = preset}
                 class="w-10 h-10 rounded-lg border-2 transition-all"
                 class:border-gray-800={color === preset}
+                class:dark:border-white={color === preset}
                 class:border-gray-300={color !== preset}
+                class:dark:border-gray-600={color !== preset}
                 style="background-color: {preset}"
                 aria-label="Select color {preset}"
               ></button>
@@ -135,7 +137,7 @@
             id="colorPicker"
             type="color"
             bind:value={color}
-            class="w-full h-10 rounded-md border border-gray-300"
+            class="w-full h-10 rounded-md border border-gray-300 dark:border-gray-600"
           />
         </div>
 
@@ -146,13 +148,13 @@
             id="autoBreaks"
             type="checkbox"
             bind:checked={autoSubtractBreaks}
-            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            class="w-4 h-4 text-primary border-gray-300 dark:border-gray-600 rounded focus:ring-primary"
           />
-          <label for="autoBreaks" class="ml-2 text-sm text-gray-700">
+          <label for="autoBreaks" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
             Automatically subtract break time
           </label>
         </div>
-        <div class="text-xs text-gray-500 pl-6">
+        <div class="text-xs text-gray-500 dark:text-gray-400 pl-6">
           <p>• 6-9 hours: 30 min break</p>
           <p>• 9+ hours: 45 min break</p>
         </div>
@@ -163,13 +165,13 @@
             id="archived"
             type="checkbox"
             bind:checked={archived}
-            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            class="w-4 h-4 text-primary border-gray-300 dark:border-gray-600 rounded focus:ring-primary"
           />
-          <label for="archived" class="ml-2 text-sm text-gray-700">
+          <label for="archived" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
             Archive this timer
           </label>
         </div>
-        <div class="text-xs text-gray-500 pl-6">
+        <div class="text-xs text-gray-500 dark:text-gray-400 pl-6">
           <p>Archived timers are hidden from the main view but can still be accessed in reports</p>
         </div>
 
@@ -178,14 +180,14 @@
           <button
             type="button"
             onclick={close}
-            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            class="flex-1 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? 'Saving...' : timer ? 'Update' : 'Create'}
           </button>

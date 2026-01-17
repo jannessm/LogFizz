@@ -14,31 +14,46 @@
   import { onMount } from 'svelte';
   import { createCalendarStore, loadCalendarMonth } from '../services/calendar';
 
-  let selectedDate = $state(dayjs()); // actual selected date, updates daily details view
-  let currentMonth = $state(dayjs());  // month being viewed in calendar, updates yearly/monthly balance views
+  
+  // Initialize from URL query parameters if available
+  function getInitialDates() {
+    const params = new URLSearchParams(window.location.search);
+    const dateParam = params.get('date');
+    const monthParam = params.get('month');
+    
+    let selected = dayjs();
+    let current = dayjs();
+    
+    if (dateParam) {
+      const parsed = dayjs(dateParam);
+      if (parsed.isValid()) {
+        selected = parsed;
+      }
+    }
+    
+    if (monthParam) {
+      const parsed = dayjs(monthParam);
+      if (parsed.isValid()) {
+        current = parsed;
+      }
+    } else if (dateParam) {
+      // If no month param but date param exists, set current month to selected date's month
+      current = selected.startOf('month');
+    }
+    
+    return { date: selected, month: current };
+  }
+
+  const initialDates = getInitialDates();
+  let selectedDate = $state(initialDates); // actual selected date
+
   let showImportModal = $state(false);
 
   // Create calendar store that reactively updates based on currentMonth and timers
   let calendarStore = $derived(
-    createCalendarStore(currentMonth.year(), currentMonth.month() + 1, 1, $timers, $targets)
+    createCalendarStore(selectedDate.date.year(), selectedDate.month.month() + 1, 1, $timers, $targets)
   );
   let calendarData = $derived($calendarStore);
-
-  onMount(async () => {
-    // Load initial month range on mount
-    await loadCalendarMonth(currentMonth.year(), currentMonth.month() + 1);
-  });
-
-  // Handle date changes from the calendar
-  function handleDateChange(newSelectedDate: dayjs.Dayjs, newCurrentMonth: dayjs.Dayjs) {
-    const monthChanged = !currentMonth.isSame(newCurrentMonth, 'month');
-    selectedDate = newSelectedDate;
-    currentMonth = newCurrentMonth;
-    
-    if (monthChanged) {
-      loadCalendarMonth(currentMonth.year(), currentMonth.month() + 1);
-    }
-  }
 
   function handleImportClick() {
     showImportModal = true;
@@ -78,14 +93,14 @@
   }
 </script>
 
-<div class="flex flex-col h-screen bg-gray-50">
+<div class="flex flex-col h-screen">
   <!-- Header spanning full width -->
   <div class="w-full px-4 pt-6 pb-2">
     <div class="w-full max-w-7xl mx-auto flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-gray-800">History</h1>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">History</h1>
       <button
         onclick={handleImportClick}
-        class="p-2 hover:bg-gray-200 rounded-lg transition-colors icon-[si--file-upload-duotone]"
+        class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-upload-duotone] text-gray-600 dark:text-gray-400"
         style="width: 28px; height: 28px;"
         aria-label="Import timelogs"
       ></button>
@@ -98,11 +113,9 @@
       <!-- Column 1: Calendar (max width 400px) -->
       <div class="w-full max-w-[400px] mx-auto">
         <HistoryCalendar
-          timers={$timers}
           timeLogs={Array.from(calendarData.timeLogsByDate.values()).flat()}
           calendarData={calendarData}
-          targets={$targets}
-          onDateChange={handleDateChange}
+          selectedDate={selectedDate}
         />
       </div>
 
@@ -112,9 +125,9 @@
           title="Balance Overview"
           targets={$targets}
           periods={{
-            day: { date: selectedDate.format('YYYY-MM-DD') },
-            month: { year: currentMonth.year(), month: currentMonth.month() + 1 },
-            year: { year: currentMonth.year() },
+            day: { date: selectedDate.date.format('YYYY-MM-DD') },
+            month: { year: selectedDate.month.year(), month: selectedDate.month.month() + 1 },
+            year: { year: selectedDate.month.year() },
           }}
         />
       </div>
@@ -126,9 +139,9 @@
 
           <HistoryLogs
             {selectedDate}
-            timeLogs={calendarData.timeLogsByDate.get(selectedDate.format('YYYY-MM-DD')) || []}
+            timeLogs={calendarData.timeLogsByDate.get(selectedDate.date.format('YYYY-MM-DD')) || []}
             timers={$timers}
-            relevantHolidays={calendarData.relevantHolidays.get(selectedDate.format('YYYY-MM-DD')) || []}
+            relevantHolidays={calendarData.relevantHolidays.get(selectedDate.date.format('YYYY-MM-DD')) || []}
           />
         </div>
       </div>
