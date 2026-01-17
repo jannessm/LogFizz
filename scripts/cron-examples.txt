@@ -1,0 +1,101 @@
+# Example Cron Job Configuration for PostgreSQL Backups
+#
+# This file provides examples of cron job configurations for the backup script.
+# To use these examples:
+# 1. Edit your crontab: crontab -e
+# 2. Copy one of the examples below and adjust the path
+# 3. Save and exit
+
+# IMPORTANT: Replace /path/to/TapShift with the actual path to your repository
+
+# ============================================================================
+# DAILY BACKUPS
+# ============================================================================
+
+# Run backup daily at 2:00 AM
+0 2 * * * cd /path/to/TapShift && ./scripts/backup-postgres.sh >> backups/cron.log 2>&1
+
+# Run backup daily at 3:30 AM
+30 3 * * * cd /path/to/TapShift && ./scripts/backup-postgres.sh >> backups/cron.log 2>&1
+
+# ============================================================================
+# MULTIPLE BACKUPS PER DAY
+# ============================================================================
+
+# Run backup every 6 hours (at 00:00, 06:00, 12:00, 18:00)
+0 */6 * * * cd /path/to/TapShift && ./scripts/backup-postgres.sh >> backups/cron.log 2>&1
+
+# Run backup every 12 hours (at 00:00 and 12:00)
+0 */12 * * * cd /path/to/TapShift && ./scripts/backup-postgres.sh >> backups/cron.log 2>&1
+
+# Run backup every 4 hours
+0 */4 * * * cd /path/to/TapShift && ./scripts/backup-postgres.sh >> backups/cron.log 2>&1
+
+# ============================================================================
+# WEEKLY BACKUPS
+# ============================================================================
+
+# Run backup every Sunday at 3:00 AM
+0 3 * * 0 cd /path/to/TapShift && ./scripts/backup-postgres.sh >> backups/cron.log 2>&1
+
+# Run backup every Monday at 2:00 AM
+0 2 * * 1 cd /path/to/TapShift && ./scripts/backup-postgres.sh >> backups/cron.log 2>&1
+
+# ============================================================================
+# ADVANCED EXAMPLES
+# ============================================================================
+
+# Run backup daily at 2:00 AM with custom backup directory
+0 2 * * * cd /path/to/TapShift && ./scripts/backup-postgres.sh /mnt/external/backups >> /var/log/postgres-backup.log 2>&1
+
+# Run backup and send email notification on failure
+0 2 * * * cd /path/to/TapShift && ./scripts/backup-postgres.sh || echo "Backup failed" | mail -s "PostgreSQL Backup Failed" admin@example.com
+
+# Run backup with log rotation (requires logrotate configured)
+0 2 * * * cd /path/to/TapShift && ./scripts/backup-postgres.sh >> /var/log/postgres-backup.log 2>&1
+
+# ============================================================================
+# CRON SYNTAX REFERENCE
+# ============================================================================
+# 
+# ┌───────────── minute (0 - 59)
+# │ ┌───────────── hour (0 - 23)
+# │ │ ┌───────────── day of month (1 - 31)
+# │ │ │ ┌───────────── month (1 - 12)
+# │ │ │ │ ┌───────────── day of week (0 - 6) (Sunday to Saturday)
+# │ │ │ │ │
+# * * * * *
+#
+# Special characters:
+# * - any value
+# , - value list separator (e.g., 1,15,30)
+# - - range of values (e.g., 1-5)
+# / - step values (e.g., */5 means every 5)
+#
+# Examples:
+# 0 2 * * *        - Every day at 2:00 AM
+# 0 */6 * * *      - Every 6 hours
+# 0 2 * * 0        - Every Sunday at 2:00 AM
+# 0 2 1 * *        - First day of every month at 2:00 AM
+# 30 3 * * 1-5     - Weekdays at 3:30 AM
+# 0 0,12 * * *     - Every day at midnight and noon
+
+# ============================================================================
+# TESTING YOUR CRON JOB
+# ============================================================================
+#
+# 1. Test the backup script manually first:
+#    cd /path/to/TapShift && ./scripts/backup-postgres.sh
+#
+# 2. Check cron logs to verify the job runs:
+#    grep CRON /var/log/syslog    (on Ubuntu/Debian)
+#    grep CRON /var/log/cron      (on CentOS/RHEL)
+#
+# 3. Check backup logs:
+#    tail -f /path/to/TapShift/backups/backup.log
+#
+# 4. List your cron jobs:
+#    crontab -l
+#
+# 5. Remove all cron jobs (BE CAREFUL!):
+#    crontab -r
