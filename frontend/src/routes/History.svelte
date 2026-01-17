@@ -4,8 +4,8 @@
   import {
     HistoryCharts, HistoryCalendar,
     HistoryLogs, ImportTimelogsModal
-  } from '../components/history';
-  import BalancesOverview from '../components/history/BalancesOverview.svelte';
+  } from '../components/History';
+  import BalancesOverview from '../components/History/BalancesOverview.svelte';
   import { timeLogsStore } from '../stores/timelogs';
   import { timers } from '../stores/timers';
   import { targets } from '../stores/targets';

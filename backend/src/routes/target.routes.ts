@@ -126,6 +126,9 @@ export async function targetRoutes(fastify: FastifyInstance) {
           }))),
           cursor: Type.String(),
         }),
+        500: Type.Object({
+          error: Type.String(),
+        }),
       },
     },
   }, async (request, reply) => {
