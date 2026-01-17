@@ -76,8 +76,6 @@ export function getSessionsForSelectedDate(
     }
   }
 
-  console.log('Sessions for date', dateStr, sessions, multiDaySessions);
-
   return { sessions, multiDaySessions };
 }
 

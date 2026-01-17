@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "@iconify/tailwind4";
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* Theme colors - Light mode uses blue (#29abe2), Dark mode uses orange (#fbb03b) */
 :root {
@@ -23,13 +24,6 @@ body {
   margin: 0;
   min-height: 100vh;
   transition: background-color 0.3s ease, color 0.3s ease;
-  background-color: #f9fafb; /* bg-gray-50 */
-}
-
-.dark body,
-body.dark,
-:root.dark body {
-  background-color: #111827; /* bg-gray-900 */
 }
 
 /* Utility classes for theme-aware primary colors */

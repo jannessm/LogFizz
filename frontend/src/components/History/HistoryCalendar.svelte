@@ -1,61 +1,25 @@
 <script lang="ts">
-  import { dayjs, type TargetWithSpecs, type TimeLog, type Timer } from '../../types';
-  import { hasSpecialType, type CalendarTimeLogData } from '../../services/calendar';
+  import { dayjs, type TimeLog } from '../../types';
+  import { hasSpecialType, loadCalendarMonth, type CalendarTimeLogData } from '../../services/calendar';
   import { onMount } from 'svelte';
   import { getSetting } from '../../lib/db';
 
   let {
-    timers,
     timeLogs,
     calendarData,
-    targets,
-    onDateChange
+    selectedDate,
   }: {
-    timers: Timer[];
     timeLogs: TimeLog[];
     calendarData: CalendarTimeLogData;
-    targets: TargetWithSpecs[];
-    onDateChange?: (selectedDate: dayjs.Dayjs, currentMonth: dayjs.Dayjs) => void;
+    selectedDate: { date: dayjs.Dayjs; month: dayjs.Dayjs };
   } = $props();
 
-  // Initialize from URL query parameters if available
-  function getInitialDates() {
-    const params = new URLSearchParams(window.location.search);
-    const dateParam = params.get('date');
-    const monthParam = params.get('month');
-    
-    let selected = dayjs();
-    let current = dayjs();
-    
-    if (dateParam) {
-      const parsed = dayjs(dateParam);
-      if (parsed.isValid()) {
-        selected = parsed;
-      }
-    }
-    
-    if (monthParam) {
-      const parsed = dayjs(monthParam);
-      if (parsed.isValid()) {
-        current = parsed;
-      }
-    } else if (dateParam) {
-      // If no month param but date param exists, set current month to selected date's month
-      current = selected.startOf('month');
-    }
-    
-    return { selected, current };
-  }
-
-  const initialDates = getInitialDates();
-  let selectedDate = $state(initialDates.selected); // actual selected date
-  let currentMonth = $state(initialDates.current);  // month being viewed in calendar
 
   // Update URL when dates change
   function updateURL() {
     const params = new URLSearchParams();
-    params.set('date', selectedDate.format('YYYY-MM-DD'));
-    params.set('month', currentMonth.format('YYYY-MM'));
+    params.set('date', selectedDate.date.format('YYYY-MM-DD'));
+    params.set('month', selectedDate.month.format('YYYY-MM'));
     
     const newURL = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState({}, '', newURL);
@@ -63,53 +27,36 @@
 
   // Watch for date changes and update URL + notify parent
   $effect(() => {
-    if (selectedDate && currentMonth) {
+    if (selectedDate.date && selectedDate.month) {
       updateURL();
-      if (onDateChange) {
-        onDateChange(selectedDate, currentMonth);
-      }
+      loadCalendarMonth(selectedDate.month.year(), selectedDate.month.month() + 1);
     }
   });
 
-  // Get unique state codes from all daily targets
-  function getTargetCountries(): string[] {
-    const countries: string[] = [];
-    for (const t of targets) {
-      for (const spec of t.target_specs || []) {
-        if (spec.state_code) {
-          countries.push(spec.state_code);
-        }
-      }
-    }
-    return Array.from(new Set(countries)); // Remove duplicates
-  }
-
-  let countries = $derived(getTargetCountries());
-
   // Month navigation functions
   function previousMonth() {
-    currentMonth = currentMonth.subtract(1, 'month');
+    selectedDate.month = selectedDate.month.subtract(1, 'month');
   }
 
   function nextMonth() {
-    currentMonth = currentMonth.add(1, 'month');
+    selectedDate.month = selectedDate.month.add(1, 'month');
   }
 
   function goToToday() {
-    currentMonth = dayjs();
-    selectedDate = dayjs();
+    selectedDate.date = dayjs();
+    selectedDate.month = dayjs();
   }
 
   function changeMonth(event: Event) {
     const target = event.target as HTMLSelectElement;
     const newMonth = parseInt(target.value);
-    currentMonth = currentMonth.month(newMonth);
+    selectedDate.month = selectedDate.month.month(newMonth);
   }
 
   function changeYear(event: Event) {
     const target = event.target as HTMLSelectElement;
     const newYear = parseInt(target.value);
-    currentMonth = currentMonth.year(newYear);
+    selectedDate.month = selectedDate.month.year(newYear);
   }
 
   // Generate month options (0-11 for dayjs)
@@ -144,13 +91,13 @@
   let yearOptions = $derived(getYearOptions());
 
   function selectDate(date: dayjs.Dayjs) {
-    selectedDate = date;
+    selectedDate.date = date;
   }
 
   let firstDayOfWeek: 'sunday' | 'monday' = $state('sunday');
   let dayNames: string[] = $state([]);
   let calendarDays = $derived.by(() => {
-    const firstDay = currentMonth.startOf('month');
+    const firstDay = selectedDate.month.startOf('month');
 
     // Get the day of week for the first day (0 = Sunday, 6 = Saturday)
     let firstDayOfWeekNum: number = firstDay.day();
@@ -218,7 +165,6 @@
       isMiddle: false,
       colors: [],
     };
-    console.log('Multi-day range info for', dateStr, info);
     return info;
   }
 
@@ -250,11 +196,11 @@
   }
 
   function isSelected(date: dayjs.Dayjs): boolean {
-    return date.isSame(selectedDate, 'day');
+    return date.isSame(selectedDate.date, 'day');
   }
 
   function isCurrentMonth(date: dayjs.Dayjs): boolean {
-    return date.isSame(currentMonth, 'month');
+    return date.isSame(selectedDate.month, 'month');
   }
 
   /**
@@ -282,7 +228,7 @@
     <!-- Month Dropdown -->
     <select
       onchange={changeMonth}
-      value={currentMonth.month()}
+      value={selectedDate.month.month()}
       class="text-lg text-gray-800 dark:text-gray-100 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
       aria-label="Select month"
     >
@@ -294,7 +240,7 @@
     <!-- Year Dropdown -->
     <select
       onchange={changeYear}
-      value={currentMonth.year()}
+      value={selectedDate.month.year()}
       class="text-lg text-gray-800 dark:text-gray-100 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
       aria-label="Select year"
     >
@@ -313,10 +259,10 @@
     <button
       onclick={goToToday}
       class="px-3 py-1 text-sm font-medium text-white hover:bg-primary-hover rounded-lg transition-colors"
-      class:bg-primary={!selectedDate.isSame(dayjs(), 'day')}
-      class:bg-gray-300={selectedDate.isSame(dayjs(), 'day')}
-      class:dark:bg-gray-600={selectedDate.isSame(dayjs(), 'day')}
-      disabled={selectedDate.isSame(dayjs(), 'day')}
+      class:bg-primary={!selectedDate.date.isSame(dayjs(), 'day')}
+      class:bg-gray-300={selectedDate.date.isSame(dayjs(), 'day')}
+      class:dark:bg-gray-600={selectedDate.date.isSame(dayjs(), 'day')}
+      disabled={selectedDate.date.isSame(dayjs(), 'day')}
       aria-label="Go to today"
     >
       Today

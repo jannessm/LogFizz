@@ -103,7 +103,6 @@
   }
 
   function handleEditTimer(timer: Timer) {
-    console.log('Editing timer:', timer, editMode);
     editingTimer = timer;
     showTimerForm = true;
     if (showEditOverview) {
@@ -212,7 +211,6 @@
     // If there's a pending timer to stop, DON'T stop it - let it continue running
     // User cancelled the stop action by closing the form
     if (timerToStop) {
-      console.log('Timer stop cancelled - timer continues running');
       timerToStop = null;
     }
     showTimelogForm = false;

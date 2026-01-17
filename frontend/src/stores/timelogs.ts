@@ -210,7 +210,6 @@ function createTimeLogsStore() {
      */
     async loadLogsByYearMonth(year: number, month: number): Promise<TimeLog[]> {
       const key = `${year}-${month}`;
-      console.log(`Loading timelogs for ${year}-${month}...`);
       
       // Skip if already loaded
       if (loadedMonths.has(key)) {
@@ -220,7 +219,6 @@ function createTimeLogsStore() {
           const logMonth = tl.month ?? (dayjs(tl.start_timestamp).tz(userTimezone).month() + 1);
           return logYear === year && logMonth === month;
         });
-        console.log('found', existingLogs.length, 'existing logs for', year, month, baseStore.getState().items.size, 'total logs in store');
         return existingLogs;
       }
 
@@ -228,7 +226,6 @@ function createTimeLogsStore() {
       try {
         const timeLogs = await getTimeLogsByYearMonth(year, month); // month is already 1-12
         loadedMonths.add(key);
-        console.log('loaded', timeLogs.length, 'logs for', year, month);
         baseStore.updateWriteable(state => {
           const newItems = new Map(state.items);
           for (const log of timeLogs) {

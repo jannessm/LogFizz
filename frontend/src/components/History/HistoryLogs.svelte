@@ -19,9 +19,9 @@
     selectedDate, 
     timeLogs, 
     timers, 
-    relevantHolidays = []
+    relevantHolidays = [],
   }: {
-    selectedDate: dayjs.Dayjs;
+    selectedDate: { date: dayjs.Dayjs; month: dayjs.Dayjs };
     timeLogs: TimeLog[];
     timers: Timer[];
     relevantHolidays: Holiday[]; // Holidays that affect balance calculations for this date
@@ -31,12 +31,12 @@
   let showTimelogForm = $state(false);
   let editingTimelog: Session | null = $state(null);
 
-  let sessionsData: SessionData = $derived(getSessionsForSelectedDate(selectedDate, timeLogs));
+  let sessionsData: SessionData = $derived(getSessionsForSelectedDate(selectedDate.date, timeLogs));
   let sessions: Session[] = $derived(sessionsData.sessions);
   let multiDaySessions: Session[] = $derived(sessionsData.multiDaySessions);
   let selectedTimerFilter: string | null = $state(null);
 
-  let timelineProps: TimelineProps = $derived(calculateTimeline(sessions, selectedDate));
+  let timelineProps: TimelineProps = $derived(calculateTimeline(sessions, selectedDate.date));
   let timelineStart: dayjs.Dayjs | null = $derived(timelineProps.timelineStart);
   let timelineEnd: dayjs.Dayjs | null = $derived(timelineProps.timelineEnd);
   let timelineHours: number = $derived(timelineProps.timelineHours);
@@ -132,20 +132,39 @@
   }
 
   async function handleDelete(log: TimeLog) {
-    console.log('Deleting session:', log);
     await timeLogsStore.delete(log);
     showTimelogForm = false;
+  }
+
+  function previousDay() {
+    selectedDate.date = selectedDate.date.subtract(1, 'day');
+  }
+
+  function nextDay() {
+    selectedDate.date = selectedDate.date.add(1, 'day');
   }
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
   <div class="flex justify-between items-center mb-4">
-    <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
-      {selectedDate.format('MMMM D, YYYY')}
-      {#if isToday(selectedDate)}
-        <span class="text-sm font-normal text-primary">(Today)</span>
-      {/if}
-    </h2>
+    <div class="flex items-center gap-2">
+      <button
+        onclick={previousDay}
+        class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--chevron-left-alt-duotone] text-gray-600 dark:text-gray-400"
+        aria-label="Previous day"
+      ></button>
+      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
+        {selectedDate.date.format('dddd, LL')}
+        {#if isToday(selectedDate.date)}
+          <span class="text-sm font-normal text-primary">(Today)</span>
+        {/if}
+      </h2>
+      <button
+        onclick={nextDay}
+        class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--chevron-right-alt-duotone] text-gray-600 dark:text-gray-400"
+        aria-label="Next day"
+      ></button>
+    </div>
     <button
       onclick={handleAddTimelog}
       class="rounded-full bg-primary hover:bg-primary-hover transition-colors flex items-center gap-1 icon-[si--add-circle-duotone]"
@@ -313,7 +332,7 @@
 <!-- Timelog Form Modal -->
 {#if showTimelogForm}
   <TimelogForm
-    {selectedDate}
+    selectedDate={selectedDate.date}
     existingLog={editingTimelog?.log}
     save={handleSaveTimelog}
     close={handleCloseForm}

@@ -176,8 +176,6 @@ export class SyncService {
       return;
     }
 
-    console.log('Starting sync for types:', notSyncing);
-
     for (const t of notSyncing) {
       this.syncingLocks[t as keyof typeof this.syncingLocks] = true;
     }

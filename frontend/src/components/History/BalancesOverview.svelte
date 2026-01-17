@@ -43,7 +43,7 @@
     return [
       'px-3 py-1.5 rounded-full text-sm border transition-colors whitespace-nowrap',
       isSelected
-        ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-gray-900 dark:border-gray-100'
+        ? 'bg-gray-700 dark:bg-gray-200 text-white dark:text-gray-900 border-gray-900 dark:border-gray-100'
         : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600',
     ].join(' ');
   }

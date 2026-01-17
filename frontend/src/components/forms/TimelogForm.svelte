@@ -57,6 +57,17 @@
     }
   });
 
+  $effect(() => {
+    if (newLog.timer_id) {
+      const timer = $timers.find(t => t.id === newLog.timer_id);
+      if (timer && timer.auto_subtract_breaks) {
+        newLog.apply_break_calculation = true;
+      } else {
+        newLog.apply_break_calculation = false;
+      }
+    }
+  });
+
   onMount(() => {
     if (existingLog) {
       newLog = { ...existingLog };
