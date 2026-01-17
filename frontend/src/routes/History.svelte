@@ -3,7 +3,7 @@
 
   import {
     HistoryCharts, HistoryCalendar,
-    HistoryLogs, ImportTimelogsModal
+    HistoryLogs, ImportTimelogsModal, ExportTimelogsModal
   } from '../components/History';
   import BalancesOverview from '../components/History/BalancesOverview.svelte';
   import { timeLogsStore } from '../stores/timelogs';
@@ -48,6 +48,7 @@
   let selectedDate = $state(initialDates); // actual selected date
 
   let showImportModal = $state(false);
+  let showExportModal = $state(false);
 
   // Create calendar store that reactively updates based on currentMonth and timers
   let calendarStore = $derived(
@@ -61,6 +62,14 @@
 
   function handleImportClose() {
     showImportModal = false;
+  }
+
+  function handleExportClick() {
+    showExportModal = true;
+  }
+
+  function handleExportClose() {
+    showExportModal = false;
   }
 
   async function handleImportConfirm(data: { 
@@ -98,12 +107,20 @@
   <div class="w-full px-4 pt-6 pb-2">
     <div class="w-full max-w-7xl mx-auto flex justify-between items-center">
       <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">History</h1>
-      <button
-        onclick={handleImportClick}
-        class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-upload-duotone] text-gray-600 dark:text-gray-400"
-        style="width: 28px; height: 28px;"
-        aria-label="Import timelogs"
-      ></button>
+      <div class="flex gap-1">
+        <button
+          onclick={handleExportClick}
+          class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-download-duotone] text-gray-600 dark:text-gray-400"
+          style="width: 28px; height: 28px;"
+          aria-label="Export timelogs"
+        ></button>
+        <button
+          onclick={handleImportClick}
+          class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-upload-duotone] text-gray-600 dark:text-gray-400"
+          style="width: 28px; height: 28px;"
+          aria-label="Import timelogs"
+        ></button>
+      </div>
     </div>
   </div>
 
@@ -155,6 +172,13 @@
     <ImportTimelogsModal
       close={handleImportClose}
       onimport={handleImportConfirm}
+    />
+  {/if}
+
+  <!-- Export Timelogs Modal -->
+  {#if showExportModal}
+    <ExportTimelogsModal
+      close={handleExportClose}
     />
   {/if}
 </div>
