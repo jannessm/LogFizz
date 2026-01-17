@@ -21,19 +21,19 @@ describe('BottomNav Component', () => {
   it('highlights timer tab when active', () => {
     const { container } = render(BottomNav, { props: { currentTab: 'timer' } });
     const timerButton = screen.getByText('Timer').closest('button')!;
-    expect(timerButton).toHaveClass('text-blue-600');
+    expect(timerButton).toHaveClass('text-primary');
   });
 
   it('highlights history tab when active', () => {
     const { container } = render(BottomNav, { props: { currentTab: 'history' } });
     const historyButton = screen.getByText('History').closest('button')!;
-    expect(historyButton).toHaveClass('text-blue-600');
+    expect(historyButton).toHaveClass('text-primary');
   });
 
   it('highlights settings tab when active', () => {
     const { container } = render(BottomNav, { props: { currentTab: 'settings' } });
     const settingsButton = screen.getByText('Settings').closest('button')!;
-    expect(settingsButton).toHaveClass('text-blue-600');
+    expect(settingsButton).toHaveClass('text-primary');
   });
 
   it('navigates to root when timer tab clicked', async () => {

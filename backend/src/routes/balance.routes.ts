@@ -109,6 +109,9 @@ export async function balanceRoutes(fastify: FastifyInstance) {
           }))),
           cursor: Type.String(),
         }),
+        500: Type.Object({
+          error: Type.String(),
+        }),
       },
     },
   }, async (request, reply) => {

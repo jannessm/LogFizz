@@ -71,7 +71,7 @@ describe('TimerGrid Component', () => {
   it('renders empty state when no timers', () => {
     render(TimerGrid, { props: { timers: [], editMode: false } });
     expect(screen.getByText('No tracking buttons yet')).toBeInTheDocument();
-    expect(screen.getByText(/Click "Add Button"/i)).toBeInTheDocument();
+    expect(screen.getByText(/Click "Add Timer"/i)).toBeInTheDocument();
   });
 
   it('passes edit mode to timer buttons', () => {

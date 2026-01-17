@@ -57,15 +57,15 @@ export function generateStatisticsEmail(data: StatisticsEmailData): {
       </tr>
     </table>
     
-    <h2 style="color: #1f2937; font-size: 20px; margin-bottom: 15px;">🎯 Button Statistics</h2>
+    <h2 style="color: #1f2937; font-size: 20px; margin-bottom: 15px;">🎯 Timer Statistics</h2>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
       <tr style="background-color: #f9fafb;">
-        <td style="padding: 12px; border: 1px solid #e5e7eb;">Total Buttons</td>
-        <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: bold;">${statistics.buttons.total}</td>
+        <td style="padding: 12px; border: 1px solid #e5e7eb;">Total Timers</td>
+        <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: bold;">${statistics.timers.total}</td>
       </tr>
       <tr>
         <td style="padding: 12px; border: 1px solid #e5e7eb;">Average per User</td>
-        <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: bold;">${statistics.buttons.average_per_user}</td>
+        <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: bold;">${statistics.timers.average_per_user}</td>
       </tr>
     </table>
     
@@ -106,19 +106,19 @@ export function generateStatisticsEmail(data: StatisticsEmailData): {
     </div>
     `}
     
-    ${statistics.activity.most_used_button ? `
+    ${statistics.activity.most_used_timer ? `
     <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 16px; margin-bottom: 16px; border-radius: 4px;">
-      <h3 style="margin: 0 0 8px 0; color: #1f2937; font-size: 16px;">Most Used Button</h3>
+      <h3 style="margin: 0 0 8px 0; color: #1f2937; font-size: 16px;">Most Used Timer</h3>
       <p style="margin: 4px 0; color: #4b5563;">
-        ${statistics.activity.most_used_button.emoji ? escapeHtml(statistics.activity.most_used_button.emoji) + ' ' : ''}<strong>${escapeHtml(statistics.activity.most_used_button.name)}</strong>
+        ${statistics.activity.most_used_timer.emoji ? escapeHtml(statistics.activity.most_used_timer.emoji) + ' ' : ''}<strong>${escapeHtml(statistics.activity.most_used_timer.name)}</strong>
       </p>
       <p style="margin: 4px 0; color: #3b82f6; font-weight: bold;">
-        ${statistics.activity.most_used_button.usage_count.toLocaleString()} times used
+        ${statistics.activity.most_used_timer.usage_count.toLocaleString()} times used
       </p>
     </div>
     ` : `
     <div style="background-color: #f9fafb; padding: 16px; margin-bottom: 16px; border-radius: 4px;">
-      <p style="margin: 0; color: #6b7280;">No button activity found</p>
+      <p style="margin: 0; color: #6b7280;">No timer activity found</p>
     </div>
     `}
     
@@ -147,10 +147,10 @@ Total Users: ${statistics.users.total}
 Active Users (Last 30 Days): ${statistics.users.active}
 New Users (Last 30 Days): ${statistics.users.new}
 
-BUTTON STATISTICS
+TIMER STATISTICS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total Buttons: ${statistics.buttons.total}
-Average per User: ${statistics.buttons.average_per_user}
+Total Timers: ${statistics.timers.total}
+Average per User: ${statistics.timers.average_per_user}
 
 TIME TRACKING STATISTICS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -166,10 +166,10 @@ ${statistics.activity.most_active_user
 Hours Tracked: ${statistics.activity.most_active_user.hours_tracked.toLocaleString()} hours`
   : 'No active users found'}
 
-${statistics.activity.most_used_button 
-  ? `Most Used Button: ${statistics.activity.most_used_button.emoji || ''} ${statistics.activity.most_used_button.name}
-Times Used: ${statistics.activity.most_used_button.usage_count.toLocaleString()}`
-  : 'No button activity found'}
+${statistics.activity.most_used_timer 
+  ? `Most Used Timer: ${statistics.activity.most_used_timer.emoji || ''} ${statistics.activity.most_used_timer.name}
+Times Used: ${statistics.activity.most_used_timer.usage_count.toLocaleString()}`
+  : 'No timer activity found'}
 
 ────────────────────────────────────────
 This is an automated statistics report from TapShift.

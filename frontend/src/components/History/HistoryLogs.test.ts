@@ -20,7 +20,7 @@ vi.mock('../../services/formHandlers', () => ({
 describe('HistoryLogs Component', () => {
   let mockTimers: any[];
   let mockTimeLogs: any[];
-  let selectedDate: dayjs.Dayjs;
+  let selectedDate: { date: dayjs.Dayjs; month: dayjs.Dayjs };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -30,7 +30,7 @@ describe('HistoryLogs Component', () => {
       { id: 'b2', name: 'Study', emoji: '📚', color: '#10B981' },
     ];
 
-    selectedDate = dayjs('2024-01-15');
+    selectedDate = { date: dayjs('2024-01-15'), month: dayjs('2024-01-01') };
 
     mockTimeLogs = [
       {

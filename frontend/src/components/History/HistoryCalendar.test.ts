@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/svelte';
+import { render } from '@testing-library/svelte';
 import HistoryCalendar from './HistoryCalendar.svelte';
 import dayjs from '../../../../lib/utils/dayjs.js';
 import type { CalendarTimeLogData, MultiDayRangeInfo } from '../../services/calendar';
@@ -89,10 +89,9 @@ describe('HistoryCalendar Component', () => {
   it('renders calendar component', () => {
     const { container } = render(HistoryCalendar, {
       props: {
-        timers: mockTimers,
         timeLogs: mockTimeLogs,
         calendarData: mockCalendarData,
-        targets: mockTargets,
+        selectedDate: { date: dayjs('2024-01-15'), month: dayjs('2024-01-01') },
       },
     });
 
@@ -102,10 +101,9 @@ describe('HistoryCalendar Component', () => {
   it('renders calendar grid', () => {
     const { container } = render(HistoryCalendar, {
       props: {
-        timers: mockTimers,
         timeLogs: mockTimeLogs,
         calendarData: mockCalendarData,
-        targets: mockTargets,
+        selectedDate: { date: dayjs('2024-01-15'), month: dayjs('2024-01-01') },
       },
     });
 
@@ -115,10 +113,9 @@ describe('HistoryCalendar Component', () => {
   it('renders with correct structure', () => {
     const { container } = render(HistoryCalendar, {
       props: {
-        timers: mockTimers,
         timeLogs: mockTimeLogs,
         calendarData: mockCalendarData,
-        targets: mockTargets,
+        selectedDate: { date: dayjs('2024-01-15'), month: dayjs('2024-01-01') },
       },
     });
 
@@ -128,10 +125,9 @@ describe('HistoryCalendar Component', () => {
   it('displays color indicators for days with logs', () => {
     const { container } = render(HistoryCalendar, {
       props: {
-        timers: mockTimers,
         timeLogs: mockTimeLogs,
         calendarData: mockCalendarData,
-        targets: mockTargets,
+        selectedDate: { date: dayjs('2024-01-15'), month: dayjs('2024-01-01') },
       },
     });
 
@@ -141,15 +137,14 @@ describe('HistoryCalendar Component', () => {
   it('handles holidays display', () => {
     const holidayCalendarData = { ...mockCalendarData };
     holidayCalendarData.relevantHolidays = new Map([
-      ['2024-01-01', [{ id: 'h1', date: '2024-01-01', name: 'New Year', country: 'DE', global: true, counties: [] }]],
+      ['2024-01-01', [{ id: 'h1', date: '2024-01-01', name: 'New Year', country: 'DE', global: true, counties: [], year: 2024 }]],
     ]);
 
     const { container } = render(HistoryCalendar, {
       props: {
-        timers: mockTimers,
         timeLogs: mockTimeLogs,
         calendarData: holidayCalendarData,
-        targets: mockTargets,
+        selectedDate: { date: dayjs('2024-01-15'), month: dayjs('2024-01-01') },
       },
     });
 
@@ -161,10 +156,9 @@ describe('HistoryCalendar Component', () => {
 
     const { container } = render(HistoryCalendar, {
       props: {
-        timers: mockTimers,
         timeLogs: [],
         calendarData: emptyCalendarData,
-        targets: mockTargets,
+        selectedDate: { date: dayjs('2024-01-15'), month: dayjs('2024-01-01') },
       },
     });
 

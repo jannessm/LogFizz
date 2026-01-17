@@ -264,7 +264,7 @@
   tabindex="0"
 >
   <div 
-    class="bg-white rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
+    class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.stopPropagation()}
     role="dialog"
@@ -272,11 +272,11 @@
     tabindex="-1"
   >
     <!-- Header -->
-    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-800">{target ? 'Edit' : 'Add'} Target</h2>
+    <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
+      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{target ? 'Edit' : 'Add'} Target</h2>
       <button
         onclick={close}
-        class="text-gray-400 hover:text-gray-600 transition-colors icon-[si--close-circle-duotone]"
+        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
         style="width: 28px; height: 28px;"
         aria-label="Close"
       ></button>
@@ -285,7 +285,7 @@
     <!-- Content -->
     <div class="overflow-y-auto flex-1 p-6">
       {#if errorMessage}
-        <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div class="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-400 rounded">
           {errorMessage}
         </div>
       {/if}
@@ -293,7 +293,7 @@
       <form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-4">
         <!-- Name -->
         <div>
-          <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+          <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Target Name *
           </label>
           <input
@@ -301,24 +301,24 @@
             type="text"
             bind:value={name}
             required
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="e.g., Work, Exercise, Study"
           />
         </div>
 
         <!-- Target Specifications -->
-        <div class="border-t pt-4">
+        <div class="border-t dark:border-gray-700 pt-4">
           <div class="flex justify-between items-center mb-3">
             <div>
-              <h3 class="text-sm font-medium text-gray-700">Target Specifications *</h3>
-              <p class="text-xs text-gray-500 mt-1">
+              <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Target Specifications *</h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Define work schedules for different time periods. Most recent first.
               </p>
             </div>
             <button
               type="button"
               onclick={() => addSpec()}
-              class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors flex items-center gap-1"
+              class="px-3 py-1.5 bg-primary text-white text-sm rounded-md hover:bg-primary-hover transition-colors flex items-center gap-1"
             >
               <span class="icon-[si--add-line] w-4 h-4"></span>
               Add Schedule
@@ -327,9 +327,9 @@
 
           <!-- List of Target Specs -->
           {#if targetSpecs.length === 0}
-            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <p class="text-gray-500 text-sm">No schedules defined yet</p>
-              <p class="text-gray-400 text-xs mt-1">Click "Add Schedule" to create one</p>
+            <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+              <p class="text-gray-500 dark:text-gray-400 text-sm">No schedules defined yet</p>
+              <p class="text-gray-400 dark:text-gray-500 text-xs mt-1">Click "Add Schedule" to create one</p>
             </div>
           {:else}
             <div class="space-y-0">
@@ -344,20 +344,20 @@
                   >
                     <!-- Gradient fade overlay for second item -->
                     {#if isFaded}
-                      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white pointer-events-none z-20" style="background: linear-gradient(to bottom, transparent 0%, transparent 40%, white 100%);"></div>
+                      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-gray-800 pointer-events-none z-20" style="background: linear-gradient(to bottom, transparent 0%, transparent 40%, var(--tw-gradient-to) 100%);"></div>
                     {/if}
                     
                     <!-- Timeline connector (except for last item) -->
                     {#if index < targetSpecs.length - 1 && (showAllSpecs || index === 0)}
-                      <div class="absolute left-[70px] top-[80px] w-0.5 bg-blue-300 z-0" style="height: calc(100% - 80px);"></div>
+                      <div class="absolute left-[70px] top-[80px] w-0.5 bg-primary/30 z-0" style="height: calc(100% - 80px);"></div>
                     {/if}
                     
                     <div class="flex gap-2 items-start py-2 relative z-10">
                       <!-- Date Input -->
                       <div class="flex-shrink-0 relative" style="width: 140px;">
-                        <label class="block text-xs font-medium text-gray-700 mb-1" for="start-date-{index}">
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1" for="start-date-{index}">
                           {#if index === 0 && !archiveDate}
-                            <span class="text-blue-600 font-semibold">● Current</span>
+                            <span class="text-primary font-semibold">● Current</span>
                           {:else}
                             Start Date
                           {/if}
@@ -367,18 +367,18 @@
                           type="date"
                           bind:value={specWithDate.startDate}
                           onchange={() => handleStartDateChange(index, specWithDate.startDate)}
-                          class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                         {#if index < targetSpecs.length - 1}
-                          <p class="text-xs text-gray-500 mt-1">
+                          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             Ends: {dayjs(targetSpecs[index + 1].startDate).subtract(1, 'day').format('MMM D, YYYY')}
                           </p>
                         {:else if index === 0 && archiveDate}
-                          <p class="text-xs text-gray-500 mt-1">
+                          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             Ends: {dayjs(archiveDate).format('MMM D, YYYY')}
                           </p>
                         {:else}
-                          <p class="text-xs text-gray-500 mt-1">No end date</p>
+                          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">No end date</p>
                         {/if}
                       </div>
                       
@@ -402,7 +402,7 @@
                   <button
                     type="button"
                     onclick={() => showAllSpecs = !showAllSpecs}
-                    class="px-3 py-1.5 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors flex items-center gap-1"
+                    class="px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary hover:bg-primary-light dark:hover:bg-gray-700 rounded-md transition-colors flex items-center gap-1"
                   >
                     {#if showAllSpecs}
                       <span class="icon-[proicons--chevron-up] w-4 h-4"></span>
@@ -419,8 +419,8 @@
         </div>
 
         <!-- Archive Target Section -->
-        <div class="border-t pt-4">
-          <p class="text-xs text-gray-500 mb-2">
+        <div class="border-t dark:border-gray-700 pt-4">
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
             Set an end date to archive this target. The current target ends on this date.
           </p>
           <div class="flex items-start gap-3">
@@ -429,11 +429,11 @@
                 id="archive-date"
                 type="date"
                 bind:value={archiveDate}
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Leave empty to keep target active"
               />
               {#if archiveDate}
-                <p class="text-xs text-orange-600 mt-1 flex items-center gap-1">
+                <p class="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
                   This target ends on {dayjs(archiveDate).format('MMM D, YYYY')}
                 </p>
               {/if}
@@ -442,7 +442,7 @@
               <button
                 type="button"
                 onclick={() => archiveDate = null}
-                class="px-3 py-2 text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors flex items-center gap-1"
+                class="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors flex items-center gap-1"
                 title="Remove archive date"
               >
                 <span class="icon-[si--close-line] w-4 h-4"></span>
@@ -454,16 +454,16 @@
 
         <!-- Button Assignment -->
         {#if target}
-          <div class="border-t pt-4 mt-4">
-            <div class="block text-sm font-medium text-gray-700 mb-3">
+          <div class="border-t dark:border-gray-700 pt-4 mt-4">
+            <div class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
               Assign Timers
             </div>
-            <p class="text-xs text-gray-500 mb-3">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
               Select timers to track time towards this target. Selecting a timer that's already assigned to another target will reassign it to this target.
             </p>
             
             {#if availableTimers.length === 0}
-              <p class="text-sm text-gray-500 italic">No timers available. Create timers first to assign them to this target.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 italic">No timers available. Create timers first to assign them to this target.</p>
             {:else}
               <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
                 {#each availableTimers as timer}
@@ -472,15 +472,19 @@
                     type="button"
                     onclick={() => toggleTimer(timer.id)}
                     class="flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all duration-200 relative group"
-                    class:border-blue-500={selectedTimerIds.includes(timer.id)}
-                    class:bg-blue-50={selectedTimerIds.includes(timer.id)}
+                    class:border-primary={selectedTimerIds.includes(timer.id)}
+                    class:bg-primary-light={selectedTimerIds.includes(timer.id)}
+                    class:dark:bg-gray-700={selectedTimerIds.includes(timer.id)}
                     class:shadow-md={selectedTimerIds.includes(timer.id)}
                     class:border-gray-200={!selectedTimerIds.includes(timer.id)}
+                    class:dark:border-gray-600={!selectedTimerIds.includes(timer.id)}
                     class:hover:border-gray-300={!selectedTimerIds.includes(timer.id)}
+                    class:dark:hover:border-gray-500={!selectedTimerIds.includes(timer.id)}
                     class:hover:bg-gray-50={!selectedTimerIds.includes(timer.id)}
+                    class:dark:hover:bg-gray-700={!selectedTimerIds.includes(timer.id)}
                   >
                     {#if selectedTimerIds.includes(timer.id)}
-                      <div class="absolute top-1 right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                      <div class="absolute top-1 right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
                         <span class="icon-[si--check-line] text-white w-3 h-3"></span>
                       </div>
                     {/if}
@@ -491,10 +495,10 @@
                       {/if}
                     </div>
 
-                    <span class="text-sm font-medium text-gray-800 text-center line-clamp-2">{timer.name}</span>
+                    <span class="text-sm font-medium text-gray-800 dark:text-gray-200 text-center line-clamp-2">{timer.name}</span>
 
                     {#if assignedTarget && assignedTarget.id !== target?.id}
-                      <span class="text-[10px] text-orange-600 mt-1 text-center" title="Currently assigned to {assignedTarget.name}">assigned to: {assignedTarget.name}</span>
+                      <span class="text-[10px] text-orange-600 dark:text-orange-400 mt-1 text-center" title="Currently assigned to {assignedTarget.name}">assigned to: {assignedTarget.name}</span>
                     {/if}
                   </button>
                 {/each}
@@ -508,14 +512,14 @@
           <button
             type="button"
             onclick={close}
-            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            class="flex-1 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
           >
             {isLoading ? 'Saving...' : target ? 'Update' : 'Create'}
           </button>

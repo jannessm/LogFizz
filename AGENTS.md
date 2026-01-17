@@ -18,3 +18,4 @@ The calculation of balances is documented in `./docs/balances.md`
 - reduce duplicate code as much as possible
 - shared code between frontend and backend is written in ./lib
 - always check if all tests are working after changing anything
+- to run npm on mac use `export PATH="/opt/homebrew/bin:$PATH"`

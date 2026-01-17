@@ -100,7 +100,7 @@ describe('TimerGraph Component', () => {
     });
 
     expect(container.textContent).toContain('No tracking buttons yet');
-    expect(container.textContent).toContain('Click "Add Button" to create your first timer');
+    expect(container.textContent).toContain('Click "Add Timer" to create your first timer');
   });
 
   it('positions buttons using computed layout', async () => {
