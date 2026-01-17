@@ -314,7 +314,7 @@
               {timelineStart} 
               {timelineEnd} 
               {timelineHeight} 
-              {selectedDate}
+              selectedDate={selectedDate.date}
               indentLevel={session.indentLevel} 
               edit={handleEditTimelog} 
             />

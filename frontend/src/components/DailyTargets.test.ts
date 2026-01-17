@@ -200,7 +200,7 @@ describe('DailyTargets Component', () => {
         user_id: 'u1',
         id: 'spec1',
         target_id: 'target1',
-        duration_minutes: [90, 90, 90, 90, 90], // 1h 30m
+        duration_minutes: [90, 90, 90, 90, 90, 90, 90], // 1h 30m for every day
         exclude_holidays: false,
         state_code: null,
         starting_from: null,
@@ -213,7 +213,7 @@ describe('DailyTargets Component', () => {
     mockTimeLogsStore.set({ items: [] });
 
     const { container } = render(DailyTargets);
-    // Check for time display (formats may vary)
+    // Check for time display - format is "X% (Xm / 1h 30m)"
     expect(container.textContent).toContain('1h 30m');
   });
 });
