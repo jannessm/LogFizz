@@ -1,10 +1,9 @@
 <script lang="ts">
   import { timers } from '../../stores/timers';
   import { targets } from '../../stores/targets';
-  import { timeLogsStore, timerlogs } from '../../stores/timelogs';
-  import { get } from 'svelte/store';
+  import { timerlogs } from '../../stores/timelogs';
   import { dayjs, userTimezone } from '../../types';
-  import type { TimeLog, Timer as TimerType } from '../../types';
+  import type { Timer as TimerType } from '../../types';
 
   let {
     close
@@ -330,7 +329,7 @@
                     class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
                   />
                   <span class="text-gray-800 dark:text-gray-100">📁 {target.name}</span>
-                  <span class="text-xs text-gray-500 dark:text-gray-400">({targetTimers.length} timers)</span>
+                  <span class="text-xs text-gray-500 dark:text-gray-400">({targetTimers.length} {targetTimers.length === 1 ? 'timer' : 'timers'})</span>
                 </label>
                 
                 <!-- Timers under this target (indented) -->
