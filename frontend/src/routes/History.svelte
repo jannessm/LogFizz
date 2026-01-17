@@ -110,13 +110,13 @@
       <div class="flex gap-1">
         <button
           onclick={handleExportClick}
-          class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-download-duotone] text-gray-600 dark:text-gray-400"
+          class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-upload-duotone] text-gray-600 dark:text-gray-400"
           style="width: 28px; height: 28px;"
           aria-label="Export timelogs"
         ></button>
         <button
           onclick={handleImportClick}
-          class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-upload-duotone] text-gray-600 dark:text-gray-400"
+          class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-download-duotone] text-gray-600 dark:text-gray-400"
           style="width: 28px; height: 28px;"
           aria-label="Import timelogs"
         ></button>
