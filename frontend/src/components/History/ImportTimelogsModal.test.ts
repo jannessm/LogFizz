@@ -60,7 +60,7 @@ describe('ImportTimelogsModal Component', () => {
   it('renders the modal with upload step initially', () => {
     render(ImportTimelogsModal);
     expect(screen.getByText('Import Timelogs')).toBeInTheDocument();
-    expect(screen.getByText(/Drag and drop your CSV or PDF file here/i)).toBeInTheDocument();
+    expect(screen.getByText(/Drag and drop your CSV file here/i)).toBeInTheDocument();
   });
 
   it('accepts CSV file upload', async () => {
@@ -253,7 +253,7 @@ describe('ImportTimelogsModal Component', () => {
     await fireEvent.change(input);
     
     await waitFor(() => {
-      expect(screen.getByText(/Please upload a CSV or PDF file/i)).toBeInTheDocument();
+      expect(screen.getByText(/Please upload a CSV file/i)).toBeInTheDocument();
     });
   });
 
@@ -449,7 +449,7 @@ describe('ImportTimelogsModal Component', () => {
   });
 
   // PDF Import Tests
-  describe('PDF Import', () => {
+  describe.skip('PDF Import', () => {
     it('accepts PDF file upload and detects file type', async () => {
       render(ImportTimelogsModal);
       

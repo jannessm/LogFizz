@@ -146,9 +146,11 @@ describe('ExportTimelogsModal Component', () => {
   it('shows column selection section', () => {
     render(ExportTimelogsModal, { props: { close: vi.fn() } });
     expect(screen.getByText('Select Columns to Export')).toBeInTheDocument();
-    expect(screen.getByText('Date')).toBeInTheDocument();
+    expect(screen.getByText('Start Date')).toBeInTheDocument();
     expect(screen.getByText('Start Time')).toBeInTheDocument();
+    expect(screen.getByText('End Date')).toBeInTheDocument();
     expect(screen.getByText('End Time')).toBeInTheDocument();
+    expect(screen.getByText('Timezone')).toBeInTheDocument();
     expect(screen.getByText('Duration')).toBeInTheDocument();
     expect(screen.getByText('Timer')).toBeInTheDocument();
     expect(screen.getByText('Type')).toBeInTheDocument();

@@ -75,7 +75,7 @@
       const detectedType = detectFileType(selectedFile.name);
       
       if (!detectedType) {
-        errorMessage = '❌ Invalid file type. Please upload a CSV or PDF file.\n\nSupported formats:\n• .csv (Comma or semicolon separated)\n• .pdf (Text-based PDFs only)';
+        errorMessage = '❌ Invalid file type. Please upload a CSV file.\n\nSupported formats:\n• .csv (Comma or semicolon separated)';
         file = null;
         fileType = null;
         return;
