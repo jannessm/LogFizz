@@ -23,9 +23,11 @@
 
   // Column selection - default all checked
   let columns = $state({
-    date: true,
+    startDate: true,
     startTime: true,
+    endDate: true,
     endTime: true,
+    timezone: true,
     duration: true,
     timer: true,
     type: true,
@@ -140,8 +142,8 @@
 
   // Check if any column is selected for export
   let hasSelectedColumns = $derived(
-    columns.date || columns.startTime || columns.endTime || 
-    columns.duration || columns.timer || columns.type || columns.notes
+    columns.startDate || columns.startTime || columns.endDate || columns.endTime || 
+    columns.duration || columns.timer || columns.type || columns.notes || columns.timezone
   );
 
   // Format duration in HH:MM format
@@ -159,9 +161,11 @@
 
     // Build header row
     const headers: string[] = [];
-    if (columns.date) headers.push('Date');
+    if (columns.startDate) headers.push('Start Date');
     if (columns.startTime) headers.push('Start Time');
+    if (columns.endDate) headers.push('End Date');
     if (columns.endTime) headers.push('End Time');
+    if (columns.timezone) headers.push('Timezone');
     if (columns.duration) headers.push('Duration');
     if (columns.timer) headers.push('Timer');
     if (columns.type) headers.push('Type');
@@ -175,9 +179,11 @@
       const startDayjs = dayjs.utc(log.start_timestamp).tz(logTimezone);
       const endDayjs = log.end_timestamp ? dayjs.utc(log.end_timestamp).tz(logTimezone) : null;
 
-      if (columns.date) row.push(startDayjs.format('YYYY-MM-DD'));
-      if (columns.startTime) row.push(startDayjs.format('HH:mm'));
-      if (columns.endTime) row.push(endDayjs ? endDayjs.format('HH:mm') : '');
+      if (columns.startDate) row.push(startDayjs.format('L'));
+      if (columns.startTime) row.push(startDayjs.format('LT'));
+      if (columns.endDate) row.push(endDayjs ? endDayjs.format('L') : '');
+      if (columns.endTime) row.push(endDayjs ? endDayjs.format('LT') : '');
+      if (columns.timezone) row.push(logTimezone);
       if (columns.duration) row.push(formatDuration(log.duration_minutes));
       if (columns.timer) row.push(getTimerName(log.timer_id).replace(/"/g, '""'));
       if (columns.type) row.push(log.type);
@@ -424,10 +430,10 @@
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
             <input
               type="checkbox"
-              bind:checked={columns.date}
+              bind:checked={columns.startDate}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-gray-700 dark:text-gray-200">Date</span>
+            <span class="text-gray-700 dark:text-gray-200">Start Date</span>
           </label>
           
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -438,6 +444,15 @@
             />
             <span class="text-gray-700 dark:text-gray-200">Start Time</span>
           </label>
+
+          <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
+            <input
+              type="checkbox"
+              bind:checked={columns.endDate}
+              class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
+            />
+            <span class="text-gray-700 dark:text-gray-200">End Date</span>
+          </label>
           
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
             <input
@@ -446,6 +461,15 @@
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
             <span class="text-gray-700 dark:text-gray-200">End Time</span>
+          </label>
+
+          <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
+            <input
+              type="checkbox"
+              bind:checked={columns.timezone}
+              class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
+            />
+            <span class="text-gray-700 dark:text-gray-200">Timezone</span>
           </label>
           
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">

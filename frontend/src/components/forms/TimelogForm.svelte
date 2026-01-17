@@ -37,10 +37,10 @@
   let isRunning = $derived(!newLog.end_timestamp); // When stopping timer, it should not be running
   
   // Initialize start timestamp
-  let startTimestamp = $derived(newLog.start_timestamp ? dayjs.tz(newLog.start_timestamp, newLog.timezone || userTimezone) : now);
+  let startTimestamp = $derived(newLog.start_timestamp ? dayjs.utc(newLog.start_timestamp).tz(newLog.timezone || userTimezone) : now);
 
   // Initialize end timestamp - using a derived value to avoid the warning
-  let endTimestamp = $derived(newLog.end_timestamp ? dayjs.tz(newLog.end_timestamp, newLog.timezone || userTimezone) : now);
+  let endTimestamp = $derived(newLog.end_timestamp ? dayjs.utc(newLog.end_timestamp).tz(newLog.timezone || userTimezone) : now);
 
   let errorMessage: string = $state('');
   let showDeleteConfirm = $state(false);
@@ -78,9 +78,9 @@
         newLog.end_timestamp = now.toISOString();
       }
 
-      const _startTimestamp = dayjs.tz(newLog.start_timestamp, newLog.timezone || userTimezone);
+      const _startTimestamp = dayjs.utc(newLog.start_timestamp).tz(newLog.timezone || userTimezone);
       const _endTimestamp = newLog.end_timestamp
-        ? dayjs.tz(newLog.end_timestamp, newLog.timezone || userTimezone)
+        ? dayjs.utc(newLog.end_timestamp).tz(newLog.timezone || userTimezone)
         : undefined;
 
       if (!newLog.whole_day && _endTimestamp && _endTimestamp.diff(_startTimestamp) < 1000 * 60) {
@@ -92,10 +92,10 @@
   function setTimestamp(value: dayjs.Dayjs, input: string, type: 'start' | 'end') {
     if (input.includes(':')) {
       const [hours, minutes] = input.split(':').map(Number);
-      value = value.tz(newLog.timezone).set('hour', hours).set('minutes', minutes);
+      value = value.set('hour', hours).set('minutes', minutes);
     } else if (input.includes('-')) {
       const [year, month, date] = input.split('-').map(Number);
-      value = value.tz(newLog.timezone).set('year', year).set('month', month - 1).set('date', date);
+      value = value.set('year', year).set('month', month - 1).set('date', date);
     }
 
     if (type === 'start') {
@@ -122,7 +122,7 @@
     }
 
     if (!isRunning && !newLog.whole_day) {
-      const endTimestamp = dayjs.tz(newLog.end_timestamp!, newLog.timezone || userTimezone);
+      const endTimestamp = dayjs(newLog.end_timestamp!).tz(newLog.timezone || userTimezone);
       
       // Validate end date is not before start date
       if (endTimestamp.isBefore(startTimestamp)) {

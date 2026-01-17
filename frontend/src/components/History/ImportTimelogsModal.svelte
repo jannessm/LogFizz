@@ -40,7 +40,7 @@
   const MAX_DISPLAYED_ERRORS = 5;
 
   let file = $state<File | null>(null);
-  let fileType = $state<'csv' | 'pdf' | null>(null);
+  let fileType = $state<'csv' | null>(null);
   let fileInput = $state<HTMLInputElement>();
   let step = $state<'upload' | 'mapping' | 'project-mapping' | 'confirm'>('upload');
   let parsedData = $state<string[][]>([]);
@@ -127,7 +127,7 @@
     if (fileType === 'csv') {
       await parseCSVFile();
     } else {
-      await parsePDF();
+      // await parsePDF();
     }
   }
 
@@ -629,7 +629,7 @@
           <input
             bind:this={fileInput}
             type="file"
-            accept=".csv,text/csv,.pdf,application/pdf"
+            accept=".csv,text/csv"
             onchange={handleFileSelect}
             class="hidden"
           />
@@ -638,7 +638,7 @@
             {#if file}
               Selected: <span class="font-medium">{file.name}</span>
             {:else}
-              Drag and drop your CSV or PDF file here
+              Drag and drop your CSV file here
             {/if}
           </p>
           <p class="text-sm text-gray-500 dark:text-gray-400">or click to browse</p>
