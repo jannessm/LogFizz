@@ -144,12 +144,12 @@ describe('ImportTimelogsModal Component', () => {
     
     // Wait for mapping step
     await waitFor(() => {
-      expect(screen.getByLabelText(/Date Column/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Start Date Column/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Start Time Column/i)).toBeInTheDocument();
     });
     
     // Verify columns are detected
-    const dateSelect = screen.getByLabelText(/Date Column/i) as HTMLSelectElement;
+    const dateSelect = screen.getByLabelText(/Start Date Column/i) as HTMLSelectElement;
     const startSelect = screen.getByLabelText(/Start Time Column/i) as HTMLSelectElement;
     const endSelect = screen.getByLabelText(/End Time Column/i) as HTMLSelectElement;
     const buttonSelect = screen.getByLabelText(/Assign to Timer/i) as HTMLSelectElement;
@@ -278,7 +278,7 @@ describe('ImportTimelogsModal Component', () => {
     await fireEvent.click(continueBtn);
     
     await waitFor(() => {
-      const dateSelect = screen.getByLabelText(/Date Column/i) as HTMLSelectElement;
+      const dateSelect = screen.getByLabelText(/Start Date Column/i) as HTMLSelectElement;
       const startSelect = screen.getByLabelText(/Start Time Column/i) as HTMLSelectElement;
       const endSelect = screen.getByLabelText(/End Time Column/i) as HTMLSelectElement;
       
@@ -353,7 +353,7 @@ describe('ImportTimelogsModal Component', () => {
     await fireEvent.click(continueBtn);
     
     await waitFor(() => {
-      const dateSelect = screen.getByLabelText(/Date Column/i) as HTMLSelectElement;
+      const dateSelect = screen.getByLabelText(/Start Date Column/i) as HTMLSelectElement;
       const startSelect = screen.getByLabelText(/Start Time Column/i) as HTMLSelectElement;
       const endSelect = screen.getByLabelText(/End Time Column/i) as HTMLSelectElement;
       
@@ -394,7 +394,7 @@ describe('ImportTimelogsModal Component', () => {
     await fireEvent.click(continueBtn);
     
     await waitFor(() => {
-      const dateSelect = screen.getByLabelText(/Date Column/i) as HTMLSelectElement;
+      const dateSelect = screen.getByLabelText(/Start Date Column/i) as HTMLSelectElement;
       const startSelect = screen.getByLabelText(/Start Time Column/i) as HTMLSelectElement;
       const endSelect = screen.getByLabelText(/End Time Column/i) as HTMLSelectElement;
       
@@ -428,12 +428,12 @@ describe('ImportTimelogsModal Component', () => {
     await fireEvent.click(continueBtn);
     
     await waitFor(() => {
-      const dateSelect = screen.getByLabelText(/Date Column/i) as HTMLSelectElement;
+      const dateSelect = screen.getByLabelText(/Start Date Column/i) as HTMLSelectElement;
       expect(dateSelect.value).toBe('Date');
     });
     
     // User can manually deselect the date column
-    const dateSelect = screen.getByLabelText(/Date Column/i) as HTMLSelectElement;
+    const dateSelect = screen.getByLabelText(/Start Date Column/i) as HTMLSelectElement;
     await fireEvent.change(dateSelect, { target: { value: '' } });
     
     await waitFor(() => {

@@ -77,9 +77,9 @@ Jane,25,LA`;
   });
 
   describe('autoDetectColumns', () => {
-    it('detects date column', () => {
+    it('detects start date column', () => {
       const result = autoDetectColumns(['Date', 'Time', 'Value']);
-      expect(result.dateColumn).toBe('Date');
+      expect(result.startDateColumn).toBe('Date');
     });
 
     it('detects start time column', () => {
@@ -92,16 +92,17 @@ Jane,25,LA`;
       expect(result.endTimeColumn).toBe('End');
     });
 
-    it('detects all columns', () => {
-      const result = autoDetectColumns(['Date', 'Start time', 'End time', 'Project']);
-      expect(result.dateColumn).toBe('Date');
+    it('detects all columns including end date', () => {
+      const result = autoDetectColumns(['Start Date', 'End Date', 'Start time', 'End time', 'Project']);
+      expect(result.startDateColumn).toBe('Start Date');
+      expect(result.endDateColumn).toBe('End Date');
       expect(result.startTimeColumn).toBe('Start time');
       expect(result.endTimeColumn).toBe('End time');
     });
 
     it('handles German column names', () => {
       const result = autoDetectColumns(['Datum', 'Anfang', 'Ende']);
-      expect(result.dateColumn).toBe('Datum');
+      expect(result.startDateColumn).toBe('Datum');
       expect(result.startTimeColumn).toBe('Anfang');
       expect(result.endTimeColumn).toBe('Ende');
     });
@@ -181,14 +182,14 @@ Jane,25,LA`;
   });
 
   describe('processTimelogRows', () => {
-    it('processes rows with date column', () => {
+    it('processes rows with start date column', () => {
       const result = processTimelogRows({
         data: [
           ['03.11.2025', '08:00', '14:36'],
           ['04.11.2025', '08:00', '14:36'],
         ],
         headers: ['Date', 'Start time', 'End time'],
-        dateColumn: 'Date',
+        startDateColumn: 'Date',
         startTimeColumn: 'Start time',
         endTimeColumn: 'End time',
       });
@@ -197,6 +198,23 @@ Jane,25,LA`;
       expect(result[0].startValue).toBe('03.11.2025 08:00');
       expect(result[0].endValue).toBe('03.11.2025 14:36');
       expect(result[0].rowIndex).toBe(0);
+    });
+
+    it('processes rows with separate start and end date columns', () => {
+      const result = processTimelogRows({
+        data: [
+          ['03.11.2025', '04.11.2025', '22:00', '02:00'],
+        ],
+        headers: ['Start Date', 'End Date', 'Start time', 'End time'],
+        startDateColumn: 'Start Date',
+        endDateColumn: 'End Date',
+        startTimeColumn: 'Start time',
+        endTimeColumn: 'End time',
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].startValue).toBe('03.11.2025 22:00');
+      expect(result[0].endValue).toBe('04.11.2025 02:00');
     });
 
     it('processes rows without date column', () => {
@@ -267,14 +285,14 @@ Jane,25,LA`;
   });
 
   describe('importTimelogsFromCSV', () => {
-    it('imports complete CSV with date column', () => {
+    it('imports complete CSV with start date column', () => {
       const csv = `Date;Start time;End time;Project
 03.11.2025;08:00;14:36;HU
 04.11.2025;08:00;14:36;HU`;
 
       const result = importTimelogsFromCSV({
         csvText: csv,
-        dateColumn: 'Date',
+        startDateColumn: 'Date',
         startTimeColumn: 'Start time',
         endTimeColumn: 'End time',
       });
@@ -283,6 +301,22 @@ Jane,25,LA`;
       expect(result.errors).toHaveLength(0);
       expect(result.skippedCount).toBe(0);
       expect(result.totalCount).toBe(2);
+    });
+
+    it('imports CSV with separate start and end date columns', () => {
+      const csv = `Start Date;End Date;Start time;End time
+03.11.2025;04.11.2025;22:00;02:00`;
+
+      const result = importTimelogsFromCSV({
+        csvText: csv,
+        startDateColumn: 'Start Date',
+        endDateColumn: 'End Date',
+        startTimeColumn: 'Start time',
+        endTimeColumn: 'End time',
+      });
+
+      expect(result.timelogs).toHaveLength(1);
+      expect(result.errors).toHaveLength(0);
     });
 
     it('imports CSV without date column', () => {
@@ -308,7 +342,7 @@ Jane,25,LA`;
 
       const result = importTimelogsFromCSV({
         csvText: csv,
-        dateColumn: 'Date',
+        startDateColumn: 'Date',
         startTimeColumn: 'Start time',
         endTimeColumn: 'End time',
       });

@@ -45,11 +45,13 @@
   let step = $state<'upload' | 'mapping' | 'project-mapping' | 'confirm'>('upload');
   let parsedData = $state<string[][]>([]);
   let headers = $state<string[]>([]);
-  let dateColumn = $state('');
+  let startDateColumn = $state('');
+  let endDateColumn = $state('');
   let startTimeColumn = $state('');
   let endTimeColumn = $state('');
   let notesColumn = $state('');
   let projectColumn = $state('');
+  let timezone = $state('UTC');
   let detectedProjects = $state<DetectedProject[]>([]);
   let projectMappings = $state(new Map<string, { action: 'assign' | 'ignore' | 'create'; timerId?: string }>());
   let selectedTimerId = $state('');
@@ -152,7 +154,8 @@
 
       // Auto-detect date and time columns
       const detected = autoDetectColumns(parsed.headers);
-      if (detected.dateColumn) dateColumn = detected.dateColumn;
+      if (detected.startDateColumn) startDateColumn = detected.startDateColumn;
+      if (detected.endDateColumn) endDateColumn = detected.endDateColumn;
       if (detected.startTimeColumn) startTimeColumn = detected.startTimeColumn;
       if (detected.endTimeColumn) endTimeColumn = detected.endTimeColumn;
       if (detected.notesColumn) notesColumn = detected.notesColumn;
@@ -202,7 +205,8 @@
         
         // Auto-detect columns same as CSV
         const detected = autoDetectColumns(textContent[0]);
-        if (detected.dateColumn) dateColumn = detected.dateColumn;
+        if (detected.startDateColumn) startDateColumn = detected.startDateColumn;
+        if (detected.endDateColumn) endDateColumn = detected.endDateColumn;
         if (detected.startTimeColumn) startTimeColumn = detected.startTimeColumn;
         if (detected.endTimeColumn) endTimeColumn = detected.endTimeColumn;
         
@@ -258,17 +262,19 @@
       return;
     }
 
-    const dateIndex = dateColumn ? headers.indexOf(dateColumn) : -1;
+    const startDateIndex = startDateColumn ? headers.indexOf(startDateColumn) : -1;
+    const endDateIndex = endDateColumn ? headers.indexOf(endDateColumn) : -1;
     const startIndex = headers.indexOf(startTimeColumn);
     const endIndex = headers.indexOf(endTimeColumn);
 
     previewLogs = parsedData.slice(0, 5).map(row => {
-      const dateValue = dateIndex >= 0 ? row[dateIndex] || '' : '';
+      const startDateValue = startDateIndex >= 0 ? row[startDateIndex] || '' : '';
+      const endDateValue = endDateIndex >= 0 ? row[endDateIndex] || '' : startDateValue;
       const startTime = row[startIndex] || '';
       const endTime = row[endIndex] || '';
       
-      const start = combineDateAndTime(dateValue, startTime);
-      const end = combineDateAndTime(dateValue, endTime);
+      const start = combineDateAndTime(startDateValue, startTime);
+      const end = combineDateAndTime(endDateValue, endTime);
       const isValid = isValidDateTime(start) && isValidDateTime(end);
       return { start, end, isValid };
     });
@@ -404,14 +410,15 @@
       const rows = processTimelogRows({
         data: parsedData,
         headers,
-        dateColumn,
+        startDateColumn,
+        endDateColumn,
         startTimeColumn,
         endTimeColumn,
         notesColumn,
       });
 
       // Validate and convert using the lib utility
-      const result = validateAndConvertTimelogs(rows);
+      const result = validateAndConvertTimelogs(rows, { timezone });
 
       // Store all validation errors
       validationErrors = result.errors;
@@ -507,13 +514,14 @@
       const rows = processTimelogRows({
         data: parsedData,
         headers,
-        dateColumn,
+        startDateColumn,
+        endDateColumn,
         startTimeColumn,
         endTimeColumn,
         notesColumn,
       });
 
-      const result = validateAndConvertTimelogs(rows);
+      const result = validateAndConvertTimelogs(rows, { timezone });
       return result.valid.length;
     } catch (error) {
       console.error('Error counting valid logs:', error);
@@ -676,12 +684,36 @@
         <!-- Column Mapping Step -->
         <div class="space-y-4">
           <div>
-            <label for="date-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-              Date Column (optional)
+            <label for="timezone" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+              Timezone *
             </label>
             <select
-              id="date-column"
-              bind:value={dateColumn}
+              id="timezone"
+              bind:value={timezone}
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            >
+              <option value="UTC">UTC</option>
+              <option value="Europe/Berlin">Europe/Berlin (CET/CEST)</option>
+              <option value="Europe/London">Europe/London (GMT/BST)</option>
+              <option value="America/New_York">America/New_York (EST/EDT)</option>
+              <option value="America/Los_Angeles">America/Los_Angeles (PST/PDT)</option>
+              <option value="America/Chicago">America/Chicago (CST/CDT)</option>
+              <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
+              <option value="Asia/Shanghai">Asia/Shanghai (CST)</option>
+              <option value="Australia/Sydney">Australia/Sydney (AEDT/AEST)</option>
+            </select>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Select the timezone for the times in your CSV
+            </p>
+          </div>
+
+          <div>
+            <label for="start-date-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+              Start Date Column (optional)
+            </label>
+            <select
+              id="start-date-column"
+              bind:value={startDateColumn}
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="">None (times include dates)</option>
@@ -691,6 +723,25 @@
             </select>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Select if your start/end times don't include the date
+            </p>
+          </div>
+
+          <div>
+            <label for="end-date-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+              End Date Column (optional)
+            </label>
+            <select
+              id="end-date-column"
+              bind:value={endDateColumn}
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            >
+              <option value="">Use start date</option>
+              {#each headers as header}
+                <option value={header}>{header}</option>
+              {/each}
+            </select>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Select if your end date is different from start date (e.g., night shifts)
             </p>
           </div>
 
@@ -991,8 +1042,12 @@
           <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
             <h4 class="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Column Mapping:</h4>
             <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
-              {#if dateColumn}
-                <li>Date: <span class="font-medium">{dateColumn}</span></li>
+              <li>Timezone: <span class="font-medium">{timezone}</span></li>
+              {#if startDateColumn}
+                <li>Start Date: <span class="font-medium">{startDateColumn}</span></li>
+              {/if}
+              {#if endDateColumn}
+                <li>End Date: <span class="font-medium">{endDateColumn}</span></li>
               {/if}
               <li>Start Time: <span class="font-medium">{startTimeColumn}</span></li>
               <li>End Time: <span class="font-medium">{endTimeColumn}</span></li>
