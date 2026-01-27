@@ -62,6 +62,88 @@
   let showErrorDetails = $state(false);
   let showTimerForm = $state(false);
   let currentProjectForTimer = $state<string | null>(null);
+  let skippedRowIndices = $state<Set<number>>(new Set());
+  let showPreviewTable = $state(false);
+  let previewPage = $state(0);
+  const PREVIEW_PAGE_SIZE = 20;
+
+  // Computed preview data for confirm step
+  type PreviewRow = {
+    rowIndex: number;
+    startDate: string;
+    startTime: string;
+    endDate: string;
+    endTime: string;
+    notes: string;
+    project: string;
+    isValid: boolean;
+    errorMsg?: string;
+  };
+  
+  let previewRows = $derived.by(() => {
+    if (step !== 'confirm' || parsedData.length === 0) return [];
+    
+    const rows: PreviewRow[] = [];
+    const startDateIdx = startDateColumn ? headers.indexOf(startDateColumn) : -1;
+    const endDateIdx = endDateColumn ? headers.indexOf(endDateColumn) : -1;
+    const startTimeIdx = startTimeColumn ? headers.indexOf(startTimeColumn) : -1;
+    const endTimeIdx = endTimeColumn ? headers.indexOf(endTimeColumn) : -1;
+    const notesIdx = notesColumn ? headers.indexOf(notesColumn) : -1;
+    const projectIdx = projectColumn ? headers.indexOf(projectColumn) : -1;
+    
+    for (let i = 0; i < parsedData.length; i++) {
+      const row = parsedData[i];
+      const startDate = startDateIdx >= 0 ? row[startDateIdx] || '' : '';
+      const startTime = startTimeIdx >= 0 ? row[startTimeIdx] || '' : '';
+      const endDate = endDateIdx >= 0 ? row[endDateIdx] || '' : '';
+      const endTime = endTimeIdx >= 0 ? row[endTimeIdx] || '' : '';
+      const notes = notesIdx >= 0 ? row[notesIdx] || '' : '';
+      const project = projectIdx >= 0 ? row[projectIdx] || '' : '';
+      
+      // Check validity
+      const startStr = startDate ? `${startDate} ${startTime}` : startTime;
+      const endStr = endDate ? `${endDate} ${endTime}` : endTime;
+      const isValid = isValidDateTime(startStr) && isValidDateTime(endStr);
+      
+      rows.push({
+        rowIndex: i,
+        startDate,
+        startTime,
+        endDate,
+        endTime,
+        notes,
+        project,
+        isValid,
+        errorMsg: !isValid ? 'Invalid date/time' : undefined
+      });
+    }
+    return rows;
+  });
+  
+  let paginatedPreviewRows = $derived.by(() => {
+    const start = previewPage * PREVIEW_PAGE_SIZE;
+    return previewRows.slice(start, start + PREVIEW_PAGE_SIZE);
+  });
+  
+  let previewTotalPages = $derived(Math.ceil(previewRows.length / PREVIEW_PAGE_SIZE));
+  
+  function toggleSkipRow(rowIndex: number) {
+    const newSet = new Set(skippedRowIndices);
+    if (newSet.has(rowIndex)) {
+      newSet.delete(rowIndex);
+    } else {
+      newSet.add(rowIndex);
+    }
+    skippedRowIndices = newSet;
+  }
+  
+  function toggleSkipAll() {
+    if (skippedRowIndices.size === previewRows.length) {
+      skippedRowIndices = new Set();
+    } else {
+      skippedRowIndices = new Set(previewRows.map(r => r.rowIndex));
+    }
+  }
 
   function detectFileType(fileName: string): 'csv' | 'pdf' | null {
     const extension = fileName.toLowerCase().split('.').pop();
@@ -352,10 +434,16 @@
 
   function goBackToMapping() {
     step = 'mapping';
+    skippedRowIndices = new Set();
+    showPreviewTable = false;
+    previewPage = 0;
   }
 
   function goBackToProjectMapping() {
     step = 'project-mapping';
+    skippedRowIndices = new Set();
+    showPreviewTable = false;
+    previewPage = 0;
   }
 
   function handleProjectActionChange(projectName: string, action: 'assign' | 'ignore' | 'create') {
@@ -406,9 +494,12 @@
       warningMessage = '';
       validationErrors = [];
 
+      // Filter out manually skipped rows from parsedData
+      const filteredData = parsedData.filter((_, idx) => !skippedRowIndices.has(idx));
+      
       // Process rows using the lib utility
       const rows = processTimelogRows({
-        data: parsedData,
+        data: filteredData,
         headers,
         startDateColumn,
         endDateColumn,
@@ -422,6 +513,8 @@
 
       // Store all validation errors
       validationErrors = result.errors;
+
+      const manuallySkipped = skippedRowIndices.size;
 
       if (result.valid.length === 0) {
         const totalErrors = result.errors.length;
@@ -446,7 +539,7 @@
 
         result.valid.forEach((timelog, index) => {
           const row = rows[index];
-          const projectName = parsedData[row.rowIndex][projectIndex]?.trim() || '(empty)';
+          const projectName = filteredData[row.rowIndex][projectIndex]?.trim() || '(empty)';
           const mapping = projectMappings.get(projectName);
 
           if (mapping?.action === 'ignore') {
@@ -464,9 +557,9 @@
         });
 
         // Show warning if some rows were skipped or ignored
-        const totalSkipped = result.errors.length + ignoredCount;
+        const totalSkipped = result.errors.length + ignoredCount + manuallySkipped;
         if (totalSkipped > 0) {
-          warningMessage = `⚠️ ${totalSkipped} row${totalSkipped !== 1 ? 's' : ''} will be skipped (${result.errors.length} errors, ${ignoredCount} ignored).\n\nImporting ${timelogsWithTimers.length} valid timelog${timelogsWithTimers.length !== 1 ? 's' : ''}.`;
+          warningMessage = `⚠️ ${totalSkipped} row${totalSkipped !== 1 ? 's' : ''} will be skipped (${result.errors.length} errors, ${ignoredCount} ignored, ${manuallySkipped} manually skipped).\n\nImporting ${timelogsWithTimers.length} valid timelog${timelogsWithTimers.length !== 1 ? 's' : ''}.`;
         }
 
         // Dispatch single import event with timelogs that already have timerId
@@ -482,8 +575,9 @@
       } else {
         // No project mapping - use single timer
         // Show warning if some rows were skipped
-        if (result.errors.length > 0) {
-          warningMessage = `⚠️ ${result.errors.length} row${result.errors.length !== 1 ? 's' : ''} will be skipped due to errors.\n\nImporting ${result.valid.length} valid timelog${result.valid.length !== 1 ? 's' : ''}.`;
+        const totalSkipped = result.errors.length + manuallySkipped;
+        if (totalSkipped > 0) {
+          warningMessage = `⚠️ ${totalSkipped} row${totalSkipped !== 1 ? 's' : ''} will be skipped (${result.errors.length} errors, ${manuallySkipped} manually skipped).\n\nImporting ${result.valid.length} valid timelog${result.valid.length !== 1 ? 's' : ''}.`;
         }
 
         onimport({
@@ -511,8 +605,11 @@
     if (!startTimeColumn || !endTimeColumn) return 0;
     
     try {
+      // Filter out manually skipped rows
+      const filteredData = parsedData.filter((_, idx) => !skippedRowIndices.has(idx));
+      
       const rows = processTimelogRows({
-        data: parsedData,
+        data: filteredData,
         headers,
         startDateColumn,
         endDateColumn,
@@ -1108,6 +1205,108 @@
               </div>
             </details>
           {/if}
+
+          <!-- Preview Table -->
+          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+            <button
+              type="button"
+              onclick={() => showPreviewTable = !showPreviewTable}
+              class="w-full p-3 text-left hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center justify-between"
+            >
+              <span class="flex items-center gap-2">
+                <span class="icon-[si--table-duotone] text-blue-500 dark:text-orange-400" style="width: 16px; height: 16px;"></span>
+                Preview All Rows ({previewRows.length} total, {skippedRowIndices.size} skipped)
+              </span>
+              <span class="icon-[proicons--chevron-down] w-4 h-4 transition-transform" class:rotate-180={showPreviewTable}></span>
+            </button>
+            
+            {#if showPreviewTable}
+              <div class="p-3 pt-0 border-t border-gray-200 dark:border-gray-600">
+                <div class="flex items-center justify-between mb-2">
+                  <button
+                    type="button"
+                    onclick={toggleSkipAll}
+                    class="text-xs text-blue-600 dark:text-orange-400 hover:underline"
+                  >
+                    {skippedRowIndices.size === previewRows.length ? 'Include All' : 'Skip All'}
+                  </button>
+                  
+                  {#if previewTotalPages > 1}
+                    <div class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                      <button
+                        onclick={() => previewPage = Math.max(0, previewPage - 1)}
+                        disabled={previewPage === 0}
+                        class="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ← Prev
+                      </button>
+                      <span>Page {previewPage + 1} / {previewTotalPages}</span>
+                      <button
+                        onclick={() => previewPage = Math.min(previewTotalPages - 1, previewPage + 1)}
+                        disabled={previewPage >= previewTotalPages - 1}
+                        class="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  {/if}
+                </div>
+                
+                <div class="overflow-x-auto max-h-64">
+                  <table class="w-full text-xs">
+                    <thead class="sticky top-0 bg-gray-100 dark:bg-gray-600">
+                      <tr>
+                        <th class="px-2 py-1 text-left">Skip</th>
+                        <th class="px-2 py-1 text-left">#</th>
+                        <th class="px-2 py-1 text-left">Start</th>
+                        <th class="px-2 py-1 text-left">End</th>
+                        {#if projectColumn}
+                          <th class="px-2 py-1 text-left">Project</th>
+                        {/if}
+                        <th class="px-2 py-1 text-left">Notes</th>
+                        <th class="px-2 py-1 text-left">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {#each paginatedPreviewRows as row}
+                        <tr 
+                          class="border-t border-gray-200 dark:border-gray-500 {!row.isValid ? 'bg-red-50 dark:bg-red-900/20' : ''}"
+                          class:opacity-50={skippedRowIndices.has(row.rowIndex)}
+                          class:line-through={skippedRowIndices.has(row.rowIndex)}
+                        >
+                          <td class="px-2 py-1">
+                            <input
+                              type="checkbox"
+                              checked={skippedRowIndices.has(row.rowIndex)}
+                              onchange={() => toggleSkipRow(row.rowIndex)}
+                              class="rounded"
+                              title={skippedRowIndices.has(row.rowIndex) ? 'Include this row' : 'Skip this row'}
+                            />
+                          </td>
+                          <td class="px-2 py-1 text-gray-500">{row.rowIndex + 1}</td>
+                          <td class="px-2 py-1">{row.startDate} {row.startTime}</td>
+                          <td class="px-2 py-1">{row.endDate} {row.endTime}</td>
+                          {#if projectColumn}
+                            <td class="px-2 py-1 truncate max-w-[100px]" title={row.project}>{row.project}</td>
+                          {/if}
+                          <td class="px-2 py-1 truncate max-w-[120px]" title={row.notes}>{row.notes}</td>
+                          <td class="px-2 py-1">
+                            {#if !row.isValid}
+                              <span class="text-red-600 dark:text-red-400">⚠️ Invalid</span>
+                            {:else if skippedRowIndices.has(row.rowIndex)}
+                              <span class="text-gray-500">Skipped</span>
+                            {:else}
+                              <span class="text-green-600 dark:text-green-400">✓</span>
+                            {/if}
+                          </td>
+                        </tr>
+                      {/each}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {/if}
+          </div>
 
           <div class="mt-6 flex justify-end gap-3">
             <button

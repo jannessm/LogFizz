@@ -6,6 +6,7 @@
   import Login from './routes/Login.svelte';
   import Dashboard from './routes/Dashboard.svelte';
   import History from './routes/History.svelte';
+  import Table from './routes/Table.svelte';
   import Settings from './routes/Settings.svelte';
   import ForgotPassword from './routes/ForgotPassword.svelte';
   import ResetPassword from './routes/ResetPassword.svelte';
@@ -80,6 +81,8 @@
     <VerifyEmail />
   {:else if path === '/history'}
     <History />
+  {:else if path === '/table'}
+    <Table />
   {:else if path === '/settings'}
     <Settings />
   {:else}

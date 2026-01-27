@@ -13,6 +13,7 @@
   import { dayjs } from '../types'; // ensure consistent dayjs instance
   import { onMount } from 'svelte';
   import { createCalendarStore, loadCalendarMonth } from '../services/calendar';
+  import { navigate } from '../lib/navigation';
 
   
   // Initialize from URL query parameters if available
@@ -108,6 +109,12 @@
     <div class="w-full max-w-7xl mx-auto flex justify-between items-center">
       <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">History</h1>
       <div class="flex gap-1">
+        <button
+          onclick={() => navigate('/table')}
+          class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--table-duotone] text-gray-600 dark:text-gray-400"
+          style="width: 28px; height: 28px;"
+          aria-label="Table view"
+        ></button>
         <button
           onclick={handleExportClick}
           class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-upload-duotone] text-gray-600 dark:text-gray-400"

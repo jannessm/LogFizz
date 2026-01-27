@@ -3,6 +3,7 @@
   import { timers } from '../../stores/timers';
   import { dayjs, type TimeLog } from '../../types';
   import { userTimezone } from '../../../../lib/utils/dayjs';
+  import DateTimeInput from './DateTimeInput.svelte';
 
   let {
     selectedDate,
@@ -36,11 +37,23 @@
   });
   let isRunning = $derived(!newLog.end_timestamp); // When stopping timer, it should not be running
   
-  // Initialize start timestamp
-  let startTimestamp = $derived(newLog.start_timestamp ? dayjs.utc(newLog.start_timestamp).tz(newLog.timezone || userTimezone) : now);
+  // Initialize start timestamp - mutable for binding
+  let startTimestamp = $state(now);
+  
+  // Initialize end timestamp - mutable for binding
+  let endTimestamp = $state(now);
 
-  // Initialize end timestamp - using a derived value to avoid the warning
-  let endTimestamp = $derived(newLog.end_timestamp ? dayjs.utc(newLog.end_timestamp).tz(newLog.timezone || userTimezone) : now);
+  // Sync startTimestamp changes to newLog
+  $effect(() => {
+    newLog.start_timestamp = startTimestamp.toISOString();
+  });
+
+  // Sync endTimestamp changes to newLog (only if not running)
+  $effect(() => {
+    if (!isRunning || isTimerStop) {
+      newLog.end_timestamp = endTimestamp.toISOString();
+    }
+  });
 
   let errorMessage: string = $state('');
   let showDeleteConfirm = $state(false);
@@ -53,6 +66,7 @@
     if (isSpecialType && !newLog.whole_day) {
       newLog.whole_day = true;
       newLog.end_timestamp = newLog.start_timestamp;
+      endTimestamp = startTimestamp;
       errorMessage = '';
     }
   });
@@ -73,37 +87,28 @@
       newLog = { ...existingLog };
       newLog.timezone = existingLog.timezone || userTimezone;
 
+      const tz = newLog.timezone || userTimezone;
+      startTimestamp = dayjs.utc(newLog.start_timestamp).tz(tz);
+
       if (isTimerStop) {
         // For stopping timer, set end time to now if not set
         newLog.end_timestamp = now.toISOString();
+        endTimestamp = now;
+      } else if (newLog.end_timestamp) {
+        endTimestamp = dayjs.utc(newLog.end_timestamp).tz(tz);
       }
 
-      const _startTimestamp = dayjs.utc(newLog.start_timestamp).tz(newLog.timezone || userTimezone);
+      const _startTimestamp = startTimestamp;
       const _endTimestamp = newLog.end_timestamp
-        ? dayjs.utc(newLog.end_timestamp).tz(newLog.timezone || userTimezone)
+        ? dayjs.utc(newLog.end_timestamp).tz(tz)
         : undefined;
 
       if (!newLog.whole_day && _endTimestamp && _endTimestamp.diff(_startTimestamp) < 1000 * 60) {
         newLog.end_timestamp = _endTimestamp.add(1, 'minute').toISOString();
+        endTimestamp = _endTimestamp.add(1, 'minute');
       }
     }
   })
-
-  function setTimestamp(value: dayjs.Dayjs, input: string, type: 'start' | 'end') {
-    if (input.includes(':')) {
-      const [hours, minutes] = input.split(':').map(Number);
-      value = value.set('hour', hours).set('minutes', minutes);
-    } else if (input.includes('-')) {
-      const [year, month, date] = input.split('-').map(Number);
-      value = value.set('year', year).set('month', month - 1).set('date', date);
-    }
-
-    if (type === 'start') {
-      newLog.start_timestamp = value.toISOString();
-    } else {
-      newLog.end_timestamp = value.toISOString();
-    }
-  }
 
   function hasDateError() {
     return errorMessage === 'End time must be after start time' || errorMessage === 'Duration must be at least 1 minute';
@@ -122,16 +127,16 @@
     }
 
     if (!isRunning && !newLog.whole_day) {
-      const endTimestamp = dayjs(newLog.end_timestamp!).tz(newLog.timezone || userTimezone);
+      const endTs = dayjs(newLog.end_timestamp!).tz(newLog.timezone || userTimezone);
       
       // Validate end date is not before start date
-      if (endTimestamp.isBefore(startTimestamp)) {
+      if (endTs.isBefore(startTimestamp)) {
         errorMessage = 'End date must be after start date';
         return;
       }
 
       // Validate minimum duration of 1 minute
-      const durationMs = endTimestamp.diff(startTimestamp);
+      const durationMs = endTs.diff(startTimestamp);
       const durationMinutes = durationMs / (1000 * 60);
       if (durationMinutes < 1) {
         errorMessage = 'Duration must be at least 1 minute';
@@ -306,81 +311,30 @@
         </p>
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="startDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Start Date *
-          </label>
-          <input
-            id="startDate"
-            type="date"
-            bind:value={
-              () => startTimestamp.tz(newLog.timezone).format('YYYY-MM-DD'),
-              (value) => {setTimestamp(startTimestamp, value, 'start')}
-            }
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent"
-            required
-          />
-        </div>
-        <div>
-          <label for="startTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Start Time *
-          </label>
-          <input
-            id="startTime"
-            type="time"
-            bind:value={
-              () => startTimestamp.tz(newLog.timezone).format('HH:mm'),
-              (value) => {setTimestamp(startTimestamp, value, 'start')}
-            }
-            disabled={newLog.whole_day}
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
-            required
-          />
-        </div>
-      </div>
+      <DateTimeInput
+        bind:value={startTimestamp}
+        timezone={newLog.timezone || userTimezone}
+        timeDisabled={newLog.whole_day}
+        required
+        dateLabel="Start Date"
+        timeLabel="Start Time"
+        dateId="startDate"
+        timeId="startTime"
+      />
 
         <!-- End Date and Time (shown when not running OR when stopping timer) -->
         {#if !isRunning || isTimerStop}
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label for="endDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                End Date *
-              </label>
-              <input
-                id="endDate"
-                type="date"
-                bind:value={
-                  () => endTimestamp.tz(newLog.timezone).format('YYYY-MM-DD'),
-                  (value) => {setTimestamp(endTimestamp, value, 'end')}
-                }
-                class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
-                class:border-gray-300={!hasDateError}
-                class:dark:border-gray-600={!hasDateError}
-                class:border-red-500={hasDateError}
-                required
-              />
-            </div>
-            <div>
-              <label for="endTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                End Time *
-              </label>
-              <input
-                id="endTime"
-                type="time"
-              bind:value={
-                () => endTimestamp.tz(newLog.timezone).format('HH:mm'),
-                (value) => {setTimestamp(endTimestamp, value, 'end')}
-              }
-                disabled={newLog.whole_day}
-                class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
-                class:border-gray-300={!hasDateError}
-                class:dark:border-gray-600={!hasDateError}
-                class:border-red-500={hasDateError}
-                required
-              />
-            </div>
-          </div>
+          <DateTimeInput
+            bind:value={endTimestamp}
+            timezone={newLog.timezone || userTimezone}
+            timeDisabled={newLog.whole_day}
+            required
+            dateLabel="End Date"
+            timeLabel="End Time"
+            dateId="endDate"
+            timeId="endTime"
+            hasError={hasDateError()}
+          />
       {/if}
 
       <!-- Notes Field -->

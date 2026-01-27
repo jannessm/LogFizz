@@ -448,6 +448,233 @@ describe('ImportTimelogsModal Component', () => {
     expect(mappingContinueBtn).not.toBeDisabled();
   });
 
+  describe('Preview Table in Confirm Step', () => {
+    it('shows preview table toggle in confirm step', async () => {
+      render(ImportTimelogsModal);
+      
+      const csvContent = `Date;Start time;End time;Duration
+03.11.2025;08:00;14:36;06:36
+04.11.2025;09:00;15:00;06:00`;
+      
+      const file = new File([csvContent], 'timesheet.csv', { type: 'text/csv' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      
+      Object.defineProperty(input, 'files', {
+        value: [file],
+        writable: false,
+      });
+      
+      await fireEvent.change(input);
+      
+      // Continue to mapping
+      await fireEvent.click(screen.getByText('Continue'));
+      
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Assign to Timer/i)).toBeInTheDocument();
+      });
+      
+      // Select a timer
+      const buttonSelect = screen.getByLabelText(/Assign to Timer/i) as HTMLSelectElement;
+      await fireEvent.change(buttonSelect, { target: { value: 'btn-1' } });
+      
+      // Continue to confirm
+      await fireEvent.click(screen.getByText('Continue'));
+      
+      await waitFor(() => {
+        expect(screen.getByText('Ready to Import')).toBeInTheDocument();
+      });
+      
+      // Preview table toggle should be visible
+      expect(screen.getByText(/Preview All Rows/i)).toBeInTheDocument();
+    });
+
+    it('expands preview table when clicked', async () => {
+      render(ImportTimelogsModal);
+      
+      const csvContent = `Date;Start time;End time;Duration
+03.11.2025;08:00;14:36;06:36
+04.11.2025;09:00;15:00;06:00`;
+      
+      const file = new File([csvContent], 'timesheet.csv', { type: 'text/csv' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      
+      Object.defineProperty(input, 'files', {
+        value: [file],
+        writable: false,
+      });
+      
+      await fireEvent.change(input);
+      await fireEvent.click(screen.getByText('Continue'));
+      
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Assign to Timer/i)).toBeInTheDocument();
+      });
+      
+      const buttonSelect = screen.getByLabelText(/Assign to Timer/i) as HTMLSelectElement;
+      await fireEvent.change(buttonSelect, { target: { value: 'btn-1' } });
+      await fireEvent.click(screen.getByText('Continue'));
+      
+      await waitFor(() => {
+        expect(screen.getByText(/Preview All Rows/i)).toBeInTheDocument();
+      });
+      
+      // Click to expand preview table
+      await fireEvent.click(screen.getByText(/Preview All Rows/i));
+      
+      // Should show table headers
+      await waitFor(() => {
+        expect(screen.getByText('Skip')).toBeInTheDocument();
+        expect(screen.getByText('#')).toBeInTheDocument();
+        expect(screen.getByText('Start')).toBeInTheDocument();
+        expect(screen.getByText('End')).toBeInTheDocument();
+        expect(screen.getByText('Status')).toBeInTheDocument();
+      });
+    });
+
+    it('allows skipping individual rows', async () => {
+      render(ImportTimelogsModal);
+      
+      const csvContent = `Date;Start time;End time;Duration
+03.11.2025;08:00;14:36;06:36
+04.11.2025;09:00;15:00;06:00`;
+      
+      const file = new File([csvContent], 'timesheet.csv', { type: 'text/csv' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      
+      Object.defineProperty(input, 'files', {
+        value: [file],
+        writable: false,
+      });
+      
+      await fireEvent.change(input);
+      await fireEvent.click(screen.getByText('Continue'));
+      
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Assign to Timer/i)).toBeInTheDocument();
+      });
+      
+      const buttonSelect = screen.getByLabelText(/Assign to Timer/i) as HTMLSelectElement;
+      await fireEvent.change(buttonSelect, { target: { value: 'btn-1' } });
+      await fireEvent.click(screen.getByText('Continue'));
+      
+      await waitFor(() => {
+        expect(screen.getByText(/Preview All Rows/i)).toBeInTheDocument();
+      });
+      
+      // Expand preview table
+      await fireEvent.click(screen.getByText(/Preview All Rows/i));
+      
+      await waitFor(() => {
+        expect(screen.getByText('Skip')).toBeInTheDocument();
+      });
+      
+      // Find checkboxes and click first one to skip
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      expect(checkboxes.length).toBeGreaterThan(0);
+      
+      await fireEvent.click(checkboxes[0]);
+      
+      // The row count should update
+      await waitFor(() => {
+        expect(screen.getByText(/1 skipped/i)).toBeInTheDocument();
+      });
+    });
+
+    it('updates import count when rows are skipped', async () => {
+      render(ImportTimelogsModal);
+      
+      const csvContent = `Date;Start time;End time;Duration
+03.11.2025;08:00;14:36;06:36
+04.11.2025;09:00;15:00;06:00`;
+      
+      const file = new File([csvContent], 'timesheet.csv', { type: 'text/csv' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      
+      Object.defineProperty(input, 'files', {
+        value: [file],
+        writable: false,
+      });
+      
+      await fireEvent.change(input);
+      await fireEvent.click(screen.getByText('Continue'));
+      
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Assign to Timer/i)).toBeInTheDocument();
+      });
+      
+      const buttonSelect = screen.getByLabelText(/Assign to Timer/i) as HTMLSelectElement;
+      await fireEvent.change(buttonSelect, { target: { value: 'btn-1' } });
+      await fireEvent.click(screen.getByText('Continue'));
+      
+      await waitFor(() => {
+        // Initially should show 2 timelogs to import
+        expect(screen.getByText(/Import 2 Timelogs/i)).toBeInTheDocument();
+      });
+      
+      // Expand and skip one row
+      await fireEvent.click(screen.getByText(/Preview All Rows/i));
+      
+      await waitFor(() => {
+        expect(screen.getByText('Skip')).toBeInTheDocument();
+      });
+      
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      await fireEvent.click(checkboxes[0]);
+      
+      // Import count should decrease
+      await waitFor(() => {
+        expect(screen.getByText(/Import 1 Timelog/i)).toBeInTheDocument();
+      });
+    });
+
+    it('has Skip All / Include All toggle', async () => {
+      render(ImportTimelogsModal);
+      
+      const csvContent = `Date;Start time;End time;Duration
+03.11.2025;08:00;14:36;06:36
+04.11.2025;09:00;15:00;06:00`;
+      
+      const file = new File([csvContent], 'timesheet.csv', { type: 'text/csv' });
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      
+      Object.defineProperty(input, 'files', {
+        value: [file],
+        writable: false,
+      });
+      
+      await fireEvent.change(input);
+      await fireEvent.click(screen.getByText('Continue'));
+      
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Assign to Timer/i)).toBeInTheDocument();
+      });
+      
+      const buttonSelect = screen.getByLabelText(/Assign to Timer/i) as HTMLSelectElement;
+      await fireEvent.change(buttonSelect, { target: { value: 'btn-1' } });
+      await fireEvent.click(screen.getByText('Continue'));
+      
+      // Expand preview table
+      await waitFor(() => {
+        expect(screen.getByText(/Preview All Rows/i)).toBeInTheDocument();
+      });
+      
+      await fireEvent.click(screen.getByText(/Preview All Rows/i));
+      
+      await waitFor(() => {
+        expect(screen.getByText('Skip All')).toBeInTheDocument();
+      });
+      
+      // Click Skip All
+      await fireEvent.click(screen.getByText('Skip All'));
+      
+      // Now it should show Include All
+      await waitFor(() => {
+        expect(screen.getByText('Include All')).toBeInTheDocument();
+        expect(screen.getByText(/2 skipped/i)).toBeInTheDocument();
+      });
+    });
+  });
+
   // PDF Import Tests
   describe.skip('PDF Import', () => {
     it('accepts PDF file upload and detects file type', async () => {
