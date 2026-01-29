@@ -45,17 +45,11 @@
   // Local state for date inputs (since DateTimeInput needs dayjs objects)
   let dateFrom = $state(filters.dateFrom || dayjs().startOf('month'));
   let dateTo = $state(filters.dateTo || dayjs().endOf('month'));
-  let useDateFilter = $state(filters.dateFrom !== null);
 
   // Sync local date state to filters
   $effect(() => {
-    if (useDateFilter) {
-      filters.dateFrom = dateFrom;
-      filters.dateTo = dateTo;
-    } else {
-      filters.dateFrom = null;
-      filters.dateTo = null;
-    }
+    filters.dateFrom = dateFrom;
+    filters.dateTo = dateTo;
   });
 
   function toggleType(type: TimeLogType) {
@@ -91,7 +85,6 @@
       types: [],
       searchText: '',
     };
-    useDateFilter = false;
     dateFrom = dayjs().startOf('month');
     dateTo = dayjs().endOf('month');
     onReset?.();
@@ -107,8 +100,8 @@
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
-  <!-- Search and Date Range (always visible) -->
-  <div class="flex flex-col sm:flex-row gap-4">
+  <!-- Search and Date Range (always in one row) -->
+  <div class="flex flex-col lg:flex-row gap-4">
     <!-- Search -->
     <div class="flex-1">
       <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -126,38 +119,26 @@
       </div>
     </div>
 
-    <!-- Date Range Toggle -->
-    <div class="flex items-end gap-2">
-      <label class="flex items-center gap-2 pb-2">
-        <input
-          type="checkbox"
-          bind:checked={useDateFilter}
-          class="w-4 h-4 text-primary border-gray-300 dark:border-gray-600 rounded focus:ring-primary"
+    <!-- Date Range -->
+    <div class="flex gap-4 items-end">
+      <div class="flex gap-2">
+        <DateTimeInput
+          bind:value={dateFrom}
+          timezone={userTimezone}
+          dateOnly
+          dateLabel="From"
+          dateId="dateFrom"
         />
-        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Date Filter</span>
-      </label>
+        <DateTimeInput
+          bind:value={dateTo}
+          timezone={userTimezone}
+          dateOnly
+          dateLabel="To"
+          dateId="dateTo"
+        />
+      </div>
     </div>
   </div>
-
-  <!-- Date Range (shown when enabled) -->
-  {#if useDateFilter}
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <DateTimeInput
-        bind:value={dateFrom}
-        timezone={userTimezone}
-        dateOnly
-        dateLabel="From Date"
-        dateId="dateFrom"
-      />
-      <DateTimeInput
-        bind:value={dateTo}
-        timezone={userTimezone}
-        dateOnly
-        dateLabel="To Date"
-        dateId="dateTo"
-      />
-    </div>
-  {/if}
 
   <!-- Advanced Filters Toggle -->
   <button

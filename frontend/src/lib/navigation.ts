@@ -5,6 +5,7 @@ export const currentPath = writable(window.location.pathname);
 
 // Navigation function
 export function navigate(path: string, options?: { replace?: boolean }) {
+  console.log(`Navigating to ${path} (replace: ${options?.replace})`);
   if (options?.replace) {
     window.history.replaceState({}, '', path);
   } else {

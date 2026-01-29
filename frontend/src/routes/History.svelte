@@ -3,17 +3,14 @@
 
   import {
     HistoryCharts, HistoryCalendar,
-    HistoryLogs, ImportTimelogsModal, ExportTimelogsModal
-  } from '../components/History';
-  import BalancesOverview from '../components/History/BalancesOverview.svelte';
-  import { timeLogsStore } from '../stores/timelogs';
+    HistoryLogs, ExportTimelogsModal, BalancesOverview
+  } from '../components/history';
   import { timers } from '../stores/timers';
   import { targets } from '../stores/targets';
-  import { snackbar } from '../stores/snackbar';
   import { dayjs } from '../types'; // ensure consistent dayjs instance
-  import { onMount } from 'svelte';
   import { createCalendarStore, loadCalendarMonth } from '../services/calendar';
   import { navigate } from '../lib/navigation';
+  import { onMount } from 'svelte';
 
   
   // Initialize from URL query parameters if available
@@ -48,21 +45,28 @@
   const initialDates = getInitialDates();
   let selectedDate = $state(initialDates); // actual selected date
 
-  let showImportModal = $state(false);
   let showExportModal = $state(false);
 
   // Create calendar store that reactively updates based on currentMonth and timers
   let calendarStore = $derived(
-    createCalendarStore(selectedDate.date.year(), selectedDate.month.month() + 1, 1, $timers, $targets)
+    createCalendarStore(selectedDate.month.year(), selectedDate.month.month() + 1, 1, $timers, $targets)
   );
   let calendarData = $derived($calendarStore);
 
-  function handleImportClick() {
-    showImportModal = true;
-  }
+  // Load calendar data on mount and when month changes
+  onMount(async () => {
+    await loadCalendarMonth(selectedDate.month.year(), selectedDate.month.month() + 1);
+  });
 
-  function handleImportClose() {
-    showImportModal = false;
+  // Watch for month changes and load data
+  $effect(() => {
+    const year = selectedDate.month.year();
+    const month = selectedDate.month.month() + 1;
+    loadCalendarMonth(year, month);
+  });
+
+  function handleImportClick() {
+    navigate('/import?from=history');
   }
 
   function handleExportClick() {
@@ -73,33 +77,13 @@
     showExportModal = false;
   }
 
-  async function handleImportConfirm(data: { 
-    timerId: string; 
-    timelogs: Array<{ start_timestamp: string; end_timestamp: string; notes?: string; timer_id?: string }>; 
-    skippedCount: number;
-    hasProjectMappings?: boolean;
-  }) {
-    const { timerId, timelogs, skippedCount, hasProjectMappings } = data;
+  function navigateToTable() {
+    // Preserve the starting date parameter when navigating to table
+    const params = new URLSearchParams();
+    params.set('date', selectedDate.month.format('YYYY-MM-DD'));
     
-    // Create all timelogs concurrently for better performance
-    const createPromises = timelogs.map(log => 
-      timeLogsStore.create({
-        timer_id: log.timer_id || timerId, // Use timer_id from timelog if present (project mapping), otherwise use shared timerId
-        start_timestamp: log.start_timestamp,
-        end_timestamp: log.end_timestamp,
-        notes: log.notes,
-      })
-    );
-    
-    await Promise.all(createPromises);
-    
-    showImportModal = false;
-    
-    // Show success message
-    const successMessage = skippedCount > 0 
-      ? `Successfully imported ${timelogs.length} timelogs. ${skippedCount} rows were skipped.`
-      : `Successfully imported ${timelogs.length} timelogs.`;
-    snackbar.success(successMessage);
+    const path = `/table?${params.toString()}`;
+    navigate(path);
   }
 </script>
 
@@ -110,7 +94,7 @@
       <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">History</h1>
       <div class="flex gap-1">
         <button
-          onclick={() => navigate('/table')}
+          onclick={navigateToTable}
           class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--table-duotone] text-gray-600 dark:text-gray-400"
           style="width: 28px; height: 28px;"
           aria-label="Table view"
@@ -139,7 +123,7 @@
         <HistoryCalendar
           timeLogs={Array.from(calendarData.timeLogsByDate.values()).flat()}
           calendarData={calendarData}
-          selectedDate={selectedDate}
+          bind:selectedDate
         />
       </div>
 
@@ -174,14 +158,6 @@
 
   <BottomNav currentTab="history" />
 
-  <!-- Import Timelogs Modal -->
-  {#if showImportModal}
-    <ImportTimelogsModal
-      close={handleImportClose}
-      onimport={handleImportConfirm}
-    />
-  {/if}
-
   <!-- Export Timelogs Modal -->
   {#if showExportModal}
     <ExportTimelogsModal
@@ -189,4 +165,3 @@
     />
   {/if}
 </div>
-

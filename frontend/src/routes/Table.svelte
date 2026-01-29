@@ -1,50 +1,112 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import BottomNav from '../components/BottomNav.svelte';
-  import TimelogsTable from '../components/History/TimelogsTable.svelte';
-  import TableFilters, { type FilterState } from '../components/History/TableFilters.svelte';
-  import { ImportTimelogsModal, ExportTimelogsModal } from '../components/History';
-  import { TimelogForm } from '../components/forms';
+  import TimelogsTable from '../components/history/TimelogsTable.svelte';
+  import TableFilters, { type FilterState } from '../components/history/TableFilters.svelte';
+  import { ExportTimelogsModal } from '../components/history';
   import { timeLogsStore, timerlogs } from '../stores/timelogs';
   import { timers } from '../stores/timers';
   import { targets } from '../stores/targets';
-  import { snackbar } from '../stores/snackbar';
+  import { balancesStore, monthlyBalances } from '../stores/balances';
   import { dayjs, type TimeLog } from '../types';
   import { userTimezone } from '../../../lib/utils/dayjs';
+  import { navigate } from '../lib/navigation';
 
   // Pagination
   const PAGE_SIZE = 100;
   let currentPage = $state(1);
 
+  // Initialize filters from URL parameters
+  function getInitialFilters(): FilterState {
+    const params = new URLSearchParams(window.location.search);
+    const dateParam = params.get('date');
+    
+    let dateFrom: dayjs.Dayjs | null = null;
+    
+    if (dateParam) {
+      const parsed = dayjs(dateParam);
+      if (parsed.isValid()) {
+        dateFrom = parsed.startOf('month');
+      }
+    }
+    
+    return {
+      dateFrom,
+      dateTo: null,
+      timerIds: [],
+      targetIds: [],
+      types: [],
+      searchText: '',
+    };
+  }
+
   // Filters
-  let filters = $state<FilterState>({
-    dateFrom: null,
-    dateTo: null,
-    timerIds: [],
-    targetIds: [],
-    types: [],
-    searchText: '',
-  });
+  let filters = $state<FilterState>(getInitialFilters());
 
   // Modals
-  let showImportModal = $state(false);
   let showExportModal = $state(false);
-  let editingTimelog = $state<TimeLog | null>(null);
-
-  // Edit mode toggle
-  let editMode = $state(false);
 
   // Load all timelogs for the date range
   let isLoading = $state(true);
 
   onMount(async () => {
-    // Load a wide range of timelogs (current year by default)
-    const currentYear = dayjs().year();
-    for (let month = 1; month <= 12; month++) {
-      await timeLogsStore.loadLogsByYearMonth(currentYear, month);
-    }
+    // Load based on initial filter or current year by default
+    await loadTimelogsForFilters();
+    
     isLoading = false;
   });
+
+  // Load timelogs based on current filters
+  async function loadTimelogsForFilters() {
+    const startDate = filters.dateFrom || dayjs().startOf('year');
+    const endDate = filters.dateTo || dayjs().endOf('year');
+    
+    // Calculate all months in the range
+    let current = startDate.startOf('month');
+    const end = endDate.startOf('month');
+    
+    const loadPromises = [];
+    while (current.isSameOrBefore(end, 'month')) {
+      loadPromises.push(timeLogsStore.loadLogsByYearMonth(current.year(), current.month() + 1));
+      current = current.add(1, 'month');
+    }
+    
+    await Promise.all(loadPromises);
+  }
+
+  // Watch for filter changes and reload data
+  let previousDateFrom: dayjs.Dayjs | null = null;
+  let previousDateTo: dayjs.Dayjs | null = null;
+  
+  $effect(() => {
+    // Check if date filters changed
+    const dateFromChanged = filters.dateFrom?.format('YYYY-MM-DD') !== previousDateFrom?.format('YYYY-MM-DD');
+    const dateToChanged = filters.dateTo?.format('YYYY-MM-DD') !== previousDateTo?.format('YYYY-MM-DD');
+    
+    if (dateFromChanged || dateToChanged) {
+      previousDateFrom = filters.dateFrom;
+      previousDateTo = filters.dateTo;
+      
+      // Update URL
+      updateURL();
+      
+      // Reload timelogs
+      if (!isLoading) {
+        loadTimelogsForFilters();
+      }
+    }
+  });
+
+  // Update URL with current filter state
+  function updateURL() {
+    const params = new URLSearchParams();
+    if (filters.dateFrom) {
+      params.set('date', filters.dateFrom.format('YYYY-MM-DD'));
+    }
+    
+    const newURL = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, '', newURL);
+  }
 
   // Filter timelogs based on current filters
   let filteredTimelogs = $derived.by(() => {
@@ -128,14 +190,6 @@
     currentPage = 1;
   });
 
-  function handleImportClick() {
-    showImportModal = true;
-  }
-
-  function handleImportClose() {
-    showImportModal = false;
-  }
-
   function handleExportClick() {
     showExportModal = true;
   }
@@ -144,71 +198,16 @@
     showExportModal = false;
   }
 
-  async function handleImportConfirm(data: { 
-    timerId: string; 
-    timelogs: Array<{ start_timestamp: string; end_timestamp: string; notes?: string; timer_id?: string }>; 
-    skippedCount: number;
-    hasProjectMappings?: boolean;
-  }) {
-    const { timerId, timelogs, skippedCount } = data;
-    
-    const createPromises = timelogs.map(log => 
-      timeLogsStore.create({
-        timer_id: log.timer_id || timerId,
-        start_timestamp: log.start_timestamp,
-        end_timestamp: log.end_timestamp,
-        notes: log.notes,
-      })
-    );
-    
-    await Promise.all(createPromises);
-    
-    showImportModal = false;
-    
-    const successMessage = skippedCount > 0 
-      ? `Successfully imported ${timelogs.length} timelogs. ${skippedCount} rows were skipped.`
-      : `Successfully imported ${timelogs.length} timelogs.`;
-    snackbar.success(successMessage);
-  }
-
-  function handleEditTimelog(timelog: TimeLog) {
-    editingTimelog = timelog;
-  }
-
-  function handleCloseEditForm() {
-    editingTimelog = null;
-  }
-
-  async function handleSaveTimelog(data: Partial<TimeLog>) {
-    if (editingTimelog) {
-      try {
-        await timeLogsStore.update(editingTimelog.id, data);
-        snackbar.success('Timelog updated successfully');
-        editingTimelog = null;
-      } catch (error: any) {
-        snackbar.error(error.message || 'Failed to update timelog');
-      }
+  function navigateToHistory() {
+    // Preserve the starting date parameter when navigating to history
+    const params = new URLSearchParams();
+    if (filters.dateFrom) {
+      params.set('date', filters.dateFrom.format('YYYY-MM-DD'));
+      params.set('month', filters.dateFrom.format('YYYY-MM'));
     }
-  }
-
-  async function handleDeleteTimelog(timelog: TimeLog) {
-    if (confirm('Are you sure you want to delete this timelog?')) {
-      try {
-        await timeLogsStore.delete(timelog.id);
-        snackbar.success('Timelog deleted successfully');
-      } catch (error: any) {
-        snackbar.error(error.message || 'Failed to delete timelog');
-      }
-    }
-  }
-
-  async function handleInlineSave(timelog: TimeLog) {
-    try {
-      await timeLogsStore.update(timelog.id, timelog);
-      snackbar.success('Timelog updated successfully');
-    } catch (error: any) {
-      snackbar.error(error.message || 'Failed to update timelog');
-    }
+    
+    const path = params.toString() ? `/history?${params.toString()}` : '/history';
+    navigate(path);
   }
 
   function goToPage(page: number) {
@@ -224,16 +223,12 @@
     <div class="w-full max-w-7xl mx-auto flex justify-between items-center">
       <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Timelogs Table</h1>
       <div class="flex gap-1 items-center">
-        <!-- Edit Mode Toggle -->
-        <label class="flex items-center gap-2 mr-4 cursor-pointer">
-          <input
-            type="checkbox"
-            bind:checked={editMode}
-            class="w-4 h-4 text-primary border-gray-300 dark:border-gray-600 rounded focus:ring-primary"
-          />
-          <span class="text-sm text-gray-600 dark:text-gray-400">Edit Mode</span>
-        </label>
-        
+        <button
+          onclick={navigateToHistory}
+          class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[proicons--calendar] text-gray-600 dark:text-gray-400"
+          style="width: 28px; height: 28px;"
+          aria-label="Calendar view"
+        ></button>
         <button
           onclick={handleExportClick}
           class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-upload-duotone] text-gray-600 dark:text-gray-400"
@@ -241,7 +236,7 @@
           aria-label="Export timelogs"
         ></button>
         <button
-          onclick={handleImportClick}
+          onclick={() => navigate('/import?from=table')}
           class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-download-duotone] text-gray-600 dark:text-gray-400"
           style="width: 28px; height: 28px;"
           aria-label="Import timelogs"
@@ -300,10 +295,7 @@
             timelogs={paginatedTimelogs}
             timers={$timers}
             targets={$targets}
-            {editMode}
-            onEdit={handleEditTimelog}
-            onDelete={handleDeleteTimelog}
-            onSave={handleInlineSave}
+            monthlyBalances={$monthlyBalances}
           />
         {/if}
       </div>
@@ -366,29 +358,10 @@
 
   <BottomNav currentTab="history" />
 
-  <!-- Import Modal -->
-  {#if showImportModal}
-    <ImportTimelogsModal
-      close={handleImportClose}
-      onimport={handleImportConfirm}
-    />
-  {/if}
-
   <!-- Export Modal -->
   {#if showExportModal}
     <ExportTimelogsModal
       close={handleExportClose}
-    />
-  {/if}
-
-  <!-- Edit Timelog Form -->
-  {#if editingTimelog}
-    <TimelogForm
-      selectedDate={dayjs.utc(editingTimelog.start_timestamp).tz(editingTimelog.timezone || userTimezone)}
-      existingLog={editingTimelog}
-      save={handleSaveTimelog}
-      close={handleCloseEditForm}
-      del={handleDeleteTimelog}
     />
   {/if}
 </div>
