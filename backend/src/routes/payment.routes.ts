@@ -157,17 +157,13 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     return { enabled };
   });
 
-  // Admin: Toggle paywall (requires admin authentication)
-  // NOTE: This currently allows any authenticated user to toggle the paywall.
-  // In a production system, you should:
-  // 1. Add an 'is_admin' or 'role' field to the User entity
-  // 2. Check if request.session.userId belongs to an admin
-  // 3. Return 403 Forbidden if the user is not an admin
+  // Admin: Toggle paywall (requires admin password)
   fastify.post('/admin/toggle-paywall', {
     schema: {
       tags: ['Payment'],
       body: Type.Object({
         enabled: Type.Boolean(),
+        password: Type.String(),
       }),
       response: {
         200: Type.Object({
@@ -180,15 +176,30 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         401: Type.Object({
           error: Type.String(),
         }),
+        403: Type.Object({
+          error: Type.String(),
+        }),
+        500: Type.Object({
+          error: Type.String(),
+        }),
       },
     },
   }, async (request, reply) => {
-    if (!request.session?.userId) {
-      return reply.code(401).send({ error: 'Unauthorized' });
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminPassword) {
+      console.error('ADMIN_PASSWORD not configured');
+      return reply.code(500).send({ error: 'Admin password not configured' });
     }
 
     try {
-      const { enabled } = request.body as any;
+      const { enabled, password } = request.body as any;
+
+      // Verify admin password
+      if (password !== adminPassword) {
+        return reply.code(403).send({ error: 'Invalid admin password' });
+      }
+
       await settingsService.setPaywallEnabled(enabled);
       return { 
         message: `Paywall ${enabled ? 'enabled' : 'disabled'} successfully`,

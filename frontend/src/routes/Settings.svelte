@@ -204,11 +204,13 @@
             Sets the first day of the week in calendar views
           </p>
         </div>
+      </div>
+  
       <!-- Subscription -->
-      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <!-- <div class="bg-white rounded-lg shadow-md p-6 mb-6">
         <h3 class="text-lg font-semibold text-gray-800 mb-4">Subscription</h3>
         <button
-          on:click={() => navigate('/payment')}
+          onclick={() => navigate('/payment')}
           class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
         >
           <span>Manage Subscription</span>
@@ -216,7 +218,7 @@
         <p class="text-sm text-gray-500 mt-2">
           View your subscription status and manage your billing.
         </p>
-      </div>
+      </div> -->
 
       <!-- Timer Behavior -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">

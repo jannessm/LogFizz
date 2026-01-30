@@ -34,9 +34,10 @@ Add the following to your backend `.env` file:
 ```env
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+ADMIN_PASSWORD=change-this-admin-password-in-production
 ```
 
-For production, use your live Stripe keys instead of test keys.
+For production, use your live Stripe keys instead of test keys and set a strong admin password.
 
 ### 3. Frontend Configuration
 
@@ -75,9 +76,10 @@ A new `settings` table is created to store global settings:
 
 ### Admin Endpoints
 
-⚠️ **Security Note**: The admin endpoint currently accepts any authenticated user. In production, implement proper admin role validation.
-
-- `POST /api/payment/admin/toggle-paywall` - Enable/disable paywall globally
+- `POST /api/payment/admin/toggle-paywall` - Enable/disable paywall globally (requires admin password)
+  - Body parameters:
+    - `enabled`: boolean - Whether to enable or disable the paywall
+    - `password`: string - Admin password from ADMIN_PASSWORD environment variable
 
 ### Webhook Endpoint
 
@@ -113,16 +115,16 @@ Users can manage their subscription from Settings:
 
 ### Admin Control
 
-To enable/disable the paywall:
+To enable/disable the paywall, use the admin password set in your `.env` file:
 
 ```bash
 # Using curl
 curl -X POST http://localhost:3000/api/payment/admin/toggle-paywall \
   -H "Content-Type: application/json" \
-  -d '{"enabled": true}'
+  -d '{"enabled": true, "password": "your-admin-password-here"}'
 ```
 
-Or via the frontend (if admin UI is implemented).
+Or via the frontend admin UI (if implemented).
 
 ## Frontend Components
 

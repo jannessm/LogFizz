@@ -292,7 +292,6 @@
         aria-label="Add"
       ></button>
     </div>
-    <DailyTargets />
    </div>
 
   <!-- Scrollable Button Area -->
