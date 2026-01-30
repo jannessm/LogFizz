@@ -207,8 +207,8 @@
         {@const endDate = session.endTime ? dayjs.utc(session.endTime).tz(logTimezone) : null}
         {@const isMultiDay = startDate && endDate && endDate.diff(startDate, 'day') >= 1}
         {@const dateRangeText = isMultiDay && startDate && endDate 
-          ? `${startDate.format('MMM D')} - ${endDate.format('MMM D, YYYY')}`
-          : startDate ? startDate.format('MMM D, YYYY') : ''}
+          ? `${startDate.format('ll')} - ${endDate.format('ll')}`
+          : startDate ? startDate.format('ll') : ''}
         {@const timezoneText = isDifferentTimezone ? ` (${logTimezone})` : ''}
         {#if timer}
           <button

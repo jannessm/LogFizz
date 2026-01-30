@@ -13,6 +13,7 @@
   import { snackbar } from '../stores/snackbar';
   import { balancesStore } from '../stores/balances';
   import { setLocale, _ } from '../lib/i18n';
+  import { setDayjsLocale } from '../lib/dateFormatting';
   import { get } from 'svelte/store';
   // Import version from frontend package.json
   // Vite allows importing JSON files directly
@@ -169,6 +170,8 @@
   async function handleLocaleChange() {
     try {
       await userSettingsStore.updateSettings({ locale });
+      // Update dayjs locale for date formatting
+      setDayjsLocale(locale);
       snackbar.success(get(_)('settings.dateFormatUpdated'));
     } catch (error: any) {
       snackbar.error(error.message || get(_)('common.error'));

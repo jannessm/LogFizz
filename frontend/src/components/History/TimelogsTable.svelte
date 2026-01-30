@@ -338,7 +338,7 @@
           : timelog.start_timestamp;
         const date = dayjs.utc(timestamp).tz(timelog.timezone || userTimezone);
         groupKey = date.format('YYYY-MM-DD');
-        groupLabel = date.format('dddd, MMMM D, YYYY');
+        groupLabel = date.format('dddd, LL');
       } else if (sortColumn === 'timer') {
         groupKey = timelog.timer_id;
         groupLabel = getTimerName(timelog.timer_id);

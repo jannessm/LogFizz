@@ -315,7 +315,7 @@
                         {#if latestSpec}
                           <span>{getActiveWeekdays(latestSpec)}</span>
                           {#if latestSpec.ending_at}
-                            <span class="text-red-600 dark:text-red-400 font-medium">Ended: {dayjs(latestSpec.ending_at).format('MMM D, YYYY')}</span>
+                            <span class="text-red-600 dark:text-red-400 font-medium">Ended: {dayjs(latestSpec.ending_at).format('ll')}</span>
                           {/if}
                         {/if}
                       {/each}

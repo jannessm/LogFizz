@@ -5,6 +5,7 @@
   import { themeStore } from './stores/theme';
   import { userSettingsStore } from './stores/userSettings';
   import { setLocale } from './lib/i18n';
+  import { setDayjsLocale } from './lib/dateFormatting';
   import Login from './routes/Login.svelte';
   import Dashboard from './routes/Dashboard.svelte';
   import History from './routes/History.svelte';
@@ -52,6 +53,9 @@
       const settings = get(userSettingsStore).settings;
       if (settings?.language) {
         setLocale(settings.language);
+      }
+      if (settings?.locale) {
+        setDayjsLocale(settings.locale);
       }
     }
     

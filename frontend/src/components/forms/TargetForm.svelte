@@ -362,11 +362,11 @@
                         {/if}
                         {#if index < targetSpecs.length - 1}
                           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Ends: {dayjs(targetSpecs[index + 1].startDate).subtract(1, 'day').format('MMM D, YYYY')}
+                            Ends: {dayjs(targetSpecs[index + 1].startDate).subtract(1, 'day').format('ll')}
                           </p>
                         {:else if index === 0 && archiveDate}
                           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Ends: {dayjs(archiveDate).format('MMM D, YYYY')}
+                            Ends: {dayjs(archiveDate).format('ll')}
                           </p>
                         {:else}
                           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">No end date</p>
@@ -424,7 +424,7 @@
               />
               {#if archiveDate}
                 <p class="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
-                  This target ends on {dayjs(archiveDate).format('MMM D, YYYY')}
+                  This target ends on {dayjs(archiveDate).format('ll')}
                 </p>
               {/if}
             </div>
