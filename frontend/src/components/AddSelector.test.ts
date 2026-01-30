@@ -9,7 +9,8 @@ describe('AddSelector Component', () => {
 
   it('renders modal with correct title', () => {
     render(AddSelector);
-    expect(screen.getByText('Add New')).toBeInTheDocument();
+    // Title is now from i18n translation "Add"
+    expect(screen.getByText('Add')).toBeInTheDocument();
   });
 
   it('renders close button', () => {
@@ -20,14 +21,16 @@ describe('AddSelector Component', () => {
 
   it('renders add button option', () => {
     render(AddSelector);
+    // Text is now from i18n translation
     expect(screen.getByText('Add Timer')).toBeInTheDocument();
-    expect(screen.getByText('Create a new timer button')).toBeInTheDocument();
+    expect(screen.getByText(/Create your first timer/i)).toBeInTheDocument();
   });
 
   it('renders add target option', () => {
     render(AddSelector);
-    expect(screen.getByText('Add Target')).toBeInTheDocument();
-    expect(screen.getByText('Create a new target')).toBeInTheDocument();
+    // Text is now from i18n translation
+    expect(screen.getByText('Targets')).toBeInTheDocument();
+    expect(screen.getByText('Add Specification')).toBeInTheDocument();
   });
 
   it('has proper ARIA attributes for accessibility', () => {

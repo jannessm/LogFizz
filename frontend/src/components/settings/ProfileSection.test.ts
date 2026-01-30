@@ -58,7 +58,8 @@ describe('ProfileSection Component', () => {
       },
     });
 
-    expect(screen.getByText('Unsaved')).toBeInTheDocument();
+    // Text is now "Edit" from i18n translation
+    expect(screen.getByText('Edit')).toBeInTheDocument();
   });
 
   it('does not show unsaved badge when name unchanged', () => {
@@ -70,7 +71,7 @@ describe('ProfileSection Component', () => {
       },
     });
 
-    expect(screen.queryByText('Unsaved')).not.toBeInTheDocument();
+    expect(screen.queryByText('Edit')).not.toBeInTheDocument();
   });
 
   it('disables update button when name unchanged', () => {
@@ -82,7 +83,8 @@ describe('ProfileSection Component', () => {
       },
     });
 
-    const updateButton = screen.getByRole('button', { name: /update profile/i });
+    // Button text is now "Save" from i18n translation
+    const updateButton = screen.getByRole('button', { name: /save/i });
     expect(updateButton).toBeDisabled();
   });
 
@@ -95,7 +97,7 @@ describe('ProfileSection Component', () => {
       },
     });
 
-    const updateButton = screen.getByRole('button', { name: /update profile/i });
+    const updateButton = screen.getByRole('button', { name: /save/i });
     expect(updateButton).not.toBeDisabled();
   });
 
@@ -108,7 +110,7 @@ describe('ProfileSection Component', () => {
       },
     });
 
-    const updateButton = screen.getByRole('button', { name: /update profile/i });
+    const updateButton = screen.getByRole('button', { name: /save/i });
     // Button should be enabled and clickable
     expect(updateButton).not.toBeDisabled();
   });

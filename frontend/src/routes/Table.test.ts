@@ -100,7 +100,8 @@ describe('Table Route', () => {
 
   it('renders the page title', () => {
     render(Table);
-    expect(screen.getByText('Timelogs Table')).toBeInTheDocument();
+    // Title is now from i18n translation
+    expect(screen.getByText('Table')).toBeInTheDocument();
   });
 
   it('renders export button', () => {

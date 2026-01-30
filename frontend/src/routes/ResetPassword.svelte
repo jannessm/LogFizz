@@ -2,6 +2,8 @@
   import { authApi } from '../services/api';
   import { navigate } from '../lib/navigation';
   import { onMount } from 'svelte';
+  import { _ } from '../lib/i18n';
+  import { get } from 'svelte/store';
 
   let token = '';
   let email = '';
@@ -20,7 +22,7 @@
       token = tokenParam;
       email = emailParam;
     } else {
-      errorMessage = 'Invalid reset link. Please request a new password reset.';
+      errorMessage = get(_)('resetPassword.invalidToken');
     }
   });
 
@@ -30,13 +32,13 @@
 
     // Validate passwords match
     if (newPassword !== confirmPassword) {
-      errorMessage = 'Passwords do not match';
+      errorMessage = get(_)('settings.passwordMismatch');
       return;
     }
 
     // Validate password length
     if (newPassword.length < 8) {
-      errorMessage = 'Password must be at least 8 characters';
+      errorMessage = get(_)('auth.passwordMinLength');
       return;
     }
 
@@ -53,9 +55,9 @@
     } catch (error: any) {
       // Check for rate limiting (429 Too Many Requests)
       if (error.response?.status === 429) {
-        errorMessage = 'Too many password reset attempts. Please wait 15 minutes before trying again.';
+        errorMessage = get(_)('auth.tooManyAttempts');
       } else {
-        errorMessage = error.message || 'Failed to reset password. The link may be invalid or expired.';
+        errorMessage = error.message || get(_)('resetPassword.invalidToken');
       }
     } finally {
       isLoading = false;
@@ -70,7 +72,7 @@
 <div class="min-h-screen flex items-center justify-center px-4">
   <div class="w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-8" style="max-width: 500px;">
     <h1 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-6">
-      Reset Password
+      {$_('resetPassword.title')}
     </h1>
 
     {#if errorMessage}
@@ -82,7 +84,7 @@
     {#if successMessage}
       <div class="mb-4 p-3 bg-green-100 dark:bg-green-900/30 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-300 rounded">
         {successMessage}
-        <p class="text-sm mt-2">Redirecting to login...</p>
+        <p class="text-sm mt-2">{$_('verifyEmail.redirecting')}</p>
       </div>
     {/if}
 
@@ -90,7 +92,7 @@
       <form on:submit|preventDefault={handleSubmit} class="space-y-4">
         <div>
           <label for="newPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-            New Password
+            {$_('settings.newPassword')}
           </label>
           <input
             id="newPassword"
@@ -102,12 +104,12 @@
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 disabled:bg-gray-100 dark:disabled:bg-gray-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             placeholder="••••••••"
           />
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">At least 8 characters</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$_('auth.passwordMinLength')}</p>
         </div>
 
         <div>
           <label for="confirmPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-            Confirm Password
+            {$_('settings.confirmPassword')}
           </label>
           <input
             id="confirmPassword"
@@ -126,7 +128,7 @@
           disabled={isLoading || !!successMessage}
           class="w-full bg-blue-600 dark:bg-orange-500 text-white py-2 px-4 rounded-md hover:bg-blue-700 dark:hover:bg-orange-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
         >
-          {isLoading ? 'Resetting...' : 'Reset Password'}
+          {isLoading ? $_('common.loading') : $_('resetPassword.submit')}
         </button>
       </form>
     {/if}
@@ -136,7 +138,7 @@
         on:click={goToLogin}
         class="text-blue-600 dark:text-orange-400 hover:underline text-sm"
       >
-        Back to Login
+        {$_('forgotPassword.backToLogin')}
       </button>
     </div>
   </div>
