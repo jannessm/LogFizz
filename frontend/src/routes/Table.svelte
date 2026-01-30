@@ -10,6 +10,7 @@
   import { dayjs, type TimeLog } from '../types';
   import { userTimezone } from '../../../lib/utils/dayjs';
   import { navigate } from '../lib/navigation';
+  import { _ } from '../lib/i18n';
 
   // Pagination
   const PAGE_SIZE = 100;
@@ -219,7 +220,7 @@
   <!-- Header -->
   <div class="w-full px-4 pt-6 pb-2">
     <div class="w-full max-w-7xl mx-auto flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Timelogs Table</h1>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{$_('table.title')}</h1>
       <div class="flex gap-1 items-center">
         <button
           onclick={navigateToHistory}

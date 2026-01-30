@@ -11,6 +11,7 @@
   import { createCalendarStore, loadCalendarMonth } from '../services/calendar';
   import { navigate } from '../lib/navigation';
   import { onMount } from 'svelte';
+  import { _ } from '../lib/i18n';
 
   
   // Initialize from URL query parameters if available
@@ -89,7 +90,7 @@
   <!-- Header spanning full width -->
   <div class="w-full px-4 pt-6 pb-2">
     <div class="w-full max-w-7xl mx-auto flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">History</h1>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{$_('history.title')}</h1>
       <div class="flex gap-1">
         <button
           onclick={navigateToTable}
@@ -128,7 +129,7 @@
       <!-- Column 2: Yearly + Monthly balance -->
       <div class="w-full flex flex-col gap-4">
         <BalancesOverview
-          title="Balance Overview"
+          title={$_('history.balance')}
           targets={$targets}
           periods={{
             day: { date: selectedDate.date.format('YYYY-MM-DD') },

@@ -2,6 +2,8 @@
   import { authApi } from '../services/api';
   import { navigate } from '../lib/navigation';
   import { onMount, onDestroy } from 'svelte';
+  import { _ } from '../lib/i18n';
+  import { get } from 'svelte/store';
 
   let email = '';
   let errorMessage = '';
@@ -39,9 +41,9 @@
     } catch (error: any) {
       // Check for rate limiting (429 Too Many Requests)
       if (error.response?.status === 429) {
-        errorMessage = 'Too many password reset attempts. Please wait 15 minutes before trying again.';
+        errorMessage = get(_)('auth.tooManyAttempts');
       } else {
-        errorMessage = error.message || 'Failed to send reset email';
+        errorMessage = error.message || get(_)('common.error');
       }
     } finally {
       isLoading = false;
@@ -56,11 +58,11 @@
 <div class="min-h-screen flex items-center justify-center px-4">
   <div class="w-full bg-white dark:bg-gray-800 rounded-lg shadow-md p-8" style="max-width: 500px;">
     <h1 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-6">
-      Forgot Password
+      {$_('forgotPassword.title')}
     </h1>
 
     <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 text-center">
-      Enter your email address and we'll send you a link to reset your password.
+      {$_('forgotPassword.description')}
     </p>
 
     {#if errorMessage}
@@ -78,7 +80,7 @@
     <form on:submit|preventDefault={handleSubmit} class="space-y-4">
       <div>
         <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-          Email
+          {$_('auth.email')}
         </label>
         <input
           id="email"
@@ -99,9 +101,9 @@
         class="w-full bg-blue-600 dark:bg-orange-500 text-white py-2 px-4 rounded-md hover:bg-blue-700 dark:hover:bg-orange-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
       >
         {#if !isOnline}
-          Offline
+          {$_('common.offline')}
         {:else}
-          {isLoading ? 'Sending...' : 'Send Reset Link'}
+          {isLoading ? $_('common.loading') : $_('forgotPassword.submit')}
         {/if}
       </button>
     </form>
@@ -111,7 +113,7 @@
         on:click={goBack}
         class="text-blue-600 dark:text-orange-400 hover:underline text-sm"
       >
-        Back to Login
+        {$_('forgotPassword.backToLogin')}
       </button>
     </div>
   </div>

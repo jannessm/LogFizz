@@ -3,6 +3,8 @@
   import { authStore } from '../stores/auth';
   import { navigate } from '../lib/navigation';
   import { snackbar } from '../stores/snackbar';
+  import { _ } from '../lib/i18n';
+  import { get } from 'svelte/store';
 
   let isResending = $state(false);
   let resendCooldown = $state(0);
@@ -24,7 +26,7 @@
     isResending = true;
     try {
       await authStore.resendVerification(user.email);
-      snackbar.success('Verification email sent! Please check your inbox.');
+      snackbar.success(get(_)('verifyEmail.emailSent'));
       // Start cooldown
       resendCooldown = 60;
       cooldownInterval = setInterval(() => {
@@ -35,7 +37,7 @@
         }
       }, 1000);
     } catch (error: any) {
-      snackbar.error(error.message || 'Failed to send verification email');
+      snackbar.error(error.message || get(_)('common.error'));
     } finally {
       isResending = false;
     }
@@ -50,10 +52,10 @@
     // Re-initialize auth to check if email is now verified
     await authStore.init();
     if ($authStore.user?.email_verified_at) {
-      snackbar.success('Email verified! Redirecting...');
+      snackbar.success(get(_)('verifyEmail.redirectingDashboard'));
       setTimeout(() => navigate('/'), 1000);
     } else {
-      snackbar.info('Email not yet verified');
+      snackbar.info(get(_)('verifyEmail.pleaseWait'));
     }
   }
 </script>
@@ -67,15 +69,15 @@
       </div>
       
       <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">
-        Verify Your Email
+        {$_('verifyEmail.title')}
       </h1>
       
       <p class="text-gray-600 dark:text-gray-400 mb-2">
-        Please verify your email address to continue using TapShift.
+        {$_('verifyEmail.description')}
       </p>
       
       <p class="text-sm text-gray-500 dark:text-gray-500 mb-6">
-        We've sent a verification link to <strong class="text-gray-700 dark:text-gray-300">{user?.email}</strong>
+        {$_('verifyEmail.sentTo')} <strong class="text-gray-700 dark:text-gray-300">{user?.email}</strong>
       </p>
 
       <div class="space-y-3">
@@ -86,11 +88,11 @@
         >
           {#if isResending}
             <span class="w-5 h-5 icon-[svg-spinners--3-dots-fade]"></span>
-            Sending...
+            {$_('verifyEmail.sending')}
           {:else if resendCooldown > 0}
-            Resend in {resendCooldown}s
+            {$_('verifyEmail.resendIn', { values: { seconds: resendCooldown } })}
           {:else}
-            Resend Verification Email
+            {$_('verifyEmail.resend')}
           {/if}
         </button>
 
@@ -99,7 +101,7 @@
           class="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-4 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
         >
           <span class="w-5 h-5 icon-[si--refresh-line]"></span>
-          I've Verified My Email
+          {$_('verifyEmail.verified')}
         </button>
 
         <button
@@ -107,12 +109,12 @@
           class="w-full text-red-600 dark:text-red-400 py-2 px-4 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2"
         >
           <span class="w-5 h-5 icon-[si--sign-out-line]"></span>
-          Sign Out
+          {$_('auth.logout')}
         </button>
       </div>
 
       <div class="mt-6 text-xs text-gray-500 dark:text-gray-500">
-        <p>Didn't receive the email? Check your spam folder.</p>
+        <p>{$_('verifyEmail.checkSpam')}</p>
       </div>
     </div>
   </div>

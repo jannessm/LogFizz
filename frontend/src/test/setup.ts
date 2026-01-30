@@ -2,6 +2,10 @@ import '@testing-library/jest-dom';
 import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 import 'fake-indexeddb/auto';
+import { initI18n } from '../lib/i18n';
+
+// Initialize i18n for tests
+initI18n('en');
 
 // Set timezone to UTC for consistent test results
 process.env.TZ = 'UTC';
