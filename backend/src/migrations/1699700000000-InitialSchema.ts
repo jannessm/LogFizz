@@ -22,6 +22,11 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "email_verified_at" TIMESTAMP WITH TIME ZONE,
                 "reset_token" character varying,
                 "reset_token_expires_at" TIMESTAMP WITH TIME ZONE,
+                "subscription_status" character varying DEFAULT 'trial',
+                "subscription_end_date" TIMESTAMP WITH TIME ZONE,
+                "trial_end_date" TIMESTAMP WITH TIME ZONE,
+                "stripe_customer_id" character varying,
+                "stripe_subscription_id" character varying,
                 CONSTRAINT "UQ_users_email" UNIQUE ("email"),
                 CONSTRAINT "PK_users_id" PRIMARY KEY ("id")
             )
@@ -203,6 +208,24 @@ export class InitialSchema1699700000000 implements MigrationInterface {
             )
         `);
 
+        // Create settings table
+        await queryRunner.query(`
+            CREATE TABLE IF NOT EXISTS "settings" (
+                "key" character varying NOT NULL,
+                "value" character varying NOT NULL,
+                "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+                "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+                CONSTRAINT "PK_settings_key" PRIMARY KEY ("key")
+            )
+        `);
+
+        // Insert default settings
+        await queryRunner.query(`
+            INSERT INTO "settings" ("key", "value") VALUES
+            ('paywall_enabled', 'false')
+            ON CONFLICT (key) DO NOTHING
+        `);
+
         // Create indexes for better performance
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_targets_user_id" ON "targets" ("user_id")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_targets_deleted_at" ON "targets" ("deleted_at")`);
@@ -228,6 +251,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
     public async down(queryRunner: QueryRunner): Promise<void> {
         // Drop tables in reverse order (respecting foreign key constraints)
         await queryRunner.query(`DROP TABLE IF EXISTS "balances"`);
+        await queryRunner.query(`DROP TABLE IF EXISTS "settings"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "time_logs"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "timers"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "target_specs"`);

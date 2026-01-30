@@ -12,6 +12,11 @@ export interface User {
   created_at: string;
   updated_at: string;
   deleted_at?: string;
+  subscription_status?: 'trial' | 'active' | 'expired' | 'canceled';
+  subscription_end_date?: string;
+  trial_end_date?: string;
+  stripe_customer_id?: string;
+  stripe_subscription_id?: string;
 }
 
 export interface State {
@@ -225,7 +230,7 @@ export interface BalanceEntity extends Omit<Balance, 'created_at' | 'updated_at'
   deleted_at?: Date;
 }
 
-export interface UserEntity extends Omit<User, 'created_at' | 'updated_at' | 'deleted_at' | 'email_verified_at'> {
+export interface UserEntity extends Omit<User, 'created_at' | 'updated_at' | 'deleted_at' | 'email_verified_at' | 'subscription_end_date' | 'trial_end_date'> {
   password_hash: string;
   created_at: Date;
   updated_at: Date;
@@ -235,6 +240,8 @@ export interface UserEntity extends Omit<User, 'created_at' | 'updated_at' | 'de
   email_verification_expires_at?: Date;
   reset_token?: string;
   reset_token_expires_at?: Date;
+  subscription_end_date?: Date;
+  trial_end_date?: Date;
 }
 
 export interface HolidayEntity extends Omit<Holiday, 'date'> {

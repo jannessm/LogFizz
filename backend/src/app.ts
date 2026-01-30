@@ -16,6 +16,7 @@ import { holidayRoutes } from './routes/holiday.routes.js';
 import { targetRoutes } from './routes/target.routes.js';
 import { stateRoutes } from './routes/state.routes.js';
 import { balanceRoutes } from './routes/balance.routes.js';
+import { paymentRoutes } from './routes/payment.routes.js';
 import { registerRateLimit } from './config/rateLimit.js';
 import { debugRoutes } from './routes/debug.routes.js';
 import './types/session.js';
@@ -152,6 +153,7 @@ export async function buildApp() {
         { name: 'Targets', description: 'Target management endpoints' },
         { name: 'Balance', description: 'Balance management endpoints' },
         { name: 'States', description: 'German states reference endpoints' },
+        { name: 'Payment', description: 'Payment and subscription endpoints' },
       ],
     },
   });
@@ -172,6 +174,7 @@ export async function buildApp() {
   await fastify.register(targetRoutes, { prefix: '/api/targets' });
   await fastify.register(balanceRoutes, { prefix: '/api/balances' });
   await fastify.register(stateRoutes, { prefix: '/api' });
+  await fastify.register(paymentRoutes, { prefix: '/api/payment' });
 
   if (process.env.NODE_ENV !== 'production') {
     await fastify.register(debugRoutes, { prefix: '/api/debug' });
