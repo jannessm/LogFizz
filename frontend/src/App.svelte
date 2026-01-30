@@ -11,6 +11,7 @@
   import ForgotPassword from './routes/ForgotPassword.svelte';
   import ResetPassword from './routes/ResetPassword.svelte';
   import VerifyEmail from './routes/VerifyEmail.svelte';
+  import VerifyEmailRequired from './routes/VerifyEmailRequired.svelte';
   import { ImportPage } from './routes/import';
   import { ExportPage } from './routes/export';
   import Payment from './routes/Payment.svelte';
@@ -25,11 +26,17 @@
   let isLoading = true;
 
   $: authenticated = $authStore.isAuthenticated;
+  $: user = $authStore.user;
+  $: emailVerified = !!user?.email_verified_at;
   $: path = $currentPath;
 
   // Public routes that don't require authentication
   const publicRoutes = ['/login', '/forgot-password', '/reset-password', '/verify-email'];
   const isPublicRoute = (path: string) => publicRoutes.includes(path);
+  
+  // Routes that are allowed even without email verification (need auth but no verification)
+  const verificationExemptRoutes = ['/verify-email-required', '/verify-email'];
+  const isVerificationExempt = (path: string) => verificationExemptRoutes.some(r => path.startsWith(r));
 
   onMount(async () => {
     await getDB(); // ensure DB is initialized
@@ -49,6 +56,9 @@
   // Redirect to login if not authenticated and not on a public route
   $: {
     const auth = get(authStore);
+    const currentUser = auth.user;
+    const isEmailVerified = !!currentUser?.email_verified_at;
+    
     if (!isLoading && !auth.isAuthenticated && !isPublicRoute(path)) {
       navigate('/login', { replace: true });
     }
@@ -62,6 +72,16 @@
       if (path.startsWith('/reset-password')) {
         snackbar.info('To reset your password, logout first.', 6000);
       }
+      navigate('/', { replace: true });
+    }
+    
+    // Redirect to email verification if authenticated but email not verified
+    if (!isLoading && auth.isAuthenticated && !isEmailVerified && !isVerificationExempt(path) && !isPublicRoute(path)) {
+      navigate('/verify-email-required', { replace: true });
+    }
+    
+    // Redirect away from verification required page if already verified
+    if (!isLoading && auth.isAuthenticated && isEmailVerified && path.startsWith('/verify-email-required')) {
       navigate('/', { replace: true });
     }
   }
@@ -81,6 +101,8 @@
     <ForgotPassword />
   {:else if path.startsWith('/reset-password')}
     <ResetPassword />
+  {:else if path.startsWith('/verify-email-required')}
+    <VerifyEmailRequired />
   {:else if path.startsWith('/verify-email')}
     <VerifyEmail />
   {:else if path.startsWith('/payment')}

@@ -220,6 +220,30 @@ export const balanceApi = {
   },
 };
 
+// User Settings API
+export const userSettingsApi = {
+  async getSettings(): Promise<import('../types').UserSettings> {
+    return api.get('api/user-settings').json();
+  },
+
+  async updateSettings(updates: { language?: string; locale?: string }): Promise<import('../types').UserSettings> {
+    return api.put('api/user-settings', { json: updates }).json();
+  },
+
+  async getSyncChanges(since: string): Promise<{ settings?: import('../types').UserSettings; cursor: string }> {
+    const searchParams = new URLSearchParams({ since });
+    return api.get('api/user-settings/sync', { searchParams }).json();
+  },
+
+  async pushSyncChanges(settings: Partial<import('../types').UserSettings>): Promise<{
+    settings: import('../types').UserSettings;
+    conflict?: boolean;
+    cursor: string;
+  }> {
+    return api.post('api/user-settings/sync', { json: { settings } }).json();
+  },
+};
+
 // Check if online
 export function isOnline(): boolean {
   return navigator.onLine;

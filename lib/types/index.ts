@@ -19,6 +19,21 @@ export interface User {
   stripe_subscription_id?: string;
 }
 
+// User Settings types
+export interface UserSettings {
+  id: string;
+  user_id: string;
+  language: string; // 'en' | 'de'
+  locale: string; // Locale for date/time formatting e.g., 'en-US', 'de-DE'
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserSettingsEntity extends Omit<UserSettings, 'created_at' | 'updated_at'> {
+  created_at: Date;
+  updated_at: Date;
+}
+
 export interface State {
   code: string; // e.g., 'DE-BW' for Baden-Württemberg (primary key)
   country: string;

@@ -6,6 +6,7 @@
   import SyncStatusSection from '../components/settings/SyncStatusSection.svelte';
   import { authStore } from '../stores/auth';
   import { themeStore, type ThemeMode } from '../stores/theme';
+  import { userSettingsStore } from '../stores/userSettings';
   import { syncService } from '../services/sync';
   import { navigate } from '../lib/navigation';
   import { getSetting, saveSetting } from '../lib/db';
@@ -23,9 +24,20 @@
   let isRecalculating = $state(false);
   let themeMode: ThemeMode = $state('auto');
   let firstDayOfWeek: 'sunday' | 'monday' = $state('sunday');
+  let language: 'en' | 'de' = $state('en');
+  let locale: string = $state('en-US');
 
   let user = $derived($authStore.user);
   let isOnline = $derived(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  // Available locales
+  const localeOptions = [
+    { value: 'en-US', label: 'English (US)' },
+    { value: 'en-GB', label: 'English (UK)' },
+    { value: 'de-DE', label: 'Deutsch (Deutschland)' },
+    { value: 'de-AT', label: 'Deutsch (Österreich)' },
+    { value: 'de-CH', label: 'Deutsch (Schweiz)' },
+  ];
 
   onMount(async () => {
     if (user) {
@@ -44,6 +56,14 @@
     // Load first day of week setting
     const firstDaySetting = await getSetting('firstDayOfWeek');
     firstDayOfWeek = firstDaySetting || 'sunday'; // default sunday
+
+    // Load user settings (language, locale)
+    await userSettingsStore.init();
+    const userSettings = $userSettingsStore.settings;
+    if (userSettings) {
+      language = (userSettings.language as 'en' | 'de') || 'en';
+      locale = userSettings.locale || 'en-US';
+    }
   });
 
   async function handleProfileUpdate(event: { name: string }) {
@@ -133,6 +153,24 @@
   async function handleFirstDayChange() {
     await saveSetting('firstDayOfWeek', firstDayOfWeek);
   }
+
+  async function handleLanguageChange() {
+    try {
+      await userSettingsStore.updateSettings({ language });
+      snackbar.success('Language updated');
+    } catch (error: any) {
+      snackbar.error(error.message || 'Failed to update language');
+    }
+  }
+
+  async function handleLocaleChange() {
+    try {
+      await userSettingsStore.updateSettings({ locale });
+      snackbar.success('Date format updated');
+    } catch (error: any) {
+      snackbar.error(error.message || 'Failed to update date format');
+    }
+  }
 </script>
 
 <div class="h-screen flex flex-col">
@@ -202,6 +240,50 @@
           </select>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
             Sets the first day of the week in calendar views
+          </p>
+        </div>
+      </div>
+
+      <!-- Language & Region -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Language & Region</h3>
+        
+        <!-- Language Setting -->
+        <div class="mb-4">
+          <label for="language-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Language
+          </label>
+          <select
+            id="language-select"
+            bind:value={language}
+            onchange={handleLanguageChange}
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          >
+            <option value="en">English</option>
+            <option value="de">Deutsch</option>
+          </select>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            Select your preferred language
+          </p>
+        </div>
+
+        <!-- Locale/Date Format Setting -->
+        <div>
+          <label for="locale-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Date & Time Format
+          </label>
+          <select
+            id="locale-select"
+            bind:value={locale}
+            onchange={handleLocaleChange}
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          >
+            {#each localeOptions as option}
+              <option value={option.value}>{option.label}</option>
+            {/each}
+          </select>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            Controls how dates and times are displayed
           </p>
         </div>
       </div>
