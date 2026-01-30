@@ -55,7 +55,7 @@
     } catch (error: any) {
       // Check for rate limiting (429 Too Many Requests)
       if (error.response?.status === 429) {
-        errorMessage = get(_)('auth.tooManyAttempts');
+        errorMessage = get(_)('auth.tooManyPasswordResetAttempts');
       } else {
         errorMessage = error.message || get(_)('resetPassword.invalidToken');
       }

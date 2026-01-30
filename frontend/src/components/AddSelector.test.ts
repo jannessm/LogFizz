@@ -23,14 +23,14 @@ describe('AddSelector Component', () => {
     render(AddSelector);
     // Text is now from i18n translation
     expect(screen.getByText('Add Timer')).toBeInTheDocument();
-    expect(screen.getByText(/Create your first timer/i)).toBeInTheDocument();
+    expect(screen.getByText(/Create a new timer button/i)).toBeInTheDocument();
   });
 
   it('renders add target option', () => {
     render(AddSelector);
     // Text is now from i18n translation
-    expect(screen.getByText('Targets')).toBeInTheDocument();
-    expect(screen.getByText('Add Specification')).toBeInTheDocument();
+    expect(screen.getByText('Add Target')).toBeInTheDocument();
+    expect(screen.getByText('Create a new target')).toBeInTheDocument();
   });
 
   it('has proper ARIA attributes for accessibility', () => {

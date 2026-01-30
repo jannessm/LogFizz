@@ -222,7 +222,7 @@ describe('ResetPassword Component', () => {
 
     await waitFor(() => {
       // Text is now from i18n translation
-      expect(screen.getByText(/Too many attempts/i)).toBeInTheDocument();
+      expect(screen.getByText(/Too many password reset attempts/i)).toBeInTheDocument();
     });
   });
 

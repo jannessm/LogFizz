@@ -101,7 +101,7 @@
           } catch (error: any) {
             // Check for rate limiting (429 Too Many Requests)
             if (error.response?.status === 429) {
-              snackbar.error(get(_)('auth.tooManyAttempts'), 8000);
+              snackbar.error(get(_)('auth.tooManyVerificationAttempts'), 8000);
             } else {
               snackbar.error(get(_)('common.error'), 5000);
             }

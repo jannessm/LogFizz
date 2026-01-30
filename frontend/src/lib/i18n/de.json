@@ -17,7 +17,8 @@
     "info": "Info",
     "offline": "Offline",
     "online": "Online",
-    "version": "Version"
+    "version": "Version",
+    "unsaved": "Nicht gespeichert"
   },
   "auth": {
     "login": "Anmelden",
@@ -34,6 +35,8 @@
     "offlineFirst": "Offline-first • Ihre Daten werden lokal gespeichert",
     "pleaseWait": "Bitte warten...",
     "tooManyAttempts": "Zu viele Versuche. Bitte warten Sie 1 Minute.",
+    "tooManyPasswordResetAttempts": "Zu viele Zurücksetzungsversuche. Bitte warten Sie 15 Minuten.",
+    "tooManyVerificationAttempts": "Zu viele Verifizierungsversuche. Bitte warten Sie 15 Minuten.",
     "authFailed": "Authentifizierung fehlgeschlagen",
     "invalidCredentials": "Ungültige Anmeldedaten",
     "userExists": "Benutzer existiert bereits",
@@ -54,6 +57,7 @@
     "emailSent": "Bestätigungs-E-Mail gesendet! Bitte überprüfen Sie Ihren Posteingang.",
     "verifying": "E-Mail wird verifiziert",
     "pleaseWait": "Bitte warten Sie, während wir Ihre E-Mail-Adresse verifizieren...",
+    "notYetVerified": "E-Mail noch nicht verifiziert",
     "wrongAccount": "Falsches Konto",
     "wrongAccountDescription": "Dieser Bestätigungslink ist für eine andere E-Mail-Adresse.",
     "currentlyLoggedAs": "Sie sind derzeit angemeldet als",
@@ -119,6 +123,7 @@
     "noTimers": "Noch keine Timer",
     "createFirst": "Erstellen Sie Ihren ersten Timer, um mit der Zeiterfassung zu beginnen",
     "addTimer": "Timer hinzufügen",
+    "addTimerDescription": "Neuen Timer erstellen",
     "running": "Läuft",
     "stopped": "Gestoppt",
     "start": "Start",
@@ -178,6 +183,8 @@
   },
   "target": {
     "title": "Ziele",
+    "add": "Ziel hinzufügen",
+    "addDescription": "Neues Ziel erstellen",
     "name": "Zielname",
     "specs": "Spezifikationen",
     "addSpec": "Spezifikation hinzufügen",

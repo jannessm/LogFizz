@@ -55,7 +55,7 @@
       snackbar.success(get(_)('verifyEmail.redirectingDashboard'));
       setTimeout(() => navigate('/'), 1000);
     } else {
-      snackbar.info(get(_)('verifyEmail.pleaseWait'));
+      snackbar.info(get(_)('verifyEmail.notYetVerified'));
     }
   }
 </script>

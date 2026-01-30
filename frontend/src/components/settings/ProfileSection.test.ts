@@ -58,8 +58,8 @@ describe('ProfileSection Component', () => {
       },
     });
 
-    // Text is now "Edit" from i18n translation
-    expect(screen.getByText('Edit')).toBeInTheDocument();
+    // Text is now "Unsaved" from i18n translation
+    expect(screen.getByText('Unsaved')).toBeInTheDocument();
   });
 
   it('does not show unsaved badge when name unchanged', () => {
@@ -71,7 +71,7 @@ describe('ProfileSection Component', () => {
       },
     });
 
-    expect(screen.queryByText('Edit')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unsaved')).not.toBeInTheDocument();
   });
 
   it('disables update button when name unchanged', () => {

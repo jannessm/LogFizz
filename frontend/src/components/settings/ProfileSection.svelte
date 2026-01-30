@@ -46,7 +46,7 @@
         </label>
         {#if hasNameChanged}
           <span class="text-xs px-2 py-0.5 bg-orange-200 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded-full font-medium">
-            {$_('common.edit')}
+            {$_('common.unsaved')}
           </span>
         {/if}
       </div>

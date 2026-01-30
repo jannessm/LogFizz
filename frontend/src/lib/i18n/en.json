@@ -17,7 +17,8 @@
     "info": "Info",
     "offline": "Offline",
     "online": "Online",
-    "version": "Version"
+    "version": "Version",
+    "unsaved": "Unsaved"
   },
   "auth": {
     "login": "Login",
@@ -34,6 +35,8 @@
     "offlineFirst": "Offline-first • Your data is stored locally",
     "pleaseWait": "Please wait...",
     "tooManyAttempts": "Too many attempts. Please wait 1 minute before trying again.",
+    "tooManyPasswordResetAttempts": "Too many password reset attempts. Please wait 15 minutes before trying again.",
+    "tooManyVerificationAttempts": "Too many verification requests. Please wait 15 minutes before trying again.",
     "authFailed": "Authentication failed",
     "invalidCredentials": "Invalid credentials",
     "userExists": "User already exists",
@@ -54,6 +57,7 @@
     "emailSent": "Verification email sent! Please check your inbox.",
     "verifying": "Verifying Email",
     "pleaseWait": "Please wait while we verify your email address...",
+    "notYetVerified": "Email not yet verified",
     "wrongAccount": "Wrong Account",
     "wrongAccountDescription": "This verification link is for a different email account.",
     "currentlyLoggedAs": "You're currently logged in as",
@@ -119,6 +123,7 @@
     "noTimers": "No timers yet",
     "createFirst": "Create your first timer to start tracking time",
     "addTimer": "Add Timer",
+    "addTimerDescription": "Create a new timer button",
     "running": "Running",
     "stopped": "Stopped",
     "start": "Start",
@@ -178,6 +183,8 @@
   },
   "target": {
     "title": "Targets",
+    "add": "Add Target",
+    "addDescription": "Create a new target",
     "name": "Target Name",
     "specs": "Specifications",
     "addSpec": "Add Specification",
