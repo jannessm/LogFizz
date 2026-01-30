@@ -251,34 +251,6 @@
     rows = rows.map(row => ({ ...row, isSkipped: !allSkipped }));
   }
   
-  function showDateFormatHelp() {
-    // Find first invalid date to show as example
-    const invalidRow = rows.find(r => !r.isValid);
-    if (invalidRow) {
-      const startStr = invalidRow.startDate ? `${invalidRow.startDate} ${invalidRow.startTime}` : invalidRow.startTime;
-      formatModalSample = startStr;
-      showFormatModal = true;
-    }
-  }
-  
-  function handleFormatSelected(format: string) {
-    customDateFormats = [...customDateFormats, format];
-    showFormatModal = false;
-    
-    // Revalidate all rows with the new format
-    rows = rows.map(row => {
-      const startStr = row.startDate ? `${row.startDate} ${row.startTime}` : row.startTime;
-      const endStr = row.endDate ? `${row.endDate} ${row.endTime}` : row.endTime;
-      const isValid = isValidDateTime(startStr, customDateFormats) && isValidDateTime(endStr, customDateFormats);
-      
-      return {
-        ...row,
-        isValid,
-        errorMsg: !isValid ? 'Invalid date/time' : undefined,
-      };
-    });
-  }
-
   function handleImport() {
     const validRows = rows.filter(r => !r.isSkipped && r.isValid && r.timerId);
     
@@ -319,15 +291,6 @@
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Edit & Import</h2>
     <div class="flex items-center gap-4">
-      {#if invalidRowCount > 0}
-        <button
-          onclick={showDateFormatHelp}
-          class="text-sm text-blue-600 dark:text-orange-400 hover:underline flex items-center gap-1"
-        >
-          <span class="icon-[si--info-duotone]" style="width: 16px; height: 16px;"></span>
-          Need help with date format?
-        </button>
-      {/if}
       <div class="text-sm text-gray-500 dark:text-gray-400">
         {validRowCount} valid, {invalidRowCount} need attention, {skippedRowCount} skipped
       </div>
@@ -447,12 +410,3 @@
     </div>
   </div>
 </div>
-
-{#if showFormatModal}
-  <DateFormatModal
-    sampleValue={formatModalSample}
-    timezone={timezone}
-    onFormatSelected={handleFormatSelected}
-    onClose={() => showFormatModal = false}
-  />
-{/if}
