@@ -13,6 +13,8 @@
   import VerifyEmail from './routes/VerifyEmail.svelte';
   import { ImportPage } from './routes/import';
   import { ExportPage } from './routes/export';
+  import Payment from './routes/Payment.svelte';
+  import PaymentSuccess from './routes/PaymentSuccess.svelte';
   import Snackbar from './components/Snackbar.svelte';
   import { syncService } from './services/sync';
   import { currentPath, navigate } from './lib/navigation';
@@ -81,6 +83,10 @@
     <ResetPassword />
   {:else if path.startsWith('/verify-email')}
     <VerifyEmail />
+  {:else if path.startsWith('/payment')}
+    <Payment />
+  {:else if path.startsWith('/payment/success')}
+    <PaymentSuccess />
   {:else if path.startsWith('/history')}
     <History />
   {:else if path.startsWith('/import')}

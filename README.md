@@ -10,6 +10,7 @@ The Clock app is a web-based time tracking system with a planned iOS extension. 
 
 **Key Features:**
 - User authentication and management
+- **Subscription-based paywall with 2-month free trial and €5/year pricing**
 - Customizable activity tracking buttons with add/edit controls
 - Visual timer interface with button enlargement and pause functionality
 - Daily time tracking display on each button
