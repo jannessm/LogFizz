@@ -9,6 +9,17 @@
   type SortColumn = 'timer' | 'target' | 'type' | 'start' | 'end' | 'total_duration' | 'effective_duration';
   type SortDirection = 'asc' | 'desc';
 
+  export interface ColumnVisibility {
+    timer: boolean;
+    target: boolean;
+    type: boolean;
+    start: boolean;
+    end: boolean;
+    totalDuration: boolean;
+    effectiveDuration: boolean;
+    notes: boolean;
+  }
+
   let {
     timelogs = [],
     timers = [],
@@ -16,6 +27,16 @@
     monthlyBalances = [],
     selectable = false,
     selectedIds = $bindable(new Set<string>()),
+    visibleColumns = {
+      timer: true,
+      target: true,
+      type: true,
+      start: true,
+      end: true,
+      totalDuration: true,
+      effectiveDuration: true,
+      notes: true,
+    },
   }: {
     timelogs: TimeLog[];
     timers: Timer[];
@@ -23,7 +44,21 @@
     monthlyBalances?: Balance[];
     selectable?: boolean;
     selectedIds?: Set<string>;
+    visibleColumns?: ColumnVisibility;
   } = $props();
+
+  // Calculate visible column count for colspan
+  let visibleColumnCount = $derived(
+    (selectable ? 1 : 0) +
+    (visibleColumns.timer ? 1 : 0) +
+    (visibleColumns.target ? 1 : 0) +
+    (visibleColumns.type ? 1 : 0) +
+    (visibleColumns.start ? 1 : 0) +
+    (visibleColumns.end ? 1 : 0) +
+    (visibleColumns.totalDuration ? 1 : 0) +
+    (visibleColumns.effectiveDuration ? 1 : 0) +
+    (visibleColumns.notes ? 1 : 0)
+  );
 
   // Editing state
   let editingTimelog = $state<TimeLog | null>(null);
@@ -441,84 +476,100 @@
             />
           </th>
         {/if}
-        <th
-          class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-          onclick={() => handleSort('timer')}
-        >
-          <div class="flex items-center gap-1">
-            Timer
-            {#if sortColumn === 'timer'}
-              <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
-            {/if}
-          </div>
-        </th>
-        <th
-          class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-          onclick={() => handleSort('target')}
-        >
-          <div class="flex items-center gap-1">
-            Target
-            {#if sortColumn === 'target'}
-              <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
-            {/if}
-          </div>
-        </th>
-        <th
-          class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-          onclick={() => handleSort('type')}
-        >
-          <div class="flex items-center gap-1">
-            Type
-            {#if sortColumn === 'type'}
-              <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
-            {/if}
-          </div>
-        </th>
-        <th
-          class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-          onclick={() => handleSort('start')}
-        >
-          <div class="flex items-center gap-1">
-            Start
-            {#if sortColumn === 'start'}
-              <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
-            {/if}
-          </div>
-        </th>
-        <th
-          class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-          onclick={() => handleSort('end')}
-        >
-          <div class="flex items-center gap-1">
-            End
-            {#if sortColumn === 'end'}
-              <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
-            {/if}
-          </div>
-        </th>
-        <th
-          class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-          onclick={() => handleSort('total_duration')}
-        >
-          <div class="flex items-center gap-1">
-            Total Duration
-            {#if sortColumn === 'total_duration'}
-              <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
-            {/if}
-          </div>
-        </th>
-        <th
-          class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-          onclick={() => handleSort('effective_duration')}
-        >
-          <div class="flex items-center gap-1">
-            Effective Duration
-            {#if sortColumn === 'effective_duration'}
-              <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
-            {/if}
-          </div>
-        </th>
-        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notes</th>
+        {#if visibleColumns.timer}
+          <th
+            class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+            onclick={() => handleSort('timer')}
+          >
+            <div class="flex items-center gap-1">
+              Timer
+              {#if sortColumn === 'timer'}
+                <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
+              {/if}
+            </div>
+          </th>
+        {/if}
+        {#if visibleColumns.target}
+          <th
+            class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+            onclick={() => handleSort('target')}
+          >
+            <div class="flex items-center gap-1">
+              Target
+              {#if sortColumn === 'target'}
+                <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
+              {/if}
+            </div>
+          </th>
+        {/if}
+        {#if visibleColumns.type}
+          <th
+            class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+            onclick={() => handleSort('type')}
+          >
+            <div class="flex items-center gap-1">
+              Type
+              {#if sortColumn === 'type'}
+                <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
+              {/if}
+            </div>
+          </th>
+        {/if}
+        {#if visibleColumns.start}
+          <th
+            class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+            onclick={() => handleSort('start')}
+          >
+            <div class="flex items-center gap-1">
+              Start
+              {#if sortColumn === 'start'}
+                <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
+              {/if}
+            </div>
+          </th>
+        {/if}
+        {#if visibleColumns.end}
+          <th
+            class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+            onclick={() => handleSort('end')}
+          >
+            <div class="flex items-center gap-1">
+              End
+              {#if sortColumn === 'end'}
+                <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
+              {/if}
+            </div>
+          </th>
+        {/if}
+        {#if visibleColumns.totalDuration}
+          <th
+            class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+            onclick={() => handleSort('total_duration')}
+          >
+            <div class="flex items-center gap-1">
+              Total Duration
+              {#if sortColumn === 'total_duration'}
+                <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
+              {/if}
+            </div>
+          </th>
+        {/if}
+        {#if visibleColumns.effectiveDuration}
+          <th
+            class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+            onclick={() => handleSort('effective_duration')}
+          >
+            <div class="flex items-center gap-1">
+              Effective Duration
+              {#if sortColumn === 'effective_duration'}
+                <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
+              {/if}
+            </div>
+          </th>
+        {/if}
+        {#if visibleColumns.notes}
+          <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notes</th>
+        {/if}
       </tr>
     </thead>
     <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
@@ -526,7 +577,7 @@
         <!-- Group separator row -->
         {#if group.groupLabel}
           <tr class="bg-gray-100 dark:bg-gray-800">
-            <td colspan={selectable ? 9 : 8} class="px-3 py-2">
+            <td colspan={visibleColumnCount} class="px-3 py-2">
               <div class="flex items-center justify-between">
                 <span class="font-semibold text-gray-900 dark:text-gray-100">
                   {group.groupLabel}
@@ -571,59 +622,75 @@
             {/if}
             
             <!-- Timer -->
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-              {getTimerName(timelog.timer_id)}
-            </td>
+            {#if visibleColumns.timer}
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                {getTimerName(timelog.timer_id)}
+              </td>
+            {/if}
             
             <!-- Target -->
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-              {getTargetName(timelog.timer_id)}
-            </td>
+            {#if visibleColumns.target}
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                {getTargetName(timelog.timer_id)}
+              </td>
+            {/if}
             
             <!-- Type -->
-            <td class="px-3 py-2 whitespace-nowrap">
-              <span class="px-2 py-1 text-xs font-medium rounded-full {getTypeBadgeClass(timelog.type)}">
-                {getTypeLabel(timelog.type)}
-              </span>
-            </td>
+            {#if visibleColumns.type}
+              <td class="px-3 py-2 whitespace-nowrap">
+                <span class="px-2 py-1 text-xs font-medium rounded-full {getTypeBadgeClass(timelog.type)}">
+                  {getTypeLabel(timelog.type)}
+                </span>
+              </td>
+            {/if}
             
             <!-- Start -->
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-              {#if group.showBalances && ['start', 'end'].includes(sortColumn)}
-                {formatDateTimeConditional(timelog.start_timestamp, timelog.timezone || userTimezone, group.groupKey)}
-              {:else}
-                {formatDateTime(timelog.start_timestamp, timelog.timezone || userTimezone)}
-              {/if}
-            </td>
+            {#if visibleColumns.start}
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                {#if group.showBalances && ['start', 'end'].includes(sortColumn)}
+                  {formatDateTimeConditional(timelog.start_timestamp, timelog.timezone || userTimezone, group.groupKey)}
+                {:else}
+                  {formatDateTime(timelog.start_timestamp, timelog.timezone || userTimezone)}
+                {/if}
+              </td>
+            {/if}
             
             <!-- End -->
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-              {#if group.showBalances && ['start', 'end'].includes(sortColumn)}
-                {formatDateTimeConditional(timelog.end_timestamp, timelog.timezone || userTimezone, group.groupKey)}
-              {:else}
-                {formatDateTime(timelog.end_timestamp, timelog.timezone || userTimezone)}
-              {/if}
-            </td>
+            {#if visibleColumns.end}
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                {#if group.showBalances && ['start', 'end'].includes(sortColumn)}
+                  {formatDateTimeConditional(timelog.end_timestamp, timelog.timezone || userTimezone, group.groupKey)}
+                {:else}
+                  {formatDateTime(timelog.end_timestamp, timelog.timezone || userTimezone)}
+                {/if}
+              </td>
+            {/if}
             
             <!-- Total Duration -->
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-              {formatDuration(getTotalDuration(timelog))}
-            </td>
+            {#if visibleColumns.totalDuration}
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                {formatDuration(getTotalDuration(timelog))}
+              </td>
+            {/if}
             
             <!-- Effective Duration -->
-            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-              {formatDuration(getEffectiveDuration(timelog))}
-            </td>
+            {#if visibleColumns.effectiveDuration}
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                {formatDuration(getEffectiveDuration(timelog))}
+              </td>
+            {/if}
             
             <!-- Notes -->
-            <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
-              <span title={timelog.notes || ''}>{timelog.notes || '-'}</span>
-            </td>
+            {#if visibleColumns.notes}
+              <td class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
+                <span title={timelog.notes || ''}>{timelog.notes || '-'}</span>
+              </td>
+            {/if}
           </tr>
         {/each}
       {:else}
         <tr>
-          <td colspan={selectable ? 9 : 8} class="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
+          <td colspan={visibleColumnCount} class="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
             No timelogs found
           </td>
         </tr>

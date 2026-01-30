@@ -1,13 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import BottomNav from '../components/BottomNav.svelte';
-  import TimelogsTable from '../components/history/TimelogsTable.svelte';
-  import TableFilters, { type FilterState } from '../components/history/TableFilters.svelte';
-  import { ExportTimelogsModal } from '../components/history';
+  import TimelogsTable from '../components/History/TimelogsTable.svelte';
+  import TableFilters, { type FilterState } from '../components/History/TableFilters.svelte';
   import { timeLogsStore, timerlogs } from '../stores/timelogs';
   import { timers } from '../stores/timers';
   import { targets } from '../stores/targets';
-  import { balancesStore, monthlyBalances } from '../stores/balances';
+  import { monthlyBalances } from '../stores/balances';
   import { dayjs, type TimeLog } from '../types';
   import { userTimezone } from '../../../lib/utils/dayjs';
   import { navigate } from '../lib/navigation';
@@ -42,9 +41,6 @@
 
   // Filters
   let filters = $state<FilterState>(getInitialFilters());
-
-  // Modals
-  let showExportModal = $state(false);
 
   // Load all timelogs for the date range
   let isLoading = $state(true);
@@ -191,11 +187,13 @@
   });
 
   function handleExportClick() {
-    showExportModal = true;
-  }
-
-  function handleExportClose() {
-    showExportModal = false;
+    // Navigate to export page with current date filter
+    const params = new URLSearchParams();
+    params.set('from', 'table');
+    if (filters.dateFrom) {
+      params.set('date', filters.dateFrom.format('YYYY-MM-DD'));
+    }
+    navigate(`/export?${params.toString()}`);
   }
 
   function navigateToHistory() {
@@ -357,11 +355,4 @@
   </div>
 
   <BottomNav currentTab="history" />
-
-  <!-- Export Modal -->
-  {#if showExportModal}
-    <ExportTimelogsModal
-      close={handleExportClose}
-    />
-  {/if}
 </div>

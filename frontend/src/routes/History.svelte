@@ -3,8 +3,8 @@
 
   import {
     HistoryCharts, HistoryCalendar,
-    HistoryLogs, ExportTimelogsModal, BalancesOverview
-  } from '../components/history';
+    HistoryLogs, BalancesOverview
+  } from '../components/History';
   import { timers } from '../stores/timers';
   import { targets } from '../stores/targets';
   import { dayjs } from '../types'; // ensure consistent dayjs instance
@@ -45,8 +45,6 @@
   const initialDates = getInitialDates();
   let selectedDate = $state(initialDates); // actual selected date
 
-  let showExportModal = $state(false);
-
   // Create calendar store that reactively updates based on currentMonth and timers
   let calendarStore = $derived(
     createCalendarStore(selectedDate.month.year(), selectedDate.month.month() + 1, 1, $timers, $targets)
@@ -70,11 +68,11 @@
   }
 
   function handleExportClick() {
-    showExportModal = true;
-  }
-
-  function handleExportClose() {
-    showExportModal = false;
+    // Navigate to export page with current date
+    const params = new URLSearchParams();
+    params.set('from', 'history');
+    params.set('date', selectedDate.month.format('YYYY-MM-DD'));
+    navigate(`/export?${params.toString()}`);
   }
 
   function navigateToTable() {
@@ -157,11 +155,4 @@
   </div>
 
   <BottomNav currentTab="history" />
-
-  <!-- Export Timelogs Modal -->
-  {#if showExportModal}
-    <ExportTimelogsModal
-      close={handleExportClose}
-    />
-  {/if}
 </div>

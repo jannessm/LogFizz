@@ -12,6 +12,7 @@
   import ResetPassword from './routes/ResetPassword.svelte';
   import VerifyEmail from './routes/VerifyEmail.svelte';
   import { ImportPage } from './routes/import';
+  import { ExportPage } from './routes/export';
   import Snackbar from './components/Snackbar.svelte';
   import { syncService } from './services/sync';
   import { currentPath, navigate } from './lib/navigation';
@@ -84,6 +85,8 @@
     <History />
   {:else if path.startsWith('/import')}
     <ImportPage />
+  {:else if path.startsWith('/export')}
+    <ExportPage />
   {:else if path.startsWith('/table')}
     <Table />
   {:else if path.startsWith('/settings')}
