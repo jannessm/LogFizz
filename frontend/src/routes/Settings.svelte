@@ -58,14 +58,11 @@
     const firstDaySetting = await getSetting('firstDayOfWeek');
     firstDayOfWeek = firstDaySetting || 'sunday'; // default sunday
 
-    // Load user settings (language, locale)
-    await userSettingsStore.init();
+    // Read user settings from store (already initialized in App.svelte)
     const userSettings = $userSettingsStore.settings;
     if (userSettings) {
       language = (userSettings.language as 'en' | 'de') || 'en';
       locale = userSettings.locale || 'en-US';
-      // Set i18n locale
-      setLocale(language);
     }
   });
 

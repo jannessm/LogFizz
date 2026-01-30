@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { authStore } from '../stores/auth';
   import { navigate } from '../lib/navigation';
   import { snackbar } from '../stores/snackbar';
@@ -8,6 +9,14 @@
   let cooldownInterval: ReturnType<typeof setInterval> | null = null;
 
   let user = $derived($authStore.user);
+
+  // Cleanup interval on component destroy
+  onDestroy(() => {
+    if (cooldownInterval) {
+      clearInterval(cooldownInterval);
+      cooldownInterval = null;
+    }
+  });
 
   async function handleResendVerification() {
     if (isResending || resendCooldown > 0 || !user?.email) return;

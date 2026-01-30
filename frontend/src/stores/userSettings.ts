@@ -6,6 +6,7 @@ import { saveSetting, getSetting } from '../lib/db';
 interface UserSettingsStore {
   settings: UserSettings | null;
   isLoading: boolean;
+  isInitialized: boolean;
   error: string | null;
 }
 
@@ -16,59 +17,82 @@ function createUserSettingsStore() {
   const { subscribe, set, update } = writable<UserSettingsStore>({
     settings: null,
     isLoading: true,
+    isInitialized: false,
     error: null,
   });
+
+  let initPromise: Promise<void> | null = null;
 
   return {
     subscribe,
 
     /**
      * Initialize the store - load from local storage and sync with server
+     * Idempotent - will not re-initialize if already initialized
      */
     async init() {
-      update(state => ({ ...state, isLoading: true }));
-      try {
-        // Try to load from local storage first
-        const localSettings = await getSetting(USER_SETTINGS_KEY);
-        if (localSettings) {
-          update(state => ({ 
-            ...state, 
-            settings: localSettings,
-            isLoading: false 
-          }));
-        }
+      const currentState = get({ subscribe });
+      
+      // If already initialized, return immediately
+      if (currentState.isInitialized) {
+        return;
+      }
 
-        // Try to fetch from API if online
-        if (navigator.onLine) {
-          try {
-            const settings = await userSettingsApi.getSettings();
-            await saveSetting(USER_SETTINGS_KEY, settings);
+      // If initialization is in progress, wait for it
+      if (initPromise) {
+        return initPromise;
+      }
+
+      initPromise = (async () => {
+        update(state => ({ ...state, isLoading: true }));
+        try {
+          // Try to load from local storage first
+          const localSettings = await getSetting(USER_SETTINGS_KEY);
+          if (localSettings) {
             update(state => ({ 
               ...state, 
-              settings, 
-              isLoading: false,
-              error: null
+              settings: localSettings,
+              isLoading: false 
             }));
-          } catch (error: any) {
-            // If fetch fails, keep local settings
-            console.warn('Failed to fetch user settings from server:', error);
-            if (!localSettings) {
+          }
+
+          // Try to fetch from API if online
+          if (navigator.onLine) {
+            try {
+              const settings = await userSettingsApi.getSettings();
+              await saveSetting(USER_SETTINGS_KEY, settings);
               update(state => ({ 
                 ...state, 
-                isLoading: false 
+                settings, 
+                isLoading: false,
+                isInitialized: true,
+                error: null
+              }));
+            } catch (error: any) {
+              // If fetch fails, keep local settings
+              console.warn('Failed to fetch user settings from server:', error);
+              update(state => ({ 
+                ...state, 
+                isLoading: false,
+                isInitialized: true
               }));
             }
+          } else {
+            update(state => ({ ...state, isLoading: false, isInitialized: true }));
           }
-        } else {
-          update(state => ({ ...state, isLoading: false }));
+        } catch (error: any) {
+          update(state => ({ 
+            ...state, 
+            error: error.message,
+            isLoading: false,
+            isInitialized: true
+          }));
+        } finally {
+          initPromise = null;
         }
-      } catch (error: any) {
-        update(state => ({ 
-          ...state, 
-          error: error.message,
-          isLoading: false 
-        }));
-      }
+      })();
+
+      return initPromise;
     },
 
     /**
@@ -78,23 +102,24 @@ function createUserSettingsStore() {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
         const currentState = get({ subscribe });
-        const updatedSettings = {
+        // Create optimistic update without manually setting timestamp
+        const optimisticSettings = {
           ...currentState.settings,
           ...updates,
-          updated_at: new Date().toISOString(),
         } as UserSettings;
 
-        // Save to local storage immediately
-        await saveSetting(USER_SETTINGS_KEY, updatedSettings);
+        // Save to local storage immediately for optimistic update
+        await saveSetting(USER_SETTINGS_KEY, optimisticSettings);
         update(state => ({ 
           ...state, 
-          settings: updatedSettings,
+          settings: optimisticSettings,
         }));
 
         // Sync to server if online
         if (navigator.onLine) {
           try {
             const settings = await userSettingsApi.updateSettings(updates);
+            // Use server-returned settings with authoritative timestamp
             await saveSetting(USER_SETTINGS_KEY, settings);
             update(state => ({ 
               ...state, 
@@ -143,6 +168,7 @@ function createUserSettingsStore() {
       set({
         settings: null,
         isLoading: false,
+        isInitialized: false,
         error: null,
       });
     },

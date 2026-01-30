@@ -26,10 +26,14 @@ export class UserSettingsService {
       });
       await this.userSettingsRepository.save(settings);
       // Reload to get auto-generated fields
-      settings = await this.userSettingsRepository.findOne({ where: { id: settings.id } });
+      const reloadedSettings = await this.userSettingsRepository.findOne({ where: { id: settings.id } });
+      if (!reloadedSettings) {
+        throw new Error('Failed to create user settings');
+      }
+      return reloadedSettings;
     }
     
-    return settings!;
+    return settings;
   }
 
   /**

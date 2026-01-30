@@ -1,4 +1,5 @@
 import { register, init, getLocaleFromNavigator, locale, _ } from 'svelte-i18n';
+import { get } from 'svelte/store';
 
 // Register the translations
 register('en', () => import('./en.json'));
@@ -22,9 +23,5 @@ export function setLocale(lang: string) {
 
 // Get the current locale
 export function getLocale(): string {
-  let currentLocale = 'en';
-  locale.subscribe(value => {
-    currentLocale = value || 'en';
-  })();
-  return currentLocale;
+  return get(locale) || 'en';
 }

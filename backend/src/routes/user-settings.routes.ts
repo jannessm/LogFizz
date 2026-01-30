@@ -4,6 +4,10 @@ import { UserSettingsService } from '../services/user-settings.service.js';
 
 const userSettingsService = new UserSettingsService();
 
+// Allowed values for validation
+const ALLOWED_LANGUAGES = ['en', 'de'];
+const ALLOWED_LOCALES = ['en-US', 'en-GB', 'de-DE', 'de-AT', 'de-CH'];
+
 export async function userSettingsRoutes(fastify: FastifyInstance) {
   // Get user settings
   fastify.get('/', {
@@ -47,8 +51,14 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['User Settings'],
       body: Type.Object({
-        language: Type.Optional(Type.String()),
-        locale: Type.Optional(Type.String()),
+        language: Type.Optional(Type.Union([Type.Literal('en'), Type.Literal('de')])),
+        locale: Type.Optional(Type.Union([
+          Type.Literal('en-US'),
+          Type.Literal('en-GB'),
+          Type.Literal('de-DE'),
+          Type.Literal('de-AT'),
+          Type.Literal('de-CH'),
+        ])),
       }),
       response: {
         200: Type.Object({
@@ -137,8 +147,14 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
       tags: ['User Settings'],
       body: Type.Object({
         settings: Type.Object({
-          language: Type.Optional(Type.String()),
-          locale: Type.Optional(Type.String()),
+          language: Type.Optional(Type.Union([Type.Literal('en'), Type.Literal('de')])),
+          locale: Type.Optional(Type.Union([
+            Type.Literal('en-US'),
+            Type.Literal('en-GB'),
+            Type.Literal('de-DE'),
+            Type.Literal('de-AT'),
+            Type.Literal('de-CH'),
+          ])),
           updated_at: Type.Optional(Type.String()),
         }),
       }),

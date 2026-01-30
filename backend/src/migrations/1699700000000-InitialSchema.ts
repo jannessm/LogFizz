@@ -261,6 +261,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_deleted_at" ON "time_logs" ("deleted_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_timers_updated_at" ON "timers" ("updated_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_updated_at" ON "time_logs" ("updated_at")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_settings_updated_at" ON "user_settings" ("updated_at")`);
 
     }
 
