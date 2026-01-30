@@ -4,12 +4,12 @@
   import type { TargetWithSpecs } from '../../types';
   import { balanceApi, isOnline } from '../../services/api';
   import { 
-    getBalancesByDate, 
     saveBalance,
     getSyncCursor,
     saveSyncCursor,
-    getAllTargets
   } from '../../lib/db';
+  import { balancesStore } from '../../stores/balances';
+  import { targetsStore } from '../../stores/targets';
   import { formatMinutes, formatHours, getBalanceColor } from '../../../../lib/utils/timeFormat.js';
 
   let { year, month }: { year: number; month: number; } = $props();
@@ -26,16 +26,16 @@
     error = null;
     try {
       // Load targets to find those without starting_from in any target_spec
-      const allTargets = await getAllTargets();
+      const allTargets = targetsStore.getAll();
       targetsWithoutStartingFrom = allTargets.filter(t => {
         // Check if any target_spec has a starting_from date
         const hasStartingFrom = t.target_specs?.some(spec => spec.starting_from);
-        return !hasStartingFrom && !t.deleted_at;
+        return !hasStartingFrom;
       });
 
       // Load monthly balances from local DB (date format: YYYY-MM)
       const dateKey = `${year}-${month.toString().padStart(2, '0')}`;
-      const localBalances = await getBalancesByDate(dateKey);
+      const localBalances = await balancesStore.getBalancesByDate(dateKey);
       balances = localBalances;
 
       // Sync from server in background
@@ -71,7 +71,7 @@
 
       // Reload from DB to reflect changes for current month
       const dateKey = `${year}-${month.toString().padStart(2, '0')}`;
-      const updatedBalances = await getBalancesByDate(dateKey);
+      const updatedBalances = await balancesStore.getBalancesByDate(dateKey);
       balances = updatedBalances;
     } catch (err) {
       console.error('Failed to sync balances from server:', err);

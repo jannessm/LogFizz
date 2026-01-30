@@ -5,6 +5,7 @@
   import { statesStore } from '../../stores/states';
   import { timersStore, timers } from '../../stores/timers';
   import TargetSpecItem from './TargetSpecItem.svelte';
+  import DateTimeInput from './DateTimeInput.svelte';
   import { dayjs } from '../../types';
 
   let {
@@ -134,11 +135,6 @@
       errorMessage = '';
     }
   }
-
-  function handleStartDateChange(index: number, newDate: string) {
-    targetSpecs[index].startDate = newDate;
-    targetSpecs = [...targetSpecs];
-  } 
 
   onMount(async () => {
     await statesStore.load();
@@ -355,20 +351,15 @@
                     <div class="flex gap-2 items-start py-2 relative z-10">
                       <!-- Date Input -->
                       <div class="flex-shrink-0 relative" style="width: 140px;">
-                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1" for="start-date-{index}">
-                          {#if index === 0 && !archiveDate}
-                            <span class="text-primary font-semibold">● Current</span>
-                          {:else}
-                            Start Date
-                          {/if}
-                        </label>
-                        <input
-                          id="start-date-{index}"
-                          type="date"
-                          bind:value={specWithDate.startDate}
-                          onchange={() => handleStartDateChange(index, specWithDate.startDate)}
-                          class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-primary"
+                        <DateTimeInput
+                          bind:stringValue={specWithDate.startDate}
+                          dateOnly={true}
+                          dateLabel={index === 0 && !archiveDate ? '' : 'Start Date'}
+                          dateId="start-date-{index}"
                         />
+                        {#if index === 0 && !archiveDate}
+                          <span class="text-xs text-primary font-semibold mb-1">● Current</span>
+                        {/if}
                         {#if index < targetSpecs.length - 1}
                           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             Ends: {dayjs(targetSpecs[index + 1].startDate).subtract(1, 'day').format('MMM D, YYYY')}
@@ -425,12 +416,11 @@
           </p>
           <div class="flex items-start gap-3">
             <div class="flex-1">
-              <input
-                id="archive-date"
-                type="date"
-                bind:value={archiveDate}
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
-                placeholder="Leave empty to keep target active"
+              <DateTimeInput
+                bind:stringValue={archiveDate}
+                dateOnly={true}
+                dateLabel=""
+                dateId="archive-date"
               />
               {#if archiveDate}
                 <p class="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">

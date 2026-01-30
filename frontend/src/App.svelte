@@ -6,16 +6,19 @@
   import Login from './routes/Login.svelte';
   import Dashboard from './routes/Dashboard.svelte';
   import History from './routes/History.svelte';
+  import Table from './routes/Table.svelte';
   import Settings from './routes/Settings.svelte';
   import ForgotPassword from './routes/ForgotPassword.svelte';
   import ResetPassword from './routes/ResetPassword.svelte';
   import VerifyEmail from './routes/VerifyEmail.svelte';
+  import { ImportPage } from './routes/import';
+  import { ExportPage } from './routes/export';
   import Snackbar from './components/Snackbar.svelte';
   import { syncService } from './services/sync';
   import { currentPath, navigate } from './lib/navigation';
   import { loadData } from './services/data';
-    import { getDB } from './lib/db';
-    import { snackbar } from './stores/snackbar';
+  import { getDB } from './lib/db';
+  import { snackbar } from './stores/snackbar';
 
   let isLoading = true;
 
@@ -54,7 +57,7 @@
 
     // Redirect to dashboard if authenticated and on a public route
     if (!isLoading && auth.isAuthenticated && isPublicRoute(path)) {
-      if (path === '/reset-password') {
+      if (path.startsWith('/reset-password')) {
         snackbar.info('To reset your password, logout first.', 6000);
       }
       navigate('/', { replace: true });
@@ -70,17 +73,23 @@
     </div>
   </div>
 {:else}
-  {#if path === '/login'}
+  {#if path.startsWith('/login')}
     <Login />
-  {:else if path === '/forgot-password'}
+  {:else if path.startsWith('/forgot-password')}
     <ForgotPassword />
-  {:else if path === '/reset-password'}
+  {:else if path.startsWith('/reset-password')}
     <ResetPassword />
-  {:else if path === '/verify-email'}
+  {:else if path.startsWith('/verify-email')}
     <VerifyEmail />
-  {:else if path === '/history'}
+  {:else if path.startsWith('/history')}
     <History />
-  {:else if path === '/settings'}
+  {:else if path.startsWith('/import')}
+    <ImportPage />
+  {:else if path.startsWith('/export')}
+    <ExportPage />
+  {:else if path.startsWith('/table')}
+    <Table />
+  {:else if path.startsWith('/settings')}
     <Settings />
   {:else}
     <Dashboard />

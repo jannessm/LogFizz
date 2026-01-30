@@ -90,7 +90,9 @@ async function prepareCalculationContext(
   const allTimelogs = await getTimeLogsByYearMonth(year, month);
   const _timers = get(timers);
   // Filter to only include timelogs from timers linked to this specific target
+  // and exclude deleted timelogs
   const timelogs = allTimelogs.filter(tl => {
+    if (tl.deleted_at) return false;
     const timer = _timers.find(t => t.id === tl.timer_id);
     return timer !== undefined && timer.target_id === targetId;
   });
@@ -225,11 +227,13 @@ function createBalancesStore() {
     },
 
     async getBalancesByDate(date: string): Promise<Balance[]> {
-      return await getBalancesByDate(date);
+      const balances = await getBalancesByDate(date);
+      return balances.filter(b => !b.deleted_at);
     },
 
     async getBalancesByTargetId(targetId: string): Promise<Balance[]> {
-      return await getBalancesByTargetId(targetId);
+      const balances = await getBalancesByTargetId(targetId);
+      return balances.filter(b => !b.deleted_at);
     },
 
     /**
@@ -241,10 +245,11 @@ function createBalancesStore() {
       // First check in-memory store (O(1) lookup)
       const state = baseStore.getState();
       const inMemory = state.items.get(id);
-      if (inMemory) return inMemory;
+      if (inMemory && !inMemory.deleted_at) return inMemory;
       
       // Fall back to DB
-      return await getBalance(id);
+      const balance = await getBalance(id);
+      return balance && !balance.deleted_at ? balance : undefined;
     },
 
     getBalancesByGranularity(granularity: 'daily' | 'monthly' | 'yearly'): Balance[] {
@@ -288,7 +293,9 @@ function createBalancesStore() {
       
       // Load all balances for this target from DB (not just in-memory)
       const allBalances = await getBalancesByTargetId(targetId);
-      const dailyBalances = allBalances.filter(b => getGranularity(b.date) === 'daily');
+      const dailyBalances = allBalances.filter(b => 
+        getGranularity(b.date) === 'daily' && !b.deleted_at
+      );
       
       // Get previous month's cumulation
       const prevMonth = start.subtract(1, 'month');
@@ -328,7 +335,9 @@ function createBalancesStore() {
     ): Promise<void> {
       // Load all balances for this target from DB (not just in-memory)
       const allBalances = await getBalancesByTargetId(targetId);
-      const monthlyBals = allBalances.filter(b => getGranularity(b.date) === 'monthly');
+      const monthlyBals = allBalances.filter(b => 
+        getGranularity(b.date) === 'monthly' && !b.deleted_at
+      );
       
       // Get previous year's cumulation
       const prevYearStr = `${startYear - 1}`;

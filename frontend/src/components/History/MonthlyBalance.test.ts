@@ -4,12 +4,23 @@ import MonthlyBalance from './MonthlyBalance.svelte';
 
 // Mock the database functions
 vi.mock('../../lib/db', () => ({
-  getBalancesByDate: vi.fn(),
   saveBalance: vi.fn(),
   getSyncCursor: vi.fn(),
   saveSyncCursor: vi.fn(),
-  getAllTargets: vi.fn(),
   getTimeLogsByYearMonth: vi.fn().mockResolvedValue([]),
+}));
+
+// Mock the stores
+vi.mock('../../stores/balances', () => ({
+  balancesStore: {
+    getBalancesByDate: vi.fn(),
+  },
+}));
+
+vi.mock('../../stores/targets', () => ({
+  targetsStore: {
+    getAll: vi.fn(),
+  },
 }));
 
 // Mock the API
@@ -40,10 +51,11 @@ describe('MonthlyBalance Component', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     
-    const { getBalancesByDate, getAllTargets } = await import('../../lib/db');
+    const { balancesStore } = await import('../../stores/balances');
+    const { targetsStore } = await import('../../stores/targets');
     
-    vi.mocked(getBalancesByDate).mockResolvedValue([]);
-    vi.mocked(getAllTargets).mockResolvedValue([]);
+    vi.mocked(balancesStore.getBalancesByDate).mockResolvedValue([]);
+    vi.mocked(targetsStore.getAll).mockReturnValue([]);
   });
 
   it('renders component with loading state', () => {
@@ -56,7 +68,7 @@ describe('MonthlyBalance Component', () => {
   });
 
   it('loads balances for specified month', async () => {
-    const { getBalancesByDate } = await import('../../lib/db');
+    const { balancesStore } = await import('../../stores/balances');
     
     render(MonthlyBalance, {
       props: { year: 2024, month: 3 },
@@ -65,11 +77,11 @@ describe('MonthlyBalance Component', () => {
     // Wait for async operations
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    expect(getBalancesByDate).toHaveBeenCalledWith('2024-03');
+    expect(balancesStore.getBalancesByDate).toHaveBeenCalledWith('2024-03');
   });
 
   it('loads balances with zero-padded month', async () => {
-    const { getBalancesByDate } = await import('../../lib/db');
+    const { balancesStore } = await import('../../stores/balances');
     
     render(MonthlyBalance, {
       props: { year: 2024, month: 5 },
@@ -77,33 +89,46 @@ describe('MonthlyBalance Component', () => {
 
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    expect(getBalancesByDate).toHaveBeenCalledWith('2024-05');
+    expect(balancesStore.getBalancesByDate).toHaveBeenCalledWith('2024-05');
   });
 
   it('displays balances when loaded', async () => {
-    const { getBalancesByDate, getAllTargets } = await import('../../lib/db');
     
     const mockBalances = [
       {
         id: 'b1',
         target_id: 't1',
+        user_id: 'user1',
         date: '2024-01',
         worked_minutes: 480,
         due_minutes: 400,
         cumulative_minutes: 80,
+        sick_days: 0,
+        holidays: 0,
+        business_trip: 0,
+        child_sick: 0,
+        worked_days: 0,
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
       },
     ];
 
     const mockTargets = [
       {
         id: 't1',
+        user_id: 'user1',
         name: 'Work',
         target_specs: [],
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
       },
     ];
 
-    vi.mocked(getBalancesByDate).mockResolvedValue(mockBalances);
-    vi.mocked(getAllTargets).mockResolvedValue(mockTargets);
+    const { balancesStore } = await import('../../stores/balances');
+    const { targetsStore } = await import('../../stores/targets');
+    
+    vi.mocked(balancesStore.getBalancesByDate).mockResolvedValue(mockBalances);
+    vi.mocked(targetsStore.getAll).mockReturnValue(mockTargets);
 
     render(MonthlyBalance, {
       props: { year: 2024, month: 1 },
@@ -114,9 +139,9 @@ describe('MonthlyBalance Component', () => {
   });
 
   it('handles error state gracefully', async () => {
-    const { getBalancesByDate } = await import('../../lib/db');
+    const { balancesStore } = await import('../../stores/balances');
     
-    vi.mocked(getBalancesByDate).mockRejectedValue(new Error('Database error'));
+    vi.mocked(balancesStore.getBalancesByDate).mockRejectedValue(new Error('Database error'));
 
     const { container } = render(MonthlyBalance, {
       props: { year: 2024, month: 1 },
@@ -150,22 +175,28 @@ describe('MonthlyBalance Component', () => {
   });
 
   it('filters targets without starting_from', async () => {
-    const { getAllTargets } = await import('../../lib/db');
+    const { targetsStore } = await import('../../stores/targets');
     
     const mockTargets = [
       {
         id: 't1',
+        user_id: 'user1',
         name: 'Work',
-        target_specs: [{ starting_from: null }],
+        target_specs: [],
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
       },
       {
         id: 't2',
+        user_id: 'user1',
         name: 'Study',
-        target_specs: [{ starting_from: '2024-01-01' }],
+        target_specs: [],
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
       },
-    ];
+    ] as any;
 
-    vi.mocked(getAllTargets).mockResolvedValue(mockTargets);
+    vi.mocked(targetsStore.getAll).mockReturnValue(mockTargets);
 
     render(MonthlyBalance, {
       props: { year: 2024, month: 1 },
@@ -174,6 +205,6 @@ describe('MonthlyBalance Component', () => {
     await new Promise(resolve => setTimeout(resolve, 200));
 
     // Component should filter correctly
-    expect(getAllTargets).toHaveBeenCalled();
+    expect(targetsStore.getAll).toHaveBeenCalled();
   });
 });
