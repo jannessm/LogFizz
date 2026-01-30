@@ -106,7 +106,7 @@ function createTimeLogsStore() {
       const year = parseInt(yearStr);
       const month = parseInt(monthStr);
       
-      const logs = await getTimeLogsByYearMonth(year, month);
+      const logs = (await getTimeLogsByYearMonth(year, month)).filter(tl => !tl.deleted_at);
       allTimeLogs.push(...logs);
     }
     
@@ -151,15 +151,7 @@ function createTimeLogsStore() {
         // Load current month from local DB
         const currentYear = dayjs().tz(userTimezone).year();
         const currentMonth = dayjs().tz(userTimezone).month() + 1;
-        const allItems = await getTimeLogsByYearMonth(currentYear, currentMonth);
-
-        // filter out deleted items and clean up old deleted items
-        const items: TimeLog[] = [];
-        for (const item of allItems) {
-          if (!item.deleted_at) {
-            items.push(item);
-          }
-        }
+        const items = (await getTimeLogsByYearMonth(currentYear, currentMonth)).filter(tl => !tl.deleted_at);
 
         baseStore.updateWriteable(state => ({ ...state, items: arrayToMap(items), isLoading: false }));
 
@@ -229,7 +221,11 @@ function createTimeLogsStore() {
         baseStore.updateWriteable(state => {
           const newItems = new Map(state.items);
           for (const log of timeLogs) {
-            newItems.set(log.id, log);
+            if (log.deleted_at) {
+              newItems.delete(log.id);
+            } else {
+              newItems.set(log.id, log);
+            }
           }
           return {
             ...state,
@@ -237,7 +233,8 @@ function createTimeLogsStore() {
             isLoading: false
           };
         });
-        return timeLogs;
+        // Filter out deleted items before returning
+        return timeLogs.filter(tl => !tl.deleted_at);
       } catch (error: any) {
         baseStore.updateWriteable(state => ({ 
           ...state, 

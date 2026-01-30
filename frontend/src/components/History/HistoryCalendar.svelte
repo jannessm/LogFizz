@@ -7,7 +7,7 @@
   let {
     timeLogs,
     calendarData,
-    selectedDate,
+    selectedDate = $bindable(),
   }: {
     timeLogs: TimeLog[];
     calendarData: CalendarTimeLogData;
@@ -25,11 +25,10 @@
     window.history.replaceState({}, '', newURL);
   }
 
-  // Watch for date changes and update URL + notify parent
+  // Watch for date changes and update URL (parent is responsible for loading data)
   $effect(() => {
     if (selectedDate.date && selectedDate.month) {
       updateURL();
-      loadCalendarMonth(selectedDate.month.year(), selectedDate.month.month() + 1);
     }
   });
 

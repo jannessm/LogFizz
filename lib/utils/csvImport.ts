@@ -20,7 +20,8 @@ export const DATE_TIME_FORMATS = [
  * Column detection patterns
  */
 export const COLUMN_PATTERNS = {
-  date: ['date', 'datum', 'day', 'tag'],
+  startDate: ['startdate', 'start date', 'start_date', 'date', 'datum', 'day', 'tag'],
+  endDate: ['enddate', 'end date', 'end_date'],
   startTime: ['start', 'begin', 'from', 'anfang'],
   endTime: ['end', 'stop', 'to', 'ende', 'bis'],
   notes: ['note', 'notes', 'notiz', 'notizen', 'description', 'beschreibung', 'comment', 'kommentar'],
@@ -39,7 +40,8 @@ export interface ParsedCSV {
  * Auto-detected columns
  */
 export interface AutoDetectedColumns {
-  dateColumn?: string;
+  startDateColumn?: string;
+  endDateColumn?: string;
   startTimeColumn?: string;
   endTimeColumn?: string;
   notesColumn?: string;
@@ -104,9 +106,24 @@ export function autoDetectColumns(headers: string[]): AutoDetectedColumns {
   for (const header of headers) {
     const lowerHeader = header.toLowerCase();
     
-    if (!result.dateColumn && COLUMN_PATTERNS.date.some(p => lowerHeader.includes(p))) {
-      result.dateColumn = header;
+    // Check date columns first (more specific patterns)
+    if (!result.startDateColumn && COLUMN_PATTERNS.startDate.some(p => lowerHeader.includes(p))) {
+      result.startDateColumn = header;
     }
+    if (!result.endDateColumn && COLUMN_PATTERNS.endDate.some(p => lowerHeader.includes(p))) {
+      result.endDateColumn = header;
+    }
+  }
+
+  // Then check time columns (avoid matching date columns)
+  for (const header of headers) {
+    const lowerHeader = header.toLowerCase();
+    
+    // Skip if already identified as a date column
+    if (header === result.startDateColumn || header === result.endDateColumn) {
+      continue;
+    }
+    
     if (!result.startTimeColumn && COLUMN_PATTERNS.startTime.some(p => lowerHeader.includes(p))) {
       result.startTimeColumn = header;
     }
@@ -137,9 +154,17 @@ export function combineDateAndTime(date: string, time: string): string {
 /**
  * Validates if a string is a valid date/time
  */
-export function isValidDateTime(value: string): boolean {
+export function isValidDateTime(value: string, customFormats?: string[]): boolean {
   if (!value) return false;
   
+  // Try custom formats first if provided
+  if (customFormats && customFormats.length > 0) {
+    for (const format of customFormats) {
+      const parsed = dayjs(value, format, true);
+      if (parsed.isValid()) return true;
+    }
+  }
+
   // Try all known formats
   for (const format of DATE_TIME_FORMATS) {
     const parsed = dayjs(value, format, true);
@@ -152,22 +177,35 @@ export function isValidDateTime(value: string): boolean {
 }
 
 /**
- * Parses a date/time string into a dayjs object
+ * Parses a date/time string into a dayjs object with optional timezone
  * Returns null if the value cannot be parsed
  */
-export function parseDateTime(value: string): dayjs.Dayjs | null {
+export function parseDateTime(value: string, timezone?: string, customFormats?: string[]): dayjs.Dayjs | null {
   if (!value) return null;
+
+  // Try custom formats first if provided
+  if (customFormats && customFormats.length > 0) {
+    for (const format of customFormats) {
+      const parsed = dayjs(value, format, true);
+      if (parsed.isValid()) {
+        return timezone ? parsed.tz(timezone, true) : parsed;
+      }
+    }
+  }
 
   // Try all known formats
   for (const format of DATE_TIME_FORMATS) {
     const parsed = dayjs(value, format, true);
-    if (parsed.isValid()) return parsed;
+    if (parsed.isValid()) {
+      return timezone ? parsed.tz(timezone, true) : parsed;
+    }
   }
 
   // Try native Date parsing
   const date = new Date(value);
   if (!isNaN(date.getTime())) {
-    return dayjs(date);
+    const parsed = dayjs(date);
+    return timezone ? parsed.tz(timezone, true) : parsed;
   }
 
   return null;
@@ -186,16 +224,18 @@ export interface TimelogRow {
 export interface ProcessRowsOptions {
   data: string[][];
   headers: string[];
-  dateColumn?: string;
+  startDateColumn?: string;
+  endDateColumn?: string;
   startTimeColumn: string;
   endTimeColumn: string;
   notesColumn?: string;
 }
 
 export function processTimelogRows(options: ProcessRowsOptions): TimelogRow[] {
-  const { data, headers, dateColumn, startTimeColumn, endTimeColumn, notesColumn } = options;
+  const { data, headers, startDateColumn, endDateColumn, startTimeColumn, endTimeColumn, notesColumn } = options;
   
-  const dateIndex = dateColumn ? headers.indexOf(dateColumn) : -1;
+  const startDateIndex = startDateColumn ? headers.indexOf(startDateColumn) : -1;
+  const endDateIndex = endDateColumn ? headers.indexOf(endDateColumn) : -1;
   const startIndex = headers.indexOf(startTimeColumn);
   const endIndex = headers.indexOf(endTimeColumn);
   const notesIndex = notesColumn ? headers.indexOf(notesColumn) : -1;
@@ -205,14 +245,16 @@ export function processTimelogRows(options: ProcessRowsOptions): TimelogRow[] {
   }
 
   return data.map((row, index) => {
-    const dateValue = dateIndex >= 0 ? row[dateIndex] || '' : '';
+    const startDateValue = startDateIndex >= 0 ? row[startDateIndex] || '' : '';
+    // If no end date column specified, use start date column
+    const endDateValue = endDateIndex >= 0 ? row[endDateIndex] || '' : startDateValue;
     const startTime = row[startIndex] || '';
     const endTime = row[endIndex] || '';
     const notes = notesIndex >= 0 ? row[notesIndex]?.trim() : undefined;
     
     return {
-      startValue: combineDateAndTime(dateValue, startTime),
-      endValue: combineDateAndTime(dateValue, endTime),
+      startValue: combineDateAndTime(startDateValue, startTime),
+      endValue: combineDateAndTime(endDateValue, endTime),
       notes: notes || undefined,
       rowIndex: index,
     };
@@ -233,13 +275,20 @@ export interface ValidationResult {
   errors: string[];
 }
 
-export function validateAndConvertTimelogs(rows: TimelogRow[]): ValidationResult {
+export interface ValidationOptions {
+  timezone?: string;
+  customFormats?: string[];
+}
+
+export function validateAndConvertTimelogs(rows: TimelogRow[], options?: ValidationOptions): ValidationResult {
   const valid: ValidatedTimelog[] = [];
   const errors: string[] = [];
+  const timezone = options?.timezone;
+  const customFormats = options?.customFormats;
 
   for (const row of rows) {
-    const startDate = parseDateTime(row.startValue);
-    const endDate = parseDateTime(row.endValue);
+    const startDate = parseDateTime(row.startValue, timezone, customFormats);
+    const endDate = parseDateTime(row.endValue, timezone, customFormats);
 
     if (startDate && endDate) {
       if (endDate.isAfter(startDate)) {
@@ -337,10 +386,13 @@ export function detectProjectsInCSV(
  */
 export interface ImportCSVOptions {
   csvText: string;
-  dateColumn?: string;
+  startDateColumn?: string;
+  endDateColumn?: string;
   startTimeColumn: string;
   endTimeColumn: string;
   notesColumn?: string;
+  timezone?: string;
+  customFormats?: string[];
 }
 
 export interface ImportCSVResult {
@@ -351,7 +403,7 @@ export interface ImportCSVResult {
 }
 
 export function importTimelogsFromCSV(options: ImportCSVOptions): ImportCSVResult {
-  const { csvText, dateColumn, startTimeColumn, endTimeColumn, notesColumn } = options;
+  const { csvText, startDateColumn, endDateColumn, startTimeColumn, endTimeColumn, notesColumn, timezone, customFormats } = options;
   
   // Parse CSV
   const parsed = parseCSV(csvText);
@@ -360,14 +412,15 @@ export function importTimelogsFromCSV(options: ImportCSVOptions): ImportCSVResul
   const rows = processTimelogRows({
     data: parsed.data,
     headers: parsed.headers,
-    dateColumn,
+    startDateColumn,
+    endDateColumn,
     startTimeColumn,
     endTimeColumn,
     notesColumn,
   });
   
   // Validate and convert
-  const result = validateAndConvertTimelogs(rows);
+  const result = validateAndConvertTimelogs(rows, { timezone, customFormats });
   
   return {
     timelogs: result.valid,

@@ -232,8 +232,7 @@ describe('Target Sync Routes with Nested Specs', () => {
           target_specs: [{
             id: specId,
             duration_minutes: [480],
-              exclude_holidays: false,
-              exclude_holidays: false,
+            exclude_holidays: false,
             state_code: undefined,
             starting_from: dayjs('2025-01-01').toISOString(),
           }],
@@ -550,8 +549,7 @@ describe('Target Sync Routes with Nested Specs', () => {
           target_specs: [{
             id: specId,
             duration_minutes: [480],
-              exclude_holidays: false,
-              exclude_holidays: false,
+            exclude_holidays: false,
             starting_from: dayjs('2025-01-01').toISOString(),
           }],
         }],
