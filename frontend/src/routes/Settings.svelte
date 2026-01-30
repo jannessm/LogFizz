@@ -12,6 +12,7 @@
   import { getSetting, saveSetting } from '../lib/db';
   import { snackbar } from '../stores/snackbar';
   import { balancesStore } from '../stores/balances';
+  import { setLocale } from '../lib/i18n';
   // Import version from frontend package.json
   // Vite allows importing JSON files directly
   import pkg from '../../package.json';
@@ -63,6 +64,8 @@
     if (userSettings) {
       language = (userSettings.language as 'en' | 'de') || 'en';
       locale = userSettings.locale || 'en-US';
+      // Set i18n locale
+      setLocale(language);
     }
   });
 
@@ -157,6 +160,8 @@
   async function handleLanguageChange() {
     try {
       await userSettingsStore.updateSettings({ language });
+      // Update i18n locale
+      setLocale(language);
       snackbar.success('Language updated');
     } catch (error: any) {
       snackbar.error(error.message || 'Failed to update language');

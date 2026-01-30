@@ -3,6 +3,8 @@
   import { authStore } from './stores/auth';
   import { get } from 'svelte/store';
   import { themeStore } from './stores/theme';
+  import { userSettingsStore } from './stores/userSettings';
+  import { setLocale } from './lib/i18n';
   import Login from './routes/Login.svelte';
   import Dashboard from './routes/Dashboard.svelte';
   import History from './routes/History.svelte';
@@ -43,6 +45,16 @@
     await authStore.init();
     await themeStore.init();
     await loadData(authenticated); // initializes all necessary data stores if logged in
+    
+    // Initialize user settings and set i18n locale if authenticated
+    if (authenticated) {
+      await userSettingsStore.init();
+      const settings = get(userSettingsStore).settings;
+      if (settings?.language) {
+        setLocale(settings.language);
+      }
+    }
+    
     isLoading = false;
 
     // Auto-sync every minute if online and authenticated
