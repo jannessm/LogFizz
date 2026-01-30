@@ -3,6 +3,7 @@ import { Type } from '@sinclair/typebox';
 import { AuthService } from '../services/auth.service.js';
 import { authRateLimit, passwordResetRateLimit, generalAuthRateLimit } from '../config/rateLimit.js';
 import { requireHCaptcha } from '../utils/hcaptcha.js';
+import { t } from '../i18n/index.js';
 
 const authService = new AuthService();
 
@@ -80,7 +81,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       const user = await authService.login(email, password);
 
       if (!user) {
-        return reply.code(401).send({ error: 'Invalid credentials' });
+        return reply.code(401).send({ error: t('auth.invalidCredentials') });
       }
 
       // Set session data
@@ -114,7 +115,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           reply.code(500).send({ error: 'Failed to logout' });
           reject(err);
         } else {
-          reply.send({ message: 'Logged out successfully' });
+          reply.send({ message: t('auth.loggedOutSuccess') });
           resolve(undefined);
         }
       });
@@ -141,12 +142,12 @@ export async function authRoutes(fastify: FastifyInstance) {
     const userId = request.session.userId;
     
     if (!userId) {
-      return reply.code(401).send({ error: 'Not authenticated' });
+      return reply.code(401).send({ error: t('common.notAuthenticated') });
     }
 
     const user = await authService.getUserById(userId);
     if (!user) {
-      return reply.code(401).send({ error: 'User not found' });
+      return reply.code(401).send({ error: t('auth.userNotFound') });
     }
 
     return reply.send({
@@ -179,17 +180,17 @@ export async function authRoutes(fastify: FastifyInstance) {
     const userId = request.session.userId;
     
     if (!userId) {
-      return reply.code(401).send({ error: 'Not authenticated' });
+      return reply.code(401).send({ error: t('common.notAuthenticated') });
     }
 
     const { oldPassword, newPassword } = request.body as any;
     const success = await authService.changePassword(userId, oldPassword, newPassword);
 
     if (!success) {
-      return reply.code(401).send({ error: 'Invalid old password' });
+      return reply.code(401).send({ error: t('auth.invalidOldPassword') });
     }
 
-    return reply.send({ message: 'Password changed successfully' });
+    return reply.send({ message: t('auth.passwordChangedSuccess') });
   });
 
   // Update user profile endpoint
@@ -215,14 +216,14 @@ export async function authRoutes(fastify: FastifyInstance) {
     const userId = request.session.userId;
     
     if (!userId) {
-      return reply.code(401).send({ error: 'Not authenticated' });
+      return reply.code(401).send({ error: t('common.notAuthenticated') });
     }
 
     const userUpdates = request.body as any;
     const user = await authService.updateUser(userId, userUpdates);
 
     if (!user) {
-      return reply.code(401).send({ error: 'User not found' });
+      return reply.code(401).send({ error: t('auth.userNotFound') });
     }
 
     return reply.send({
@@ -252,7 +253,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     // Always return success to prevent email enumeration
     return reply.send({ 
-      message: 'If an account with that email exists, a password reset link has been sent.' 
+      message: t('auth.passwordResetSent')
     });
   });
 
@@ -280,12 +281,12 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     if (!success) {
       return reply.code(400).send({ 
-        error: 'Invalid or expired reset token' 
+        error: t('auth.invalidResetToken')
       });
     }
 
     return reply.send({ 
-      message: 'Password has been reset successfully' 
+      message: t('auth.passwordResetSuccess')
     });
   });
 
@@ -317,7 +318,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     const userId = request.session.userId;
     
     if (!userId) {
-      return reply.code(401).send({ error: 'Not authenticated. Please log in first.' });
+      return reply.code(401).send({ error: t('common.notAuthenticatedLogin') });
     }
 
     const { token } = request.body as any;
@@ -325,19 +326,19 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     if (typeof result === 'object' && result.error === 'wrong_user') {
       return reply.code(403).send({ 
-        error: 'This verification link is for a different account. A new verification email has been sent to the correct email address.',
+        error: t('auth.verificationWrongAccount'),
         code: 'WRONG_USER',
       });
     }
 
     if (!result) {
       return reply.code(400).send({ 
-        error: 'Invalid or expired verification token' 
+        error: t('auth.invalidVerificationToken')
       });
     }
 
     return reply.send({ 
-      message: 'Email has been verified successfully' 
+      message: t('auth.emailVerifiedSuccess')
     });
   });
 
@@ -361,7 +362,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     // Always return success to prevent email enumeration
     return reply.send({ 
-      message: 'If an account with that email exists and is not verified, a verification link has been sent.' 
+      message: t('auth.verificationSent')
     });
   });
 }
