@@ -154,9 +154,17 @@ export function combineDateAndTime(date: string, time: string): string {
 /**
  * Validates if a string is a valid date/time
  */
-export function isValidDateTime(value: string): boolean {
+export function isValidDateTime(value: string, customFormats?: string[]): boolean {
   if (!value) return false;
   
+  // Try custom formats first if provided
+  if (customFormats && customFormats.length > 0) {
+    for (const format of customFormats) {
+      const parsed = dayjs(value, format, true);
+      if (parsed.isValid()) return true;
+    }
+  }
+
   // Try all known formats
   for (const format of DATE_TIME_FORMATS) {
     const parsed = dayjs(value, format, true);
@@ -172,8 +180,18 @@ export function isValidDateTime(value: string): boolean {
  * Parses a date/time string into a dayjs object with optional timezone
  * Returns null if the value cannot be parsed
  */
-export function parseDateTime(value: string, timezone?: string): dayjs.Dayjs | null {
+export function parseDateTime(value: string, timezone?: string, customFormats?: string[]): dayjs.Dayjs | null {
   if (!value) return null;
+
+  // Try custom formats first if provided
+  if (customFormats && customFormats.length > 0) {
+    for (const format of customFormats) {
+      const parsed = dayjs(value, format, true);
+      if (parsed.isValid()) {
+        return timezone ? parsed.tz(timezone, true) : parsed;
+      }
+    }
+  }
 
   // Try all known formats
   for (const format of DATE_TIME_FORMATS) {
@@ -259,16 +277,18 @@ export interface ValidationResult {
 
 export interface ValidationOptions {
   timezone?: string;
+  customFormats?: string[];
 }
 
 export function validateAndConvertTimelogs(rows: TimelogRow[], options?: ValidationOptions): ValidationResult {
   const valid: ValidatedTimelog[] = [];
   const errors: string[] = [];
   const timezone = options?.timezone;
+  const customFormats = options?.customFormats;
 
   for (const row of rows) {
-    const startDate = parseDateTime(row.startValue, timezone);
-    const endDate = parseDateTime(row.endValue, timezone);
+    const startDate = parseDateTime(row.startValue, timezone, customFormats);
+    const endDate = parseDateTime(row.endValue, timezone, customFormats);
 
     if (startDate && endDate) {
       if (endDate.isAfter(startDate)) {
@@ -372,6 +392,7 @@ export interface ImportCSVOptions {
   endTimeColumn: string;
   notesColumn?: string;
   timezone?: string;
+  customFormats?: string[];
 }
 
 export interface ImportCSVResult {
@@ -382,7 +403,7 @@ export interface ImportCSVResult {
 }
 
 export function importTimelogsFromCSV(options: ImportCSVOptions): ImportCSVResult {
-  const { csvText, startDateColumn, endDateColumn, startTimeColumn, endTimeColumn, notesColumn, timezone } = options;
+  const { csvText, startDateColumn, endDateColumn, startTimeColumn, endTimeColumn, notesColumn, timezone, customFormats } = options;
   
   // Parse CSV
   const parsed = parseCSV(csvText);
@@ -399,7 +420,7 @@ export function importTimelogsFromCSV(options: ImportCSVOptions): ImportCSVResul
   });
   
   // Validate and convert
-  const result = validateAndConvertTimelogs(rows, { timezone });
+  const result = validateAndConvertTimelogs(rows, { timezone, customFormats });
   
   return {
     timelogs: result.valid,

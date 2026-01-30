@@ -179,6 +179,32 @@ Jane,25,LA`;
     it('returns null for empty string', () => {
       expect(parseDateTime('')).toBeNull();
     });
+    
+    it('parses custom format when provided', () => {
+      const customFormat = 'DD-MM-YYYY HH:mm';
+      const result = parseDateTime('15-01-2025 14:30', undefined, [customFormat]);
+      expect(result).not.toBeNull();
+      expect(result?.year()).toBe(2025);
+      expect(result?.month()).toBe(0); // January is month 0
+      expect(result?.date()).toBe(15);
+      expect(result?.hour()).toBe(14);
+      expect(result?.minute()).toBe(30);
+    });
+    
+    it('tries custom formats before standard formats', () => {
+      const customFormat = 'MM/DD/YYYY HH:mm'; // US format
+      const result = parseDateTime('01/15/2025 14:30', undefined, [customFormat]);
+      expect(result).not.toBeNull();
+      expect(result?.month()).toBe(0); // January
+      expect(result?.date()).toBe(15);
+    });
+    
+    it('falls back to standard formats if custom format fails', () => {
+      const customFormat = 'INVALID';
+      const result = parseDateTime('2025-11-03 08:00:00', undefined, [customFormat]);
+      expect(result).not.toBeNull();
+      expect(result?.toISOString()).toContain('2025-11-03');
+    });
   });
 
   describe('processTimelogRows', () => {

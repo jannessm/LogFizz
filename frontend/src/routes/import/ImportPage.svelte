@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { navigate } from '../../lib/navigation';
-  import { timers, timersStore } from '../../stores/timers';
   import { timeLogsStore } from '../../stores/timelogs';
   import { snackbar } from '../../stores/snackbar';
   import BottomNav from '../../components/BottomNav.svelte';
@@ -12,7 +11,6 @@
     parseCSV,
     autoDetectColumns,
     detectProjectColumn,
-    type ParsedCSV,
   } from '../../../../lib/utils/csvImport.js';
 
   // Step management
@@ -50,6 +48,7 @@
   let projectColumn = $state('');
   let typeColumn = $state('');
   let timezone = $state('Europe/Berlin');
+  let customDateFormats = $state<string[]>([]);
 
   function handleFileSelect(selectedFile: File) {
     file = selectedFile;
@@ -277,6 +276,7 @@
         bind:projectColumn
         bind:typeColumn
         bind:timezone
+        bind:customDateFormats
         {errorMessage}
         {warningMessage}
         onContinue={handleMappingComplete}
@@ -294,6 +294,7 @@
         {projectColumn}
         {typeColumn}
         {timezone}
+        bind:customDateFormats
         onImport={handleImport}
         onBack={goBackToMapping}
       />

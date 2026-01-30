@@ -70,19 +70,9 @@
   }
 
   // Format date for input (YYYY-MM-DD)
+  // Dates are already normalized in EditableTableStep, so just return as-is
   function formatDateForInput(dateStr: string): string {
-    if (!dateStr) return '';
-    // Try to parse and format as YYYY-MM-DD
-    const match = dateStr.match(/(\d{4})-?(\d{2})-?(\d{2})/);
-    if (match) {
-      return `${match[1]}-${match[2]}-${match[3]}`;
-    }
-    // Try DD.MM.YYYY format
-    const euroMatch = dateStr.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
-    if (euroMatch) {
-      return `${euroMatch[3]}-${euroMatch[2].padStart(2, '0')}-${euroMatch[1].padStart(2, '0')}`;
-    }
-    return dateStr;
+    return dateStr || '';
   }
 
   // Format time for input (HH:MM)

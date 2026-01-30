@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { timers, timersStore } from '../../stores/timers';
+  import { timers } from '../../stores/timers';
   import { TimerForm } from '../../components/forms';
 
   let {

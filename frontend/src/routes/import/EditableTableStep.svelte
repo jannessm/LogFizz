@@ -4,6 +4,7 @@
   import { userTimezone } from '../../../../lib/utils/dayjs';
   import TimerSelectWithCreate from './TimerSelectWithCreate.svelte';
   import ImportRowEditor from './ImportRowEditor.svelte';
+  import DateFormatModal from './DateFormatModal.svelte';
   import {
     combineDateAndTime,
     isValidDateTime,
@@ -22,6 +23,7 @@
     projectColumn,
     typeColumn,
     timezone,
+    customDateFormats = $bindable([]),
     onImport,
     onBack,
   }: {
@@ -35,6 +37,7 @@
     projectColumn: string;
     typeColumn: string;
     timezone: string;
+    customDateFormats?: string[];
     onImport: (timelogs: Array<{
       timer_id: string;
       type: string;
@@ -65,6 +68,83 @@
   let globalTimerId = $state('');
   let currentPage = $state(0);
   const PAGE_SIZE = 20;
+  
+  // Modal state
+  let showFormatModal = $state(false);
+  let formatModalSample = $state('');
+
+  // Helper to normalize date to YYYY-MM-DD format for date inputs
+  function normalizeDateForInput(dateStr: string): string {
+    if (!dateStr) return '';
+    
+    // Already in YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return dateStr;
+    }
+    
+    // Try parsing with custom formats first (if available)
+    if (customDateFormats && customDateFormats.length > 0) {
+      for (const fullFormat of customDateFormats) {
+        // Extract date-only format by removing time components
+        const dateOnlyFormat = fullFormat
+          .replace(/\s*h:mm\s*A/gi, '')  // Remove " h:mm A"
+          .replace(/\s*HH:mm:ss/gi, '')  // Remove " HH:mm:ss"
+          .replace(/\s*HH:mm/gi, '')     // Remove " HH:mm"
+          .replace(/\s*LT/gi, '')        // Remove " LT"
+          .replace(/\s*LTS/gi, '')       // Remove " LTS"
+          .trim();
+        
+        // Try date-only format first, then full format
+        for (const format of [dateOnlyFormat, fullFormat]) {
+          if (!format) continue;
+          try {
+            const parsed = dayjs(dateStr, format, true);
+            if (parsed.isValid()) {
+              return parsed.format('YYYY-MM-DD');
+            }
+          } catch (e) {
+            // Continue to next format
+          }
+        }
+      }
+    }
+    
+    // Try DD/MM/YYYY or MM/DD/YYYY format
+    const slashMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashMatch) {
+      const first = slashMatch[1].padStart(2, '0');
+      const second = slashMatch[2].padStart(2, '0');
+      const year = slashMatch[3];
+      
+      // Try DD/MM/YYYY first (European format)
+      const ddmmResult = `${year}-${second}-${first}`;
+      const ddmmDate = dayjs(ddmmResult, 'YYYY-MM-DD', true);
+      if (ddmmDate.isValid()) {
+        return ddmmResult;
+      }
+      
+      // Fall back to MM/DD/YYYY (US format)
+      const mmddResult = `${year}-${first}-${second}`;
+      const mmddDate = dayjs(mmddResult, 'YYYY-MM-DD', true);
+      if (mmddDate.isValid()) {
+        return mmddResult;
+      }
+      
+      // If neither is valid, return the DD/MM attempt
+      return ddmmResult;
+    }
+    
+    // Try DD.MM.YYYY format
+    const dotMatch = dateStr.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (dotMatch) {
+      const day = dotMatch[1].padStart(2, '0');
+      const month = dotMatch[2].padStart(2, '0');
+      const year = dotMatch[3];
+      return `${year}-${month}-${day}`;
+    }
+    
+    return dateStr;
+  }
 
   // Initialize rows from parsed data
   $effect(() => {
@@ -77,12 +157,16 @@
     const typeIdx = typeColumn ? headers.indexOf(typeColumn) : -1;
 
     rows = parsedData.map((row, index) => {
-      const startDate = startDateIdx >= 0 ? row[startDateIdx] || '' : '';
+      const startDateRaw = startDateIdx >= 0 ? row[startDateIdx] || '' : '';
       const startTime = startTimeIdx >= 0 ? row[startTimeIdx] || '' : '';
-      const endDate = endDateIdx >= 0 ? row[endDateIdx] || '' : startDate;
+      const endDateRaw = endDateIdx >= 0 ? row[endDateIdx] || '' : startDateRaw;
       const endTime = endTimeIdx >= 0 ? row[endTimeIdx] || '' : '';
       const notes = notesIdx >= 0 ? row[notesIdx] || '' : '';
       const project = projectIdx >= 0 ? row[projectIdx] || '' : '';
+      
+      // Normalize dates to YYYY-MM-DD for date inputs
+      const startDate = normalizeDateForInput(startDateRaw);
+      const endDate = normalizeDateForInput(endDateRaw);
       
       // Parse type from CSV or default to 'normal'
       let type: TimeLogType = 'normal';
@@ -95,7 +179,7 @@
 
       const startStr = startDate ? `${startDate} ${startTime}` : startTime;
       const endStr = endDate ? `${endDate} ${endTime}` : endTime;
-      const isValid = isValidDateTime(startStr) && isValidDateTime(endStr);
+      const isValid = isValidDateTime(startStr, customDateFormats) && isValidDateTime(endStr, customDateFormats);
 
       return {
         id: index,
@@ -149,7 +233,7 @@
       // Revalidate
       const startStr = updated.startDate ? `${updated.startDate} ${updated.startTime}` : updated.startTime;
       const endStr = updated.endDate ? `${updated.endDate} ${updated.endTime}` : updated.endTime;
-      updated.isValid = isValidDateTime(startStr) && isValidDateTime(endStr);
+      updated.isValid = isValidDateTime(startStr, customDateFormats) && isValidDateTime(endStr, customDateFormats);
       updated.errorMsg = !updated.isValid ? 'Invalid date/time' : undefined;
       
       return updated;
@@ -166,6 +250,34 @@
     const allSkipped = rows.every(r => r.isSkipped);
     rows = rows.map(row => ({ ...row, isSkipped: !allSkipped }));
   }
+  
+  function showDateFormatHelp() {
+    // Find first invalid date to show as example
+    const invalidRow = rows.find(r => !r.isValid);
+    if (invalidRow) {
+      const startStr = invalidRow.startDate ? `${invalidRow.startDate} ${invalidRow.startTime}` : invalidRow.startTime;
+      formatModalSample = startStr;
+      showFormatModal = true;
+    }
+  }
+  
+  function handleFormatSelected(format: string) {
+    customDateFormats = [...customDateFormats, format];
+    showFormatModal = false;
+    
+    // Revalidate all rows with the new format
+    rows = rows.map(row => {
+      const startStr = row.startDate ? `${row.startDate} ${row.startTime}` : row.startTime;
+      const endStr = row.endDate ? `${row.endDate} ${row.endTime}` : row.endTime;
+      const isValid = isValidDateTime(startStr, customDateFormats) && isValidDateTime(endStr, customDateFormats);
+      
+      return {
+        ...row,
+        isValid,
+        errorMsg: !isValid ? 'Invalid date/time' : undefined,
+      };
+    });
+  }
 
   function handleImport() {
     const validRows = rows.filter(r => !r.isSkipped && r.isValid && r.timerId);
@@ -179,8 +291,8 @@
       
       console.log('Parsing row:', { startStr, endStr, timezone });
       
-      const startParsed = parseDateTime(startStr, timezone);
-      const endParsed = parseDateTime(endStr, timezone);
+      const startParsed = parseDateTime(startStr, timezone, customDateFormats);
+      const endParsed = parseDateTime(endStr, timezone, customDateFormats);
       
       console.log('Parsed:', { 
         startParsed: startParsed?.toISOString(), 
@@ -206,8 +318,19 @@
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Edit & Import</h2>
-    <div class="text-sm text-gray-500 dark:text-gray-400">
-      {validRowCount} valid, {invalidRowCount} need attention, {skippedRowCount} skipped
+    <div class="flex items-center gap-4">
+      {#if invalidRowCount > 0}
+        <button
+          onclick={showDateFormatHelp}
+          class="text-sm text-blue-600 dark:text-orange-400 hover:underline flex items-center gap-1"
+        >
+          <span class="icon-[si--info-duotone]" style="width: 16px; height: 16px;"></span>
+          Need help with date format?
+        </button>
+      {/if}
+      <div class="text-sm text-gray-500 dark:text-gray-400">
+        {validRowCount} valid, {invalidRowCount} need attention, {skippedRowCount} skipped
+      </div>
     </div>
   </div>
 
@@ -324,3 +447,12 @@
     </div>
   </div>
 </div>
+
+{#if showFormatModal}
+  <DateFormatModal
+    sampleValue={formatModalSample}
+    timezone={timezone}
+    onFormatSelected={handleFormatSelected}
+    onClose={() => showFormatModal = false}
+  />
+{/if}
