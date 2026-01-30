@@ -113,9 +113,11 @@ describe('Table Route', () => {
     expect(screen.getByLabelText('Import timelogs')).toBeInTheDocument();
   });
 
-  it('renders edit mode toggle', () => {
+  it('renders pagination controls', () => {
     render(Table);
-    expect(screen.getByText('Edit Mode')).toBeInTheDocument();
+    // The component uses pagination, so there should be page navigation or results display
+    // Results count is shown
+    expect(screen.getByText(/timelogs found/)).toBeInTheDocument();
   });
 
   it('renders filters component', () => {

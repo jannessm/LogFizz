@@ -65,7 +65,7 @@ describe('TableFilters Component', () => {
     expect(screen.getByPlaceholderText(/Search notes, timers, targets/)).toBeInTheDocument();
   });
 
-  it('renders date filter checkbox', () => {
+  it('renders date inputs (always visible)', () => {
     render(TableFilters, {
       props: {
         filters: defaultFilters,
@@ -74,23 +74,9 @@ describe('TableFilters Component', () => {
       }
     });
 
-    expect(screen.getByText('Date Filter')).toBeInTheDocument();
-  });
-
-  it('shows date inputs when date filter is enabled', async () => {
-    render(TableFilters, {
-      props: {
-        filters: defaultFilters,
-        timers: mockTimers,
-        targets: mockTargets,
-      }
-    });
-
-    const checkbox = screen.getByRole('checkbox');
-    await fireEvent.click(checkbox);
-
-    expect(screen.getByLabelText(/From Date/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/To Date/)).toBeInTheDocument();
+    // Date inputs are always visible - check for the From and To labels
+    expect(screen.getByText('From')).toBeInTheDocument();
+    expect(screen.getByText('To')).toBeInTheDocument();
   });
 
   it('shows advanced filters when toggle is clicked', async () => {
@@ -245,29 +231,7 @@ describe('TableFilters Component', () => {
     expect(screen.getByText('Reset Filters')).toBeInTheDocument();
   });
 
-  it('hides reset button when no filters are active and date filter is disabled', async () => {
-    render(TableFilters, {
-      props: {
-        filters: defaultFilters,
-        timers: mockTimers,
-        targets: mockTargets,
-      }
-    });
-
-    // Wait for effects to settle and ensure date filter checkbox is unchecked
-    const dateFilterCheckbox = screen.getByRole('checkbox');
-    if ((dateFilterCheckbox as HTMLInputElement).checked) {
-      await fireEvent.click(dateFilterCheckbox);
-    }
-
-    // The reset button should only appear when there are active filters
-    // If there's no search text, no timer/target filters, no type filters, and date filter is off
-    // then the reset button should not be shown
-    const searchInput = screen.getByPlaceholderText(/Search notes, timers, targets/) as HTMLInputElement;
-    expect(searchInput.value).toBe('');
-  });
-
-  it('calls onReset when reset button is clicked', async () => {
+  it('allows resetting filters via reset button', async () => {
     const onReset = vi.fn();
     const activeFilters: FilterState = {
       ...defaultFilters,

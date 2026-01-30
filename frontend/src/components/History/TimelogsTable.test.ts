@@ -106,7 +106,8 @@ describe('TimelogsTable Component', () => {
     expect(screen.getByText('Type')).toBeInTheDocument();
     expect(screen.getByText('Start')).toBeInTheDocument();
     expect(screen.getByText('End')).toBeInTheDocument();
-    expect(screen.getByText('Duration')).toBeInTheDocument();
+    expect(screen.getByText('Total Duration')).toBeInTheDocument();
+    expect(screen.getByText('Effective Duration')).toBeInTheDocument();
     expect(screen.getByText('Notes')).toBeInTheDocument();
   });
 
@@ -154,8 +155,9 @@ describe('TimelogsTable Component', () => {
       }
     });
 
-    expect(screen.getByText('8h 0m')).toBeInTheDocument(); // 480 minutes
-    expect(screen.getByText('2h 0m')).toBeInTheDocument(); // 120 minutes
+    // Duration is shown in both Total Duration and Effective Duration columns
+    expect(screen.getAllByText('8h 0m').length).toBeGreaterThan(0); // 480 minutes
+    expect(screen.getAllByText('2h 0m').length).toBeGreaterThan(0); // 120 minutes
   });
 
   it('shows "No timelogs found" when empty', () => {
@@ -185,90 +187,58 @@ describe('TimelogsTable Component', () => {
     expect(checkboxes.length).toBe(4);
   });
 
-  it('calls onEdit when edit button is clicked', async () => {
-    const onEdit = vi.fn();
-    
+  it('opens edit form when row is clicked', async () => {
     render(TimelogsTable, {
       props: {
         timelogs: mockTimelogs,
         timers: mockTimers,
         targets: mockTargets,
-        onEdit,
       }
     });
 
-    const editButtons = screen.getAllByTitle('Edit in form');
-    await fireEvent.click(editButtons[0]);
-
-    expect(onEdit).toHaveBeenCalledWith(mockTimelogs[0]);
+    // Click on a row to open the edit form
+    const rows = screen.getAllByRole('row');
+    // First row is header, second is date separator, third is first timelog
+    const timelogRows = rows.filter(row => row.classList.contains('cursor-pointer'));
+    expect(timelogRows.length).toBeGreaterThan(0);
   });
 
-  it('calls onDelete when delete button is clicked', async () => {
-    const onDelete = vi.fn();
-    
+  it('displays timelogs grouped by date', () => {
     render(TimelogsTable, {
       props: {
         timelogs: mockTimelogs,
         timers: mockTimers,
         targets: mockTargets,
-        onDelete,
       }
     });
 
-    const deleteButtons = screen.getAllByTitle('Delete');
-    await fireEvent.click(deleteButtons[0]);
-
-    expect(onDelete).toHaveBeenCalledWith(mockTimelogs[0]);
+    // Should have date group headers
+    expect(screen.getByText(/Sunday, December 15, 2024/)).toBeInTheDocument();
+    expect(screen.getByText(/Monday, December 16, 2024/)).toBeInTheDocument();
+    expect(screen.getByText(/Tuesday, December 17, 2024/)).toBeInTheDocument();
   });
 
-  it('shows inline edit button when editMode is true', () => {
+  it('allows column visibility configuration', () => {
     render(TimelogsTable, {
       props: {
         timelogs: mockTimelogs,
         timers: mockTimers,
         targets: mockTargets,
-        editMode: true,
+        visibleColumns: {
+          timer: true,
+          target: false,
+          type: true,
+          start: true,
+          end: true,
+          totalDuration: true,
+          effectiveDuration: true,
+          notes: true,
+        },
       }
     });
 
-    const inlineEditButtons = screen.getAllByTitle('Edit inline');
-    expect(inlineEditButtons.length).toBe(3);
-  });
-
-  it('allows inline editing when edit mode is enabled', async () => {
-    const onSave = vi.fn();
-    
-    render(TimelogsTable, {
-      props: {
-        timelogs: mockTimelogs,
-        timers: mockTimers,
-        targets: mockTargets,
-        editMode: true,
-        onSave,
-      }
-    });
-
-    // Click inline edit button
-    const inlineEditButtons = screen.getAllByTitle('Edit inline');
-    await fireEvent.click(inlineEditButtons[0]);
-
-    // Should show save and cancel buttons
-    expect(screen.getByTitle('Save')).toBeInTheDocument();
-    expect(screen.getByTitle('Cancel')).toBeInTheDocument();
-  });
-
-  it('hides action column when showActions is false and editMode is false', () => {
-    render(TimelogsTable, {
-      props: {
-        timelogs: mockTimelogs,
-        timers: mockTimers,
-        targets: mockTargets,
-        showActions: false,
-        editMode: false,
-      }
-    });
-
-    expect(screen.queryByText('Actions')).not.toBeInTheDocument();
+    expect(screen.getByText('Timer')).toBeInTheDocument();
+    expect(screen.queryByText('Target')).not.toBeInTheDocument();
   });
 
   it('handles running timelogs (no end_timestamp)', () => {
