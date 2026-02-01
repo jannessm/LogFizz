@@ -2,8 +2,8 @@
   import { navigate } from '../lib/navigation';
   import { _ } from '../lib/i18n';
 
-  let { currentTab = 'timer' }: {
-    currentTab?: 'timer' | 'history' | 'settings';
+  let { currentTab = null }: {
+    currentTab?: 'timer' | 'history' | 'settings' | null;
   } = $props();
 
   function handleNavigate(path: string) {

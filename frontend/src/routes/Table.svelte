@@ -355,5 +355,5 @@
     </div>
   </div>
 
-  <BottomNav currentTab="history" />
+  <BottomNav currentTab={null} />
 </div>

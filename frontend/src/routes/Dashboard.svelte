@@ -30,7 +30,6 @@
   let editingTimelog: TimeLog | null = $state(null);
   let editingTarget: TargetWithSpecs | null = $state(null);
   let editFromOverview = $state(false);
-  let verificationReminderShown = $state(false);
   let editOnStopEnabled = $state(true);
   let timerToStop: any = $state(null);
   let subscriptionStatus: SubscriptionStatus | null = $state(null);
@@ -43,9 +42,6 @@
     // Load edit-on-stop setting
     const formOnStop = await getSetting('editOnStop');
     editOnStopEnabled = formOnStop !== false; // default to true if not set
-
-    // Check if email is verified and show reminder
-    checkEmailVerification();
 
     // Check subscription status
     checkSubscription();
@@ -82,42 +78,6 @@
       console.error('Failed to check subscription status:', error);
     }
   }
-
-  function checkEmailVerification() {
-    if (!user || verificationReminderShown) return;
-
-    // Check if email is not verified (email_verified_at is null or undefined)
-    if (!user.email_verified_at) {
-      verificationReminderShown = true;
-      
-      snackbar.withAction(
-        get(_)('verifyEmail.description'),
-        'warning',
-        get(_)('verifyEmail.resend'),
-        async () => {
-          try {
-            await authApi.resendVerification(user.email);
-            snackbar.success(get(_)('verifyEmail.emailSent'), 6000);
-          } catch (error: any) {
-            // Check for rate limiting (429 Too Many Requests)
-            if (error.response?.status === 429) {
-              snackbar.error(get(_)('auth.tooManyVerificationAttempts'), 8000);
-            } else {
-              snackbar.error(get(_)('common.error'), 5000);
-            }
-          }
-        },
-        10000 // 10s
-      );
-    }
-  }
-
-  // Watch for user changes to re-check verification status
-  $effect(() => {
-    if (user && !verificationReminderShown) {
-      checkEmailVerification();
-    }
-  });
 
   function handleShowAddSelector() {
     showAddSelector = true;

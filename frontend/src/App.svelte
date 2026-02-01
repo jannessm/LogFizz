@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { authStore } from './stores/auth';
-  import { get } from 'svelte/store';
   import { themeStore } from './stores/theme';
   import { userSettingsStore } from './stores/userSettings';
   import { setLocale } from './lib/i18n';
@@ -26,12 +25,14 @@
   import { getDB } from './lib/db';
   import { snackbar } from './stores/snackbar';
 
-  let isLoading = true;
+  let isLoading = $state(true);
+  const skipEmailVerification = import.meta.env.VITE_SKIP_EMAIL_VERIFICATION === 'true';
+  console.log('Skip Email Verification:', skipEmailVerification);
 
-  $: authenticated = $authStore.isAuthenticated;
-  $: user = $authStore.user;
-  $: emailVerified = !!user?.email_verified_at;
-  $: path = $currentPath;
+  let authenticated = $derived($authStore.isAuthenticated);
+  let user = $derived($authStore.user);
+  let emailVerified = $derived(!!user?.email_verified_at || skipEmailVerification);
+  let path = $derived($currentPath);
 
   // Public routes that don't require authentication
   const publicRoutes = ['/login', '/forgot-password', '/reset-password', '/verify-email'];
@@ -50,7 +51,7 @@
     // Initialize user settings and set i18n locale if authenticated
     if (authenticated) {
       await userSettingsStore.init();
-      const settings = get(userSettingsStore).settings;
+      const settings = $userSettingsStore.settings;
       if (settings?.language) {
         setLocale(settings.language);
       }
@@ -70,37 +71,42 @@
   });
 
   // Redirect to login if not authenticated and not on a public route
-  $: {
-    const auth = get(authStore);
-    const currentUser = auth.user;
-    const isEmailVerified = !!currentUser?.email_verified_at;
-    
-    if (!isLoading && !auth.isAuthenticated && !isPublicRoute(path)) {
+  $effect(() => {
+    if (!isLoading && !authenticated && !isPublicRoute(path)) {
       navigate('/login', { replace: true });
     }
+  });
+  
+  // Redirect to email verification if authenticated but email not verified
+  $effect(() => {
+    if (!isLoading && authenticated && !emailVerified && !isVerificationExempt(path)) {
+      navigate('/verify-email-required', { replace: true });
+    }
+  });
 
-    if (!isLoading && auth.isAuthenticated) {
+  // Load data when authenticated
+  $effect(() => {
+    if (!isLoading && authenticated) {
       loadData(true); // ensure data is loaded when authenticated
     }
+  });
 
-    // Redirect to dashboard if authenticated and on a public route
-    if (!isLoading && auth.isAuthenticated && isPublicRoute(path)) {
+  // Redirect to dashboard if authenticated and on a public route (but not verification routes)
+  $effect(() => {
+    if (!isLoading && authenticated && isPublicRoute(path) && !isVerificationExempt(path)) {
       if (path.startsWith('/reset-password')) {
         snackbar.info('To reset your password, logout first.', 6000);
       }
       navigate('/', { replace: true });
     }
-    
-    // Redirect to email verification if authenticated but email not verified
-    if (!isLoading && auth.isAuthenticated && !isEmailVerified && !isVerificationExempt(path) && !isPublicRoute(path)) {
-      navigate('/verify-email-required', { replace: true });
-    }
-    
-    // Redirect away from verification required page if already verified
-    if (!isLoading && auth.isAuthenticated && isEmailVerified && path.startsWith('/verify-email-required')) {
+  });
+  
+  // Redirect away from verification required page if already verified
+  $effect(() => {
+    if (!isLoading && authenticated && emailVerified && path.startsWith('/verify-email-required')) {
       navigate('/', { replace: true });
     }
-  }
+  });
 </script>
 
 {#if isLoading}

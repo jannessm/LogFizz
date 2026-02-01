@@ -33,13 +33,11 @@
   let user = $derived($authStore.user);
   let isOnline = $derived(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
-  // Available locales
+  // Available locales with examples
   const localeOptions = [
-    { value: 'en-US', label: 'English (US)' },
-    { value: 'en-GB', label: 'English (UK)' },
-    { value: 'de-DE', label: 'Deutsch (Deutschland)' },
-    { value: 'de-AT', label: 'Deutsch (Österreich)' },
-    { value: 'de-CH', label: 'Deutsch (Schweiz)' },
+    { value: 'en-US', label: 'English (US)', example: '01/05/2026, 3:30 PM', dateExample: 'January 5, 2026' },
+    { value: 'en-GB', label: 'English (UK)', example: '05/01/2026, 15:30', dateExample: '5 January 2026' },
+    { value: 'de-DE', label: 'Deutsch', example: '05.01.2026, 15:30', dateExample: '5. Januar 2026' },
   ];
 
   onMount(async () => {
@@ -288,6 +286,13 @@
               <option value={option.value}>{option.label}</option>
             {/each}
           </select>
+          {#each localeOptions as option (option.value)}
+            {#if locale === option.value}
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                {option.dateExample} / {option.example}
+              </p>
+            {/if}
+          {/each}
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
             {$_('settings.dateTimeDescription')}
           </p>
