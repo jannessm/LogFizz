@@ -6,7 +6,6 @@
   import { timeLogsStore, timerlogs } from '../stores/timelogs';
   import { timers } from '../stores/timers';
   import { targets } from '../stores/targets';
-  import { monthlyBalances } from '../stores/balances';
   import { dayjs, type TimeLog } from '../types';
   import { userTimezone } from '../../../lib/utils/dayjs';
   import { navigate } from '../lib/navigation';
@@ -294,7 +293,8 @@
             timelogs={paginatedTimelogs}
             timers={$timers}
             targets={$targets}
-            monthlyBalances={$monthlyBalances}
+            dateFrom={filters.dateFrom!}
+            dateTo={filters.dateTo}
           />
         {/if}
       </div>

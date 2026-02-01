@@ -11,6 +11,7 @@
   import { userTimezone } from '../../../../lib/utils/dayjs';
   import { navigate } from '../../lib/navigation';
   import { snackbar } from '../../stores/snackbar';
+  import { calculateDueMinutes } from '../../../../lib/utils/balance';
 
   // Column visibility state
   let visibleColumns = $state({
@@ -21,6 +22,8 @@
     end: true,
     totalDuration: true,
     effectiveDuration: true,
+    dueTime: true,
+    diff: true,
     notes: true,
   });
 
@@ -233,11 +236,55 @@
     return end.diff(start, 'minute');
   }
 
+  function getTimerId(timerId: string): string | undefined {
+    const timer = $timers.find(t => t.id === timerId);
+    return timer?.target_id;
+  }
+
+  function getDueTime(timelog: TimeLog): number | undefined {
+    const targetId = getTimerId(timelog.timer_id);
+    if (!targetId) return undefined;
+    
+    const target = $targets.find(t => t.id === targetId);
+    if (!target) return undefined;
+    
+    const date = dayjs.utc(timelog.start_timestamp).tz(timelog.timezone || userTimezone).format('YYYY-MM-DD');
+    return calculateDueMinutes(date, target as any, new Set());
+  }
+
+  function getDiff(timelog: TimeLog): number | undefined {
+    const effective = timelog.duration_minutes;
+    const due = getDueTime(timelog);
+    if (effective === undefined || due === undefined) return undefined;
+    return effective - due;
+  }
+
+  function formatDiff(minutes: number | undefined): string {
+    if (minutes === undefined) return '';
+    const isNegative = minutes < 0;
+    const absMinutes = Math.abs(minutes);
+    const hours = Math.floor(absMinutes / 60);
+    const mins = absMinutes % 60;
+    const sign = isNegative ? '-' : '+';
+    return `${sign}${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  }
+
+  // Remove isolated Unicode symbols (emojis and special characters) from text
+  function removeUnicodeSymbols(text: string): string {
+    // Remove emojis and other Unicode symbols
+    // Keep only ASCII and common Latin/European characters
+    return text
+      .replace(/[\p{So}\p{Sk}]/gu, '') // Remove symbols (other, modifier)
+      .replace(/[\p{Cn}]/gu, '') // Remove unassigned characters
+      .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width characters
+      .trim();
+  }
+
   // Check if any column is selected for export
   let hasSelectedColumns = $derived(
     visibleColumns.timer || visibleColumns.target || visibleColumns.type ||
     visibleColumns.start || visibleColumns.end || visibleColumns.totalDuration ||
-    visibleColumns.effectiveDuration || visibleColumns.notes
+    visibleColumns.effectiveDuration || visibleColumns.dueTime || visibleColumns.diff || visibleColumns.notes
   );
 
   // Generate CSV content
@@ -254,6 +301,8 @@
     if (visibleColumns.end) headers.push('End Date', 'End Time');
     if (visibleColumns.totalDuration) headers.push('Total Duration');
     if (visibleColumns.effectiveDuration) headers.push('Effective Duration');
+    if (visibleColumns.dueTime) headers.push('Due Time');
+    if (visibleColumns.diff) headers.push('Diff');
     if (visibleColumns.notes) headers.push('Notes');
 
     // Build data rows
@@ -264,9 +313,9 @@
       const startDayjs = dayjs.utc(log.start_timestamp).tz(logTimezone);
       const endDayjs = log.end_timestamp ? dayjs.utc(log.end_timestamp).tz(logTimezone) : null;
 
-      if (visibleColumns.timer) row.push(getTimerName(log.timer_id).replace(/"/g, '""'));
-      if (visibleColumns.target) row.push(getTargetName(log.timer_id).replace(/"/g, '""'));
-      if (visibleColumns.type) row.push(log.type);
+      if (visibleColumns.timer) row.push(removeUnicodeSymbols(getTimerName(log.timer_id)).replace(/"/g, '""'));
+      if (visibleColumns.target) row.push(removeUnicodeSymbols(getTargetName(log.timer_id)).replace(/"/g, '""'));
+      if (visibleColumns.type) row.push(removeUnicodeSymbols(log.type));
       if (visibleColumns.start) {
         row.push(startDayjs.format('L'));
         row.push(startDayjs.format('LT'));
@@ -277,7 +326,9 @@
       }
       if (visibleColumns.totalDuration) row.push(formatDuration(getTotalDuration(log)));
       if (visibleColumns.effectiveDuration) row.push(formatDuration(log.duration_minutes));
-      if (visibleColumns.notes) row.push((log.notes || '').replace(/"/g, '""').replace(/\n/g, ' '));
+      if (visibleColumns.dueTime) row.push(formatDuration(getDueTime(log)));
+      if (visibleColumns.diff) row.push(formatDiff(getDiff(log)));
+      if (visibleColumns.notes) row.push(removeUnicodeSymbols((log.notes || '')).replace(/"/g, '""').replace(/\n/g, ' '));
 
       rows.push(row);
     }
@@ -319,9 +370,23 @@
       const link = document.createElement('a');
       link.href = url;
       
-      // Generate filename with date
-      const today = dayjs().format('YYYY-MM-DD');
-      link.download = `timelogs_${today}.csv`;
+      // Generate filename with date range
+      let filename = 'timelogs';
+      if (filters.dateFrom && filters.dateTo) {
+        const fromDate = filters.dateFrom.format('YYYY-MM-DD');
+        const toDate = filters.dateTo.format('YYYY-MM-DD');
+        filename = `timelogs_${fromDate}_to_${toDate}`;
+      } else if (filters.dateFrom) {
+        const fromDate = filters.dateFrom.format('YYYY-MM-DD');
+        filename = `timelogs_from_${fromDate}`;
+      } else if (filters.dateTo) {
+        const toDate = filters.dateTo.format('YYYY-MM-DD');
+        filename = `timelogs_until_${toDate}`;
+      } else {
+        const today = dayjs().format('YYYY-MM-DD');
+        filename = `timelogs_${today}`;
+      }
+      link.download = `${filename}.csv`;
       
       document.body.appendChild(link);
       link.click();
@@ -345,6 +410,8 @@
       end: true,
       totalDuration: true,
       effectiveDuration: true,
+      dueTime: true,
+      diff: true,
       notes: true,
     };
   }
@@ -358,6 +425,8 @@
       end: false,
       totalDuration: false,
       effectiveDuration: false,
+      dueTime: false,
+      diff: false,
       notes: false,
     };
   }
@@ -480,6 +549,22 @@
           <label class="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
+              bind:checked={visibleColumns.dueTime}
+              class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
+            />
+            <span class="text-sm text-gray-700 dark:text-gray-200">Due Time</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              bind:checked={visibleColumns.diff}
+              class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
+            />
+            <span class="text-sm text-gray-700 dark:text-gray-200">Difference</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
               bind:checked={visibleColumns.notes}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
@@ -528,7 +613,8 @@
             timelogs={paginatedTimelogs}
             timers={$timers}
             targets={$targets}
-            monthlyBalances={$monthlyBalances}
+            dateFrom={filters.dateFrom}
+            dateTo={filters.dateTo}
             {visibleColumns}
           />
         {/if}
