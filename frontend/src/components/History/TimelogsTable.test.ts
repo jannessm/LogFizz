@@ -212,10 +212,10 @@ describe('TimelogsTable Component', () => {
       }
     });
 
-    // Should have date group headers
-    expect(screen.getByText(/Sunday, December 15, 2024/)).toBeInTheDocument();
-    expect(screen.getByText(/Monday, December 16, 2024/)).toBeInTheDocument();
-    expect(screen.getByText(/Tuesday, December 17, 2024/)).toBeInTheDocument();
+    // Should have date group headers (format is locale-aware 'L' format: MM/DD/YYYY)
+    expect(screen.getByText(/12\/15\/2024/)).toBeInTheDocument();
+    expect(screen.getByText(/12\/16\/2024/)).toBeInTheDocument();
+    expect(screen.getByText(/12\/17\/2024/)).toBeInTheDocument();
   });
 
   it('allows column visibility configuration', () => {

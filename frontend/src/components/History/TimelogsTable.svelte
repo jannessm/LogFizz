@@ -8,6 +8,7 @@
   import { dailyBalances, monthlyBalances } from '../../stores/balances';
   import { holidaysStore } from '../../stores/holidays';
   import { get } from 'svelte/store';
+  import { _ } from '../../lib/i18n';
 
   type SortColumn = 'timer' | 'target' | 'type' | 'start' | 'end' | 'total_duration' | 'effective_duration' | 'due_time' | 'diff';
   type SortDirection = 'asc' | 'desc';
@@ -146,11 +147,11 @@
 
   function getTypeLabel(type: TimeLogType): string {
     const labels: Record<TimeLogType, string> = {
-      'normal': 'Normal',
-      'sick': 'Sick',
-      'holiday': 'Holiday',
-      'business-trip': 'Business Trip',
-      'child-sick': 'Child Sick',
+      'normal': $_('timelog.typeNormal'),
+      'sick': $_('timelog.typeSick'),
+      'holiday': $_('timelog.typeHoliday'),
+      'business-trip': $_('timelog.typeBusinessTrip'),
+      'child-sick': $_('timelog.typeChildSick'),
     };
     return labels[type] || type;
   }
@@ -762,7 +763,7 @@
           </th>
         {/if}
         {#if visibleColumns.notes}
-          <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notes</th>
+          <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{$_('timelog.notes')}</th>
         {/if}
       </tr>
     </thead>
@@ -971,7 +972,7 @@
       {:else}
         <tr>
           <td colspan={visibleColumnCount} class="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
-            No timelogs found
+            {$_('table.noTimelogsFound')}
           </td>
         </tr>
       {/each}

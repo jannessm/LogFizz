@@ -7,6 +7,7 @@
   } from '../../../../lib/utils/csvImport.js';
   import { dayjs } from '../../types';
   import DateFormatModal from './DateFormatModal.svelte';
+  import { _ } from '../../lib/i18n';
 
   let {
     headers,
@@ -281,13 +282,13 @@
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-  <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Map Columns</h2>
+  <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">{$_('import.mapColumns')}</h2>
   
   <div class="space-y-4">
     <!-- Timezone -->
     <div>
       <label for="timezone" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-        Timezone *
+        {$_('import.timezoneRequired')}
       </label>
       <select
         id="timezone"
@@ -305,7 +306,7 @@
         <option value="Australia/Sydney">Australia/Sydney (AEDT/AEST)</option>
       </select>
       <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-        Select the timezone for the times in your CSV
+        {$_('import.selectTimezone')}
       </p>
     </div>
 
@@ -320,7 +321,7 @@
           bind:value={startDateColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">None (times include dates)</option>
+          <option value="">{$_('import.none')} (times include dates)</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
@@ -337,7 +338,7 @@
           bind:value={endDateColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">Use start date</option>
+          <option value="">{$_('import.useStartDate')}</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
@@ -347,14 +348,14 @@
       <!-- Start Time Column -->
       <div>
         <label for="start-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-          Start Time Column *
+          {$_('import.startTimeColumn')}
         </label>
         <select
           id="start-column"
           bind:value={startTimeColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">Select column...</option>
+          <option value="">{$_('import.selectColumn')}</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
@@ -364,14 +365,14 @@
       <!-- End Time Column -->
       <div>
         <label for="end-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-          End Time Column *
+          {$_('import.endTimeColumn')}
         </label>
         <select
           id="end-column"
           bind:value={endTimeColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">Select column...</option>
+          <option value="">{$_('import.selectColumn')}</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
@@ -388,7 +389,7 @@
           bind:value={notesColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">None</option>
+          <option value="">{$_('import.none')}</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
@@ -405,7 +406,7 @@
           bind:value={projectColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">None</option>
+          <option value="">{$_('import.none')}</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
@@ -422,13 +423,13 @@
           bind:value={typeColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">None (default to Normal)</option>
+          <option value="">{$_('import.none')} (default to Normal)</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
         </select>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Allowed types: normal, sick, holiday, business-trip, child-sick
+          {$_('import.allowedTypes')}
         </p>
       </div>
     </div>
@@ -466,7 +467,7 @@
                   </div>
                 {:else}
                   <div class="text-xs mt-1 opacity-90 space-y-0.5">
-                    <div>Invalid date/time format</div>
+                    <div>{$_('import.invalidDateFormat')}</div>
                     <div class="font-mono bg-white dark:bg-gray-800 p-1 rounded text-[10px]">
                       Date: "{log.startDateValue}" + Time: "{log.startTime}"
                     </div>
@@ -502,14 +503,14 @@
         onclick={onBack}
         class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       >
-        Back
+        {$_('import.back')}
       </button>
       <button
         onclick={handleContinue}
         disabled={!startTimeColumn || !endTimeColumn}
         class="px-4 py-2 bg-blue-600 dark:bg-orange-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-orange-600 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
       >
-        Continue
+        {$_('import.continue')}
       </button>
     </div>
   </div>

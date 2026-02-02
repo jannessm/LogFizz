@@ -3,6 +3,7 @@
   import { hasSpecialType, loadCalendarMonth, type CalendarTimeLogData } from '../../services/calendar';
   import { onMount } from 'svelte';
   import { getSetting } from '../../lib/db';
+  import { _ } from '../../lib/i18n';
 
   let {
     timeLogs,
@@ -221,7 +222,7 @@
     <button
       onclick={previousMonth}
       class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--chevron-left-alt-duotone] text-gray-600 dark:text-gray-400"
-      aria-label="Previous month"
+      aria-label={$_('history.previousMonth')}
     ></button>
     
     <!-- Month Dropdown -->
@@ -229,7 +230,7 @@
       onchange={changeMonth}
       value={selectedDate.month.month()}
       class="text-lg text-gray-800 dark:text-gray-100 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
-      aria-label="Select month"
+      aria-label={$_('history.selectMonth')}
     >
       {#each monthOptions as month}
         <option value={month.value}>{month.label}</option>
@@ -241,7 +242,7 @@
       onchange={changeYear}
       value={selectedDate.month.year()}
       class="text-lg text-gray-800 dark:text-gray-100 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
-      aria-label="Select year"
+      aria-label={$_('history.selectYear')}
     >
       {#each yearOptions as year}
         <option value={year}>{year}</option>
@@ -251,7 +252,7 @@
     <button
       onclick={nextMonth}
       class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--chevron-right-alt-duotone] text-gray-600 dark:text-gray-400"
-      aria-label="Next month"
+      aria-label={$_('history.nextMonth')}
     ></button>
     
     <!-- Today Button -->
@@ -262,9 +263,9 @@
       class:bg-gray-300={selectedDate.date.isSame(dayjs(), 'day')}
       class:dark:bg-gray-600={selectedDate.date.isSame(dayjs(), 'day')}
       disabled={selectedDate.date.isSame(dayjs(), 'day')}
-      aria-label="Go to today"
+      aria-label={$_('history.goToToday')}
     >
-      Today
+      {$_('history.today')}
     </button>
   </div>
 </div>
@@ -394,32 +395,32 @@
 
   <!-- Legend -->
   <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-    <h4 class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Legend</h4>
+    <h4 class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">{$_('history.legend')}</h4>
     <div class="grid grid-cols-2 gap-2 text-xs">
       <!-- Type indicators -->
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-600 flex-shrink-0"></div>
-        <span class="text-gray-600 dark:text-gray-400">Today</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('history.today')}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full border-2 border-purple-500 flex-shrink-0"></div>
-        <span class="text-gray-600 dark:text-gray-400">Public Holiday</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('history.publicHoliday')}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-red-500 opacity-30 border-2 border-red-500 flex-shrink-0"></div>
-        <span class="text-gray-600 dark:text-gray-400">Sick</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('timelog.typeSick')}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-green-500 opacity-30 border-2 border-green-500 flex-shrink-0"></div>
-        <span class="text-gray-600 dark:text-gray-400">Holiday (PTO)</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('history.holidayPTO')}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-amber-500 opacity-30 border-2 border-amber-500 flex-shrink-0"></div>
-        <span class="text-gray-600 dark:text-gray-400">Business Trip</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('timelog.typeBusinessTrip')}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-pink-500 opacity-30 border-2 border-pink-500 flex-shrink-0"></div>
-        <span class="text-gray-600 dark:text-gray-400">Child Sick</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('timelog.typeChildSick')}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="flex gap-0.5 w-4 justify-center items-center flex-shrink-0">
@@ -427,7 +428,7 @@
           <div class="w-1 h-1 rounded-full bg-green-600"></div>
           <div class="w-1 h-1 rounded-full bg-purple-600"></div>
         </div>
-        <span class="text-gray-600 dark:text-gray-400">Logged Timers</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('history.loggedTimers')}</span>
       </div>
     </div>
   </div>

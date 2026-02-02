@@ -301,15 +301,15 @@
   
       <!-- Subscription -->
       <!-- <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Subscription</h3>
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">{$_('subscription.subscription')}</h3>
         <button
           onclick={() => navigate('/payment')}
           class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
         >
-          <span>Manage Subscription</span>
+          <span>{$_('subscription.manageSubscription')}</span>
         </button>
         <p class="text-sm text-gray-500 mt-2">
-          View your subscription status and manage your billing.
+          {$_('subscription.viewSubscriptionStatus')}
         </p>
       </div> -->
 
@@ -377,8 +377,8 @@
       <div class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
         <div class="mb-2">{$_('common.version')} {pkg.version}</div>
         <div class="flex justify-center gap-4">
-          <!-- <a href="/impressum" class="hover:underline text-gray-600" target="_blank" rel="noopener noreferrer">Impressum</a>
-          <a href="/datenschutz" class="hover:underline text-gray-600" target="_blank" rel="noopener noreferrer">Datenschutzbestimmung</a> -->
+          <!-- <a href="/impressum" class="hover:underline text-gray-600" target="_blank" rel="noopener noreferrer">{$_('legal.impressum')}</a>
+          <a href="/datenschutz" class="hover:underline text-gray-600" target="_blank" rel="noopener noreferrer">{$_('legal.privacyPolicy')}</a> -->
         </div>
       </div>
     </div>

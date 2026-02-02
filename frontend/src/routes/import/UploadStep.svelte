@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { _ } from '../../lib/i18n';
+
   let {
     file,
     errorMessage,
@@ -57,7 +59,7 @@
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-  <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Upload CSV File</h2>
+  <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">{$_('import.uploadCSV')}</h2>
   
   <div
     class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-blue-400 dark:hover:border-orange-400 transition-colors cursor-pointer"
@@ -80,10 +82,10 @@
       {#if file}
         Selected: <span class="font-medium">{file.name}</span>
       {:else}
-        Drag and drop your CSV file here
+        {$_('import.dragDrop')}
       {/if}
     </p>
-    <p class="text-sm text-gray-500 dark:text-gray-400">or click to browse</p>
+    <p class="text-sm text-gray-500 dark:text-gray-400">{$_('import.orClickBrowse')}</p>
   </div>
 
   {#if errorMessage}
@@ -103,14 +105,14 @@
       onclick={onCancel}
       class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
     >
-      Cancel
+      {$_('common.cancel')}
     </button>
     <button
       onclick={onContinue}
       disabled={!file}
       class="px-4 py-2 bg-blue-600 dark:bg-orange-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-orange-600 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
     >
-      Continue
+      {$_('import.continue')}
     </button>
   </div>
 </div>

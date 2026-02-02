@@ -2,6 +2,7 @@
   import Modal from '../../components/Modal.svelte';
   import { DATE_TIME_FORMATS } from '../../../../lib/utils/csvImport.js';
   import { dayjs } from '../../types';
+  import { _ } from '../../lib/i18n';
 
   let {
     sampleValue,
@@ -88,15 +89,15 @@
   }
 </script>
 
-<Modal title="Date Format Not Recognized" onclose={onClose} maxWidth="max-w-2xl">
+<Modal title={$_('import.dateFormatNotRecognized')} onclose={onClose} maxWidth="max-w-2xl">
   {#snippet children()}
     <div class="space-y-4">
       <div class="bg-amber-50 dark:bg-amber-900 dark:bg-opacity-20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
         <p class="text-sm text-amber-800 dark:text-amber-200">
-          <strong>Unable to parse:</strong> <code class="bg-white dark:bg-gray-700 px-2 py-1 rounded">{sampleValue}</code>
+          <strong>{$_('import.unableToParse')}</strong> <code class="bg-white dark:bg-gray-700 px-2 py-1 rounded">{sampleValue}</code>
         </p>
         <p class="text-xs text-amber-700 dark:text-amber-300 mt-2">
-          Please select the correct date/time format from the options below, or enter a custom format.
+          {$_('import.selectCorrectFormat')}
         </p>
       </div>
 
@@ -129,7 +130,7 @@
       </div>
 
       <div class="space-y-3">
-        <h3 class="font-medium text-gray-800 dark:text-gray-200">Standard Formats</h3>
+        <h3 class="font-medium text-gray-800 dark:text-gray-200">{$_('import.standardFormats')}</h3>
         <div class="max-h-60 overflow-y-auto space-y-2 pr-2">
           {#each DATE_TIME_FORMATS as format}
             {@const exampleDate = dayjs('2025-01-15 14:30:00')}
@@ -156,7 +157,7 @@
       <!-- Custom Format -->
       <div class="space-y-2 border-t border-gray-200 dark:border-gray-600 pt-4">
         <label for="custom-format" class="block font-medium text-gray-800 dark:text-gray-200">
-          Custom Format
+          {$_('import.customFormat')}
         </label>
         <div class="flex gap-2">
           <input
@@ -172,7 +173,7 @@
             disabled={!customFormat}
             class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
           >
-            Test
+            {$_('import.test')}
           </button>
         </div>
         
@@ -196,7 +197,7 @@
         {/if}
         
         <p class="text-xs text-gray-500 dark:text-gray-400">
-          Use dayjs format tokens. See <a href="https://day.js.org/docs/en/parse/string-format" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-orange-400 hover:underline">dayjs documentation</a> for details.
+          {$_('import.formatHelp')} <a href="https://day.js.org/docs/en/parse/string-format" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-orange-400 hover:underline">{$_('import.dayjsDocumentation')}</a> {$_('import.forDetails')}
         </p>
       </div>
     </div>
@@ -208,14 +209,14 @@
         onclick={onClose}
         class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       >
-        Cancel
+        {$_('common.cancel')}
       </button>
       <button
         onclick={handleApply}
         disabled={!selectedFormat && !customFormat}
         class="px-4 py-2 bg-blue-600 dark:bg-orange-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-orange-600 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
       >
-        Apply Format
+        {$_('import.applyFormat')}
       </button>
     </div>
   {/snippet}

@@ -6,6 +6,8 @@
   import type { Timer, TargetWithSpecs } from '../../types';
   import { getActiveTargetSpec, isTargetArchived } from '../../lib/utils/targetSpec';
   import { dayjs } from '../../types';
+  import { _ } from '../../lib/i18n';
+  import { get } from 'svelte/store';
 
   let {
     editTimer,
@@ -22,13 +24,13 @@
   } = $props();
 
   async function handleDeleteTimer(timer: Timer) {
-    if (confirm(`Delete timer "${timer.name}"?`)) {
+    if (confirm(get(_)('timer.deleteTimer') + ` "${timer.name}"?`)) {
       await timersStore.delete($state.snapshot(timer));
     }
   }
 
   async function handleDeleteTarget(target: TargetWithSpecs) {
-    if (confirm(`Delete target "${target.name}"?`)) {
+    if (confirm(get(_)('target.deleteTarget') + ` "${target.name}"?`)) {
       await targetsStore.delete($state.snapshot(target));
     }
   }
@@ -139,7 +141,7 @@
   });
 </script>
 
-<Modal title="Edit Timers & Targets" maxWidth="max-w-2xl" maxHeight="max-h-[80vh]" onclose={close}>
+<Modal title={$_('dashboard.editTimersTargets')} maxWidth="max-w-2xl" maxHeight="max-h-[80vh]" onclose={close}>
   {#snippet children()}
     <div class="space-y-6">
       <!-- Targets Section -->
@@ -147,18 +149,18 @@
         <div class="flex justify-between items-center mb-2">
             <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
               <span class="bg-green-600 icon-[si--clipboard-check-alt-duotone]" style="width: 24px; height: 24px;"></span>
-              Targets
+              {$_('dashboard.targets')}
             </h3>
             <button
                 onclick={addTarget}
                 class="icon-[si--add-circle-duotone] bg-blue-400 dark:bg-orange-500 hover:bg-blue-600 dark:hover:bg-orange-600"
-                aria-label="Add"
+                aria-label={$_('common.add')}
                 style="width: 24px; height: 24px;"
             ></button>
         </div>
         
         {#if activeTargets.length === 0}
-          <p class="text-gray-500 dark:text-gray-400 text-sm italic">No active targets yet</p>
+          <p class="text-gray-500 dark:text-gray-400 text-sm italic">{$_('dashboard.noActiveTargets')}</p>
         {:else}
           <div class="space-y-2">
             {#each activeTargets.slice().sort((a, b) => a.name.localeCompare(b.name)) as target}
@@ -171,13 +173,13 @@
                       onclick={() => editTarget(target)}
                       class="p-1 text-blue-600 dark:text-orange-400 hover:text-blue-700 dark:hover:text-orange-300 icon-[si--edit-detailed-duotone]"
                       style="width: 20px; height: 20px;"
-                      aria-label="Edit Target"
+                      aria-label={$_('target.editTarget')}
                     ></button>
                     <button
                       onclick={() => handleDeleteTarget(target)}
                       class="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 icon-[si--bin-duotone]"
                       style="width: 20px; height: 20px;"
-                      aria-label="Delete Target"
+                      aria-label={$_('target.deleteTarget')}
                     ></button>
                   </div>
                 </div>
@@ -211,18 +213,18 @@
         <div class="flex justify-between items-center mb-2">
             <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
               <span class="bg-blue-500 dark:bg-orange-500 icon-[si--clock-alt-duotone]" style="width: 24px; height: 24px;"></span>
-              Timers
+              {$_('dashboard.timers')}
             </h3>
             <button
                 onclick={addTimer}
                 class="icon-[si--add-circle-duotone] bg-blue-400 dark:bg-orange-500 hover:bg-blue-600 dark:hover:bg-orange-600"
-                aria-label="Add"
+                aria-label={$_('common.add')}
                 style="width: 24px; height: 24px;"
             ></button>
         </div>
 
         {#if activeTimers.length === 0}
-          <p class="text-gray-500 dark:text-gray-400 text-sm italic">No active timers yet</p>
+          <p class="text-gray-500 dark:text-gray-400 text-sm italic">{$_('dashboard.noActiveTimers')}</p>
         {:else}
           <div class="space-y-2">
             {#each activeTimers as timer}
@@ -241,7 +243,7 @@
                         {#if timer.auto_subtract_breaks}
                           <span class="flex items-center gap-1">
                             <span class="icon-[proicons--coffee-hot]" style="width: 12px; height: 12px;"></span>
-                            Auto breaks
+                            {$_('dashboard.autoBreaks')}
                           </span>
                         {/if}
                         {#if timer.target_id}
@@ -261,13 +263,13 @@
                       onclick={() => editTimer(timer)}
                       class="p-1 text-blue-600 dark:text-orange-400 hover:text-blue-700 dark:hover:text-orange-300 icon-[si--edit-detailed-duotone]"
                       style="width: 20px; height: 20px;"
-                      aria-label="Edit Timer"
+                      aria-label={$_('timer.editTimer')}
                     ></button>
                     <button
                       onclick={() => handleDeleteTimer(timer)}
                       class="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 icon-[si--bin-duotone]"
                       style="width: 20px; height: 20px;"
-                      aria-label="Delete Timer"
+                      aria-label={$_('timer.deleteTimer')}
                     ></button>
                   </div>
                 </div>
@@ -282,13 +284,13 @@
         <div class="border-t-2 border-gray-300 dark:border-gray-600 pt-6 mt-6">
           <h3 class="text-lg font-semibold text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-2">
             <span class="bg-gray-400 icon-[si--archive-duotone]" style="width: 24px; height: 24px;"></span>
-            Archived (Ended)
+            {$_('dashboard.archivedEnded')}
           </h3>
           
           <!-- Archived Targets -->
           {#if archivedTargets.length > 0}
             <div class="mb-4">
-              <h4 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Ended Targets</h4>
+              <h4 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{$_('dashboard.endedTargets')}</h4>
               <div class="space-y-2 opacity-70">
                 {#each archivedTargets.slice().sort((a, b) => a.name.localeCompare(b.name)) as target}
                   <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/50">
@@ -299,13 +301,13 @@
                           onclick={() => editTarget(target)}
                           class="p-1 text-blue-600 dark:text-orange-400 hover:text-blue-700 dark:hover:text-orange-300 icon-[si--edit-detailed-duotone]"
                           style="width: 20px; height: 20px;"
-                          aria-label="Edit Target"
+                          aria-label={$_('target.editTarget')}
                         ></button>
                         <button
                           onclick={() => handleDeleteTarget(target)}
                           class="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 icon-[si--bin-duotone]"
                           style="width: 20px; height: 20px;"
-                          aria-label="Delete Target"
+                          aria-label={$_('target.deleteTarget')}
                         ></button>
                       </div>
                     </div>
@@ -329,7 +331,7 @@
           <!-- Archived Timers -->
           {#if archivedTimers.length > 0}
             <div>
-              <h4 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Timers Linked to Ended Targets</h4>
+              <h4 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{$_('dashboard.timersLinkedToEndedTargets')}</h4>
               <div class="space-y-2 opacity-70">
                 {#each archivedTimers as timer}
                   <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/50">
@@ -347,7 +349,7 @@
                             {#if timer.auto_subtract_breaks}
                               <span class="flex items-center gap-1">
                                 <span class="icon-[proicons--coffee-hot]" style="width: 12px; height: 12px;"></span>
-                                Auto breaks
+                                {$_('dashboard.autoBreaks')}
                               </span>
                             {/if}
                             {#if timer.target_id}
@@ -367,13 +369,13 @@
                           onclick={() => editTimer(timer)}
                           class="p-1 text-blue-600 dark:text-orange-400 hover:text-blue-700 dark:hover:text-orange-300 icon-[si--edit-detailed-duotone]"
                           style="width: 20px; height: 20px;"
-                          aria-label="Edit Button"
+                          aria-label={$_('timer.editButton')}
                         ></button>
                         <button
                           onclick={() => handleDeleteTimer(timer)}
                           class="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 icon-[si--bin-duotone]"
                           style="width: 20px; height: 20px;"
-                          aria-label="Delete Button"
+                          aria-label={$_('timer.deleteButton')}
                         ></button>
                       </div>
                     </div>

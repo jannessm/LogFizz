@@ -7,6 +7,7 @@
   import TargetSpecItem from './TargetSpecItem.svelte';
   import DateTimeInput from './DateTimeInput.svelte';
   import { dayjs } from '../../types';
+  import { _ } from '../../lib/i18n';
 
   let {
     target = null,
@@ -274,7 +275,7 @@
         onclick={close}
         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
         style="width: 28px; height: 28px;"
-        aria-label="Close"
+        aria-label={$_('common.close')}
       ></button>
     </div>
 
@@ -290,7 +291,7 @@
         <!-- Name -->
         <div>
           <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Target Name *
+            {$_('target.targetNameRequired')}
           </label>
           <input
             id="name"
@@ -298,7 +299,7 @@
             bind:value={name}
             required
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="e.g., Work, Exercise, Study"
+            placeholder={$_('target.placeholderTargetName')}
           />
         </div>
 
@@ -306,9 +307,9 @@
         <div class="border-t dark:border-gray-700 pt-4">
           <div class="flex justify-between items-center mb-3">
             <div>
-              <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Target Specifications *</h3>
+              <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">{$_('target.targetSpecsRequired')}</h3>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Define work schedules for different time periods. Most recent first.
+                {$_('target.specsDescription')}
               </p>
             </div>
             <button
@@ -317,15 +318,15 @@
               class="px-3 py-1.5 bg-primary text-white text-sm rounded-md hover:bg-primary-hover transition-colors flex items-center gap-1"
             >
               <span class="icon-[si--add-line] w-4 h-4"></span>
-              Add Schedule
+              {$_('target.addSchedule')}
             </button>
           </div>
 
           <!-- List of Target Specs -->
           {#if targetSpecs.length === 0}
             <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
-              <p class="text-gray-500 dark:text-gray-400 text-sm">No schedules defined yet</p>
-              <p class="text-gray-400 dark:text-gray-500 text-xs mt-1">Click "Add Schedule" to create one</p>
+              <p class="text-gray-500 dark:text-gray-400 text-sm">{$_('target.noSchedulesDefined')}</p>
+              <p class="text-gray-400 dark:text-gray-500 text-xs mt-1">{$_('target.clickAddSchedule')}</p>
             </div>
           {:else}
             <div class="space-y-0">
@@ -358,18 +359,18 @@
                           dateId="start-date-{index}"
                         />
                         {#if index === 0 && !archiveDate}
-                          <span class="text-xs text-primary font-semibold mb-1">● Current</span>
+                          <span class="text-xs text-primary font-semibold mb-1">{$_('target.current')}</span>
                         {/if}
                         {#if index < targetSpecs.length - 1}
                           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Ends: {dayjs(targetSpecs[index + 1].startDate).subtract(1, 'day').format('ll')}
+                            {$_('target.endsOn')} {dayjs(targetSpecs[index + 1].startDate).subtract(1, 'day').format('ll')}
                           </p>
                         {:else if index === 0 && archiveDate}
                           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Ends: {dayjs(archiveDate).format('ll')}
+                            {$_('target.endsOn')} {dayjs(archiveDate).format('ll')}
                           </p>
                         {:else}
-                          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">No end date</p>
+                          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$_('target.noEndDate')}</p>
                         {/if}
                       </div>
                       
@@ -412,7 +413,7 @@
         <!-- Archive Target Section -->
         <div class="border-t dark:border-gray-700 pt-4">
           <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            Set an end date to archive this target. The current target ends on this date.
+            {$_('target.setEndDateDescription')}
           </p>
           <div class="flex items-start gap-3">
             <div class="flex-1">
@@ -424,7 +425,7 @@
               />
               {#if archiveDate}
                 <p class="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
-                  This target ends on {dayjs(archiveDate).format('ll')}
+                  {$_('target.targetEndsOn')} {dayjs(archiveDate).format('ll')}
                 </p>
               {/if}
             </div>
@@ -433,10 +434,10 @@
                 type="button"
                 onclick={() => archiveDate = null}
                 class="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors flex items-center gap-1"
-                title="Remove archive date"
+                title={$_('target.removeArchiveDate')}
               >
                 <span class="icon-[si--close-line] w-4 h-4"></span>
-                Clear
+                {$_('common.clear')}
               </button>
             {/if}
           </div>
@@ -446,14 +447,14 @@
         {#if target}
           <div class="border-t dark:border-gray-700 pt-4 mt-4">
             <div class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Assign Timers
+              {$_('target.assignTimers')}
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Select timers to track time towards this target. Selecting a timer that's already assigned to another target will reassign it to this target.
+              {$_('target.assignTimersDescription')}
             </p>
             
             {#if availableTimers.length === 0}
-              <p class="text-sm text-gray-500 dark:text-gray-400 italic">No timers available. Create timers first to assign them to this target.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 italic">{$_('target.noTimersAvailable')}</p>
             {:else}
               <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
                 {#each availableTimers as timer}
@@ -504,14 +505,14 @@
             onclick={close}
             class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
-            Cancel
+            {$_('common.cancel')}
           </button>
           <button
             type="submit"
             disabled={isLoading}
             class="flex-1 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Saving...' : target ? 'Update' : 'Create'}
+            {isLoading ? 'Saving...' : $_(target ? 'common.save' : 'common.save')}
           </button>
         </div>
       </form>

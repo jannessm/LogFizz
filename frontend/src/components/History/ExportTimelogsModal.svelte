@@ -4,6 +4,7 @@
   import { timerlogs } from '../../stores/timelogs';
   import { dayjs, userTimezone } from '../../types';
   import type { Timer as TimerType } from '../../types';
+  import { _ } from '../../lib/i18n';
 
   let {
     close
@@ -277,13 +278,13 @@
     <!-- Header -->
     <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
       <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
-        Export Timelogs
+        {$_('export.exportTimelogs')}
       </h2>
       <button
         onclick={close}
         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
         style="width: 28px; height: 28px;"
-        aria-label="Close"
+        aria-label={$_('common.close')}
       ></button>
     </div>
 
@@ -300,21 +301,21 @@
       <div>
         <div class="flex items-center justify-between mb-3">
           <span class="block text-sm font-medium text-gray-700 dark:text-gray-200">
-            Select Timers
+            {$_('export.selectTimers')}
           </span>
           <div class="flex gap-2">
             <button
               onclick={selectAllTimers}
               class="text-xs text-blue-600 dark:text-orange-400 hover:underline"
             >
-              Select All
+              {$_('common.selectAll')}
             </button>
             <span class="text-gray-400">|</span>
             <button
               onclick={deselectAllTimers}
               class="text-xs text-blue-600 dark:text-orange-400 hover:underline"
             >
-              Deselect All
+              {$_('common.deselectAll')}
             </button>
           </div>
         </div>
@@ -363,7 +364,7 @@
             <div class="space-y-1">
               {#if $targets.some(t => (timersByTarget().get(t.id) || []).length > 0)}
                 <div class="text-sm font-medium text-gray-600 dark:text-gray-400 p-2">
-                  Other Timers
+                  {$_('export.otherTimers')}
                 </div>
               {/if}
               {#each timersWithoutTarget as timer}
@@ -385,7 +386,7 @@
           <!-- No timers message -->
           {#if $timers.length === 0}
             <p class="text-gray-500 dark:text-gray-400 text-sm text-center py-4">
-              No timers found. Create a timer first to export timelogs.
+              {$_('export.noTimersFound')}
             </p>
           {/if}
         </div>
@@ -394,11 +395,11 @@
       <!-- Date Range Filter (Optional) -->
       <div>
         <span class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-          Date Range (Optional)
+          {$_('export.dateRangeOptional')}
         </span>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label for="start-date" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">From</label>
+            <label for="start-date" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{$_('common.from')}</label>
             <input
               id="start-date"
               type="date"
@@ -407,7 +408,7 @@
             />
           </div>
           <div>
-            <label for="end-date" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">To</label>
+            <label for="end-date" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{$_('common.to')}</label>
             <input
               id="end-date"
               type="date"
@@ -417,14 +418,14 @@
           </div>
         </div>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Leave empty to export all timelogs from selected timers
+          {$_('export.leaveEmptyExportAll')}
         </p>
       </div>
 
       <!-- Column Selection -->
       <div>
         <span class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-          Select Columns to Export
+          {$_('export.selectColumns')}
         </span>
         <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 grid grid-cols-2 gap-2">
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -433,7 +434,7 @@
               bind:checked={columns.startDate}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-gray-700 dark:text-gray-200">Start Date</span>
+            <span class="text-gray-700 dark:text-gray-200">{$_('export.startDate')}</span>
           </label>
           
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -442,7 +443,7 @@
               bind:checked={columns.startTime}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-gray-700 dark:text-gray-200">Start Time</span>
+            <span class="text-gray-700 dark:text-gray-200">{$_('export.startTime')}</span>
           </label>
 
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -451,7 +452,7 @@
               bind:checked={columns.endDate}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-gray-700 dark:text-gray-200">End Date</span>
+            <span class="text-gray-700 dark:text-gray-200">{$_('export.endDate')}</span>
           </label>
           
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -460,7 +461,7 @@
               bind:checked={columns.endTime}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-gray-700 dark:text-gray-200">End Time</span>
+            <span class="text-gray-700 dark:text-gray-200">{$_('export.endTime')}</span>
           </label>
 
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -469,7 +470,7 @@
               bind:checked={columns.timezone}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-gray-700 dark:text-gray-200">Timezone</span>
+            <span class="text-gray-700 dark:text-gray-200">{$_('export.timezone')}</span>
           </label>
           
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -478,7 +479,7 @@
               bind:checked={columns.duration}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-gray-700 dark:text-gray-200">Duration</span>
+            <span class="text-gray-700 dark:text-gray-200">{$_('timelog.duration')}</span>
           </label>
           
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -487,7 +488,7 @@
               bind:checked={columns.timer}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-gray-700 dark:text-gray-200">Timer</span>
+            <span class="text-gray-700 dark:text-gray-200">{$_('dashboard.timers')}</span>
           </label>
           
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600">
@@ -496,7 +497,7 @@
               bind:checked={columns.type}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-gray-700 dark:text-gray-200">Type</span>
+            <span class="text-gray-700 dark:text-gray-200">{$_('timelog.type')}</span>
           </label>
           
           <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-600 col-span-2">
@@ -505,7 +506,7 @@
               bind:checked={columns.notes}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-gray-700 dark:text-gray-200">Notes</span>
+            <span class="text-gray-700 dark:text-gray-200">{$_('timelog.notes')}</span>
           </label>
         </div>
       </div>
@@ -514,7 +515,7 @@
       {#if selectedTimerIds.size > 0}
         <div class="bg-blue-50 dark:bg-orange-900/30 border border-blue-200 dark:border-orange-700 rounded-lg p-4">
           <p class="text-blue-700 dark:text-orange-200">
-            <strong>{timelogsToExport().length}</strong> timelogs will be exported from 
+            <strong>{timelogsToExport().length}</strong> {$_('export.timelogsWillBeExported')} 
             <strong>{selectedTimerIds.size}</strong> selected timer{selectedTimerIds.size !== 1 ? 's' : ''}
           </p>
         </div>
@@ -527,7 +528,7 @@
         onclick={close}
         class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
       >
-        Cancel
+        {$_('common.cancel')}
       </button>
       <button
         onclick={handleExport}

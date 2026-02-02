@@ -4,6 +4,7 @@
   import dayjs from 'dayjs';
   import { numberToHoursMinutes } from '../../lib/chart_utils';
   import type { Timer } from '../../types';
+  import { _ } from '../../lib/i18n';
  
   let { timers, title = '', currentMonth, timeLogs }: {
     timers: Timer[];
@@ -167,7 +168,7 @@
     {#if timeLogs.length > 0}
       <canvas bind:this={canvas}></canvas>
     {:else}
-      <p class="text-gray-400 text-sm">No data available</p>
+      <p class="text-gray-400 text-sm">{$_('common.noDataAvailable')}</p>
     {/if}
   </div>
 </div>

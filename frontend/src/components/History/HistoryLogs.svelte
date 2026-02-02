@@ -11,6 +11,7 @@
     type SessionData, type TimelineProps
   } from '../../services/timeline';
     import { saveTimelog } from '../../services/formHandlers';
+  import { _ } from '../../lib/i18n';
 
   // Get user's timezone
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -151,39 +152,39 @@
       <button
         onclick={previousDay}
         class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--chevron-left-alt-duotone] text-gray-600 dark:text-gray-400"
-        aria-label="Previous day"
+        aria-label={$_('history.previousDay')}
       ></button>
       <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
         {selectedDate.date.format('dddd, LL')}
         {#if isToday(selectedDate.date)}
-          <span class="text-sm font-normal text-primary">(Today)</span>
+          <span class="text-sm font-normal text-primary">({$_('history.today')})</span>
         {/if}
       </h2>
       <button
         onclick={nextDay}
         class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--chevron-right-alt-duotone] text-gray-600 dark:text-gray-400"
-        aria-label="Next day"
+        aria-label={$_('history.nextDay')}
       ></button>
     </div>
     <button
       onclick={handleAddTimelog}
       class="rounded-full bg-primary hover:bg-primary-hover transition-colors flex items-center gap-1 icon-[si--add-circle-duotone]"
       style="width: 32px; height: 32px;"
-      aria-label="Add time entry"
+      aria-label={$_('history.addTimeEntry')}
     ></button>
   </div>
 
   <!-- Filter Dropdown -->
   <div class="mb-4">
     <label for="timer-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-      Filter by timer:
+      {$_('history.filterByTimer')}
     </label>
     <select
       id="timer-filter"
       bind:value={selectedTimerFilter}
       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
     >
-      <option value={null}>All Timers</option>
+      <option value={null}>{$_('history.allTimers')}</option>
       {#each uniqueTimers as timer}
         <option value={timer.id}>
           {timer.emoji ? `${timer.emoji} ` : ''}{timer.name}
@@ -195,7 +196,7 @@
   <!-- Special Type Sessions (Sick, Holiday, etc.) -->
   {#if filteredMultiDaySessions.length > 0}
     <div class="mb-6 space-y-2">
-      <h3 class="text-sm font-semibold text-gray-700 mb-3">Multi-Day Entries</h3>
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">{$_('history.multiDayEntries')}</h3>
       {#each filteredMultiDaySessions as session}
         {@const timer = timers.find(t => t.id === session.timer_id)}
         {@const type = session.log?.type || 'normal'}
@@ -255,7 +256,7 @@
   <!-- Public Holidays (displayed like whole_day timelogs) -->
   {#if relevantHolidays.length > 0}
     <div class="mb-6 space-y-2">
-      <h3 class="text-sm font-semibold text-gray-700 mb-3">Public Holidays</h3>
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">{$_('history.publicHolidays')}</h3>
       {#each relevantHolidays as holiday}
         <div 
           class="w-full flex items-center gap-3 p-4 rounded-lg border-2 text-left"
@@ -279,7 +280,7 @@
 
   <!-- Timeline Section Header -->
   {#if filteredSessions.length > 0}
-    <h3 class="text-sm font-semibold text-gray-700 mb-3">Timeline</h3>
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">{$_('history.timeline')}</h3>
   {/if}
   
   {#if filteredSessions.length > 0}
@@ -323,9 +324,9 @@
       </div>
     </div>
   {:else if sessions.length > 0 && selectedTimerFilter}
-    <p class="text-gray-500 text-center py-8">No timeline activities for selected timer on this date</p>
+    <p class="text-gray-500 text-center py-8">{$_('history.noTimelineActivities')}</p>
   {:else if filteredMultiDaySessions.length === 0}
-    <p class="text-gray-500 text-center py-8">No activities on this date</p>
+    <p class="text-gray-500 text-center py-8">{$_('history.noActivities')}</p>
   {/if}
 </div>
 

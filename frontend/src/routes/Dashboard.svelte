@@ -244,14 +244,14 @@
         class:hover:bg-gray-500={!showEditOverview}
         class:dark:hover:bg-gray-500={!showEditOverview}
         class:text-white={showEditOverview}
-        aria-label="Edit Overview"
+        aria-label={$_('dashboard.editOverview')}
         style="width: 32px; height: 32px;"
       ></button>
       <button 
         onclick={handleShowAddSelector}
         class="px-4 py-2 bg-primary rounded-full hover:bg-primary-hover transition-colors icon-[si--add-circle-duotone]"
         style="width: 32px; height: 32px;"
-        aria-label="Add"
+        aria-label={$_('common.add')}
       ></button>
     </div>
    </div>

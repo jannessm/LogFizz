@@ -106,12 +106,12 @@ describe('Table Route', () => {
 
   it('renders export button', () => {
     render(Table);
-    expect(screen.getByLabelText('Export timelogs')).toBeInTheDocument();
+    expect(screen.getByLabelText('Export Data')).toBeInTheDocument();
   });
 
   it('renders import button', () => {
     render(Table);
-    expect(screen.getByLabelText('Import timelogs')).toBeInTheDocument();
+    expect(screen.getByLabelText('Import Data')).toBeInTheDocument();
   });
 
   it('renders pagination controls', () => {

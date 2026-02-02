@@ -12,6 +12,8 @@
   import { navigate } from '../../lib/navigation';
   import { snackbar } from '../../stores/snackbar';
   import { calculateDueMinutes } from '../../../../lib/utils/balance';
+  import { _ } from '../../lib/i18n';
+  import { get } from 'svelte/store';
 
   // Column visibility state
   let visibleColumns = $state({
@@ -352,12 +354,12 @@
   // Handle export
   function handleExport() {
     if (!hasSelectedColumns) {
-      snackbar.error('Please select at least one column to export.');
+      snackbar.error(get(_)('export.selectColumnError'));
       return;
     }
 
     if (filteredTimelogs.length === 0) {
-      snackbar.error('No timelogs found for the current filters.');
+      snackbar.error(get(_)('export.noTimelogsError'));
       return;
     }
 
@@ -393,9 +395,9 @@
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      snackbar.success(`Exported ${filteredTimelogs.length} timelogs to CSV.`);
+      snackbar.success(get(_)('export.exportSuccess', { values: { count: filteredTimelogs.length } }));
     } catch (error) {
-      snackbar.error('Failed to export timelogs. Please try again.');
+      snackbar.error(get(_)('export.exportError'));
       console.error('Export error:', error);
     }
   }
@@ -440,11 +442,11 @@
         <button
           onclick={handleCancel}
           class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-          aria-label="Go back"
+          aria-label={$_('import.goBack')}
         >
           <span class="icon-[si--arrow-left-line]" style="width: 24px; height: 24px;"></span>
         </button>
-        <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Export Timelogs</h1>
+        <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{$_('export.title')}</h1>
       </div>
       <button
         onclick={handleExport}
@@ -452,7 +454,7 @@
         class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center gap-2"
       >
         <span class="icon-[si--file-download-duotone]" style="width: 16px; height: 16px;"></span>
-        Export {filteredTimelogs.length} Timelogs
+        {$_('export.exportCount', { values: { count: filteredTimelogs.length } })}
       </button>
     </div>
   </header>
@@ -471,21 +473,21 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         <div class="flex items-center justify-between mb-3">
           <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
-            Columns to Export
+            {$_('export.columnsToExport')}
           </span>
           <div class="flex gap-2">
             <button
               onclick={selectAllColumns}
               class="text-xs text-blue-600 dark:text-orange-400 hover:underline"
             >
-              Select All
+              {$_('export.selectAll')}
             </button>
             <span class="text-gray-400">|</span>
             <button
               onclick={deselectAllColumns}
               class="text-xs text-blue-600 dark:text-orange-400 hover:underline"
             >
-              Deselect All
+              {$_('export.deselectAll')}
             </button>
           </div>
         </div>
@@ -496,7 +498,7 @@
               bind:checked={visibleColumns.timer}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Timer</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.timer')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -504,7 +506,7 @@
               bind:checked={visibleColumns.target}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Target</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.target')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -512,7 +514,7 @@
               bind:checked={visibleColumns.type}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Type</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.type')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -520,7 +522,7 @@
               bind:checked={visibleColumns.start}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Start</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.start')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -528,7 +530,7 @@
               bind:checked={visibleColumns.end}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">End</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.end')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -536,7 +538,7 @@
               bind:checked={visibleColumns.totalDuration}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Total Duration</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.totalDuration')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -544,7 +546,7 @@
               bind:checked={visibleColumns.effectiveDuration}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Effective Duration</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.effectiveDuration')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -552,7 +554,7 @@
               bind:checked={visibleColumns.dueTime}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Due Time</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.dueTime')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -560,7 +562,7 @@
               bind:checked={visibleColumns.diff}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Difference</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.difference')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -568,7 +570,7 @@
               bind:checked={visibleColumns.notes}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Notes</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.notes')}</span>
           </label>
         </div>
       </div>
@@ -588,7 +590,7 @@
               disabled={currentPage === 1}
               class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              Previous
+              {$_('common.previous')}
             </button>
             <span>Page {currentPage} of {totalPages}</span>
             <button
@@ -596,7 +598,7 @@
               disabled={currentPage === totalPages}
               class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              Next
+              {$_('common.next')}
             </button>
           </div>
         {/if}
@@ -628,14 +630,14 @@
             disabled={currentPage === 1}
             class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            First
+            {$_('common.first')}
           </button>
           <button
             onclick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 1}
             class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            Previous
+            {$_('common.previous')}
           </button>
           
           {#each Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -662,14 +664,14 @@
             disabled={currentPage === totalPages}
             class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            Next
+            {$_('common.next')}
           </button>
           <button
             onclick={() => goToPage(totalPages)}
             disabled={currentPage === totalPages}
             class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            Last
+            {$_('common.last')}
           </button>
         </div>
       {/if}

@@ -4,6 +4,7 @@
   import { dayjs, type TimeLog } from '../../types';
   import { userTimezone } from '../../../../lib/utils/dayjs';
   import DateTimeInput from './DateTimeInput.svelte';
+  import { _ } from '../../lib/i18n';
 
   let {
     selectedDate,
@@ -193,12 +194,12 @@
           onclick={close}
           class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
           style="width: 28px; height: 28px;"
-          aria-label="Close"
+          aria-label={$_('common.close')}
         ></button>
       </div>
       {#if isTimerStop}
         <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
-          Add notes or adjust end time (optional). Click "Save" to stop the timer or close to keep it running.
+          {$_('timelog.addNotesDescription')}
         </p>
       {/if}
     </div>
@@ -208,7 +209,7 @@
       <!-- Timer Selection -->
       <div>
         <label for="timer" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Timer *
+          {$_('timelog.timerRequired')}
         </label>
         <select
           id="timer"
@@ -216,7 +217,7 @@
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent"
           required
         >
-          <option value="">Select a timer</option>
+          <option value="">{$_('timelog.selectTimer')}</option>
           {#each $timers as timer}
             <option value={timer.id}>
               {timer.emoji ? timer.emoji + ' ' : ''}{timer.name}
@@ -228,7 +229,7 @@
       <!-- Type Selection -->
       <div>
         <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Type *
+          {$_('timelog.typeRequired')}
         </label>
         <select
           id="type"
@@ -236,15 +237,15 @@
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent"
           required
         >
-          <option value="normal">Normal</option>
-          <option value="sick">Sick</option>
-          <option value="holiday">Holiday</option>
-          <option value="business-trip">Business Trip</option>
-          <option value="child-sick">Child Sick</option>
+          <option value="normal">{$_('timelog.typeNormal')}</option>
+          <option value="sick">{$_('timelog.typeSick')}</option>
+          <option value="holiday">{$_('timelog.typeHoliday')}</option>
+          <option value="business-trip">{$_('timelog.typeBusinessTrip')}</option>
+          <option value="child-sick">{$_('timelog.typeChildSick')}</option>
         </select>
         {#if isSpecialType}
           <p class="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-start gap-1">
-            <span>Special types (Sick, Holiday, Business Trip, Child Sick) require the "Whole Day" flag to be counted in balance calculations.</span>
+            <span>{$_('timelog.specialTypesDescription')}</span>
           </p>
         {/if}
       </div>
@@ -265,7 +266,7 @@
               }}
               class="w-4 h-4 text-primary border-gray-300 dark:border-gray-600 rounded focus:ring-primary"
             />
-            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Running</span>
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{$_('common.running')}</span>
           </label>
         </div>
       {/if}
@@ -286,11 +287,11 @@
             }}
             class="w-4 h-4 text-primary border-gray-300 dark:border-gray-600 rounded focus:ring-primary disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
           />
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Whole Day</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{$_('timelog.wholeDay')}</span>
         </label>
         {#if isSpecialType}
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-            Required for special types to ensure proper balance calculation
+            {$_('timelog.wholeDayRequired')}
           </p>
         {/if}
       </div>
@@ -304,10 +305,10 @@
             bind:checked={newLog.apply_break_calculation}
             class="w-4 h-4 text-primary border-gray-300 dark:border-gray-600 rounded focus:ring-primary"
           />
-          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Apply Break Calculation</span>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{$_('timelog.applyBreakCalculation')}</span>
         </label>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-          Automatically deduct breaks based on German labor law: 30 min for 6-9 hours, 45 min for 9+ hours
+          {$_('timelog.applyBreakCalcDescription')}
         </p>
       </div>
 
@@ -340,13 +341,13 @@
       <!-- Notes Field -->
       <div>
         <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Notes
+          {$_('timelog.notes')}
         </label>
         <textarea
           id="notes"
           bind:value={newLog.notes}
           rows="3"
-          placeholder="Add any notes about this time entry..."
+          placeholder={$_('timelog.notesPlaceholder')}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent resize-vertical"
         ></textarea>
       </div>
@@ -362,13 +363,13 @@
             onclick={close}
             class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
-            {isTimerStop ? 'Keep Running' : 'Cancel'}
+            {isTimerStop ? $_('common.running') : $_('common.cancel')}
           </button>
           <button
             type="submit"
             class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
           >
-            {isTimerStop ? 'Stop Timer' : (existingLog ? 'Update' : 'Add')} 
+            {$_('common.save')} 
           </button>
         </div>
         
@@ -380,7 +381,7 @@
             class="w-full px-4 py-2 border-2 border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-400 dark:hover:border-red-600 transition-colors flex items-center justify-center gap-2"
           >
             <span class="icon-[si--bin-duotone]" style="width: 20px; height: 20px;"></span>
-            Delete Entry
+            {$_('timelog.deleteEntry')}
           </button>
         {/if}
       </div>
@@ -408,30 +409,30 @@
     >
       <!-- Header -->
       <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
-        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Delete Time Entry?</h3>
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{$_('timelog.deleteTimeEntry')}</h3>
         <button
           onclick={handleDeleteCancel}
           class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
           style="width: 28px; height: 28px;"
-          aria-label="Close"
+          aria-label={$_('common.close')}
         ></button>
       </div>
 
       <!-- Content -->
       <div class="p-6 space-y-6">
-        <p class="text-gray-600 dark:text-gray-400">This action cannot be undone. Are you sure you want to delete this time entry?</p>
+        <p class="text-gray-600 dark:text-gray-400">{$_('timelog.deleteConfirmation')}</p>
         <div class="flex gap-3">
           <button
             onclick={handleDeleteCancel}
             class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
-            Cancel
+            {$_('common.cancel')}
           </button>
           <button
             onclick={handleDeleteConfirm}
             class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
-            Delete
+            {$_('common.delete')}
           </button>
         </div>
       </div>

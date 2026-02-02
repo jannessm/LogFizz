@@ -152,7 +152,7 @@ describe('ExportTimelogsModal Component', () => {
     expect(screen.getByText('End Time')).toBeInTheDocument();
     expect(screen.getByText('Timezone')).toBeInTheDocument();
     expect(screen.getByText('Duration')).toBeInTheDocument();
-    expect(screen.getByText('Timer')).toBeInTheDocument();
+    expect(screen.getByText('Timers')).toBeInTheDocument();
     expect(screen.getByText('Type')).toBeInTheDocument();
     expect(screen.getByText('Notes')).toBeInTheDocument();
   });

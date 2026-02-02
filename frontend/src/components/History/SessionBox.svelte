@@ -3,6 +3,7 @@
   import { formatMinutesCompact as formatMinutes } from '../../../../lib/utils/timeFormat.js';
   import type { Timer } from '../../../../lib/types';
   import type { Session } from '../../lib/utils/computeIndentation';
+  import { _ } from '../../lib/i18n';
 
   // Get user's timezone
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -155,7 +156,7 @@
         onclick={(e) => {e.stopPropagation(); edit?.(session);}}
         class="p-1 bg-white rounded icon-[si--edit-detailed-duotone] text-white"
         style="width: 20px; height: 20px;"
-        aria-label="Edit entry"
+        aria-label={$_('history.editEntry')}
       ></button>
     </div>
   </div>

@@ -4,6 +4,8 @@
   import { timeLogsStore, timerlogs, activeTimeLogs } from '../../stores/timelogs';
   import { timersStore } from '../../stores/timers';
   import { formatTime } from '../../../../lib/utils/timeFormat.js';
+  import { _ } from '../../lib/i18n';
+  import { get } from 'svelte/store';
 
   export type ButtonEditCallback = (timer: Timer) => void;
   export type ButtonLongpressCallback = (timer: Timer, timelog: TimeLog | undefined, isActive: boolean) => void;
@@ -143,7 +145,7 @@
   }
 
   async function handleDelete() {
-    if (confirm(`Delete "${timer.name}"?`)) {
+    if (confirm(get(_)('timer.deleteTimer') + ` "${timer.name}"?`)) {
       await timersStore.delete(timer);
     }
   }
@@ -154,7 +156,7 @@
     <button
       onclick={handleDelete}
       class="absolute -top-2 -right-2 z-10 w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center hover:bg-gray-600 icon-[si--edit-detailed-duotone]"
-      aria-label="Edit button"
+      aria-label={$_('timer.editButton')}
     ></button>
   {/if}
   

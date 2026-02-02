@@ -12,6 +12,7 @@
     autoDetectColumns,
     detectProjectColumn,
   } from '../../../../lib/utils/csvImport.js';
+  import { _ } from '../../lib/i18n';
 
   // Step management
   let step = $state<'upload' | 'mapping' | 'edit'>('upload');
@@ -198,11 +199,11 @@
         <button
           onclick={handleCancel}
           class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-          aria-label="Go back"
+          aria-label={$_('import.goBack')}
         >
           <span class="icon-[si--arrow-left-line]" style="width: 24px; height: 24px;"></span>
         </button>
-        <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Import Timelogs</h1>
+        <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{$_('import.importTimelogs')}</h1>
       </div>
     </div>
   </header>
@@ -218,7 +219,7 @@
             class:dark:bg-orange-500={step === 'upload'}
             class:bg-green-500={step !== 'upload'}
           >1</span>
-          <span class="text-sm dark:text-gray-200" class:font-medium={step === 'upload'}>Upload</span>
+          <span class="text-sm dark:text-gray-200" class:font-medium={step === 'upload'}>{$_('import.upload')}</span>
         </div>
         <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
         <div class="flex items-center gap-2">
@@ -233,7 +234,7 @@
             class:text-gray-600={step === 'upload'}
             class:dark:text-gray-300={step === 'upload'}
           >2</span>
-          <span class="text-sm dark:text-gray-200" class:font-medium={step === 'mapping'}>Map Columns</span>
+          <span class="text-sm dark:text-gray-200" class:font-medium={step === 'mapping'}>{$_('import.mapColumns')}</span>
         </div>
         <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
         <div class="flex items-center gap-2">
