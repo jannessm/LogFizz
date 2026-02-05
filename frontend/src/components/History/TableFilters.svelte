@@ -102,7 +102,7 @@
 
 <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
   <!-- Search and Date Range (always in one row) -->
-  <div class="flex flex-col lg:flex-row gap-4">
+  <div class="flex flex-col sm:flex-row gap-4">
     <!-- Search -->
     <div class="flex-1">
       <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
