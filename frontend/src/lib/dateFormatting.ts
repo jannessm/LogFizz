@@ -1,10 +1,8 @@
-import dayjs from 'dayjs';
+import { dayjs } from '../types';
 import 'dayjs/locale/de';
-import 'dayjs/locale/de-at';
-import 'dayjs/locale/de-ch';
 import 'dayjs/locale/en';
 import 'dayjs/locale/en-gb';
-import { writable, derived, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 import { userSettingsStore } from '../stores/userSettings';
 
 // Map locale codes to dayjs locale names
@@ -12,8 +10,6 @@ const localeMap: Record<string, string> = {
   'en-US': 'en',
   'en-GB': 'en-gb',
   'de-DE': 'de',
-  'de-AT': 'de-at',
-  'de-CH': 'de-ch',
 };
 
 // Store for the current dayjs locale
@@ -24,8 +20,19 @@ export const currentLocale = writable<string>('en');
  */
 export function setDayjsLocale(locale: string) {
   const dayjsLocale = localeMap[locale] || 'en';
+  console.log(`Setting dayjs locale from ${locale} to ${dayjsLocale}`);
+  
+  // Set the global locale
   dayjs.locale(dayjsLocale);
+  
+  // Update the store
   currentLocale.set(dayjsLocale);
+  
+  // Verify it was set correctly
+  const currentDayjsLocale = dayjs.locale();
+  console.log(`Current dayjs locale is now: ${currentDayjsLocale}`);
+  
+  return currentDayjsLocale;
 }
 
 /**

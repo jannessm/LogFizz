@@ -14,7 +14,7 @@
   import { balancesStore } from '../stores/balances';
   import { setLocale, _ } from '../lib/i18n';
   import { setDayjsLocale } from '../lib/dateFormatting';
-  import { get } from 'svelte/store';
+  import { dayjs } from '../types';
   // Import version from frontend package.json
   // Vite allows importing JSON files directly
   import pkg from '../../package.json';
@@ -35,10 +35,18 @@
 
   // Available locales with examples
   const localeOptions = [
-    { value: 'en-US', label: $_('settings.dateEnglishUS'), example: '01/05/2026, 3:30 PM', dateExample: 'January 5, 2026' },
-    { value: 'en-GB', label: $_('settings.dateEnglishUK'), example: '05/01/2026, 15:30', dateExample: '5 January 2026' },
-    { value: 'de-DE', label: $_('settings.dateGerman'), example: '05.01.2026, 15:30', dateExample: '5. Januar 2026' },
+    { value: 'en-US', label: $_('settings.dateEnglishUS')},
+    { value: 'en-GB', label: $_('settings.dateEnglishUK')},
+    { value: 'de-DE', label: $_('settings.dateGerman')},
   ];
+
+  let dateExample = $state('');
+  $effect(() => {
+    if (locale) {
+      // Update example with the newly set locale
+      dateExample = dayjs().format('LL - L - LT');
+    }
+  });
 
   onMount(async () => {
     if (user) {
@@ -289,7 +297,7 @@
           {#each localeOptions as option (option.value)}
             {#if locale === option.value}
               <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                {option.dateExample} / {option.example}
+                {dateExample}
               </p>
             {/if}
           {/each}
