@@ -128,7 +128,7 @@ describe('TimelogForm Component', () => {
     }
 
     await waitFor(() => {
-      expect(screen.getByText(/End date must be after start date|Duration must be at least 1 minute/i)).toBeInTheDocument();
+      expect(screen.getByText(/End time must be after start time|Duration must be at least 1 minute/i)).toBeInTheDocument();
     });
   });
 

@@ -117,8 +117,8 @@ describe('Table Route', () => {
   it('renders pagination controls', () => {
     render(Table);
     // The component uses pagination, so there should be page navigation or results display
-    // Results count is shown
-    expect(screen.getByText(/timelogs found/)).toBeInTheDocument();
+    // Results count is shown (using translation which shows "entries found" or "entry found")
+    expect(screen.getByText(/(entries|entry) found/)).toBeInTheDocument();
   });
 
   it('renders filters component', () => {

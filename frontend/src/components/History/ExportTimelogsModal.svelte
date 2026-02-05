@@ -5,12 +5,20 @@
   import { dayjs, userTimezone } from '../../types';
   import type { Timer as TimerType } from '../../types';
   import { _ } from '../../lib/i18n';
+  import { formatMinutesHHMM } from '../../../../lib/utils/timeFormat';
 
   let {
     close
   }: {
     close: () => void;
   } = $props();
+
+  const errMessages = {
+    oneTimer: $_('exportform.atLeastOneTimer'),
+    oneColumn: $_('exportform.atLeastOneColumn'),
+    noTimelogs: $_('exportform.noTimelogsFound'),
+    exportFailed: $_('exportform.exportFailed'),
+  };
 
   // State
   let selectedTimerIds = $state<Set<string>>(new Set());
@@ -147,14 +155,6 @@
     columns.duration || columns.timer || columns.type || columns.notes || columns.timezone
   );
 
-  // Format duration in HH:MM format
-  function formatDuration(minutes?: number): string {
-    if (!minutes) return '';
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-  }
-
   // Generate CSV content
   function generateCSV(): string {
     const logs = timelogsToExport();
@@ -162,15 +162,15 @@
 
     // Build header row
     const headers: string[] = [];
-    if (columns.startDate) headers.push('Start Date');
-    if (columns.startTime) headers.push('Start Time');
-    if (columns.endDate) headers.push('End Date');
-    if (columns.endTime) headers.push('End Time');
-    if (columns.timezone) headers.push('Timezone');
-    if (columns.duration) headers.push('Duration');
-    if (columns.timer) headers.push('Timer');
-    if (columns.type) headers.push('Type');
-    if (columns.notes) headers.push('Notes');
+    if (columns.startDate) headers.push($_('table.startDate'));
+    if (columns.startTime) headers.push($_('table.startTime'));
+    if (columns.endDate) headers.push($_('table.endDate'));
+    if (columns.endTime) headers.push($_('table.endTime'));
+    if (columns.timezone) headers.push($_('table.timezone'));
+    if (columns.duration) headers.push($_('table.duration'));
+    if (columns.timer) headers.push($_('table.timer'));
+    if (columns.type) headers.push($_('table.type'));
+    if (columns.notes) headers.push($_('table.notes'));
 
     // Build data rows
     const rows: string[][] = [];
@@ -185,7 +185,7 @@
       if (columns.endDate) row.push(endDayjs ? endDayjs.format('L') : '');
       if (columns.endTime) row.push(endDayjs ? endDayjs.format('LT') : '');
       if (columns.timezone) row.push(logTimezone);
-      if (columns.duration) row.push(formatDuration(log.duration_minutes));
+      if (columns.duration) row.push(formatMinutesHHMM(log.duration_minutes));
       if (columns.timer) row.push(getTimerName(log.timer_id).replace(/"/g, '""'));
       if (columns.type) row.push(log.type);
       if (columns.notes) row.push((log.notes || '').replace(/"/g, '""').replace(/\n/g, ' '));
@@ -212,18 +212,18 @@
   // Handle export
   function handleExport() {
     if (selectedTimerIds.size === 0) {
-      errorMessage = '❌ Please select at least one timer to export.';
+      errorMessage = errMessages.oneTimer;
       return;
     }
 
     if (!hasSelectedColumns) {
-      errorMessage = '❌ Please select at least one column to export.';
+      errorMessage = errMessages.oneColumn;
       return;
     }
 
     const logs = timelogsToExport();
     if (logs.length === 0) {
-      errorMessage = '❌ No timelogs found for the selected timers and date range.';
+      errorMessage = errMessages.noTimelogs;
       return;
     }
 
@@ -250,7 +250,7 @@
       
       close();
     } catch (error) {
-      errorMessage = '❌ Failed to export timelogs. Please try again.';
+      errorMessage = errMessages.exportFailed;
       console.error('Export error:', error);
     } finally {
       isLoading = false;
@@ -336,7 +336,7 @@
                     class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
                   />
                   <span class="text-gray-800 dark:text-gray-100">📁 {target.name}</span>
-                  <span class="text-xs text-gray-500 dark:text-gray-400">({targetTimers.length} {targetTimers.length === 1 ? 'timer' : 'timers'})</span>
+                  <span class="text-xs text-gray-500 dark:text-gray-400">({targetTimers.length} {targetTimers.length === 1 ? $_('common.timer') : $_('common.timers')})</span>
                 </label>
                 
                 <!-- Timers under this target (indented) -->
@@ -516,7 +516,7 @@
         <div class="bg-blue-50 dark:bg-orange-900/30 border border-blue-200 dark:border-orange-700 rounded-lg p-4">
           <p class="text-blue-700 dark:text-orange-200">
             <strong>{timelogsToExport().length}</strong> {$_('export.timelogsWillBeExported')} 
-            <strong>{selectedTimerIds.size}</strong> selected timer{selectedTimerIds.size !== 1 ? 's' : ''}
+            <strong>{selectedTimerIds.size}</strong> {$_('common.selected')} {selectedTimerIds.size !== 1 ? $_('common.timers') : $_('common.timer')}
           </p>
         </div>
       {/if}
@@ -540,7 +540,7 @@
         {:else}
           <span class="icon-[si--file-download-duotone]" style="width: 16px; height: 16px;"></span>
         {/if}
-        Export {timelogsToExport().length} Timelogs
+        {$_('export.export')} {timelogsToExport().length} {$_('common.timelogs')}
       </button>
     </div>
   </div>

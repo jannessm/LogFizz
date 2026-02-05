@@ -26,7 +26,7 @@
     isResending = true;
     try {
       await authStore.resendVerification(user.email);
-      snackbar.success(get(_)('verifyEmail.emailSent'));
+      snackbar.success($_('verifyEmail.emailSent'));
       // Start cooldown
       resendCooldown = 60;
       cooldownInterval = setInterval(() => {
@@ -37,7 +37,7 @@
         }
       }, 1000);
     } catch (error: any) {
-      snackbar.error(error.message || get(_)('common.error'));
+      snackbar.error(error.message || $_('common.error'));
     } finally {
       isResending = false;
     }
@@ -52,10 +52,10 @@
     // Re-initialize auth to check if email is now verified
     await authStore.init();
     if ($authStore.user?.email_verified_at) {
-      snackbar.success(get(_)('verifyEmail.redirectingDashboard'));
+      snackbar.success($_('verifyEmail.redirectingDashboard'));
       setTimeout(() => navigate('/'), 1000);
     } else {
-      snackbar.info(get(_)('verifyEmail.notYetVerified'));
+      snackbar.info($_('verifyEmail.notYetVerified'));
     }
   }
 </script>

@@ -30,8 +30,8 @@
       // Save the verification URL for after login
       savedPath = window.location.pathname + window.location.search;
       sessionStorage.setItem('redirectAfterLogin', savedPath);
-      
-      snackbar.info('Please log in to verify your email', 7000);
+
+      snackbar.info($_('verify.pleaseLogin'), 7000);
       navigate('/login');
       return;
     }
@@ -49,18 +49,15 @@
       
       // Refresh user data to get updated email_verified_at
       await authStore.init();
-      
-      snackbar.success(response.message || 'Email verified successfully!', 6000);
-      
+
+      snackbar.success(response.message || $_('verify.emailVerified'), 6000);
+
       // Redirect to dashboard after a short delay
       setTimeout(() => {
         navigate('/');
       }, 1500);
       
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || 
-                          error.message || 
-                          'Email verification failed';
       const errorCode = error.response?.data?.code;
       
       console.log('Verification error:', error);
@@ -73,7 +70,7 @@
         errorType = 'wrong_user';
       } else if (error.response?.status === 401) {
         // Not authenticated
-        snackbar.error('Please log in first to verify your email.', 8000);
+        snackbar.error($_('verify.pleaseLogin'), 8000);
         // The onMount logic will handle redirecting to login
         navigate('/login');
         return;

@@ -207,7 +207,7 @@ describe('ExportTimelogsModal Component', () => {
 
   it('shows timer count in target group', () => {
     render(ExportTimelogsModal, { props: { close: vi.fn() } });
-    expect(screen.getByText('(1 timer)')).toBeInTheDocument();
+    expect(screen.getByText('(1 Timer)')).toBeInTheDocument();
   });
 
   it('has all column checkboxes checked by default', () => {

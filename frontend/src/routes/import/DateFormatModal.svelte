@@ -26,22 +26,22 @@
     const now = dayjs().tz(timezone);
     return [
       { 
-        label: 'Short Date & Time (MM/DD/YYYY h:mm A)', 
+        label: $_('import.shortDateTimeFormat') + ' (MM/DD/YYYY h:mm A)', 
         example: now.format('MM/DD/YYYY h:mm A'), 
         format: 'MM/DD/YYYY h:mm A' 
       },
       { 
-        label: 'European Date & Time (DD/MM/YYYY HH:mm)', 
+        label: $_('import.europeanDateTimeFormat') + ' (DD/MM/YYYY HH:mm)', 
         example: now.format('DD/MM/YYYY HH:mm'), 
         format: 'DD/MM/YYYY HH:mm' 
       },
       { 
-        label: 'ISO Date & Time (YYYY-MM-DD HH:mm)', 
+        label: $_('import.isoDateTimeFormat') + ' (YYYY-MM-DD HH:mm)', 
         example: now.format('YYYY-MM-DD HH:mm'), 
         format: 'YYYY-MM-DD HH:mm' 
       },
       { 
-        label: 'Long Date & Time (MMMM D, YYYY h:mm A)', 
+        label: $_('import.longDateTimeFormat') + ' (MMMM D, YYYY h:mm A)', 
         example: now.format('MMMM D, YYYY h:mm A'), 
         format: 'MMMM D, YYYY h:mm A' 
       },
@@ -69,20 +69,20 @@
         selectedFormat = '';
         testResult = {
           success: true,
-          message: `✓ Valid! Parsed as: ${parsed.format('YYYY-MM-DD HH:mm:ss')}`
+          message: $_('import.validParsed') + `: ${parsed.format('YYYY-MM-DD HH:mm:ss')}`
         };
         return true;
       } else {
         testResult = {
           success: false,
-          message: '✗ Invalid: Format does not match the sample value'
+          message: $_('import.invalidFormat') + ': ' + $_('import.formatDoesNotMatchSample')
         };
         return false;
       }
     } catch (e) {
       testResult = {
         success: false,
-        message: `✗ Error: ${e instanceof Error ? e.message : 'Invalid format syntax'}`
+        message: $_('import.error') + `: ${e instanceof Error ? e.message : $_('import.invalidFormatSyntax')}`
       };
       return false;
     }
@@ -103,7 +103,7 @@
 
       <!-- Format Selection -->
       <div class="space-y-3">
-        <h3 class="font-medium text-gray-800 dark:text-gray-200">Localized Formats (for {timezone})</h3>
+        <h3 class="font-medium text-gray-800 dark:text-gray-200">{$_('import.localizedFormats')} ({$_('import.for')} {timezone})</h3>
         <div class="space-y-2">
           {#each localizedFormats as { label, example, format }}
             <button
@@ -120,7 +120,7 @@
               <div class="flex justify-between items-start">
                 <div>
                   <div class="font-medium text-sm text-gray-800 dark:text-gray-200">{label}</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Format: {format}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$_('import.format')}: {format}</div>
                 </div>
                 <div class="text-xs text-gray-600 dark:text-gray-400 font-mono">{example}</div>
               </div>

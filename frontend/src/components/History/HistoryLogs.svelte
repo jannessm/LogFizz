@@ -12,6 +12,7 @@
   } from '../../services/timeline';
     import { saveTimelog } from '../../services/formHandlers';
   import { _ } from '../../lib/i18n';
+    import { formatMinutesCompact } from '../../../../lib/dist/utils/timeFormat';
 
   // Get user's timezone
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -68,10 +69,10 @@
   let displaySessions: Session[] = $derived(computeIndentation(filteredSessions));
 
   const TYPE_LABELS: Record<string, string> = {
-    'sick': 'Sick Leave',
-    'holiday': 'Holiday',
-    'business-trip': 'Business Trip',
-    'child-sick': 'Child Sick Leave'
+    'sick': $_('common.sickLeave'),
+    'holiday': $_('common.holiday'),
+    'business-trip': $_('common.businessTrip'),
+    'child-sick': $_('common.childSickLeave')
   };
 
   const TYPE_COLORS: Record<string, string> = {
@@ -243,7 +244,7 @@
               {/if}
               {#if session.duration}
                 <p class="text-xs text-gray-500 mt-1">
-                  {Math.floor(session.duration / 60)}h {session.duration % 60}m
+                  {formatMinutesCompact(session.duration)}
                 </p>
               {/if}
             </div>
@@ -270,7 +271,7 @@
               <span class="font-semibold text-gray-800">{holiday.name}</span>
             </div>
             <p class="text-xs text-gray-600">
-              🎉 Public Holiday • {holiday.country}
+              🎉 {$_('common.publicHoliday')} • {holiday.country}
             </p>
           </div>
         </div>

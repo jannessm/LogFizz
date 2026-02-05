@@ -156,8 +156,9 @@ describe('TimelogsTable Component', () => {
     });
 
     // Duration is shown in both Total Duration and Effective Duration columns
-    expect(screen.getAllByText('8h 0m').length).toBeGreaterThan(0); // 480 minutes
-    expect(screen.getAllByText('2h 0m').length).toBeGreaterThan(0); // 120 minutes
+    // formatMinutesCompact shows "8h" instead of "8h 0m" for even hours
+    expect(screen.getAllByText('8h').length).toBeGreaterThan(0); // 480 minutes
+    expect(screen.getAllByText('2h').length).toBeGreaterThan(0); // 120 minutes
   });
 
   it('shows "No timelogs found" when empty', () => {

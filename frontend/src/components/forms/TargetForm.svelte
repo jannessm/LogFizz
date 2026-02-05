@@ -28,6 +28,9 @@
   
   let isLoading = $state(false);
   let errorMessage = $state('');
+  let showDeleteConfirm = $state(false);
+  let showDeleteSpecConfirm = $state(false);
+  let specIndexToDelete = $state<number | null>(null);
   let availableTimers = $state<Timer[]>([]);
   let selectedTimerIds = $state<string[]>([]);
   let initialized = $state(false);
@@ -131,10 +134,22 @@
       return;
     }
     
-    if (confirm('Delete this schedule?')) {
-      targetSpecs = targetSpecs.filter((_, i) => i !== index);
+    specIndexToDelete = index;
+    showDeleteSpecConfirm = true;
+  }
+
+  function handleDeleteSpecConfirm() {
+    if (specIndexToDelete !== null) {
+      targetSpecs = targetSpecs.filter((_, i) => i !== specIndexToDelete);
       errorMessage = '';
     }
+    showDeleteSpecConfirm = false;
+    specIndexToDelete = null;
+  }
+
+  function handleDeleteSpecCancel() {
+    showDeleteSpecConfirm = false;
+    specIndexToDelete = null;
   }
 
   onMount(async () => {
@@ -251,6 +266,30 @@
       isLoading = false;
     }
   }
+
+  function handleDeleteClick() {
+    showDeleteConfirm = true;
+  }
+
+  async function handleDeleteConfirm() {
+    if (!target) return;
+    
+    isLoading = true;
+    try {
+      await targetsStore.delete($state.snapshot(target));
+      showDeleteConfirm = false;
+      close();
+    } catch (error: any) {
+      errorMessage = error.message || 'Failed to delete target';
+      showDeleteConfirm = false;
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function handleDeleteCancel() {
+    showDeleteConfirm = false;
+  }
 </script>
 
 <div 
@@ -270,7 +309,7 @@
   >
     <!-- Header -->
     <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{target ? 'Edit' : 'Add'} Target</h2>
+      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{target ? $_('targetform.edit') : $_('targetform.add')} {$_('targetform.target')}</h2>
       <button
         onclick={close}
         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
@@ -398,10 +437,10 @@
                   >
                     {#if showAllSpecs}
                       <span class="icon-[proicons--chevron-up] w-4 h-4"></span>
-                      Show Less ({targetSpecs.length - 1} hidden)
+                      {$_('common.hide')} ({targetSpecs.length - 1} {$_('common.hidden')})
                     {:else}
                       <span class="icon-[proicons--chevron-down] w-4 h-4"></span>
-                      Show All ({targetSpecs.length - 1} more)
+                      {$_('common.show')} ({targetSpecs.length - 1} {$_('common.more')})
                     {/if}
                   </button>
                 </div>
@@ -489,7 +528,7 @@
                     <span class="text-sm font-medium text-gray-800 dark:text-gray-200 text-center line-clamp-2">{timer.name}</span>
 
                     {#if assignedTarget && assignedTarget.id !== target?.id}
-                      <span class="text-[10px] text-orange-600 dark:text-orange-400 mt-1 text-center" title="Currently assigned to {assignedTarget.name}">assigned to: {assignedTarget.name}</span>
+                      <span class="text-[10px] text-orange-600 dark:text-orange-400 mt-1 text-center" title="Currently assigned to {assignedTarget.name}">{$_('common.assignedTo')}: {assignedTarget.name}</span>
                     {/if}
                   </button>
                 {/each}
@@ -515,10 +554,128 @@
             {isLoading ? 'Saving...' : $_(target ? 'common.save' : 'common.save')}
           </button>
         </div>
+        
+        <!-- Delete Button (only shown when editing) -->
+        {#if target}
+          <button
+            type="button"
+            onclick={handleDeleteClick}
+            class="w-full px-4 py-2 border-2 border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-400 dark:hover:border-red-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <span class="icon-[si--bin-duotone]" style="width: 20px; height: 20px;"></span>
+            {$_('target.deleteTarget')}
+          </button>
+        {/if}
       </form>
     </div>
   </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+{#if showDeleteConfirm}
+  <div 
+    class="fixed inset-0 z-[60] flex items-center justify-center p-4"
+    onclick={handleDeleteCancel}
+    onkeydown={(e) => e.key === 'Escape' && handleDeleteCancel()}
+    role="button"
+    tabindex="0"
+  >
+    <!-- Modal Content -->
+    <div 
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-[400px] overflow-hidden flex flex-col"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+    >
+      <!-- Header -->
+      <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{$_('target.deleteTarget')}</h3>
+        <button
+          onclick={handleDeleteCancel}
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
+          style="width: 28px; height: 28px;"
+          aria-label={$_('common.close')}
+        ></button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6 space-y-6">
+        <p class="text-gray-600 dark:text-gray-400">
+          {$_('target.deleteConfirmation')} "{target?.name}"?
+        </p>
+        <div class="flex gap-3">
+          <button
+            onclick={handleDeleteCancel}
+            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            {$_('common.cancel')}
+          </button>
+          <button
+            onclick={handleDeleteConfirm}
+            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            {$_('common.delete')}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Delete Spec Confirmation Modal -->
+{#if showDeleteSpecConfirm}
+  <div 
+    class="fixed inset-0 z-[60] flex items-center justify-center p-4"
+    onclick={handleDeleteSpecCancel}
+    onkeydown={(e) => e.key === 'Escape' && handleDeleteSpecCancel()}
+    role="button"
+    tabindex="0"
+  >
+    <!-- Modal Content -->
+    <div 
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-[400px] overflow-hidden flex flex-col"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+    >
+      <!-- Header -->
+      <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{$_('target.deleteSchedule')}</h3>
+        <button
+          onclick={handleDeleteSpecCancel}
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
+          style="width: 28px; height: 28px;"
+          aria-label={$_('common.close')}
+        ></button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6 space-y-6">
+        <p class="text-gray-600 dark:text-gray-400">
+          {$_('target.deleteScheduleConfirmation')}
+        </p>
+        <div class="flex gap-3">
+          <button
+            onclick={handleDeleteSpecCancel}
+            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            {$_('common.cancel')}
+          </button>
+          <button
+            onclick={handleDeleteSpecConfirm}
+            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            {$_('common.delete')}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   /* Add backdrop blur effect */

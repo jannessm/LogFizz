@@ -22,6 +22,12 @@
     del: (data: any) => void
   } = $props();
 
+  const errMessages = {
+    endBeforeStart: $_('timelogform.endBeforeStart'),
+    minDuration: $_('timelogform.minDuration'),
+    fillAll: $_('timelogform.fillAll')
+  };
+
   // When editing, convert from stored timezone to user's local timezone
   // For new entries, use selectedDate and current time as defaults
   const now = $derived(dayjs.utc(selectedDate));
@@ -112,14 +118,14 @@
   })
 
   function hasDateError() {
-    return errorMessage === 'End time must be after start time' || errorMessage === 'Duration must be at least 1 minute';
+    return errorMessage === errMessages.endBeforeStart || errorMessage === errMessages.minDuration;
   }
 
   function handleSubmit() {
     errorMessage = '';
 
     if (!newLog.timer_id || !newLog.start_timestamp) {
-      errorMessage = 'Please fill all required fields';
+      errorMessage = errMessages.fillAll;
       return;
     }
 
@@ -132,7 +138,7 @@
       
       // Validate end date is not before start date
       if (endTs.isBefore(startTimestamp)) {
-        errorMessage = 'End date must be after start date';
+        errorMessage = errMessages.endBeforeStart;
         return;
       }
 
@@ -140,7 +146,7 @@
       const durationMs = endTs.diff(startTimestamp);
       const durationMinutes = durationMs / (1000 * 60);
       if (durationMinutes < 1) {
-        errorMessage = 'Duration must be at least 1 minute';
+        errorMessage = errMessages.minDuration;
         return;
       }
     }
@@ -185,9 +191,9 @@
       <div class="flex justify-between items-center">
         <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
           {#if isTimerStop}
-            Stop Timer
+            {$_('timelogform.stopTimer')}
           {:else}
-            {existingLog ? 'Edit' : 'Add'} Time Entry
+            {existingLog ? $_('timelogform.editTimeEntry') : $_('timelogform.addTimeEntry')}
           {/if}
         </h2>
         <button
@@ -317,8 +323,8 @@
         timezone={newLog.timezone || userTimezone}
         timeDisabled={newLog.whole_day}
         required
-        dateLabel="Start Date"
-        timeLabel="Start Time"
+        dateLabel={$_('timelogform.startDate')}
+        timeLabel={$_('timelogform.startTime')}
         dateId="startDate"
         timeId="startTime"
       />
@@ -330,8 +336,8 @@
             timezone={newLog.timezone || userTimezone}
             timeDisabled={newLog.whole_day}
             required
-            dateLabel="End Date"
-            timeLabel="End Time"
+            dateLabel={$_('timelogform.endDate')}
+            timeLabel={$_('timelogform.endTime')}
             dateId="endDate"
             timeId="endTime"
             hasError={hasDateError()}

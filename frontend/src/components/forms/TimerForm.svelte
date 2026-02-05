@@ -12,6 +12,12 @@
     close: () => void;
   } = $props();
 
+  const errMessages = {
+    timerNameRequired: $_('timer.nameRequired'),
+    saveFailed: $_('timer.saveFailed'),
+    deleteFailed: $_('timer.deleteFailed'),
+  };
+
   let name = $derived(timer?.name || '');
   let emoji = $derived(timer?.emoji || '');
   let color = $derived(timer?.color || '#3B82F6');
@@ -19,6 +25,7 @@
   let archived = $derived(timer?.archived ?? false);
   let isLoading = $state(false);
   let errorMessage = $state('');
+  let showDeleteConfirm = $state(false);
 
   const colorPresets = [
     '#3B82F6', '#EF4444', '#10B981', '#F59E0B', 
@@ -27,7 +34,7 @@
 
   async function handleSubmit() {
     if (!name.trim()) {
-      errorMessage = 'Please enter a timer name';
+      errorMessage = errMessages.timerNameRequired;
       return;
     }
 
@@ -51,10 +58,34 @@
 
       close();
     } catch (error: any) {
-      errorMessage = error.message || 'Failed to save timer';
+      errorMessage = error.message || errMessages.saveFailed;
     } finally {
       isLoading = false;
     }
+  }
+
+  function handleDeleteClick() {
+    showDeleteConfirm = true;
+  }
+
+  async function handleDeleteConfirm() {
+    if (!timer) return;
+    
+    isLoading = true;
+    try {
+      await timersStore.delete($state.snapshot(timer));
+      showDeleteConfirm = false;
+      close();
+    } catch (error: any) {
+      errorMessage = error.message || errMessages.deleteFailed;
+      showDeleteConfirm = false;
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function handleDeleteCancel() {
+    showDeleteConfirm = false;
   }
 </script>
 
@@ -75,7 +106,7 @@
   >
     <!-- Header -->
     <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{timer ? 'Edit' : 'Add'} Timer</h2>
+      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{timer ? $_('timerform.edit') : $_('timerform.add')}</h2>
       <button
         onclick={close}
         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
@@ -190,13 +221,78 @@
             disabled={isLoading}
             class="flex-1 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Saving...' : $_('common.save')}
+            {isLoading ? $_('common.saving') : $_('common.save')}
           </button>
         </div>
+        
+        <!-- Delete Button (only shown when editing) -->
+        {#if timer}
+          <button
+            type="button"
+            onclick={handleDeleteClick}
+            class="w-full px-4 py-2 border-2 border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-400 dark:hover:border-red-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <span class="icon-[si--bin-duotone]" style="width: 20px; height: 20px;"></span>
+            {$_('timer.deleteTimer')}
+          </button>
+        {/if}
       </form>
     </div>
   </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+{#if showDeleteConfirm}
+  <div 
+    class="fixed inset-0 z-[60] flex items-center justify-center p-4"
+    onclick={handleDeleteCancel}
+    onkeydown={(e) => e.key === 'Escape' && handleDeleteCancel()}
+    role="button"
+    tabindex="0"
+  >
+    <!-- Modal Content -->
+    <div 
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-[400px] overflow-hidden flex flex-col"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+    >
+      <!-- Header -->
+      <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{$_('timer.deleteTimer')}</h3>
+        <button
+          onclick={handleDeleteCancel}
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
+          style="width: 28px; height: 28px;"
+          aria-label={$_('common.close')}
+        ></button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6 space-y-6">
+        <p class="text-gray-600 dark:text-gray-400">
+          {$_('timer.deleteConfirmation')} "{timer?.name}"?
+        </p>
+        <div class="flex gap-3">
+          <button
+            onclick={handleDeleteCancel}
+            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            {$_('common.cancel')}
+          </button>
+          <button
+            onclick={handleDeleteConfirm}
+            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            {$_('common.delete')}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   /* Add backdrop blur effect */

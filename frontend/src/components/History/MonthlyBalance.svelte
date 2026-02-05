@@ -15,6 +15,10 @@
 
   let { year, month }: { year: number; month: number; } = $props();
 
+  const errMessages = {
+    loadFailed: $_('history.loadBalancesFailed'),
+  };
+
   let balances: Balance[] = [];
   let targetsWithoutStartingFrom: TargetWithSpecs[] = [];
   let loading = false;
@@ -45,7 +49,7 @@
       }
     } catch (err: any) {
       console.error('Failed to load monthly balances:', err);
-      error = err.message || 'Failed to load balances';
+      error = err.message || errMessages.loadFailed;
     } finally {
       loading = false;
     }

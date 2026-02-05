@@ -6,7 +6,7 @@
   import { timeLogsStore, timerlogs } from '../stores/timelogs';
   import { timers } from '../stores/timers';
   import { targets } from '../stores/targets';
-  import { dayjs, type TimeLog } from '../types';
+  import { dayjs } from '../types';
   import { userTimezone } from '../../../lib/utils/dayjs';
   import { navigate } from '../lib/navigation';
   import { _ } from '../lib/i18n';
@@ -256,9 +256,9 @@
       <!-- Results count and pagination info -->
       <div class="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
         <span>
-          {filteredTimelogs.length} timelogs found
+          {filteredTimelogs.length} {filteredTimelogs.length === 1 ? $_('table.entry') : $_('table.entries')} 
           {#if totalPages > 1}
-            • Showing {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredTimelogs.length)}
+            • {$_('table.showing')} {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredTimelogs.length)}
           {/if}
         </span>
         {#if totalPages > 1}
@@ -270,7 +270,7 @@
             >
               {$_('common.previous')}
             </button>
-            <span>Page {currentPage} of {totalPages}</span>
+            <span>{$_('common.page')} {currentPage} {$_('common.of')} {totalPages}</span>
             <button
               onclick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}

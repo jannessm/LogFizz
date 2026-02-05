@@ -148,7 +148,7 @@
     class="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
   >
     <span class="{showAdvanced ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
-    {showAdvanced ? 'Hide' : 'Show'} Advanced Filters
+    {showAdvanced ? $_('common.hide') : $_('common.show')} {$_('common.advancedFilters')}
   </button>
 
   <!-- Advanced Filters -->

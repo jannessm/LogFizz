@@ -29,11 +29,11 @@
   } = $props();
 
   const typeOptions: { value: TimeLogType; label: string }[] = [
-    { value: 'normal', label: 'Normal' },
-    { value: 'sick', label: 'Sick' },
-    { value: 'holiday', label: 'Holiday' },
-    { value: 'business-trip', label: 'Business Trip' },
-    { value: 'child-sick', label: 'Child Sick' },
+    { value: 'normal', label: $_('timelogtype.normal') },
+    { value: 'sick', label: $_('timelogtype.sick') },
+    { value: 'holiday', label: $_('timelogtype.holiday') },
+    { value: 'business-trip', label: $_('timelogtype.businessTrip') },
+    { value: 'child-sick', label: $_('timelogtype.childSick') },
   ];
 
   function handleStartDateChange(event: Event) {
@@ -101,7 +101,7 @@
       checked={row.isSkipped}
       onchange={onToggleSkip}
       class="rounded"
-      title={row.isSkipped ? 'Include this row' : 'Skip this row'}
+      title={row.isSkipped ? $_('import.includeThisRow') : $_('import.skipThisRow')}
     />
   </td>
   <td class="px-2 py-2 text-gray-500 dark:text-gray-400">{row.id + 1}</td>

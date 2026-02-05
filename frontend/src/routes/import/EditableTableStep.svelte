@@ -290,10 +290,10 @@
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
   <div class="flex items-center justify-between mb-4">
-    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Edit & Import</h2>
+    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{$_('import.editAndImport')}</h2>
     <div class="flex items-center gap-4">
       <div class="text-sm text-gray-500 dark:text-gray-400">
-        {validRowCount} valid, {invalidRowCount} need attention, {skippedRowCount} skipped
+        {validRowCount} {$_('import.valid')}, {invalidRowCount} {$_('import.needAttention')}, {skippedRowCount} {$_('import.skipped')}
       </div>
     </div>
   </div>
@@ -327,7 +327,7 @@
         onclick={toggleSkipAll}
         class="text-sm text-blue-600 dark:text-orange-400 hover:underline"
       >
-        {rows.every(r => r.isSkipped) ? 'Include All' : 'Skip All'}
+        {rows.every(r => r.isSkipped) ? $_('import.includeAll') : $_('import.skipAll')}
       </button>
       
       <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -338,13 +338,13 @@
         >
           ← {$_('common.previous')}
         </button>
-        <span>Page {currentPage + 1} / {totalPages}</span>
+        <span>{$_('common.page')} {currentPage + 1} / {totalPages}</span>
         <button
           onclick={() => currentPage = Math.min(totalPages - 1, currentPage + 1)}
           disabled={currentPage >= totalPages - 1}
           class="px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Next →
+          {$_('common.next')} →
         </button>
       </div>
     </div>
@@ -390,7 +390,7 @@
     <div class="text-sm text-gray-500 dark:text-gray-400">
       {#if invalidRowCount > 0}
         <span class="text-amber-600 dark:text-amber-400">
-          ⚠️ {invalidRowCount} row{invalidRowCount !== 1 ? 's' : ''} need a timer assignment or have invalid dates
+          ⚠️ {invalidRowCount} {invalidRowCount !== 1 ? $_('import.rows') : $_('import.row')} {$_('import.needTimerAssignment')}
         </span>
       {/if}
     </div>
@@ -406,7 +406,7 @@
         disabled={validRowCount === 0}
         class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
       >
-        Import {validRowCount} Timelog{validRowCount !== 1 ? 's' : ''}
+        {$_('import.import')} {validRowCount} {validRowCount !== 1 ? $_('import.timelogs') : $_('import.timelog')}
       </button>
     </div>
   </div>

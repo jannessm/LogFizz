@@ -5,7 +5,7 @@
 
   let {
     value = $bindable(''),
-    placeholder = 'Select a timer...',
+    placeholder = $_('import.selectTimer'),
     onchange = undefined,
   }: {
     value?: string;

@@ -3,6 +3,7 @@
   import { statesStore } from '../../stores/states';
   import { onlyUnique } from "../../../../lib/utils/helper";
   import { _ } from '../../lib/i18n';
+  import { dayjs } from '../../types';
 
   type PartialTargetSpec = {
     id: string;
@@ -37,7 +38,12 @@
   let durationHours: number[] = $state([0, 0, 0, 0, 0, 0, 0]);
   let durationMins: number[] = $state([0, 0, 0, 0, 0, 0, 0]);
 
-  const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  // Get locale-aware weekday names (Sun-Sat, starting from Sunday index 0)
+  const weekdayNames = $derived(
+    Array.from({ length: 7 }, (_, i) => 
+      dayjs().day(i).format('ddd')
+    )
+  );
   
   let availableStates: State[] = $derived($statesStore.states || []);
   let availableCountries: string[] = $derived(
@@ -161,7 +167,7 @@
           {#if tempSpec.exclude_holidays}
             <div class="flex items-center gap-1 text-grey-400">
               <span class="icon-[si--sun-set-duotone] w-3 h-3"></span>
-              Excludes holidays {#if tempSpec.state_code && specState && specCountry} ({specState}, {specCountry}){/if}
+              {$_('common.excludeHolidays')} {#if tempSpec.state_code && specState && specCountry} ({specState}, {specCountry}){/if}
             </div>
           {/if}
         </div>

@@ -1,6 +1,5 @@
 <script lang="ts">
   import { _ } from '../../lib/i18n';
-  import { get } from 'svelte/store';
 
   let {
     onsubmit,
@@ -16,12 +15,12 @@
 
   async function handlePasswordChange() {
     if (newPassword !== confirmPassword) {
-      onerror?.(get(_)('settings.passwordMismatch'));
+      onerror?.($_('settings.passwordMismatch'));
       return;
     }
 
     if (newPassword.length < 8) {
-      onerror?.(get(_)('auth.passwordMinLength'));
+      onerror?.($_('auth.passwordMinLength'));
       return;
     }
 

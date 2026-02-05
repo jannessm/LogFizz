@@ -41,20 +41,20 @@
   }
 
   function handleHCaptchaError(error: string) {
-    errorMessage = get(_)('auth.hCaptchaFailed');
+    errorMessage = $_('auth.hCaptchaFailed');
     console.error('hCaptcha error:', error);
   }
 
   function handleHCaptchaExpire() {
     hcaptchaToken = '';
-    errorMessage = get(_)('auth.hCaptchaExpired');
+    errorMessage = $_('auth.hCaptchaExpired');
   }
 
   async function handleSubmit() {
     errorMessage = '';
     
     if (!hcaptchaToken) {
-      errorMessage = get(_)('auth.completeHCaptcha');
+      errorMessage = $_('auth.completeHCaptcha');
       return;
     }
 
@@ -78,9 +78,9 @@
     } catch (error: any) {
       // Check for rate limiting (429 Too Many Requests)
       if (error.response?.status === 429) {
-        errorMessage = get(_)('auth.tooManyAttempts');
+        errorMessage = $_('auth.tooManyAttempts');
       } else {
-        errorMessage = error.message || get(_)('auth.authFailed');
+        errorMessage = error.message || $_('auth.authFailed');
       }
       // Reset hCaptcha on error
       if (hcaptchaComponent?.reset) {
@@ -208,10 +208,6 @@
           ? $_('auth.hasAccount')
           : $_('auth.noAccount')}
       </button>
-    </div>
-
-    <div class="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
-      <p>{$_('auth.offlineFirst')}</p>
     </div>
   </div>
 </div>

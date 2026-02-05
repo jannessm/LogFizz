@@ -6,6 +6,7 @@
   import { formatTime } from '../../../../lib/utils/timeFormat.js';
   import { _ } from '../../lib/i18n';
   import { get } from 'svelte/store';
+    import { formatMinutesCompact } from '../../../../lib/dist/utils/timeFormat';
 
   export type ButtonEditCallback = (timer: Timer) => void;
   export type ButtonLongpressCallback = (timer: Timer, timelog: TimeLog | undefined, isActive: boolean) => void;
@@ -221,7 +222,7 @@
     
     {#if todayTime > 0}
       <div class="text-sm opacity-90 mt-2">
-        {Math.floor(todayTime / 60)}h {todayTime % 60}m
+        {formatMinutesCompact(todayTime)}
       </div>
     {/if}
   </div>

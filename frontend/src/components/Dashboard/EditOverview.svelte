@@ -1,13 +1,13 @@
 <script lang="ts">
   import Modal from '../Modal.svelte';
-  import { timersStore, timers } from '../../stores/timers';
+  import { timers } from '../../stores/timers';
   import { targetsStore, targets } from '../../stores/targets';
-  import { timeLogsStore, timerlogs } from '../../stores/timelogs';
+  import { timerlogs } from '../../stores/timelogs';
   import type { Timer, TargetWithSpecs } from '../../types';
   import { getActiveTargetSpec, isTargetArchived } from '../../lib/utils/targetSpec';
   import { dayjs } from '../../types';
   import { _ } from '../../lib/i18n';
-  import { get } from 'svelte/store';
+  import { formatMinutesCompact } from '../../../../lib/utils/timeFormat';
 
   let {
     editTimer,
@@ -22,18 +22,6 @@
     addTarget: () => void;
     close: () => void;
   } = $props();
-
-  async function handleDeleteTimer(timer: Timer) {
-    if (confirm(get(_)('timer.deleteTimer') + ` "${timer.name}"?`)) {
-      await timersStore.delete($state.snapshot(timer));
-    }
-  }
-
-  async function handleDeleteTarget(target: TargetWithSpecs) {
-    if (confirm(get(_)('target.deleteTarget') + ` "${target.name}"?`)) {
-      await targetsStore.delete($state.snapshot(target));
-    }
-  }
 
   // Calculate progress for each target
   function calculateTargetProgress(target: TargetWithSpecs) {
@@ -80,19 +68,6 @@
     const percentage = Math.min(100, Math.round((totalMinutes / targetDuration) * 100));
     
     return { totalMinutes, targetDuration, percentage };
-  }
-
-  function formatDuration(minutes: number): string {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    
-    if (hours === 0) {
-      return `${mins}m`;
-    } else if (mins === 0) {
-      return `${hours}h`;
-    } else {
-      return `${hours}h ${mins}m`;
-    }
   }
 
   function getActiveWeekdays(spec: any): string {
@@ -168,20 +143,12 @@
               <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
                 <div class="flex justify-between items-center mb-2">
                   <h4 class="font-medium text-gray-800 dark:text-gray-100">{target.name}</h4>
-                  <div class="flex gap-1">
-                    <button
-                      onclick={() => editTarget(target)}
-                      class="p-1 text-blue-600 dark:text-orange-400 hover:text-blue-700 dark:hover:text-orange-300 icon-[si--edit-detailed-duotone]"
-                      style="width: 20px; height: 20px;"
-                      aria-label={$_('target.editTarget')}
-                    ></button>
-                    <button
-                      onclick={() => handleDeleteTarget(target)}
-                      class="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 icon-[si--bin-duotone]"
-                      style="width: 20px; height: 20px;"
-                      aria-label={$_('target.deleteTarget')}
-                    ></button>
-                  </div>
+                  <button
+                    onclick={() => editTarget(target)}
+                    class="p-1 text-blue-600 dark:text-orange-400 hover:text-blue-700 dark:hover:text-orange-300 icon-[si--edit-detailed-duotone]"
+                    style="width: 20px; height: 20px;"
+                    aria-label={$_('target.editTarget')}
+                  ></button>
                 </div>
                 
                 <!-- Progress bar -->
@@ -194,7 +161,7 @@
                 
                 <div class="flex justify-between items-center text-xs">
                   <span class="text-gray-500 dark:text-gray-400">
-                    {progress.percentage}% ({formatDuration(progress.totalMinutes)} / {formatDuration(progress.targetDuration)})
+                    {progress.percentage}% ({formatMinutesCompact(progress.totalMinutes)} / {formatMinutesCompact(progress.targetDuration)})
                   </span>
                   {#each [getActiveTargetSpec(target)] as activeSpec}
                     {#if activeSpec}
@@ -213,7 +180,7 @@
         <div class="flex justify-between items-center mb-2">
             <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
               <span class="bg-blue-500 dark:bg-orange-500 icon-[si--clock-alt-duotone]" style="width: 24px; height: 24px;"></span>
-              {$_('dashboard.timers')}
+              {$_('common.timers')}
             </h3>
             <button
                 onclick={addTimer}
@@ -265,12 +232,6 @@
                       style="width: 20px; height: 20px;"
                       aria-label={$_('timer.editTimer')}
                     ></button>
-                    <button
-                      onclick={() => handleDeleteTimer(timer)}
-                      class="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 icon-[si--bin-duotone]"
-                      style="width: 20px; height: 20px;"
-                      aria-label={$_('timer.deleteTimer')}
-                    ></button>
                   </div>
                 </div>
               </div>
@@ -296,20 +257,12 @@
                   <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/50">
                     <div class="flex justify-between items-center mb-2">
                       <h4 class="font-medium text-gray-700 dark:text-gray-300">{target.name}</h4>
-                      <div class="flex gap-1">
-                        <button
-                          onclick={() => editTarget(target)}
-                          class="p-1 text-blue-600 dark:text-orange-400 hover:text-blue-700 dark:hover:text-orange-300 icon-[si--edit-detailed-duotone]"
-                          style="width: 20px; height: 20px;"
-                          aria-label={$_('target.editTarget')}
-                        ></button>
-                        <button
-                          onclick={() => handleDeleteTarget(target)}
-                          class="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 icon-[si--bin-duotone]"
-                          style="width: 20px; height: 20px;"
-                          aria-label={$_('target.deleteTarget')}
-                        ></button>
-                      </div>
+                      <button
+                        onclick={() => editTarget(target)}
+                        class="p-1 text-blue-600 dark:text-orange-400 hover:text-blue-700 dark:hover:text-orange-300 icon-[si--edit-detailed-duotone]"
+                        style="width: 20px; height: 20px;"
+                        aria-label={$_('target.editTarget')}
+                      ></button>
                     </div>
                     
                     <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
@@ -317,7 +270,7 @@
                         {#if latestSpec}
                           <span>{getActiveWeekdays(latestSpec)}</span>
                           {#if latestSpec.ending_at}
-                            <span class="text-red-600 dark:text-red-400 font-medium">Ended: {dayjs(latestSpec.ending_at).format('ll')}</span>
+                            <span class="text-red-600 dark:text-red-400 font-medium">{$_('target.endedAt')}: {dayjs(latestSpec.ending_at).format('ll')}</span>
                           {/if}
                         {/if}
                       {/each}
@@ -357,7 +310,7 @@
                               {#if linkedTarget}
                                 <span class="flex items-center gap-1 text-red-600 dark:text-red-400">
                                   <span class="icon-[proicons--link]" style="width: 12px; height: 12px;"></span>
-                                  {linkedTarget.name} (Ended)
+                                  {linkedTarget.name} ({$_('dashboard.archived.ended')})
                                 </span>
                               {/if}
                             {/if}
@@ -370,12 +323,6 @@
                           class="p-1 text-blue-600 dark:text-orange-400 hover:text-blue-700 dark:hover:text-orange-300 icon-[si--edit-detailed-duotone]"
                           style="width: 20px; height: 20px;"
                           aria-label={$_('timer.editButton')}
-                        ></button>
-                        <button
-                          onclick={() => handleDeleteTimer(timer)}
-                          class="p-1 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 icon-[si--bin-duotone]"
-                          style="width: 20px; height: 20px;"
-                          aria-label={$_('timer.deleteButton')}
                         ></button>
                       </div>
                     </div>

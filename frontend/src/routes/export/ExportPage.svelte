@@ -6,7 +6,6 @@
   import { timeLogsStore, timerlogs } from '../../stores/timelogs';
   import { timers } from '../../stores/timers';
   import { targets } from '../../stores/targets';
-  import { monthlyBalances } from '../../stores/balances';
   import { dayjs, type TimeLog } from '../../types';
   import { userTimezone } from '../../../../lib/utils/dayjs';
   import { navigate } from '../../lib/navigation';
@@ -14,6 +13,7 @@
   import { calculateDueMinutes } from '../../../../lib/utils/balance';
   import { _ } from '../../lib/i18n';
   import { get } from 'svelte/store';
+  import { formatMinutesHHMM } from '../../../../lib/utils/timeFormat';
 
   // Column visibility state
   let visibleColumns = $state({
@@ -214,7 +214,7 @@
   // Helper functions for CSV export
   function getTimerName(timerId: string): string {
     const timer = $timers.find(t => t.id === timerId);
-    return timer ? (timer.emoji ? `${timer.emoji} ${timer.name}` : timer.name) : 'Unknown';
+    return timer ? (timer.emoji ? `${timer.emoji} ${timer.name}` : timer.name) : $_('common.unknown');
   }
 
   function getTargetName(timerId: string): string {
@@ -222,13 +222,6 @@
     if (!timer?.target_id) return '-';
     const target = $targets.find(t => t.id === timer.target_id);
     return target?.name || '-';
-  }
-
-  function formatDuration(minutes?: number): string {
-    if (minutes === undefined) return '';
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   }
 
   function getTotalDuration(timelog: TimeLog): number | undefined {
@@ -296,16 +289,16 @@
 
     // Build header row
     const headers: string[] = [];
-    if (visibleColumns.timer) headers.push('Timer');
-    if (visibleColumns.target) headers.push('Target');
-    if (visibleColumns.type) headers.push('Type');
-    if (visibleColumns.start) headers.push('Start Date', 'Start Time');
-    if (visibleColumns.end) headers.push('End Date', 'End Time');
-    if (visibleColumns.totalDuration) headers.push('Total Duration');
-    if (visibleColumns.effectiveDuration) headers.push('Effective Duration');
-    if (visibleColumns.dueTime) headers.push('Due Time');
-    if (visibleColumns.diff) headers.push('Diff');
-    if (visibleColumns.notes) headers.push('Notes');
+    if (visibleColumns.timer) headers.push($_('common.timer'));
+    if (visibleColumns.target) headers.push($_('common.target'));
+    if (visibleColumns.type) headers.push($_('common.type'));
+    if (visibleColumns.start) headers.push($_('common.start'), $_('table.startTime'));
+    if (visibleColumns.end) headers.push($_('common.end'), $_('table.endTime'));
+    if (visibleColumns.totalDuration) headers.push($_('table.totalDuration'));
+    if (visibleColumns.effectiveDuration) headers.push($_('table.effectiveDuration'));
+    if (visibleColumns.dueTime) headers.push($_('table.dueTime'));
+    if (visibleColumns.diff) headers.push($_('table.diff'));
+    if (visibleColumns.notes) headers.push($_('timelog.notes'));
 
     // Build data rows
     const rows: string[][] = [];
@@ -326,9 +319,9 @@
         row.push(endDayjs ? endDayjs.format('L') : '');
         row.push(endDayjs ? endDayjs.format('LT') : '');
       }
-      if (visibleColumns.totalDuration) row.push(formatDuration(getTotalDuration(log)));
-      if (visibleColumns.effectiveDuration) row.push(formatDuration(log.duration_minutes));
-      if (visibleColumns.dueTime) row.push(formatDuration(getDueTime(log)));
+      if (visibleColumns.totalDuration) row.push(formatMinutesHHMM(getTotalDuration(log)));
+      if (visibleColumns.effectiveDuration) row.push(formatMinutesHHMM(log.duration_minutes));
+      if (visibleColumns.dueTime) row.push(formatMinutesHHMM(getDueTime(log)));
       if (visibleColumns.diff) row.push(formatDiff(getDiff(log)));
       if (visibleColumns.notes) row.push(removeUnicodeSymbols((log.notes || '')).replace(/"/g, '""').replace(/\n/g, ' '));
 
@@ -354,12 +347,12 @@
   // Handle export
   function handleExport() {
     if (!hasSelectedColumns) {
-      snackbar.error(get(_)('export.selectColumnError'));
+      snackbar.error($_('export.selectColumnError'));
       return;
     }
 
     if (filteredTimelogs.length === 0) {
-      snackbar.error(get(_)('export.noTimelogsError'));
+      snackbar.error($_('export.noTimelogsError'));
       return;
     }
 
@@ -394,10 +387,10 @@
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
-      snackbar.success(get(_)('export.exportSuccess', { values: { count: filteredTimelogs.length } }));
+
+      snackbar.success($_('export.exportSuccess', { values: { count: filteredTimelogs.length } }));
     } catch (error) {
-      snackbar.error(get(_)('export.exportError'));
+      snackbar.error($_('export.exportError'));
       console.error('Export error:', error);
     }
   }
@@ -498,7 +491,7 @@
               bind:checked={visibleColumns.timer}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.timer')}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('common.timer')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -506,7 +499,7 @@
               bind:checked={visibleColumns.target}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.target')}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('common.target')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -514,7 +507,7 @@
               bind:checked={visibleColumns.type}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.type')}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('common.type')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -522,7 +515,7 @@
               bind:checked={visibleColumns.start}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.start')}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('table.start')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -530,7 +523,7 @@
               bind:checked={visibleColumns.end}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.end')}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('table.end')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -538,7 +531,7 @@
               bind:checked={visibleColumns.totalDuration}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.totalDuration')}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('table.totalDuration')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -546,7 +539,7 @@
               bind:checked={visibleColumns.effectiveDuration}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.effectiveDuration')}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('table.effectiveDuration')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -554,7 +547,7 @@
               bind:checked={visibleColumns.dueTime}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.dueTime')}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('table.dueTime')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -562,7 +555,7 @@
               bind:checked={visibleColumns.diff}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.difference')}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('table.difference')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -570,7 +563,7 @@
               bind:checked={visibleColumns.notes}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.notes')}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('timelog.notes')}</span>
           </label>
         </div>
       </div>
@@ -578,9 +571,9 @@
       <!-- Results count and pagination info -->
       <div class="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
         <span>
-          {filteredTimelogs.length} timelogs found
+          {filteredTimelogs.length} {$_('export.timelogsFound')}
           {#if totalPages > 1}
-            • Showing {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredTimelogs.length)}
+            • {$_('export.showing')} {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredTimelogs.length)}
           {/if}
         </span>
         {#if totalPages > 1}
@@ -592,7 +585,7 @@
             >
               {$_('common.previous')}
             </button>
-            <span>Page {currentPage} of {totalPages}</span>
+            <span>{$_('table.page')} {currentPage} {$_('table.of')} {totalPages}</span>
             <button
               onclick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}

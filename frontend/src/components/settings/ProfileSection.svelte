@@ -6,13 +6,11 @@
     name = $bindable(),
     originalName,
     onsubmit,
-    onerror
   }: {
     email: string;
     name: string;
     originalName: string;
     onsubmit: (data: { name: string }) => void;
-    onerror?: (message: string) => void;
   } = $props();
 
   let hasNameChanged = $derived(name !== originalName);

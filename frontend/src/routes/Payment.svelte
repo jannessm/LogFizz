@@ -49,13 +49,13 @@
         window.location.href = result.url;
       }
     } catch (err: any) {
-      error = err.message || 'Failed to create checkout session';
+      error = err.message || $_('payment.failedToCreateCheckoutSession');
       processingCheckout = false;
     }
   }
 
   async function handleCancelSubscription() {
-    if (!confirm('Are you sure you want to cancel your subscription?')) {
+    if (!confirm($_('payment.confirmCancelSubscription'))) {
       return;
     }
 
@@ -64,7 +64,7 @@
       // Reload status
       subscriptionStatus = await paymentApi.getSubscriptionStatus();
     } catch (err: any) {
-      error = err.message || 'Failed to cancel subscription';
+      error = err.message || $_('payment.failedToCancelSubscription');
     }
   }
 
@@ -142,7 +142,7 @@
             </div>
             <div class="flex items-center justify-between py-3 border-b">
               <span class="text-gray-600">{$_('subscription.daysRemaining')}</span>
-              <span class="font-medium text-blue-600">{getDaysRemaining(subscriptionStatus.trialEndDate)} days</span>
+              <span class="font-medium text-blue-600">{getDaysRemaining(subscriptionStatus.trialEndDate)} {$_('common.days')}</span>
             </div>
           {/if}
 
@@ -208,7 +208,7 @@
               disabled={processingCheckout}
               class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {processingCheckout ? 'Processing...' : 'Subscribe Now'}
+              {processingCheckout ? $_('subscription.processing') : $_('subscription.subscribeNow')}
             </button>
           </div>
 
@@ -241,7 +241,7 @@
         on:click={() => navigate('/settings')}
         class="text-blue-600 hover:text-blue-800 font-medium"
       >
-        ← Back to Settings
+        ← {$_('common.backToSettings')}
       </button>
     </div>
   </div>

@@ -31,14 +31,14 @@
         on:click={() => navigate('/')}
         class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition"
       >
-        Go to Dashboard
+        {$_('common.goToDashboard')}
       </button>
       
       <button
         on:click={() => navigate('/payment')}
         class="w-full bg-gray-100 text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 transition"
       >
-        View Subscription Details
+        {$_('common.viewSubscriptionDetails')}
       </button>
     </div>
 

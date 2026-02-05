@@ -59,23 +59,13 @@
     selectedDate.month = selectedDate.month.year(newYear);
   }
 
-  // Generate month options (0-11 for dayjs)
-  function getMonthOptions() {
-    return [
-      { value: 0, label: 'January' },
-      { value: 1, label: 'February' },
-      { value: 2, label: 'March' },
-      { value: 3, label: 'April' },
-      { value: 4, label: 'May' },
-      { value: 5, label: 'June' },
-      { value: 6, label: 'July' },
-      { value: 7, label: 'August' },
-      { value: 8, label: 'September' },
-      { value: 9, label: 'October' },
-      { value: 10, label: 'November' },
-      { value: 11, label: 'December' }
-    ];
-  }
+  // Generate month options (0-11 for dayjs) with locale-aware names
+  const monthOptions = $derived(
+    Array.from({ length: 12 }, (_, i) => ({
+      value: i,
+      label: dayjs().month(i).format('MMMM')
+    }))
+  );
 
   // Generate year options (current year ± 5 years)
   function getYearOptions() {
@@ -87,15 +77,21 @@
     return years;
   }
 
-  let monthOptions = $derived(getMonthOptions());
   let yearOptions = $derived(getYearOptions());
 
   function selectDate(date: dayjs.Dayjs) {
     selectedDate.date = date;
   }
 
-  let firstDayOfWeek: 'sunday' | 'monday' = $state('sunday');
-  let dayNames: string[] = $state([]);
+  let firstDayOfWeek = $state<'sunday' | 'monday'>('sunday');
+  
+  // Get locale-aware day names based on first day of week setting
+  let dayNames = $derived(
+    firstDayOfWeek === 'monday'
+      ? Array.from({ length: 7 }, (_, i) => dayjs().day((i + 1) % 7).format('ddd'))
+      : Array.from({ length: 7 }, (_, i) => dayjs().day(i).format('ddd'))
+  );
+  
   let calendarDays = $derived.by(() => {
     const firstDay = selectedDate.month.startOf('month');
 
@@ -124,18 +120,9 @@
 
   onMount(async () => {
     // Load first day of week setting
-    const firstDaySetting = await getSetting('firstDayOfWeek');
+    const firstDaySetting = await getSetting('firstDayOfWeek') as 'sunday' | 'monday' | null;
     firstDayOfWeek = firstDaySetting || 'sunday'; // default sunday
-    updateDayNames();
   });
-
-  function updateDayNames() {
-    if (firstDayOfWeek === 'monday') {
-      dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    } else {
-      dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    }
-  }
 
   let weekNumbers = $derived.by(() => {
     const weeks = [];
@@ -149,7 +136,7 @@
   let timeLogsByDate = $derived(calendarData.timeLogsByDate);
   let dotColors = $derived(calendarData.dotColors);
   let multiDayRanges = $derived(calendarData.multiDayRanges);
-
+  
   // Check if date has any special type timelogs (non-normal) - single day only
   function hasSpecialTypeForDate(date: dayjs.Dayjs): { hasSpecial: boolean; color: string | null } {
     return hasSpecialType(date, timeLogsByDate, timeLogs, getMultiDayRangeForDate(date));
@@ -167,13 +154,6 @@
     };
     return info;
   }
-
-  // Update day names when firstDayOfWeek changes
-  $effect(() => {
-    if (firstDayOfWeek) {
-      updateDayNames();
-    }
-  });
 
   /**
    * Create a gradient CSS string from an array of colors
@@ -304,7 +284,6 @@
         {@const holidayName = getPublicHolidayName(day)}
         {@const isHoliday = holidayName !== null}
         {@const gradient = createGradient(multiDayRange.colors)}
-        {@const borderColor = isHoliday ? '#a855f7' : null}
         <button
           onclick={() => selectDate(day)}
           class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 p-1"

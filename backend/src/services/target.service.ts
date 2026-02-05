@@ -30,6 +30,18 @@ export class TargetService {
   private timerRepository = AppDataSource.getRepository(Timer);
 
   /**
+   * Clean and convert spec for response
+   */
+  private cleanSpec(spec: any) {
+    return {
+      ...spec,
+      duration_minutes: spec.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
+      // Convert empty string or null to undefined for consistent API response
+      state_code: (spec.state_code === '' || spec.state_code === null) ? undefined : spec.state_code,
+    };
+  }
+
+  /**
    * Get all targets with nested specs (including soft-deleted) changed since a given timestamp
    * The target's updated_at is the max of the target's and all its specs' updated_at timestamps
    * Specs are sorted by starting_from date
@@ -85,10 +97,7 @@ export class TargetService {
       });
 
       // Convert duration_minutes from string[] to number[]
-      const convertedSpecs = targetSpecs.map(spec => ({
-        ...spec,
-        duration_minutes: spec.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
-      }));
+      const convertedSpecs = targetSpecs.map(spec => this.cleanSpec(spec));
 
       // Calculate max updated_at from target and all its specs
       const allUpdatedAts = [
@@ -150,12 +159,16 @@ export class TargetService {
         // Create all specs
         const savedSpecs = [];
         for (const specData of change.target_specs || []) {
+          // Validate state_code: set to undefined if empty string
+          const validatedStateCode = specData.state_code === '' ? undefined : specData.state_code;
+          
           const spec = this.targetSpecRepository.create({
             ...specData,
             id: specData.id,
             user_id: userId,
             target_id: savedTarget.id,
             exclude_holidays: specData.exclude_holidays ?? false,
+            state_code: validatedStateCode,
           });
           await this.targetSpecRepository.save(spec);
           // Reload to get auto-generated timestamps
@@ -183,10 +196,7 @@ export class TargetService {
 
         savedTargets.push({
           ...savedTarget,
-          target_specs: savedSpecs.map(s => ({
-            ...s,
-            duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
-          })),
+          target_specs: savedSpecs.map(s => this.cleanSpec(s)),
           updated_at: maxUpdatedAt,
         });
         continue;
@@ -214,12 +224,16 @@ export class TargetService {
         // Create all specs
         const savedSpecs = [];
         for (const specData of change.target_specs || []) {
+          // Validate state_code: set to undefined if empty string
+          const validatedStateCode = specData.state_code === '' ? undefined : specData.state_code;
+          
           const spec = this.targetSpecRepository.create({
             ...specData,
             id: specData.id,
             user_id: userId,
             target_id: savedTarget.id,
             exclude_holidays: specData.exclude_holidays ?? false,
+            state_code: validatedStateCode,
           });
           await this.targetSpecRepository.save(spec);
           // Reload to get auto-generated timestamps
@@ -247,10 +261,7 @@ export class TargetService {
 
         savedTargets.push({
           ...savedTarget,
-          target_specs: savedSpecs.map(s => ({
-            ...s,
-            duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
-          })),
+          target_specs: savedSpecs.map(s => this.cleanSpec(s)),
           updated_at: maxUpdatedAt,
         });
         continue;
@@ -278,10 +289,7 @@ export class TargetService {
         if (serverTimestamp.isAfter(clientTimestamp)) {
           // Server has newer data - conflict detected
           const convertedSpecs = existingSpecs
-            .map(spec => ({
-              ...spec,
-              duration_minutes: spec.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
-            }))
+            .map(spec => this.cleanSpec(spec))
             .sort((a, b) => a.starting_from.getTime() - b.starting_from.getTime());
 
           conflicts.push({
@@ -362,8 +370,10 @@ export class TargetService {
             specNeedsUpdate = true;
           }
           
-          if (specData.state_code !== existingSpec.state_code) {
-            existingSpec.state_code = specData.state_code;
+          // Validate state_code: convert empty string to undefined
+          const validatedStateCode = specData.state_code === '' ? undefined : specData.state_code;
+          if (validatedStateCode !== existingSpec.state_code) {
+            existingSpec.state_code = validatedStateCode;
             specNeedsUpdate = true;
           }
           
@@ -388,12 +398,16 @@ export class TargetService {
           savedSpecs.push(existingSpec);
         } else {
           // Create new spec
+          // Validate state_code: set to undefined if empty string
+          const validatedStateCode = specData.state_code === '' ? undefined : specData.state_code;
+          
           const spec = this.targetSpecRepository.create({
             ...specData,
             id: specData.id,
             user_id: userId,
             target_id: existingTarget.id,
             exclude_holidays: specData.exclude_holidays ?? false,
+            state_code: validatedStateCode,
           });
           await this.targetSpecRepository.save(spec);
           // Reload to get auto-generated timestamps
@@ -426,10 +440,7 @@ export class TargetService {
       // Convert and add to saved targets
       savedTargets.push({
         ...existingTarget,
-        target_specs: savedSpecs.map(s => ({
-          ...s,
-          duration_minutes: s.duration_minutes.map((min: any) => typeof min === 'string' ? parseInt(min, 10) : min),
-        })),
+        target_specs: savedSpecs.map(s => this.cleanSpec(s)),
         updated_at: maxUpdatedAt,
       });
     }

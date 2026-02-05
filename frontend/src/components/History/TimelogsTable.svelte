@@ -9,6 +9,7 @@
   import { holidaysStore } from '../../stores/holidays';
   import { get } from 'svelte/store';
   import { _ } from '../../lib/i18n';
+  import { formatMinutesCompact } from '../../../../lib/utils/timeFormat';
 
   type SortColumn = 'timer' | 'target' | 'type' | 'start' | 'end' | 'total_duration' | 'effective_duration' | 'due_time' | 'diff';
   type SortDirection = 'asc' | 'desc';
@@ -88,7 +89,7 @@
 
   function getTimerName(timerId: string): string {
     const timer = timers.find(t => t.id === timerId);
-    return timer ? `${timer.emoji || ''} ${timer.name}`.trim() : 'Unknown';
+    return timer ? `${timer.emoji || ''} ${timer.name}`.trim() : $_('common.unknown');
   }
 
   function getTargetName(timerId: string): string {
@@ -119,16 +120,6 @@
     }
     // Otherwise show full date and time
     return dt.format('L LT');
-  }
-
-  function formatDuration(minutes: number | undefined): string {
-    if (minutes === undefined) return 'Running';
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours === 0) {
-      return `${mins}m`;
-    }
-    return `${hours}h ${mins}m`;
   }
 
   function formatBalance(minutes: number): string {
@@ -651,7 +642,7 @@
             onclick={() => handleSort('timer')}
           >
             <div class="flex items-center gap-1">
-              Timer
+              {$_('common.timer')}
               {#if sortColumn === 'timer'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -664,7 +655,7 @@
             onclick={() => handleSort('target')}
           >
             <div class="flex items-center gap-1">
-              Target
+              {$_('common.target')}
               {#if sortColumn === 'target'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -677,7 +668,7 @@
             onclick={() => handleSort('type')}
           >
             <div class="flex items-center gap-1">
-              Type
+              {$_('common.type')}
               {#if sortColumn === 'type'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -690,7 +681,7 @@
             onclick={() => handleSort('start')}
           >
             <div class="flex items-center gap-1">
-              Start
+              {$_('common.start')}
               {#if sortColumn === 'start'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -703,7 +694,7 @@
             onclick={() => handleSort('end')}
           >
             <div class="flex items-center gap-1">
-              End
+              {$_('common.end')}
               {#if sortColumn === 'end'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -716,7 +707,7 @@
             onclick={() => handleSort('total_duration')}
           >
             <div class="flex items-center gap-1">
-              Total Duration
+              {$_('table.totalDuration')}
               {#if sortColumn === 'total_duration'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -729,7 +720,7 @@
             onclick={() => handleSort('effective_duration')}
           >
             <div class="flex items-center gap-1">
-              Effective Duration
+              {$_('table.effectiveDuration')}
               {#if sortColumn === 'effective_duration'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -742,7 +733,7 @@
             onclick={() => handleSort('due_time')}
           >
             <div class="flex items-center gap-1">
-              Due Time
+              {$_('table.dueTime')}
               {#if sortColumn === 'due_time'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -755,7 +746,7 @@
             onclick={() => handleSort('diff')}
           >
             <div class="flex items-center gap-1">
-              Difference
+              {$_('table.diff')}
               {#if sortColumn === 'diff'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -933,21 +924,21 @@
             <!-- Total Duration -->
             {#if visibleColumns.totalDuration}
               <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                {formatDuration(getTotalDuration(timelog))}
+                {formatMinutesCompact(getTotalDuration(timelog), $_('timelog.running'))}
               </td>
             {/if}
             
             <!-- Effective Duration -->
             {#if visibleColumns.effectiveDuration}
               <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                {formatDuration(getEffectiveDuration(timelog))}
+                {formatMinutesCompact(getEffectiveDuration(timelog), $_('timelog.running'))}
               </td>
             {/if}
             
             <!-- Due Time -->
             {#if visibleColumns.dueTime}
               <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                {formatDuration(getDueTime(timelog))}
+                {formatMinutesCompact(getDueTime(timelog), $_('timelog.running'))}
               </td>
             {/if}
             

@@ -4,7 +4,6 @@
   import { timeLogsStore } from '../stores/timelogs';
   import { authStore } from '../stores/auth';
   import { snackbar } from '../stores/snackbar';
-  import { authApi } from '../services/api';
   import EditOverview from '../components/Dashboard/EditOverview.svelte';
   import TimerGraph from '../components/Dashboard/TimerGraph.svelte';
 
@@ -18,7 +17,6 @@
   import { getSetting, saveSetting } from '../lib/db';
   import { saveTimelog, deleteTimelog } from '../services/formHandlers';
   import { _ } from '../lib/i18n';
-  import { get } from 'svelte/store';
 
   let showTimerForm = $state(false);
   let showTimelogForm = $state(false);
@@ -60,9 +58,9 @@
           const daysRemaining = Math.ceil((new Date(subscriptionStatus.trialEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
           if (daysRemaining <= 7 && daysRemaining > 0) {
             snackbar.withAction(
-              `Your trial expires in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}. Subscribe to continue using TapShift.`,
+              $_('dashboard.trialExpiresIn', { values: { days: daysRemaining } }),
               'warning',
-              'Subscribe',
+              $_('dashboard.subscribe'),
               () => navigate('/payment'),
               0 // Don't auto-dismiss
             );

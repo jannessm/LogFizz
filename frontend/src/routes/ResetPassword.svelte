@@ -22,7 +22,7 @@
       token = tokenParam;
       email = emailParam;
     } else {
-      errorMessage = get(_)('resetPassword.invalidToken');
+      errorMessage = $_('resetPassword.invalidToken');
     }
   });
 
@@ -32,13 +32,13 @@
 
     // Validate passwords match
     if (newPassword !== confirmPassword) {
-      errorMessage = get(_)('settings.passwordMismatch');
+      errorMessage = $_('settings.passwordMismatch');
       return;
     }
 
     // Validate password length
     if (newPassword.length < 8) {
-      errorMessage = get(_)('auth.passwordMinLength');
+      errorMessage = $_('auth.passwordMinLength');
       return;
     }
 
@@ -55,9 +55,9 @@
     } catch (error: any) {
       // Check for rate limiting (429 Too Many Requests)
       if (error.response?.status === 429) {
-        errorMessage = get(_)('auth.tooManyPasswordResetAttempts');
+        errorMessage = $_('auth.tooManyPasswordResetAttempts');
       } else {
-        errorMessage = error.message || get(_)('resetPassword.invalidToken');
+        errorMessage = error.message || $_('resetPassword.invalidToken');
       }
     } finally {
       isLoading = false;

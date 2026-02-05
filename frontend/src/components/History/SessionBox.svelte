@@ -142,7 +142,7 @@
             {displayEnd().format('LT')}
           {/if}
         {:else}
-          - Running
+          - {$_('common.running')}
         {/if}
         {#if isDifferentTimezone}
           <span class="text-xs opacity-75 ml-1">({logTimezone})</span>

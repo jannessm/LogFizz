@@ -80,7 +80,7 @@
     <span class="icon-[si--file-download-duotone] text-gray-400 dark:text-gray-500 mx-auto mb-4" style="width: 48px; height: 48px;"></span>
     <p class="text-gray-600 dark:text-gray-300 mb-2">
       {#if file}
-        Selected: <span class="font-medium">{file.name}</span>
+        {$_('import.selected')}: <span class="font-medium">{file.name}</span>
       {:else}
         {$_('import.dragDrop')}
       {/if}

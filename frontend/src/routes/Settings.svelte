@@ -35,9 +35,9 @@
 
   // Available locales with examples
   const localeOptions = [
-    { value: 'en-US', label: 'English (US)', example: '01/05/2026, 3:30 PM', dateExample: 'January 5, 2026' },
-    { value: 'en-GB', label: 'English (UK)', example: '05/01/2026, 15:30', dateExample: '5 January 2026' },
-    { value: 'de-DE', label: 'Deutsch', example: '05.01.2026, 15:30', dateExample: '5. Januar 2026' },
+    { value: 'en-US', label: $_('settings.dateEnglishUS'), example: '01/05/2026, 3:30 PM', dateExample: 'January 5, 2026' },
+    { value: 'en-GB', label: $_('settings.dateEnglishUK'), example: '05/01/2026, 15:30', dateExample: '5 January 2026' },
+    { value: 'de-DE', label: $_('settings.dateGerman'), example: '05.01.2026, 15:30', dateExample: '5. Januar 2026' },
   ];
 
   onMount(async () => {
@@ -73,7 +73,7 @@
       const updatedUser = await authStore.updateProfile({ 
         name: updatedName
       });
-      snackbar.success(get(_)('settings.profileUpdated'));
+      snackbar.success($_('settings.profileUpdated'));
       // Update local state with the server response
       name = updatedUser.name;
       originalName = updatedUser.name;
@@ -85,7 +85,7 @@
   async function handlePasswordChange(currentPassword: string, newPassword: string) {
     try {
       await authStore.changePassword(currentPassword, newPassword);
-      snackbar.success(get(_)('settings.passwordChanged'));
+      snackbar.success($_('settings.passwordChanged'));
     } catch (error: any) {
       snackbar.error(error.message);
     }
@@ -95,7 +95,7 @@
     try {
       let syncingSnackbarId: string | null = null;
       const showSyncingTimeout = setTimeout(() => {
-        syncingSnackbarId = snackbar.info(get(_)('settings.syncing'), 2000);
+        syncingSnackbarId = snackbar.info($_('settings.syncing'), 2000);
       }, 1000);
 
       await syncService.sync('all');
@@ -106,9 +106,9 @@
         snackbar.dismiss(syncingSnackbarId);
       }
       
-      snackbar.success(get(_)('settings.syncCompleted'));
+      snackbar.success($_('settings.syncCompleted'));
     } catch (error: any) {
-      snackbar.error(error.message || get(_)('settings.syncFailed'));
+      snackbar.error(error.message || $_('settings.syncFailed'));
     }
   }
 
@@ -117,13 +117,13 @@
     
     try {
       isRecalculating = true;
-      snackbar.info(get(_)('settings.recalculating'), 3000);
+      snackbar.info($_('settings.recalculating'), 3000);
       
       await balancesStore.recalculateBalances();
       
-      snackbar.success(get(_)('settings.recalculateSuccess'));
+      snackbar.success($_('settings.recalculateSuccess'));
     } catch (error: any) {
-      snackbar.error(error.message || get(_)('settings.recalculateFailed'));
+      snackbar.error(error.message || $_('settings.recalculateFailed'));
     } finally {
       isRecalculating = false;
     }
@@ -159,9 +159,9 @@
       await userSettingsStore.updateSettings({ language });
       // Update i18n locale
       setLocale(language);
-      snackbar.success(get(_)('settings.languageUpdated'));
+      snackbar.success($_('settings.languageUpdated'));
     } catch (error: any) {
-      snackbar.error(error.message || get(_)('common.error'));
+      snackbar.error(error.message || $_('common.error'));
     }
   }
 
@@ -170,9 +170,9 @@
       await userSettingsStore.updateSettings({ locale });
       // Update dayjs locale for date formatting
       setDayjsLocale(locale);
-      snackbar.success(get(_)('settings.dateFormatUpdated'));
+      snackbar.success($_('settings.dateFormatUpdated'));
     } catch (error: any) {
-      snackbar.error(error.message || get(_)('common.error'));
+      snackbar.error(error.message || $_('common.error'));
     }
   }
 </script>
@@ -263,8 +263,8 @@
             onchange={handleLanguageChange}
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
-            <option value="en">English</option>
-            <option value="de">Deutsch</option>
+            <option value="en">{$_('settings.languageEnglish')}</option>
+            <option value="de">{$_('settings.languageGerman')}</option>
           </select>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
             {$_('settings.languageDescription')}
