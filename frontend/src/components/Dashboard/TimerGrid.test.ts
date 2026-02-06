@@ -77,7 +77,7 @@ describe('TimerGrid Component', () => {
   it('passes edit mode to timer buttons', () => {
     render(TimerGrid, { props: { timers: mockTimers, editMode: true } });
     // Check for edit buttons (which only appear in edit mode)
-    const editButtons = screen.getAllByRole('button', { name: /edit button/i });
+    const editButtons = screen.getAllByRole('button', { name: /edit project/i });
     expect(editButtons.length).toBeGreaterThan(0);
   });
 

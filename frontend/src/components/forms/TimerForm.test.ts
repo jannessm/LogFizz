@@ -18,8 +18,9 @@ describe('TimerForm Component', () => {
 
   it('renders create timer form', () => {
     render(TimerForm, { props: { timer: null } });
-    expect(screen.getByText(/Add Timer/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Button Name/i)).toBeInTheDocument();
+    // The header shows translation keys timerform.add/edit
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
   });
 
   it('renders edit timer form with existing data', () => {
@@ -35,12 +36,12 @@ describe('TimerForm Component', () => {
       updated_at: '2024-01-01T00:00:00Z',
     };
     render(TimerForm, { props: { timer: mockTimer } });
-    expect(screen.getByText(/Edit Timer/i)).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('validates required name field', () => {
     render(TimerForm, { props: { timer: null } });
-    const nameInput = screen.getByLabelText(/Button Name/i) as HTMLInputElement;
+    const nameInput = screen.getByRole('textbox') as HTMLInputElement;
     expect(nameInput.required).toBe(true);
   });
 

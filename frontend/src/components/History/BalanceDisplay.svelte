@@ -82,9 +82,13 @@
           <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.business_trip}</span>
         </div>
 
-        <div class="col-span-2">
+        <div>
           <span class="text-gray-600 dark:text-gray-400">{$_('history.childSick')}</span>
           <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.child_sick}</span>
+        </div>
+        <div>
+          <span class="text-gray-600 dark:text-gray-400">{$_('history.homeoffice')}</span>
+          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.homeoffice}</span>
         </div>
       </div>
     </div>

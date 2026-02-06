@@ -195,6 +195,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "business_trip" integer NOT NULL DEFAULT 0,
                 "child_sick" integer NOT NULL DEFAULT 0,
                 "worked_days" integer NOT NULL DEFAULT 0,
+                "homeoffice" integer NOT NULL DEFAULT 0,
                 
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),

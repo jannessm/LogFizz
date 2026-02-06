@@ -123,7 +123,7 @@ describe('Table Route', () => {
 
   it('renders filters component', () => {
     render(Table);
-    expect(screen.getByPlaceholderText(/Search notes, timers, targets/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Search notes, projects, targets/)).toBeInTheDocument();
   });
 
   it('renders table headers when not loading', async () => {

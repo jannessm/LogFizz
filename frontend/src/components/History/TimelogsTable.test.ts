@@ -106,7 +106,7 @@ describe('TimelogsTable Component', () => {
     expect(screen.getByText('Type')).toBeInTheDocument();
     expect(screen.getByText('Start')).toBeInTheDocument();
     expect(screen.getByText('End')).toBeInTheDocument();
-    expect(screen.getByText('Total Duration')).toBeInTheDocument();
+    expect(screen.getByText('Total')).toBeInTheDocument();
     expect(screen.getByText('Effective Duration')).toBeInTheDocument();
     expect(screen.getByText('Notes')).toBeInTheDocument();
   });

@@ -35,6 +35,7 @@
 
   const typeOptions: { value: TimeLogType; label: string }[] = $derived([
     { value: 'normal', label: $_('timelog.typeNormal') },
+    { value: 'homeoffice', label: $_('timelog.typeHomeoffice') },
     { value: 'sick', label: $_('timelog.typeSick') },
     { value: 'holiday', label: $_('timelog.typeHoliday') },
     { value: 'business-trip', label: $_('timelog.typeBusinessTrip') },

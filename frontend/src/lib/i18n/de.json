@@ -170,6 +170,7 @@
     "goToToday": "wähle Heute aus",
     "holidayPTO": "Urlaub",
     "holidays": "Urlaub:",
+    "homeoffice": "Homeoffice:",
     "legend": "Legende",
     "loadBalancesFailed": "Salden konnten nicht geladen werden",
     "loadingBalances": "Lade Salden...",
@@ -206,7 +207,7 @@
     "yearlyBalance": "Jahressaldo"
   },
   "import": {
-    "allowedTypes": "Erlaubte Typen: Normal, Krank, Urlaub, Dienstreise, Kindkrank",
+    "allowedTypes": "Erlaubte Typen: Normal, Homeoffice, Krank, Urlaub, Dienstreise, Kindkrank",
     "and": "und",
     "applyFormat": "Format anwenden",
     "applyToAll": "Auf alle anwenden",
@@ -517,6 +518,7 @@
     "typeBusinessTrip": "Dienstreise",
     "typeChildSick": "Kindkrank",
     "typeHoliday": "Urlaub",
+    "typeHomeoffice": "Homeoffice",
     "typeNormal": "Normal",
     "typeRequired": "Typ *",
     "typeSick": "Krank",
@@ -540,6 +542,7 @@
     "businessTrip": "Dienstreise",
     "childSick": "Kindkrank",
     "holiday": "Urlaub",
+    "homeoffice": "Homeoffice",
     "normal": "Normal",
     "sick": "Krank"
   },

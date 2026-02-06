@@ -65,8 +65,8 @@
   let errorMessage: string = $state('');
   let showDeleteConfirm = $state(false);
 
-  // Check if the type requires whole_day flag (all special types except normal)
-  let isSpecialType = $derived(newLog.type !== 'normal');
+  // Check if the type requires whole_day flag (all special types except normal and homeoffice, business-trip)
+  let isSpecialType = $derived(!['normal', 'homeoffice', 'business-trip'].includes(newLog.type || 'normal'));
 
   // Auto-set whole_day when special type is selected
   $effect(() => {
@@ -244,6 +244,7 @@
           required
         >
           <option value="normal">{$_('timelog.typeNormal')}</option>
+          <option value="homeoffice">{$_('timelog.typeHomeoffice')}</option>
           <option value="sick">{$_('timelog.typeSick')}</option>
           <option value="holiday">{$_('timelog.typeHoliday')}</option>
           <option value="business-trip">{$_('timelog.typeBusinessTrip')}</option>

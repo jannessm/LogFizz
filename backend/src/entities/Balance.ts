@@ -39,6 +39,9 @@ export class Balance implements BalanceEntity {
   child_sick!: number;
 
   @Column('integer', { default: 0 })
+  homeoffice!: number;
+
+  @Column('integer', { default: 0 })
   worked_days!: number; // Whether holidays were excluded from calculation
 
 

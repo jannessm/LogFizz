@@ -170,6 +170,7 @@
     "goToToday": "select today",
     "holidayPTO": "Holiday (PTO)",
     "holidays": "Holidays:",
+    "homeoffice": "Homeoffice:",
     "legend": "Legend",
     "loadBalancesFailed": "Failed to load balances",
     "loadingBalances": "Loading balances...",
@@ -206,7 +207,7 @@
     "yearlyBalance": "Yearly Balance"
   },
   "import": {
-    "allowedTypes": "Allowed types: normal, sick, holiday, business-trip, child-sick",
+    "allowedTypes": "Allowed types: normal, homeoffice, sick, holiday, business-trip, child-sick",
     "and": "and",
     "applyFormat": "Apply Format",
     "applyToAll": "Apply to All",
@@ -517,6 +518,7 @@
     "typeBusinessTrip": "Business Trip",
     "typeChildSick": "Child Sick",
     "typeHoliday": "Holiday",
+    "typeHomeoffice": "Homeoffice",
     "typeNormal": "Normal",
     "typeRequired": "Type *",
     "typeSick": "Sick",
@@ -540,6 +542,7 @@
     "businessTrip": "Business Trip",
     "childSick": "Child Sick",
     "holiday": "Holiday",
+    "homeoffice": "Homeoffice",
     "normal": "Normal",
     "sick": "Sick"
   },

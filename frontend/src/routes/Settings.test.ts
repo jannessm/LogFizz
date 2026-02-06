@@ -176,7 +176,7 @@ describe('Settings Component', () => {
 
   it('renders timer behavior section', async () => {
     render(Settings);
-    expect(screen.getByText('Timer Behavior')).toBeInTheDocument();
+    expect(screen.getByText('Projects')).toBeInTheDocument();
   });
 
   it('renders sign out button', async () => {

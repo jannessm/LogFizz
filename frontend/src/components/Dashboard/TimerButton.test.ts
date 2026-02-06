@@ -162,7 +162,7 @@ describe('TimerButton Component', () => {
 
   it('shows delete button in edit mode', () => {
     render(TimerButton, { props: { timer: mockTimer, editMode: true } });
-    const deleteButton = screen.getByRole('button', { name: /edit button/i });
+    const deleteButton = screen.getByRole('button', { name: /edit project/i });
     expect(deleteButton).toBeInTheDocument();
   });
 

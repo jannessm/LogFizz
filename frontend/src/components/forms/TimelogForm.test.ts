@@ -501,11 +501,11 @@ describe('TimelogForm Component', () => {
       });
     });
 
-    it('disables running checkbox for special types', async () => {
+    it('disables running checkbox for special types (expect normal, homeoffice, business-trip)', async () => {
       render(TimelogForm, { 
         props: { 
           selectedDate,
-          existingLog: null,
+          existingLog: undefined,
           isTimerStop: false,
         } 
       });
@@ -514,11 +514,18 @@ describe('TimelogForm Component', () => {
       expect(screen.getByLabelText(/Running/i)).not.toBeDisabled();
 
       const typeSelect = screen.getByLabelText(/Type/i) as HTMLSelectElement;
+      await fireEvent.change(typeSelect, { target: { value: 'sick' } });
+
+      await waitFor(() => {
+        // Running checkbox should be disabled for sick type (whole_day becomes true)
+        expect(screen.getByLabelText(/Running/i)).toBeDisabled();
+      });
+
       await fireEvent.change(typeSelect, { target: { value: 'business-trip' } });
 
       await waitFor(() => {
         // Running checkbox should be disabled for business-trip type (whole_day becomes true)
-        expect(screen.getByLabelText(/Running/i)).toBeDisabled();
+        expect(screen.getByLabelText(/Running/i).getAttribute('disabled')).toBe("");
       });
     });
 

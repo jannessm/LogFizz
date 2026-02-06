@@ -386,6 +386,10 @@
         <span class="text-gray-600 dark:text-gray-400">{$_('history.publicHoliday')}</span>
       </div>
       <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full bg-cyan-500 opacity-30 border-2 border-cyan-500 flex-shrink-0"></div>
+        <span class="text-gray-600 dark:text-gray-400">{$_('timelog.typeHomeoffice')}</span>
+      </div>
+      <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-red-500 opacity-30 border-2 border-red-500 flex-shrink-0"></div>
         <span class="text-gray-600 dark:text-gray-400">{$_('timelog.typeSick')}</span>
       </div>

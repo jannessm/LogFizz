@@ -30,6 +30,7 @@
 
   const typeOptions: { value: TimeLogType; label: string }[] = [
     { value: 'normal', label: $_('timelogtype.normal') },
+    { value: 'homeoffice', label: $_('timelogtype.homeoffice') },
     { value: 'sick', label: $_('timelogtype.sick') },
     { value: 'holiday', label: $_('timelogtype.holiday') },
     { value: 'business-trip', label: $_('timelogtype.businessTrip') },

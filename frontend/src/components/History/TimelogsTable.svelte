@@ -85,8 +85,6 @@
   let touchStartX = 0;
   let isTouchMove = false;
 
-  const typeOptions: TimeLogType[] = ['normal', 'sick', 'holiday', 'business-trip', 'child-sick'];
-
   function getTimerName(timerId: string): string {
     const timer = timers.find(t => t.id === timerId);
     return timer ? `${timer.emoji || ''} ${timer.name}`.trim() : $_('common.unknown');
@@ -139,6 +137,7 @@
   function getTypeLabel(type: TimeLogType): string {
     const labels: Record<TimeLogType, string> = {
       'normal': $_('timelog.typeNormal'),
+      'homeoffice': $_('timelog.typeHomeoffice'),
       'sick': $_('timelog.typeSick'),
       'holiday': $_('timelog.typeHoliday'),
       'business-trip': $_('timelog.typeBusinessTrip'),
@@ -150,6 +149,7 @@
   function getTypeBadgeClass(type: TimeLogType): string {
     const classes: Record<TimeLogType, string> = {
       'normal': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+      'homeoffice': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400',
       'sick': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
       'holiday': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
       'business-trip': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
