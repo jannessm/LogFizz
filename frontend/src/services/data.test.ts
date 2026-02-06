@@ -538,9 +538,9 @@ describe('Balance Calculation Tests with Seed Data', () => {
         month: 11,
       };
       
-      const result = calculateWorkedMinutesForDate('2025-11-10', [sickDayTimelog]);
+      const result = calculateWorkedMinutesForDate('2025-11-10', [sickDayTimelog], 480);
       
-      expect(result.worked_minutes).toBe(0);
+      expect(result.worked_minutes).toBe(480);
       expect(result.counters.sick_days).toBe(1);
       expect(result.counters.holidays).toBe(0);
     });
@@ -562,9 +562,9 @@ describe('Balance Calculation Tests with Seed Data', () => {
         month: 11,
       };
       
-      const result = calculateWorkedMinutesForDate('2025-11-11', [holidayTimelog]);
+      const result = calculateWorkedMinutesForDate('2025-11-11', [holidayTimelog], 480);
       
-      expect(result.worked_minutes).toBe(0);
+      expect(result.worked_minutes).toBe(480);
       expect(result.counters.holidays).toBe(1);
       expect(result.counters.sick_days).toBe(0);
     });
@@ -608,7 +608,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
         month: 11,
       };
       
-      const result = calculateWorkedMinutesForDate('2025-11-13', [childSickTimelog]);
+      const result = calculateWorkedMinutesForDate('2025-11-13', [childSickTimelog], 480);
       
       expect(result.counters.child_sick).toBe(1);
     });
@@ -870,15 +870,15 @@ describe('Balance Calculation Tests with Seed Data', () => {
       const allMonthTimelogs = [sickDay1, sickDay2];
       
       // When calculating for Jan 5 (Monday), should only count the sick day from Jan 5
-      const jan5Result = calculateWorkedMinutesForDate('2026-01-05', allMonthTimelogs);
+      const jan5Result = calculateWorkedMinutesForDate('2026-01-05', allMonthTimelogs, 480);
       expect(jan5Result.counters.sick_days).toBe(1);
       
       // When calculating for Jan 12 (Monday), should only count the sick day from Jan 12
-      const jan12Result = calculateWorkedMinutesForDate('2026-01-12', allMonthTimelogs);
+      const jan12Result = calculateWorkedMinutesForDate('2026-01-12', allMonthTimelogs, 480);
       expect(jan12Result.counters.sick_days).toBe(1);
       
       // When calculating for Jan 15 (Thursday), should count 0 sick days (no sick day on that date)
-      const jan15Result = calculateWorkedMinutesForDate('2026-01-15', allMonthTimelogs);
+      const jan15Result = calculateWorkedMinutesForDate('2026-01-15', allMonthTimelogs, 480);
       expect(jan15Result.counters.sick_days).toBe(0);
     });
     
@@ -905,15 +905,15 @@ describe('Balance Calculation Tests with Seed Data', () => {
       }
       
       // When calculating for Jan 5 (Monday), should only count 1 holiday (not all 4)
-      const jan5Result = calculateWorkedMinutesForDate('2026-01-05', holidayLogs);
+      const jan5Result = calculateWorkedMinutesForDate('2026-01-05', holidayLogs, 480);
       expect(jan5Result.counters.holidays).toBe(1);
       
       // When calculating for Jan 6 (Tuesday), should only count 1 holiday
-      const jan6Result = calculateWorkedMinutesForDate('2026-01-06', holidayLogs);
+      const jan6Result = calculateWorkedMinutesForDate('2026-01-06', holidayLogs, 480);
       expect(jan6Result.counters.holidays).toBe(1);
       
       // When calculating for Jan 12 (Monday), should count 0 holidays (no holiday on that date)
-      const jan12Result = calculateWorkedMinutesForDate('2026-01-12', holidayLogs);
+      const jan12Result = calculateWorkedMinutesForDate('2026-01-12', holidayLogs, 480);
       expect(jan12Result.counters.holidays).toBe(0);
     });
     
@@ -954,12 +954,12 @@ describe('Balance Calculation Tests with Seed Data', () => {
       const allTimelogs = [sickDay, normalWork];
       
       // Jan 5: should have 1 sick day, 0 worked minutes
-      const jan5Result = calculateWorkedMinutesForDate('2026-01-05', allTimelogs);
+      const jan5Result = calculateWorkedMinutesForDate('2026-01-05', allTimelogs, 480);
       expect(jan5Result.counters.sick_days).toBe(1);
-      expect(jan5Result.worked_minutes).toBe(0);
+      expect(jan5Result.worked_minutes).toBe(480);
       
       // Jan 6: should have 0 sick days, 450 worked minutes
-      const jan6Result = calculateWorkedMinutesForDate('2026-01-06', allTimelogs);
+      const jan6Result = calculateWorkedMinutesForDate('2026-01-06', allTimelogs, 480);
       expect(jan6Result.counters.sick_days).toBe(0);
       expect(jan6Result.worked_minutes).toBe(450);
     });

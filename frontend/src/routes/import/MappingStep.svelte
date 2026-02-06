@@ -7,6 +7,7 @@
   } from '../../../../lib/utils/csvImport.js';
   import { dayjs } from '../../types';
   import DateFormatModal from './DateFormatModal.svelte';
+  import { _ } from '../../lib/i18n';
 
   let {
     headers,
@@ -208,16 +209,18 @@
       // There are rows that cannot be parsed at all
       const rowCount = validationResult.invalidRows.length;
       const rowList = validationResult.invalidRows.slice(0, 5).join(', ');
-      const more = validationResult.invalidRows.length > 5 ? `, and ${validationResult.invalidRows.length - 5} more` : '';
+      const more = validationResult.invalidRows.length > 5 ? `, ${$_('import.and')} ${validationResult.invalidRows.length - 5} ${$_('import.more')}` : '';
+      const unparsedList = validationResult.unparsedValues.slice(0, 3).map(v => `  "${v}"`).join('\n');
+      const moreUnparsed = validationResult.unparsedValues.length > 3 ? `\n  ...${$_('import.and')} ${validationResult.unparsedValues.length - 3} ${$_('import.more')}` : '';
       
-      formatValidationError = `⚠️ ${rowCount} row${rowCount > 1 ? 's' : ''} cannot be parsed: ${rowList}${more}\n\nUnparsed values:\n${validationResult.unparsedValues.slice(0, 3).map(v => `  "${v}"`).join('\n')}${validationResult.unparsedValues.length > 3 ? `\n  ...and ${validationResult.unparsedValues.length - 3} more` : ''}\n\nPlease select the correct date format.`;
+      formatValidationError = `⚠️ ${rowCount} ${rowCount > 1 ? $_('import.rows') : $_('import.row')} ${$_('import.cannotBeParsed')}: ${rowList}${more}\n\n${$_('import.unparsedValuesHeader')}\n${unparsedList}${moreUnparsed}\n\n${$_('import.selectCorrectFormat')}`;
     } else if (!validationResult.detectedFormat && validationResult.formatCounts.size > 1) {
       // All rows can be parsed, but no single format works for all rows
       const formatList = Array.from(validationResult.formatCounts.entries())
-        .map(([format, count]) => `  • ${format}: ${count} values`)
+        .map(([format, count]) => `  • ${format}: ${count} ${$_('import.values')}`)
         .join('\n');
       
-      formatValidationError = `⚠️ No single format works for all rows. Multiple formats detected:\n${formatList}\n\nPlease select a custom format that works for all values, or ensure your data uses a consistent date format.`;
+      formatValidationError = `⚠️ ${$_('import.multipleFormatsDetected')}\n${formatList}\n\n${$_('import.selectCustomFormat')}`;
     } else {
       formatValidationError = '';
     }
@@ -281,13 +284,13 @@
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-  <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Map Columns</h2>
+  <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">{$_('import.mapColumns')}</h2>
   
   <div class="space-y-4">
     <!-- Timezone -->
     <div>
       <label for="timezone" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-        Timezone *
+        {$_('import.timezoneRequired')}
       </label>
       <select
         id="timezone"
@@ -305,7 +308,7 @@
         <option value="Australia/Sydney">Australia/Sydney (AEDT/AEST)</option>
       </select>
       <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-        Select the timezone for the times in your CSV
+        {$_('import.selectTimezone')}
       </p>
     </div>
 
@@ -313,14 +316,14 @@
       <!-- Start Date Column -->
       <div>
         <label for="start-date-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-          Start Date Column (optional)
+          {$_('import.startDateColumn')}
         </label>
         <select
           id="start-date-column"
           bind:value={startDateColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">None (times include dates)</option>
+          <option value="">{$_('import.none')} ({$_('import.timesIncludeDates')})</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
@@ -330,14 +333,14 @@
       <!-- End Date Column -->
       <div>
         <label for="end-date-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-          End Date Column (optional)
+          {$_('import.endDateColumn')}
         </label>
         <select
           id="end-date-column"
           bind:value={endDateColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">Use start date</option>
+          <option value="">{$_('import.useStartDate')}</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
@@ -347,14 +350,14 @@
       <!-- Start Time Column -->
       <div>
         <label for="start-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-          Start Time Column *
+          {$_('import.startTimeColumn')}
         </label>
         <select
           id="start-column"
           bind:value={startTimeColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">Select column...</option>
+          <option value="">{$_('import.selectColumn')}</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
@@ -364,14 +367,14 @@
       <!-- End Time Column -->
       <div>
         <label for="end-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-          End Time Column *
+          {$_('import.endTimeColumn')}
         </label>
         <select
           id="end-column"
           bind:value={endTimeColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">Select column...</option>
+          <option value="">{$_('import.selectColumn')}</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
@@ -381,14 +384,14 @@
       <!-- Notes Column -->
       <div>
         <label for="notes-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-          Notes Column (optional)
+          {$_('import.notesColumn')}
         </label>
         <select
           id="notes-column"
           bind:value={notesColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">None</option>
+          <option value="">{$_('import.none')}</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
@@ -398,14 +401,14 @@
       <!-- Project Column -->
       <div>
         <label for="project-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-          Project/Timer Column (optional)
+          {$_('import.projectColumn')}
         </label>
         <select
           id="project-column"
           bind:value={projectColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">None</option>
+          <option value="">{$_('import.none')}</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
@@ -415,20 +418,20 @@
       <!-- Type Column -->
       <div>
         <label for="type-column" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-          Type Column (optional)
+          {$_('import.typeColumn')}
         </label>
         <select
           id="type-column"
           bind:value={typeColumn}
           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         >
-          <option value="">None (default to Normal)</option>
+          <option value="">{$_('import.none')} ({$_('import.defaultToNormal')})</option>
           {#each headers as header}
             <option value={header}>{header}</option>
           {/each}
         </select>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Allowed types: normal, sick, holiday, business-trip, child-sick
+          {$_('import.allowedTypes')}
         </p>
       </div>
     </div>
@@ -437,7 +440,7 @@
     {#if previewLogs.length > 0}
       <div class="mt-4">
         <div class="flex items-center justify-between mb-2">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-200">Preview (first 5 rows):</h3>
+          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-200">{$_('import.previewFirstRows')}:</h3>
           <div class="flex items-center gap-3">
             {#if validationResult.detectedFormat}
               <span class="text-xs text-blue-600 dark:text-blue-400 font-mono">
@@ -445,7 +448,7 @@
               </span>
             {/if}
             <span class="text-xs text-gray-500 dark:text-gray-400">
-              {parsedData.length - validationResult.invalidRows.length} / {parsedData.length} valid
+              {parsedData.length - validationResult.invalidRows.length} / {parsedData.length} {$_('import.rowsValid')}
             </span>
           </div>
         </div>
@@ -466,9 +469,9 @@
                   </div>
                 {:else}
                   <div class="text-xs mt-1 opacity-90 space-y-0.5">
-                    <div>Invalid date/time format</div>
+                    <div>{$_('import.invalidDateFormat')}</div>
                     <div class="font-mono bg-white dark:bg-gray-800 p-1 rounded text-[10px]">
-                      Date: "{log.startDateValue}" + Time: "{log.startTime}"
+                      {$_('import.date')}: "{log.startDateValue}" + {$_('import.time')}: "{log.startTime}"
                     </div>
                   </div>
                 {/if}
@@ -502,14 +505,14 @@
         onclick={onBack}
         class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       >
-        Back
+        {$_('import.back')}
       </button>
       <button
         onclick={handleContinue}
         disabled={!startTimeColumn || !endTimeColumn}
         class="px-4 py-2 bg-blue-600 dark:bg-orange-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-orange-600 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
       >
-        Continue
+        {$_('import.continue')}
       </button>
     </div>
   </div>

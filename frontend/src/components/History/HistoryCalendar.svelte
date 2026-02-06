@@ -3,6 +3,7 @@
   import { hasSpecialType, loadCalendarMonth, type CalendarTimeLogData } from '../../services/calendar';
   import { onMount } from 'svelte';
   import { getSetting } from '../../lib/db';
+  import { _ } from '../../lib/i18n';
 
   let {
     timeLogs,
@@ -58,23 +59,13 @@
     selectedDate.month = selectedDate.month.year(newYear);
   }
 
-  // Generate month options (0-11 for dayjs)
-  function getMonthOptions() {
-    return [
-      { value: 0, label: 'January' },
-      { value: 1, label: 'February' },
-      { value: 2, label: 'March' },
-      { value: 3, label: 'April' },
-      { value: 4, label: 'May' },
-      { value: 5, label: 'June' },
-      { value: 6, label: 'July' },
-      { value: 7, label: 'August' },
-      { value: 8, label: 'September' },
-      { value: 9, label: 'October' },
-      { value: 10, label: 'November' },
-      { value: 11, label: 'December' }
-    ];
-  }
+  // Generate month options (0-11 for dayjs) with locale-aware names
+  const monthOptions = $derived(
+    Array.from({ length: 12 }, (_, i) => ({
+      value: i,
+      label: dayjs().month(i).format('MMMM')
+    }))
+  );
 
   // Generate year options (current year ± 5 years)
   function getYearOptions() {
@@ -86,15 +77,21 @@
     return years;
   }
 
-  let monthOptions = $derived(getMonthOptions());
   let yearOptions = $derived(getYearOptions());
 
   function selectDate(date: dayjs.Dayjs) {
     selectedDate.date = date;
   }
 
-  let firstDayOfWeek: 'sunday' | 'monday' = $state('sunday');
-  let dayNames: string[] = $state([]);
+  let firstDayOfWeek = $state<'sunday' | 'monday'>('sunday');
+  
+  // Get locale-aware day names based on first day of week setting
+  let dayNames = $derived(
+    firstDayOfWeek === 'monday'
+      ? Array.from({ length: 7 }, (_, i) => dayjs().day((i + 1) % 7).format('ddd'))
+      : Array.from({ length: 7 }, (_, i) => dayjs().day(i).format('ddd'))
+  );
+  
   let calendarDays = $derived.by(() => {
     const firstDay = selectedDate.month.startOf('month');
 
@@ -123,18 +120,9 @@
 
   onMount(async () => {
     // Load first day of week setting
-    const firstDaySetting = await getSetting('firstDayOfWeek');
+    const firstDaySetting = await getSetting('firstDayOfWeek') as 'sunday' | 'monday' | null;
     firstDayOfWeek = firstDaySetting || 'sunday'; // default sunday
-    updateDayNames();
   });
-
-  function updateDayNames() {
-    if (firstDayOfWeek === 'monday') {
-      dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    } else {
-      dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    }
-  }
 
   let weekNumbers = $derived.by(() => {
     const weeks = [];
@@ -148,7 +136,7 @@
   let timeLogsByDate = $derived(calendarData.timeLogsByDate);
   let dotColors = $derived(calendarData.dotColors);
   let multiDayRanges = $derived(calendarData.multiDayRanges);
-
+  
   // Check if date has any special type timelogs (non-normal) - single day only
   function hasSpecialTypeForDate(date: dayjs.Dayjs): { hasSpecial: boolean; color: string | null } {
     return hasSpecialType(date, timeLogsByDate, timeLogs, getMultiDayRangeForDate(date));
@@ -166,13 +154,6 @@
     };
     return info;
   }
-
-  // Update day names when firstDayOfWeek changes
-  $effect(() => {
-    if (firstDayOfWeek) {
-      updateDayNames();
-    }
-  });
 
   /**
    * Create a gradient CSS string from an array of colors
@@ -221,7 +202,7 @@
     <button
       onclick={previousMonth}
       class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--chevron-left-alt-duotone] text-gray-600 dark:text-gray-400"
-      aria-label="Previous month"
+      aria-label={$_('history.previousMonth')}
     ></button>
     
     <!-- Month Dropdown -->
@@ -229,7 +210,7 @@
       onchange={changeMonth}
       value={selectedDate.month.month()}
       class="text-lg text-gray-800 dark:text-gray-100 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
-      aria-label="Select month"
+      aria-label={$_('history.selectMonth')}
     >
       {#each monthOptions as month}
         <option value={month.value}>{month.label}</option>
@@ -241,7 +222,7 @@
       onchange={changeYear}
       value={selectedDate.month.year()}
       class="text-lg text-gray-800 dark:text-gray-100 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
-      aria-label="Select year"
+      aria-label={$_('history.selectYear')}
     >
       {#each yearOptions as year}
         <option value={year}>{year}</option>
@@ -251,7 +232,7 @@
     <button
       onclick={nextMonth}
       class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--chevron-right-alt-duotone] text-gray-600 dark:text-gray-400"
-      aria-label="Next month"
+      aria-label={$_('history.nextMonth')}
     ></button>
     
     <!-- Today Button -->
@@ -262,9 +243,9 @@
       class:bg-gray-300={selectedDate.date.isSame(dayjs(), 'day')}
       class:dark:bg-gray-600={selectedDate.date.isSame(dayjs(), 'day')}
       disabled={selectedDate.date.isSame(dayjs(), 'day')}
-      aria-label="Go to today"
+      aria-label={$_('history.goToToday')}
     >
-      Today
+      {$_('history.today')}
     </button>
   </div>
 </div>
@@ -303,7 +284,6 @@
         {@const holidayName = getPublicHolidayName(day)}
         {@const isHoliday = holidayName !== null}
         {@const gradient = createGradient(multiDayRange.colors)}
-        {@const borderColor = isHoliday ? '#a855f7' : null}
         <button
           onclick={() => selectDate(day)}
           class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 p-1"
@@ -394,32 +374,36 @@
 
   <!-- Legend -->
   <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-    <h4 class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Legend</h4>
+    <h4 class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">{$_('history.legend')}</h4>
     <div class="grid grid-cols-2 gap-2 text-xs">
       <!-- Type indicators -->
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-600 flex-shrink-0"></div>
-        <span class="text-gray-600 dark:text-gray-400">Today</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('history.today')}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full border-2 border-purple-500 flex-shrink-0"></div>
-        <span class="text-gray-600 dark:text-gray-400">Public Holiday</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('history.publicHoliday')}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full bg-cyan-500 opacity-30 border-2 border-cyan-500 flex-shrink-0"></div>
+        <span class="text-gray-600 dark:text-gray-400">{$_('timelog.typeHomeoffice')}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-red-500 opacity-30 border-2 border-red-500 flex-shrink-0"></div>
-        <span class="text-gray-600 dark:text-gray-400">Sick</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('timelog.typeSick')}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-green-500 opacity-30 border-2 border-green-500 flex-shrink-0"></div>
-        <span class="text-gray-600 dark:text-gray-400">Holiday (PTO)</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('history.holidayPTO')}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-amber-500 opacity-30 border-2 border-amber-500 flex-shrink-0"></div>
-        <span class="text-gray-600 dark:text-gray-400">Business Trip</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('timelog.typeBusinessTrip')}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="w-4 h-4 rounded-full bg-pink-500 opacity-30 border-2 border-pink-500 flex-shrink-0"></div>
-        <span class="text-gray-600 dark:text-gray-400">Child Sick</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('timelog.typeChildSick')}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="flex gap-0.5 w-4 justify-center items-center flex-shrink-0">
@@ -427,7 +411,7 @@
           <div class="w-1 h-1 rounded-full bg-green-600"></div>
           <div class="w-1 h-1 rounded-full bg-purple-600"></div>
         </div>
-        <span class="text-gray-600 dark:text-gray-400">Logged Timers</span>
+        <span class="text-gray-600 dark:text-gray-400">{$_('history.loggedTimers')}</span>
       </div>
     </div>
   </div>

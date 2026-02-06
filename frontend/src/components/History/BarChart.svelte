@@ -3,6 +3,7 @@
   import { Chart, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } from 'chart.js';
   import { numberToHoursMinutes } from '../../lib/chart_utils';
   import dayjs from 'dayjs';
+  import { _ } from '../../lib/i18n';
 
   let { timers, currentMonth, timeLogs, dateSelect }: {
     timers: any[];
@@ -207,7 +208,7 @@
     {#if timeLogs.length > 0}
       <canvas bind:this={canvas}></canvas>
     {:else}
-      <p class="text-gray-400 text-sm text-center py-8">No data available</p>
+      <p class="text-gray-400 text-sm text-center py-8">{$_('common.noDataAvailable')}</p>
     {/if}
   </div>
 </div>

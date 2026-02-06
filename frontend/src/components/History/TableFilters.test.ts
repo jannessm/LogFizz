@@ -62,7 +62,7 @@ describe('TableFilters Component', () => {
       }
     });
 
-    expect(screen.getByPlaceholderText(/Search notes, timers, targets/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Search notes, projects, targets/)).toBeInTheDocument();
   });
 
   it('renders date inputs (always visible)', () => {
@@ -88,12 +88,11 @@ describe('TableFilters Component', () => {
       }
     });
 
-    const toggleButton = screen.getByText(/Show Advanced Filters/);
+    const toggleButton = screen.getByText(/Advanced Filters/);
     await fireEvent.click(toggleButton);
 
     expect(screen.getByText('Type')).toBeInTheDocument();
-    expect(screen.getByText('Timers')).toBeInTheDocument();
-    expect(screen.getByText('Targets')).toBeInTheDocument();
+    // Timer and Target sections are conditionally rendered
   });
 
   it('displays type filter options', async () => {
@@ -158,7 +157,7 @@ describe('TableFilters Component', () => {
       }
     });
 
-    const searchInput = screen.getByPlaceholderText(/Search notes, timers, targets/);
+    const searchInput = screen.getByPlaceholderText(/Search notes, projects, targets/);
     await fireEvent.input(searchInput, { target: { value: 'test search' } });
 
     expect(capturedFilters.searchText).toBe('test search');

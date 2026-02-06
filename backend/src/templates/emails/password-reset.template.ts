@@ -1,26 +1,29 @@
 import { generateEmailTemplate, generatePlainTextEmail, EmailTemplateData } from './base.template.js';
+import { t, getLanguageFromLocale } from '../../i18n/index.js';
 
 export interface PasswordResetEmailData {
   userName: string;
   resetUrl: string;
   appUrl: string;
   email: string;
+  locale?: string;
 }
 
 /**
  * Generates the password reset email HTML content
  */
 export function generatePasswordResetEmailContent(data: PasswordResetEmailData): string {
-  const { userName, resetUrl } = data;
+  const { userName, resetUrl, locale = 'en-US' } = data;
+  const lang = getLanguageFromLocale(locale);
   
   return `
-    <h1>Password Reset Request</h1>
+    <h1>${t('email.passwordResetTitle', lang)}</h1>
     <p>Hi ${userName},</p>
-    <p>We received a request to reset the password for your TapShift account.</p>
-    <p>If you made this request, click the button below to reset your password:</p>
+    <p>${t('email.passwordResetIntro', lang)}</p>
+    <p>${t('email.passwordResetPrompt', lang)}</p>
     
     <p style="text-align: center;">
-      <a href="${resetUrl}" class="button">Reset Your Password</a>
+      <a href="${resetUrl}" class="button">${t('email.passwordResetButton', lang)}</a>
     </p>
     
     <p>Or copy and paste this link into your browser:</p>
@@ -29,10 +32,10 @@ export function generatePasswordResetEmailContent(data: PasswordResetEmailData):
     <div class="divider"></div>
     
     <p style="font-size: 14px; color: #6b7280;">
-      ⚠️ This password reset link will expire in <strong>1 hour</strong>.
+      ⚠️ ${t('email.passwordResetExpiry', lang)}
     </p>
     <p style="font-size: 14px; color: #6b7280;">
-      🔒 If you didn't request a password reset, please ignore this email. Your password will remain unchanged, and your account is secure.
+      🔒 ${t('email.passwordResetIgnore', lang)}
     </p>
     <p style="font-size: 14px; color: #6b7280;">
       For security reasons, we recommend that you don't share this email with anyone.
@@ -43,31 +46,36 @@ export function generatePasswordResetEmailContent(data: PasswordResetEmailData):
 /**
  * Generates complete password reset email (HTML and plain text)
  */
-export function generatePasswordResetEmail(data: PasswordResetEmailData): { html: string; text: string } {
+export function generatePasswordResetEmail(data: PasswordResetEmailData): { html: string; text: string; subject: string } {
+  const { locale = 'en-US' } = data;
+  const lang = getLanguageFromLocale(locale);
   const content = generatePasswordResetEmailContent(data);
   
+  const subject = t('email.passwordResetSubject', lang);
+  
   const templateData: EmailTemplateData = {
-    title: 'Reset Your Password',
-    preheader: 'You requested to reset your password',
+    title: t('email.passwordResetTitle', lang),
+    preheader: t('email.passwordResetIntro', lang),
     content,
     appUrl: data.appUrl,
   };
   
   return {
+    subject,
     html: generateEmailTemplate(templateData),
     text: generatePlainTextEmail({
       ...templateData,
       content: `
 Hi ${data.userName},
 
-We received a request to reset the password for your Clock App account.
+${t('email.passwordResetIntro', lang)}
 
-If you made this request, use the link below to reset your password:
+${t('email.passwordResetPrompt', lang)}
 ${data.resetUrl}
 
-This password reset link will expire in 1 hour.
+${t('email.passwordResetExpiry', lang)}
 
-If you didn't request a password reset, please ignore this email. Your password will remain unchanged, and your account is secure.
+${t('email.passwordResetIgnore', lang)}
 
 For security reasons, we recommend that you don't share this email with anyone.
       `.trim(),

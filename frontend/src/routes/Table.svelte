@@ -6,10 +6,10 @@
   import { timeLogsStore, timerlogs } from '../stores/timelogs';
   import { timers } from '../stores/timers';
   import { targets } from '../stores/targets';
-  import { monthlyBalances } from '../stores/balances';
-  import { dayjs, type TimeLog } from '../types';
+  import { dayjs } from '../types';
   import { userTimezone } from '../../../lib/utils/dayjs';
   import { navigate } from '../lib/navigation';
+  import { _ } from '../lib/i18n';
 
   // Pagination
   const PAGE_SIZE = 100;
@@ -219,25 +219,25 @@
   <!-- Header -->
   <div class="w-full px-4 pt-6 pb-2">
     <div class="w-full max-w-7xl mx-auto flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Timelogs Table</h1>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{$_('table.title')}</h1>
       <div class="flex gap-1 items-center">
         <button
           onclick={navigateToHistory}
           class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[proicons--calendar] text-gray-600 dark:text-gray-400"
           style="width: 28px; height: 28px;"
-          aria-label="Calendar view"
+          aria-label={$_('history.calendarView')}
         ></button>
         <button
           onclick={handleExportClick}
           class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-upload-duotone] text-gray-600 dark:text-gray-400"
           style="width: 28px; height: 28px;"
-          aria-label="Export timelogs"
+          aria-label={$_('export.title')}
         ></button>
         <button
           onclick={() => navigate('/import?from=table')}
           class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-download-duotone] text-gray-600 dark:text-gray-400"
           style="width: 28px; height: 28px;"
-          aria-label="Import timelogs"
+          aria-label={$_('import.title')}
         ></button>
       </div>
     </div>
@@ -256,9 +256,9 @@
       <!-- Results count and pagination info -->
       <div class="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
         <span>
-          {filteredTimelogs.length} timelogs found
+          {filteredTimelogs.length} {filteredTimelogs.length === 1 ? $_('table.entry') : $_('table.entries')} 
           {#if totalPages > 1}
-            • Showing {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredTimelogs.length)}
+            • {$_('table.showing')} {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredTimelogs.length)}
           {/if}
         </span>
         {#if totalPages > 1}
@@ -268,15 +268,15 @@
               disabled={currentPage === 1}
               class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              Previous
+              {$_('common.previous')}
             </button>
-            <span>Page {currentPage} of {totalPages}</span>
+            <span>{$_('common.page')} {currentPage} {$_('common.of')} {totalPages}</span>
             <button
               onclick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}
               class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              Next
+              {$_('common.next')}
             </button>
           </div>
         {/if}
@@ -293,7 +293,8 @@
             timelogs={paginatedTimelogs}
             timers={$timers}
             targets={$targets}
-            monthlyBalances={$monthlyBalances}
+            dateFrom={filters.dateFrom!}
+            dateTo={filters.dateTo}
           />
         {/if}
       </div>
@@ -306,14 +307,14 @@
             disabled={currentPage === 1}
             class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            First
+            {$_('common.first')}
           </button>
           <button
             onclick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 1}
             class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            Previous
+            {$_('common.previous')}
           </button>
           
           {#each Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -340,19 +341,19 @@
             disabled={currentPage === totalPages}
             class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            Next
+            {$_('common.next')}
           </button>
           <button
             onclick={() => goToPage(totalPages)}
             disabled={currentPage === totalPages}
             class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            Last
+            {$_('common.last')}
           </button>
         </div>
       {/if}
     </div>
   </div>
 
-  <BottomNav currentTab="history" />
+  <BottomNav currentTab={null} />
 </div>

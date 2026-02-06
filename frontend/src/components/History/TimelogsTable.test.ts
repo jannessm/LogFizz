@@ -106,7 +106,7 @@ describe('TimelogsTable Component', () => {
     expect(screen.getByText('Type')).toBeInTheDocument();
     expect(screen.getByText('Start')).toBeInTheDocument();
     expect(screen.getByText('End')).toBeInTheDocument();
-    expect(screen.getByText('Total Duration')).toBeInTheDocument();
+    expect(screen.getByText('Total')).toBeInTheDocument();
     expect(screen.getByText('Effective Duration')).toBeInTheDocument();
     expect(screen.getByText('Notes')).toBeInTheDocument();
   });
@@ -156,8 +156,9 @@ describe('TimelogsTable Component', () => {
     });
 
     // Duration is shown in both Total Duration and Effective Duration columns
-    expect(screen.getAllByText('8h 0m').length).toBeGreaterThan(0); // 480 minutes
-    expect(screen.getAllByText('2h 0m').length).toBeGreaterThan(0); // 120 minutes
+    // formatMinutesCompact shows "8h" instead of "8h 0m" for even hours
+    expect(screen.getAllByText('8h').length).toBeGreaterThan(0); // 480 minutes
+    expect(screen.getAllByText('2h').length).toBeGreaterThan(0); // 120 minutes
   });
 
   it('shows "No timelogs found" when empty', () => {
@@ -212,10 +213,10 @@ describe('TimelogsTable Component', () => {
       }
     });
 
-    // Should have date group headers
-    expect(screen.getByText(/Sunday, December 15, 2024/)).toBeInTheDocument();
-    expect(screen.getByText(/Monday, December 16, 2024/)).toBeInTheDocument();
-    expect(screen.getByText(/Tuesday, December 17, 2024/)).toBeInTheDocument();
+    // Should have date group headers (format is locale-aware 'L' format: MM/DD/YYYY)
+    expect(screen.getByText(/12\/15\/2024/)).toBeInTheDocument();
+    expect(screen.getByText(/12\/16\/2024/)).toBeInTheDocument();
+    expect(screen.getByText(/12\/17\/2024/)).toBeInTheDocument();
   });
 
   it('allows column visibility configuration', () => {

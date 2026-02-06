@@ -7,6 +7,7 @@
   import TargetSpecItem from './TargetSpecItem.svelte';
   import DateTimeInput from './DateTimeInput.svelte';
   import { dayjs } from '../../types';
+  import { _ } from '../../lib/i18n';
 
   let {
     target = null,
@@ -27,6 +28,9 @@
   
   let isLoading = $state(false);
   let errorMessage = $state('');
+  let showDeleteConfirm = $state(false);
+  let showDeleteSpecConfirm = $state(false);
+  let specIndexToDelete = $state<number | null>(null);
   let availableTimers = $state<Timer[]>([]);
   let selectedTimerIds = $state<string[]>([]);
   let initialized = $state(false);
@@ -130,10 +134,22 @@
       return;
     }
     
-    if (confirm('Delete this schedule?')) {
-      targetSpecs = targetSpecs.filter((_, i) => i !== index);
+    specIndexToDelete = index;
+    showDeleteSpecConfirm = true;
+  }
+
+  function handleDeleteSpecConfirm() {
+    if (specIndexToDelete !== null) {
+      targetSpecs = targetSpecs.filter((_, i) => i !== specIndexToDelete);
       errorMessage = '';
     }
+    showDeleteSpecConfirm = false;
+    specIndexToDelete = null;
+  }
+
+  function handleDeleteSpecCancel() {
+    showDeleteSpecConfirm = false;
+    specIndexToDelete = null;
   }
 
   onMount(async () => {
@@ -250,6 +266,30 @@
       isLoading = false;
     }
   }
+
+  function handleDeleteClick() {
+    showDeleteConfirm = true;
+  }
+
+  async function handleDeleteConfirm() {
+    if (!target) return;
+    
+    isLoading = true;
+    try {
+      await targetsStore.delete($state.snapshot(target));
+      showDeleteConfirm = false;
+      close();
+    } catch (error: any) {
+      errorMessage = error.message || 'Failed to delete target';
+      showDeleteConfirm = false;
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function handleDeleteCancel() {
+    showDeleteConfirm = false;
+  }
 </script>
 
 <div 
@@ -269,12 +309,12 @@
   >
     <!-- Header -->
     <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{target ? 'Edit' : 'Add'} Target</h2>
+      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{target ? $_('targetform.edit') : $_('targetform.add')} {$_('targetform.target')}</h2>
       <button
         onclick={close}
         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
         style="width: 28px; height: 28px;"
-        aria-label="Close"
+        aria-label={$_('common.close')}
       ></button>
     </div>
 
@@ -290,7 +330,7 @@
         <!-- Name -->
         <div>
           <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Target Name *
+            {$_('target.targetNameRequired')}
           </label>
           <input
             id="name"
@@ -298,7 +338,7 @@
             bind:value={name}
             required
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="e.g., Work, Exercise, Study"
+            placeholder={$_('target.placeholderTargetName')}
           />
         </div>
 
@@ -306,9 +346,9 @@
         <div class="border-t dark:border-gray-700 pt-4">
           <div class="flex justify-between items-center mb-3">
             <div>
-              <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Target Specifications *</h3>
+              <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">{$_('target.targetSpecsRequired')}</h3>
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Define work schedules for different time periods. Most recent first.
+                {$_('target.specsDescription')}
               </p>
             </div>
             <button
@@ -317,15 +357,15 @@
               class="px-3 py-1.5 bg-primary text-white text-sm rounded-md hover:bg-primary-hover transition-colors flex items-center gap-1"
             >
               <span class="icon-[si--add-line] w-4 h-4"></span>
-              Add Schedule
+              {$_('target.addSchedule')}
             </button>
           </div>
 
           <!-- List of Target Specs -->
           {#if targetSpecs.length === 0}
             <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
-              <p class="text-gray-500 dark:text-gray-400 text-sm">No schedules defined yet</p>
-              <p class="text-gray-400 dark:text-gray-500 text-xs mt-1">Click "Add Schedule" to create one</p>
+              <p class="text-gray-500 dark:text-gray-400 text-sm">{$_('target.noSchedulesDefined')}</p>
+              <p class="text-gray-400 dark:text-gray-500 text-xs mt-1">{$_('target.clickAddSchedule')}</p>
             </div>
           {:else}
             <div class="space-y-0">
@@ -358,18 +398,18 @@
                           dateId="start-date-{index}"
                         />
                         {#if index === 0 && !archiveDate}
-                          <span class="text-xs text-primary font-semibold mb-1">● Current</span>
+                          <span class="text-xs text-primary font-semibold mb-1">{$_('target.current')}</span>
                         {/if}
                         {#if index < targetSpecs.length - 1}
                           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Ends: {dayjs(targetSpecs[index + 1].startDate).subtract(1, 'day').format('MMM D, YYYY')}
+                            {$_('target.endsOn')} {dayjs(targetSpecs[index + 1].startDate).subtract(1, 'day').format('ll')}
                           </p>
                         {:else if index === 0 && archiveDate}
                           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Ends: {dayjs(archiveDate).format('MMM D, YYYY')}
+                            {$_('target.endsOn')} {dayjs(archiveDate).format('ll')}
                           </p>
                         {:else}
-                          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">No end date</p>
+                          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$_('target.noEndDate')}</p>
                         {/if}
                       </div>
                       
@@ -397,10 +437,10 @@
                   >
                     {#if showAllSpecs}
                       <span class="icon-[proicons--chevron-up] w-4 h-4"></span>
-                      Show Less ({targetSpecs.length - 1} hidden)
+                      {$_('common.hide')} ({targetSpecs.length - 1} {$_('common.hidden')})
                     {:else}
                       <span class="icon-[proicons--chevron-down] w-4 h-4"></span>
-                      Show All ({targetSpecs.length - 1} more)
+                      {$_('common.show')} ({targetSpecs.length - 1} {$_('common.more')})
                     {/if}
                   </button>
                 </div>
@@ -412,7 +452,7 @@
         <!-- Archive Target Section -->
         <div class="border-t dark:border-gray-700 pt-4">
           <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-            Set an end date to archive this target. The current target ends on this date.
+            {$_('target.setEndDateDescription')}
           </p>
           <div class="flex items-start gap-3">
             <div class="flex-1">
@@ -424,7 +464,7 @@
               />
               {#if archiveDate}
                 <p class="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
-                  This target ends on {dayjs(archiveDate).format('MMM D, YYYY')}
+                  {$_('target.targetEndsOn')} {dayjs(archiveDate).format('ll')}
                 </p>
               {/if}
             </div>
@@ -433,10 +473,10 @@
                 type="button"
                 onclick={() => archiveDate = null}
                 class="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors flex items-center gap-1"
-                title="Remove archive date"
+                title={$_('target.removeArchiveDate')}
               >
                 <span class="icon-[si--close-line] w-4 h-4"></span>
-                Clear
+                {$_('common.clear')}
               </button>
             {/if}
           </div>
@@ -446,14 +486,14 @@
         {#if target}
           <div class="border-t dark:border-gray-700 pt-4 mt-4">
             <div class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Assign Timers
+              {$_('target.assignTimers')}
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Select timers to track time towards this target. Selecting a timer that's already assigned to another target will reassign it to this target.
+              {$_('target.assignTimersDescription')}
             </p>
             
             {#if availableTimers.length === 0}
-              <p class="text-sm text-gray-500 dark:text-gray-400 italic">No timers available. Create timers first to assign them to this target.</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 italic">{$_('target.noTimersAvailable')}</p>
             {:else}
               <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
                 {#each availableTimers as timer}
@@ -488,7 +528,7 @@
                     <span class="text-sm font-medium text-gray-800 dark:text-gray-200 text-center line-clamp-2">{timer.name}</span>
 
                     {#if assignedTarget && assignedTarget.id !== target?.id}
-                      <span class="text-[10px] text-orange-600 dark:text-orange-400 mt-1 text-center" title="Currently assigned to {assignedTarget.name}">assigned to: {assignedTarget.name}</span>
+                      <span class="text-[10px] text-orange-600 dark:text-orange-400 mt-1 text-center" title="Currently assigned to {assignedTarget.name}">{$_('common.assignedTo')}: {assignedTarget.name}</span>
                     {/if}
                   </button>
                 {/each}
@@ -504,20 +544,138 @@
             onclick={close}
             class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
-            Cancel
+            {$_('common.cancel')}
           </button>
           <button
             type="submit"
             disabled={isLoading}
             class="flex-1 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Saving...' : target ? 'Update' : 'Create'}
+            {isLoading ? 'Saving...' : $_(target ? 'common.save' : 'common.save')}
           </button>
         </div>
+        
+        <!-- Delete Button (only shown when editing) -->
+        {#if target}
+          <button
+            type="button"
+            onclick={handleDeleteClick}
+            class="w-full px-4 py-2 border-2 border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-400 dark:hover:border-red-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <span class="icon-[si--bin-duotone]" style="width: 20px; height: 20px;"></span>
+            {$_('target.deleteTarget')}
+          </button>
+        {/if}
       </form>
     </div>
   </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+{#if showDeleteConfirm}
+  <div 
+    class="fixed inset-0 z-[60] flex items-center justify-center p-4"
+    onclick={handleDeleteCancel}
+    onkeydown={(e) => e.key === 'Escape' && handleDeleteCancel()}
+    role="button"
+    tabindex="0"
+  >
+    <!-- Modal Content -->
+    <div 
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-[400px] overflow-hidden flex flex-col"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+    >
+      <!-- Header -->
+      <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{$_('target.deleteTarget')}</h3>
+        <button
+          onclick={handleDeleteCancel}
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
+          style="width: 28px; height: 28px;"
+          aria-label={$_('common.close')}
+        ></button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6 space-y-6">
+        <p class="text-gray-600 dark:text-gray-400">
+          {$_('target.deleteConfirmation')} "{target?.name}"?
+        </p>
+        <div class="flex gap-3">
+          <button
+            onclick={handleDeleteCancel}
+            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            {$_('common.cancel')}
+          </button>
+          <button
+            onclick={handleDeleteConfirm}
+            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            {$_('common.delete')}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Delete Spec Confirmation Modal -->
+{#if showDeleteSpecConfirm}
+  <div 
+    class="fixed inset-0 z-[60] flex items-center justify-center p-4"
+    onclick={handleDeleteSpecCancel}
+    onkeydown={(e) => e.key === 'Escape' && handleDeleteSpecCancel()}
+    role="button"
+    tabindex="0"
+  >
+    <!-- Modal Content -->
+    <div 
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-[400px] overflow-hidden flex flex-col"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+    >
+      <!-- Header -->
+      <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{$_('target.deleteSchedule')}</h3>
+        <button
+          onclick={handleDeleteSpecCancel}
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
+          style="width: 28px; height: 28px;"
+          aria-label={$_('common.close')}
+        ></button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6 space-y-6">
+        <p class="text-gray-600 dark:text-gray-400">
+          {$_('target.deleteScheduleConfirmation')}
+        </p>
+        <div class="flex gap-3">
+          <button
+            onclick={handleDeleteSpecCancel}
+            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            {$_('common.cancel')}
+          </button>
+          <button
+            onclick={handleDeleteSpecConfirm}
+            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            {$_('common.delete')}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   /* Add backdrop blur effect */

@@ -136,27 +136,19 @@ export function calculateBalanceData(
   holidaysSet: Set<string>
 ): Omit<Balance, 'id' | 'user_id' | 'created_at' | 'updated_at'> {
   const dueMinutes = calculateDueMinutes(date, balanceTarget, holidaysSet);
-  const { worked_minutes: workedMinutes, counters } = calculateWorkedMinutesForDate(
+  const { worked_minutes, counters } = calculateWorkedMinutesForDate(
     date,
-    timelogs
+    timelogs,
+    dueMinutes
   );
-
-  // For whole_day entries (counter entries), add due_minutes to worked_minutes (as per docs)
-  let adjustedWorked = workedMinutes;
-  if (counters.sick_days > 0 || counters.holidays > 0 || 
-      counters.business_trip > 0 || counters.child_sick > 0 || counters.normal > 0) {
-    adjustedWorked += dueMinutes;
-  }
-
-  delete((counters as Partial<WholeDayCounters>).normal);
 
   return {
     date,
     target_id: balanceTarget.id,
     due_minutes: dueMinutes,
-    worked_minutes: adjustedWorked,
+    worked_minutes,
     cumulative_minutes: 0, // is the cumulation of previous balances without the current one
-    worked_days: adjustedWorked > 0 && counters.business_trip === 0 ? 1 : 0,
+    worked_days: worked_minutes > 0 ? 1 : 0,
     ...counters,
   };
 }
@@ -220,6 +212,7 @@ function createBalancesStore() {
         holidays: balanceData.holidays || 0,
         business_trip: balanceData.business_trip || 0,
         child_sick: balanceData.child_sick || 0,
+        homeoffice: balanceData.homeoffice || 0,
         worked_days: balanceData.worked_days || 0,
         created_at: dayjs().toISOString(),
         updated_at: dayjs().toISOString(),

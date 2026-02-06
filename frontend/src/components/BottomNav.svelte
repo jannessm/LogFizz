@@ -1,8 +1,9 @@
 <script lang="ts">
   import { navigate } from '../lib/navigation';
+  import { _ } from '../lib/i18n';
 
-  let { currentTab = 'timer' }: {
-    currentTab?: 'timer' | 'history' | 'settings';
+  let { currentTab = null }: {
+    currentTab?: 'timer' | 'history' | 'settings' | null;
   } = $props();
 
   function handleNavigate(path: string) {
@@ -19,7 +20,7 @@
       <span class="w-12 h-12"
         class:icon-[si--clock-alt-duotone]={currentTab === 'timer'}
         class:icon-[si--clock-alt-line]={currentTab !== 'timer'}></span>
-      <span class="text-xs mt-1">Timer</span>
+      <span class="text-xs mt-1">{$_('nav.dashboard')}</span>
     </button>
 
     <button 
@@ -29,7 +30,7 @@
       <span class="w-12 h-12"
         class:icon-[si--bar-chart-duotone]={currentTab === 'history'}
         class:icon-[si--bar-chart-line]={currentTab !== 'history'}></span>
-      <span class="text-xs mt-1">History</span>
+      <span class="text-xs mt-1">{$_('nav.history')}</span>
     </button>
 
     <button 
@@ -40,7 +41,7 @@
         class:icon-[si--settings-alt-duotone]={currentTab === 'settings'}
         class:icon-[si--settings-alt-line]={currentTab !== 'settings'}
       ></span>
-      <span class="text-xs mt-1">Settings</span>
+      <span class="text-xs mt-1">{$_('nav.settings')}</span>
     </button>
   </div>
 </nav>

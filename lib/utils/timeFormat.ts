@@ -19,18 +19,35 @@ export function formatMinutes(minutes: number): string {
  * Format minutes as hours and minutes (compact, no sign)
  * Example: 150 -> "2h 30m", 90 -> "1h 30m", 30 -> "30m", 60 -> "1h"
  * 
- * @param minutes - Number of minutes
- * @returns Formatted string as hours and/or minutes
+ * @param minutes - Number of minutes (can be undefined for optional values)
+ * @returns Formatted string as hours and/or minutes, or custom value for undefined
  */
-export function formatMinutesCompact(minutes: number): string {
-  if (!isFinite(minutes) || isNaN(minutes)) {
-    return '0m';
+export function formatMinutesCompact(minutes: number | undefined, undefinedValue: string = '0m'): string {
+  if (minutes === undefined || !isFinite(minutes) || isNaN(minutes)) {
+    return undefinedValue;
   }
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
   if (hours === 0) return `${mins}m`;
   if (mins === 0) return `${hours}h`;
   return `${hours}h ${mins}m`;
+}
+
+/**
+ * Format minutes as HH:MM (padded)
+ * Example: 150 -> "02:30", 90 -> "01:30", 30 -> "00:30"
+ * 
+ * @param minutes - Number of minutes (can be undefined for optional values)
+ * @param undefinedValue - Value to return if minutes is undefined (default: '')
+ * @returns Formatted string as HH:MM
+ */
+export function formatMinutesHHMM(minutes: number | undefined, undefinedValue: string = ''): string {
+  if (minutes === undefined || !isFinite(minutes) || isNaN(minutes)) {
+    return undefinedValue;
+  }
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
 }
 
 /**

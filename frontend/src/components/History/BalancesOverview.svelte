@@ -6,6 +6,7 @@
     loadBalancesByTargetId,
     type BalancePeriod,
   } from '../../services/balanceOverview';
+  import { _ } from '../../lib/i18n';
 
   type BalancesOverviewPeriods = {
     day: BalancePeriod & { date: string };
@@ -19,7 +20,7 @@
     title?: string;
   };
 
-  let { targets, periods, title = 'Balance Overview' }: BalancesOverviewProps = $props();
+  let { targets, periods, title = $_('balanceOverview.title') }: BalancesOverviewProps = $props();
 
   let loading = $state(false);
   let error = $state<string | null>(null);
@@ -103,7 +104,7 @@
       preselectTargetWithMostDueMinutes(yearRes.balancesByTargetId);
     } catch (err: any) {
       console.error('Failed to load balances overview:', err);
-      error = err?.message || 'Failed to load balances';
+      error = err?.message || $_('balanceOverview.loadFailed');
     } finally {
       loading = false;
     }
@@ -161,9 +162,9 @@
   {/if}
 
   {#if loading && balancesYearByTargetId.size === 0 && balancesMonthByTargetId.size === 0 && balancesDayByTargetId.size === 0}
-    <div class="text-gray-500 dark:text-gray-400 text-sm">Loading balances...</div>
+    <div class="text-gray-500 dark:text-gray-400 text-sm">{$_('history.loadingBalances')}</div>
   {:else if activeTargets.length === 0}
-    <div class="text-gray-500 dark:text-gray-400 text-sm">No targets configured.</div>
+    <div class="text-gray-500 dark:text-gray-400 text-sm">{$_('history.noTargetsConfigured')}</div>
   {:else}
     <div class="flex flex-col gap-3">
       <BalanceDisplay granularity="day" target={selectedTarget} balance={selectedDayBalance} />

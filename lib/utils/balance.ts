@@ -36,11 +36,11 @@ export type BalanceGranularity = 'daily' | 'monthly' | 'yearly';
  * Counters for whole day timelog types
  */
 export interface WholeDayCounters {
-  normal: number;
   sick_days: number;
   holidays: number;
   business_trip: number;
   child_sick: number;
+  homeoffice: number;
 }
 
 /**
@@ -128,19 +128,22 @@ export function calculateTimelogDuration(timelog: TimeLog): number {
  * 
  * @param date - The date to calculate for (YYYY-MM-DD)
  * @param timelogs - Array of timelogs to process
+ * @param dueMinutes - Due minutes for this date (used to determine if counters should increment)
  * @returns Worked minutes and counters for special day types
  */
 export function calculateWorkedMinutesForDate(
   date: string,
-  timelogs: TimeLog[]
+  timelogs: TimeLog[],
+  dueMinutes: number = 0
 ): WorkedCalculation {
   let worked = 0;
+
   const counters: WholeDayCounters = {
-    normal: 0,
     sick_days: 0,
     holidays: 0,
     business_trip: 0,
     child_sick: 0,
+    homeoffice: 0,
   };
   
   for (const timelog of timelogs) {
@@ -149,18 +152,27 @@ export function calculateWorkedMinutesForDate(
     if (!range) continue; // Timelog doesn't overlap with this date
     
     const duration = calculateTimelogDuration(timelog);
+    const type = timelog.type || 'normal';
+    
+    // update counters, for sick, holiday, child-sick only when dueminutes > 0 (day where one should actually work)
+    if (type === 'sick' && dueMinutes > 0) counters.sick_days++;
+    else if (type === 'holiday' && dueMinutes > 0) counters.holidays++;
+    else if (type === 'business-trip') counters.business_trip++;
+    else if (type === 'child-sick' && dueMinutes > 0) counters.child_sick++;
+    else if (type === 'homeoffice') counters.homeoffice++;
 
-    // Whole day entries (duration < 0) increment counters only 
-    if (duration < 0 && ![0, 6].includes(dayjs(date).day())) {
-      const type = timelog.type || 'normal';
-      if (type === 'normal') counters.normal++;
-      else if (type === 'sick') counters.sick_days++;
-      else if (type === 'holiday') counters.holidays++;
-      else if (type === 'business-trip') counters.business_trip++;
-      else if (type === 'child-sick') counters.child_sick++;
+    // if no due minutes and type is sick, holiday, or child-sick continue without adding worked minutes
+    if (['sick', 'holiday', 'child-sick'].includes(type) && dueMinutes <= 0) {
+      continue;
+    }
+
+    // if whole day, add due minutes and continue
+    if (duration < 0) {
+      worked += dueMinutes;
       continue;
     }
     
+    // calculate worked minutes
     const { effectiveStart, effectiveEnd } = range;
     const logStart = dayjs(timelog.start_timestamp);
     const logEnd = timelog.end_timestamp ? dayjs(timelog.end_timestamp) : dayjs();
@@ -245,6 +257,7 @@ export function aggregateToMonthly(
     holidays: 0,
     business_trip: 0,
     child_sick: 0,
+    homeoffice: 0,
   };
   let workedDays = 0;
   
@@ -255,6 +268,7 @@ export function aggregateToMonthly(
     counters.holidays += daily.holidays;
     counters.business_trip += daily.business_trip;
     counters.child_sick += daily.child_sick;
+    counters.homeoffice += daily.homeoffice;
     
     // Note: worked_minutes already includes due_minutes for whole_day entries
     // (added in calculateBalanceData), so we do NOT add them again here
@@ -305,6 +319,7 @@ export function aggregateToYearly(
     holidays: 0,
     business_trip: 0,
     child_sick: 0,
+    homeoffice: 0,
   };
   let workedDays = 0;
   
@@ -315,6 +330,7 @@ export function aggregateToYearly(
     counters.holidays += monthly.holidays;
     counters.business_trip += monthly.business_trip;
     counters.child_sick += monthly.child_sick;
+    counters.homeoffice += monthly.homeoffice;
     workedDays += monthly.worked_days;
   }
   

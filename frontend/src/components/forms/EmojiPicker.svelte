@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { _ } from '../../lib/i18n';
 
   let {
     value = '',
@@ -65,7 +66,7 @@
       {#if value}
         <span>{value}</span>
       {:else}
-        <span class="text-gray-400 dark:text-gray-500">Emoji (optional)</span>
+        <span class="text-gray-400 dark:text-gray-500">{$_('timer.emojiOptional')}</span>
       {/if}
     </button>
     {#if value}
@@ -73,7 +74,7 @@
         type="button"
         onclick={clearEmoji}
         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-        aria-label="Clear emoji"
+        aria-label={$_('timer.clearEmoji')}
       >
         <span class="icon-[si--close-circle-duotone]" style="width: 20px; height: 20px;"></span>
       </button>

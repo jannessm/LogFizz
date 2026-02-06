@@ -303,4 +303,32 @@ describe('Timer Sync Routes', () => {
 
     expect(response.statusCode).toBe(401);
   });
+
+  it('should handle empty string target_id by converting to null/undefined', async () => {
+    const timerId = '990e8400-e29b-41d4-a716-446655440099';
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/timers/sync',
+      headers: {
+        cookie: authCookie,
+      },
+      payload: {
+        timers: [{
+          id: timerId,
+          name: 'Timer with Empty Target ID',
+          emoji: '⏱️',
+          color: '#3B82F6',
+          target_id: '', // Empty string should be converted to null/undefined
+          auto_subtract_breaks: false,
+          archived: false,
+        }],
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.saved).toHaveLength(1);
+    expect(body.saved[0].id).toBe(timerId);
+    expect(body.saved[0].target_id).toBeNull(); // Should be null, not empty string
+  });
 });

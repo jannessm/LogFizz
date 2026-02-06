@@ -8,6 +8,7 @@ import { Target } from '../entities/Target.js';
 import { TargetSpec } from '../entities/TargetSpec.js';
 import { Balance } from '../entities/Balance.js';
 import { State } from '../entities/State.js';
+import { UserSettings } from '../entities/UserSettings.js';
 
 // Patch TypeORM's column type normalization for better-sqlite3 BEFORE creating DataSource
 // This allows timestamptz and uuid types to work with SQLite
@@ -55,5 +56,5 @@ export const TestDataSource = new DataSource({
   synchronize: true,
   logging: false,
   dropSchema: true,
-  entities: [User, Timer, TimeLog, Holiday, HolidayMetadata, Target, TargetSpec, Balance, State],
+  entities: [User, Timer, TimeLog, Holiday, HolidayMetadata, Target, TargetSpec, Balance, State, UserSettings],
 });

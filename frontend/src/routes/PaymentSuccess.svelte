@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { navigate } from '../lib/navigation';
+  import { _ } from '../lib/i18n';
 
   onMount(() => {
     // Redirect to dashboard after a short delay
@@ -20,9 +21,9 @@
       </div>
     </div>
 
-    <h1 class="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h1>
+    <h1 class="text-2xl font-bold text-gray-900 mb-2">{$_('subscription.paymentSuccessful')}</h1>
     <p class="text-gray-600 mb-6">
-      Thank you for subscribing to TapShift. Your subscription is now active.
+      {$_('subscription.thankYouSubscribing')}
     </p>
 
     <div class="space-y-3">
@@ -30,19 +31,19 @@
         on:click={() => navigate('/')}
         class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition"
       >
-        Go to Dashboard
+        {$_('common.goToDashboard')}
       </button>
       
       <button
         on:click={() => navigate('/payment')}
         class="w-full bg-gray-100 text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 transition"
       >
-        View Subscription Details
+        {$_('common.viewSubscriptionDetails')}
       </button>
     </div>
 
     <p class="text-sm text-gray-500 mt-6">
-      Redirecting to dashboard in 3 seconds...
+      {$_('subscription.redirectingDashboard')}
     </p>
   </div>
 </div>

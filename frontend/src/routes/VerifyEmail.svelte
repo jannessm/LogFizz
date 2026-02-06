@@ -4,6 +4,7 @@
   import { snackbar } from '../stores/snackbar';
   import { navigate } from '../lib/navigation';
   import { authApi } from '../services/api';
+  import { _ } from '../lib/i18n';
 
   let isVerifying = true;
   let verificationToken = '';
@@ -29,8 +30,8 @@
       // Save the verification URL for after login
       savedPath = window.location.pathname + window.location.search;
       sessionStorage.setItem('redirectAfterLogin', savedPath);
-      
-      snackbar.info('Please log in to verify your email', 7000);
+
+      snackbar.info($_('verify.pleaseLogin'), 7000);
       navigate('/login');
       return;
     }
@@ -48,18 +49,15 @@
       
       // Refresh user data to get updated email_verified_at
       await authStore.init();
-      
-      snackbar.success(response.message || 'Email verified successfully!', 6000);
-      
+
+      snackbar.success(response.message || $_('verify.emailVerified'), 6000);
+
       // Redirect to dashboard after a short delay
       setTimeout(() => {
         navigate('/');
       }, 1500);
       
     } catch (error: any) {
-      const errorMessage = error.response?.data?.error || 
-                          error.message || 
-                          'Email verification failed';
       const errorCode = error.response?.data?.code;
       
       console.log('Verification error:', error);
@@ -72,7 +70,7 @@
         errorType = 'wrong_user';
       } else if (error.response?.status === 401) {
         // Not authenticated
-        snackbar.error('Please log in first to verify your email.', 8000);
+        snackbar.error($_('verify.pleaseLogin'), 8000);
         // The onMount logic will handle redirecting to login
         navigate('/login');
         return;
@@ -133,9 +131,9 @@
       <!-- Verifying state -->
       <div class="text-center">
         <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 dark:border-orange-500 mx-auto mb-6"></div>
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Verifying Email</h1>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{$_('verifyEmail.verifying')}</h1>
         <p class="text-gray-600 dark:text-gray-400">
-          Please wait while we verify your email address...
+          {$_('verifyEmail.pleaseWait')}
         </p>
       </div>
     {:else if errorType === 'wrong_user'}
@@ -144,18 +142,18 @@
         <div class="mb-6">
           <span class="w-16 h-16 icon-[si--mail-duotone] text-blue-600 dark:text-orange-500 mx-auto block"></span>
         </div>
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Wrong Account</h1>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">{$_('verifyEmail.wrongAccount')}</h1>
         <p class="text-gray-700 dark:text-gray-300 mb-4">
-          This verification link is for a different email account. 
-          You're currently logged in as <strong>{user?.email}</strong>.
+          {$_('verifyEmail.wrongAccountDescription')} 
+          {$_('verifyEmail.currentlyLoggedAs')} <strong>{user?.email}</strong>.
         </p>
         
         <div class="text-left text-sm text-gray-600 dark:text-gray-400 space-y-2 mb-6">
-          <p><strong class="dark:text-gray-200">Next steps:</strong></p>
+          <p><strong class="dark:text-gray-200">{$_('verifyEmail.nextSteps')}</strong></p>
           <ol class="list-decimal list-inside space-y-1 ml-2">
-            <li>Log out from your current account</li>
-            <li>Log in with the account that received the email</li>
-            <li>Click the new verification link in your email</li>
+            <li>{$_('verifyEmail.step1')}</li>
+            <li>{$_('verifyEmail.step2')}</li>
+            <li>{$_('verifyEmail.step3')}</li>
           </ol>
         </div>
         
@@ -163,7 +161,7 @@
           on:click={() => navigate('/')}
           class="w-full bg-blue-600 dark:bg-orange-500 text-white py-2 px-4 rounded-md hover:bg-blue-700 dark:hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
         >
-          Go to Dashboard
+          {$_('verifyEmail.goToDashboard')}
         </button>
       </div>
     {:else if errorType === 'expired'}
@@ -172,12 +170,12 @@
         <div class="mb-6">
           <span class="w-16 h-16 icon-[si--close-circle-line] text-red-600 dark:text-red-400 mx-auto block"></span>
         </div>
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Verification Failed</h1>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{$_('verifyEmail.verificationFailed')}</h1>
         <p class="text-gray-600 dark:text-gray-400 mb-4">
-          The verification link is invalid or has expired.
+          {$_('verifyEmail.invalidOrExpired')}
         </p>
         <p class="text-sm text-gray-500 dark:text-gray-500">
-          Redirecting to dashboard...
+          {$_('verifyEmail.redirecting')}
         </p>
       </div>
     {:else}
@@ -186,9 +184,9 @@
         <div class="mb-6">
           <span class="w-16 h-16 icon-[si--check-circle-line] text-green-600 dark:text-green-400 mx-auto block"></span>
         </div>
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Processing...</h1>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">{$_('verifyEmail.processing')}</h1>
         <p class="text-gray-600 dark:text-gray-400">
-          Redirecting you to the dashboard...
+          {$_('verifyEmail.redirectingDashboard')}
         </p>
       </div>
     {/if}

@@ -1,12 +1,17 @@
 <script lang="ts">
-  import { dayjs, type TimeLog, type Timer, type TimeLogType, type Balance } from '../../types';
-  import type { TargetWithSpecs } from '../../types';
+  import { dayjs, type TimeLog, type Timer, type TimeLogType, type Balance, type Holiday } from '../../types';
+  import { type TargetWithSpecs } from '../../types';
   import { userTimezone } from '../../../../lib/utils/dayjs';
   import { TimelogForm } from '../forms';
   import { calculateDueMinutes } from '../../../../lib/utils/balance';
   import { deleteTimelog, saveTimelog } from '../../services/formHandlers';
+  import { dailyBalances, monthlyBalances } from '../../stores/balances';
+  import { holidaysStore } from '../../stores/holidays';
+  import { get } from 'svelte/store';
+  import { _ } from '../../lib/i18n';
+  import { formatMinutesCompact } from '../../../../lib/utils/timeFormat';
 
-  type SortColumn = 'timer' | 'target' | 'type' | 'start' | 'end' | 'total_duration' | 'effective_duration';
+  type SortColumn = 'timer' | 'target' | 'type' | 'start' | 'end' | 'total_duration' | 'effective_duration' | 'due_time' | 'diff';
   type SortDirection = 'asc' | 'desc';
 
   export interface ColumnVisibility {
@@ -17,6 +22,8 @@
     end: boolean;
     totalDuration: boolean;
     effectiveDuration: boolean;
+    dueTime: boolean;
+    diff: boolean;
     notes: boolean;
   }
 
@@ -24,9 +31,10 @@
     timelogs = [],
     timers = [],
     targets = [],
-    monthlyBalances = [],
     selectable = false,
     selectedIds = $bindable(new Set<string>()),
+    dateFrom = dayjs(),
+    dateTo = null,
     visibleColumns = {
       timer: true,
       target: true,
@@ -35,15 +43,18 @@
       end: true,
       totalDuration: true,
       effectiveDuration: true,
+      dueTime: true,
+      diff: true,
       notes: true,
     },
   }: {
     timelogs: TimeLog[];
     timers: Timer[];
     targets: TargetWithSpecs[];
-    monthlyBalances?: Balance[];
     selectable?: boolean;
     selectedIds?: Set<string>;
+    dateFrom: dayjs.Dayjs;
+    dateTo?: dayjs.Dayjs | null;
     visibleColumns?: ColumnVisibility;
   } = $props();
 
@@ -57,6 +68,8 @@
     (visibleColumns.end ? 1 : 0) +
     (visibleColumns.totalDuration ? 1 : 0) +
     (visibleColumns.effectiveDuration ? 1 : 0) +
+    (visibleColumns.dueTime ? 1 : 0) +
+    (visibleColumns.diff ? 1 : 0) +
     (visibleColumns.notes ? 1 : 0)
   );
 
@@ -72,11 +85,9 @@
   let touchStartX = 0;
   let isTouchMove = false;
 
-  const typeOptions: TimeLogType[] = ['normal', 'sick', 'holiday', 'business-trip', 'child-sick'];
-
   function getTimerName(timerId: string): string {
     const timer = timers.find(t => t.id === timerId);
-    return timer ? `${timer.emoji || ''} ${timer.name}`.trim() : 'Unknown';
+    return timer ? `${timer.emoji || ''} ${timer.name}`.trim() : $_('common.unknown');
   }
 
   function getTargetName(timerId: string): string {
@@ -109,29 +120,28 @@
     return dt.format('L LT');
   }
 
-  function formatDuration(minutes: number | undefined): string {
-    if (minutes === undefined) return 'Running';
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
-  }
-
   function formatBalance(minutes: number): string {
+    if (isNaN(minutes)) return '0h 0m';
     const isNegative = minutes < 0;
     const absMinutes = Math.abs(minutes);
     const hours = Math.floor(absMinutes / 60);
     const mins = absMinutes % 60;
     const sign = isNegative ? '-' : '+';
+
+    if (hours === 0) {
+      return `${sign}${mins}m`;
+    }
     return `${sign}${hours}h ${mins}m`;
   }
 
   function getTypeLabel(type: TimeLogType): string {
     const labels: Record<TimeLogType, string> = {
-      'normal': 'Normal',
-      'sick': 'Sick',
-      'holiday': 'Holiday',
-      'business-trip': 'Business Trip',
-      'child-sick': 'Child Sick',
+      'normal': $_('timelog.typeNormal'),
+      'homeoffice': $_('timelog.typeHomeoffice'),
+      'sick': $_('timelog.typeSick'),
+      'holiday': $_('timelog.typeHoliday'),
+      'business-trip': $_('timelog.typeBusinessTrip'),
+      'child-sick': $_('timelog.typeChildSick'),
     };
     return labels[type] || type;
   }
@@ -139,6 +149,7 @@
   function getTypeBadgeClass(type: TimeLogType): string {
     const classes: Record<TimeLogType, string> = {
       'normal': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+      'homeoffice': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400',
       'sick': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
       'holiday': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
       'business-trip': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
@@ -167,7 +178,7 @@
     return end.diff(start, 'minute');
   }
 
-  function getEffectiveDuration(timelog: TimeLog): number | undefined {
+  function getEffectiveDuration(timelog: TimeLog): number {
     if (timelog.whole_day) {
       // For whole_day entries, return due minutes from target
       const targetId = getTargetId(timelog.timer_id);
@@ -178,10 +189,40 @@
           return calculateDueMinutes(date, target as any, new Set());
         }
       }
-      return undefined;
+      return 0;
     }
     
     return timelog.duration_minutes;
+  }
+
+  function getDueTime(timelog: TimeLog): number {
+    const targetId = getTargetId(timelog.timer_id);
+    if (!targetId) return 0;
+    
+    const target = targets.find(t => t.id === targetId);
+    if (!target) return 0;
+    
+    const date = dayjs.utc(timelog.start_timestamp).tz(timelog.timezone || userTimezone).format('YYYY-MM-DD');
+    return calculateDueMinutes(date, target as any, new Set());
+  }
+
+  function getDiff(timelog: TimeLog): number | undefined {
+    const effective = getEffectiveDuration(timelog);
+    const due = getDueTime(timelog);
+    return effective - due;
+  }
+
+  function formatDiff(minutes: number | undefined): string {
+    if (minutes === undefined || isNaN(minutes)) return '-';
+    const isNegative = minutes < 0;
+    const absMinutes = Math.abs(minutes);
+    const hours = Math.floor(absMinutes / 60);
+    const mins = absMinutes % 60;
+    const sign = isNegative ? '-' : '+';
+    if (hours === 0) {
+      return `${sign}${mins}m`;
+    }
+    return `${sign}${hours}h ${mins}m`;
   }
 
   function toggleSelectAll() {
@@ -289,6 +330,16 @@
           const bEff = getEffectiveDuration(b) ?? -1;
           comparison = aEff - bEff;
           break;
+        case 'due_time':
+          const aDue = getDueTime(a) ?? -1;
+          const bDue = getDueTime(b) ?? -1;
+          comparison = aDue - bDue;
+          break;
+        case 'diff':
+          const aDiff = getDiff(a) ?? 0;
+          const bDiff = getDiff(b) ?? 0;
+          comparison = aDiff - bDiff;
+          break;
       }
 
       return sortDirection === 'asc' ? comparison : -comparison;
@@ -297,14 +348,70 @@
     return sorted;
   });
 
+  // Expand multi-day timelogs into separate entries for each day
+  interface ExpandedTimelog {
+    timelog: TimeLog;
+    displayDate: string; // YYYY-MM-DD - the date this entry represents
+    isMultiDay: boolean;
+  }
+
+  function expandTimelogs(logs: TimeLog[]): ExpandedTimelog[] {
+    const expanded: ExpandedTimelog[] = [];
+    
+    for (const timelog of logs) {
+      const startDate = dayjs.utc(timelog.start_timestamp).tz(timelog.timezone || userTimezone).format('YYYY-MM-DD');
+      const endDate = timelog.end_timestamp 
+        ? dayjs.utc(timelog.end_timestamp).tz(timelog.timezone || userTimezone).format('YYYY-MM-DD')
+        : startDate;
+      
+      if (startDate === endDate) {
+        // Single day timelog
+        expanded.push({ timelog, displayDate: startDate, isMultiDay: false });
+      } else {
+        // Multi-day timelog - add entry for each day
+        let currentDate = dayjs(startDate);
+        const end = dayjs(endDate);
+        
+        while (currentDate.isSameOrBefore(end, 'day')) {
+          expanded.push({
+            timelog,
+            displayDate: currentDate.format('YYYY-MM-DD'),
+            isMultiDay: true,
+          });
+          currentDate = currentDate.add(1, 'day');
+        }
+      }
+    }
+    
+    return expanded;
+  }
+
   // Group timelogs with accumulated balances
   // Group by different criteria based on sort column
   interface GroupData {
     groupKey: string;        // Unique key for the group
     groupLabel: string;      // Display label for the group header
-    timelogs: TimeLog[];
+    holidayName: string | null; // Holiday name if this date is a public holiday
+    timelogs: ExpandedTimelog[];
     balances: Map<string, number>; // targetId -> accumulated balance (only for date-based grouping)
     showBalances: boolean;   // Whether to show balances for this group
+    totalDuration: number;   // Total duration minutes for this group
+    totalDue: number;        // Total due minutes for this group
+    totalWorked: number;     // Total effective worked minutes for this group
+    totalDiff: number;       // Total difference (worked - due) for this group
+  }
+
+  // Get all relevant state codes from targets for holiday lookup
+  function getStateCodes(): string[] {
+    const stateCodes = new Set<string>();
+    for (const target of targets) {
+      for (const spec of target.specs || []) {
+        if (spec.state_code) {
+          stateCodes.add(spec.state_code);
+        }
+      }
+    }
+    return Array.from(stateCodes);
   }
 
   let groupedTimelogs = $derived.by(() => {
@@ -315,149 +422,202 @@
     let shouldGroupByDate = sortColumn === 'start' || sortColumn === 'end';
     let shouldGroupByValue = ['timer', 'target', 'type'].includes(sortColumn);
     
+    // Expand multi-day timelogs
+    const expandedTimelogs = expandTimelogs(sortedTimelogs);
+    
     // For duration columns, don't group
     if (!shouldGroupByDate && !shouldGroupByValue) {
       return [{
         groupKey: 'flat',
         groupLabel: '',
-        timelogs: sortedTimelogs,
+        holidayName: null,
+        timelogs: expandedTimelogs,
         balances: new Map<string, number>(),
         showBalances: false,
       }];
     }
 
+    // Get daily balances and state codes for holiday lookup
+    const _dailyBalances = get(dailyBalances);
+    const _monthlyBalances = get(monthlyBalances);
+    const stateCodes = getStateCodes();
+    const countries = stateCodes.map(s => s.split('-')[0]);
+
+    // For date-based grouping, determine the date range from both timelogs and daily balances
+    let minDate = dateFrom.format('YYYY-MM-DD');
+    let maxDate = dateTo ? dateTo.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD');
+    if (shouldGroupByDate) {
+      // Include all days from daily balances within this range (e.g., holidays without work entries)
+      for (const balance of _dailyBalances) {
+        const date = balance.date;
+        // Only include dates within the overall range
+        if (date >= minDate && date <= maxDate && !groupMap.has(date)) {
+          const dateDayjs = dayjs(date);
+          const holidays = holidaysStore.getHolidaysForDate(date, countries);
+          const holidayName = holidays.length > 0 ? holidays[0].name : null;
+          
+          if (!holidayName && balance.worked_minutes === 0 && balance.due_minutes === 0) {
+            // Skip non-holiday dates with no work
+            continue;
+          }
+          
+          const group: GroupData = {
+            groupKey: date,
+            groupLabel: dateDayjs.format('L'),
+            holidayName,
+            timelogs: [],
+            balances: new Map(),
+            showBalances: true,
+            totalDuration: 0,
+            totalDue: balance.due_minutes,
+            totalWorked: balance.worked_minutes,
+            totalDiff: balance.worked_minutes - balance.due_minutes,
+          };
+          groups.push(group);
+          groupMap.set(date, group);
+        }
+      }
+    }
+
     // Group timelogs
-    for (const timelog of sortedTimelogs) {
+    for (const expanded of expandedTimelogs) {
       let groupKey = '';
       let groupLabel = '';
+      let holidayName: string | null = null;
       
       if (shouldGroupByDate) {
-        // For 'end' column, group by end date; for 'start', group by start date
-        const timestamp = sortColumn === 'end' && timelog.end_timestamp 
-          ? timelog.end_timestamp 
-          : timelog.start_timestamp;
-        const date = dayjs.utc(timestamp).tz(timelog.timezone || userTimezone);
-        groupKey = date.format('YYYY-MM-DD');
-        groupLabel = date.format('dddd, MMMM D, YYYY');
+        groupKey = expanded.displayDate;
+        const date = dayjs(expanded.displayDate);
+        groupLabel = date.format('L');
+        
+        // Check for holiday
+        const holidays = holidaysStore.getHolidaysForDate(groupKey, countries);
+        holidayName = holidays.length > 0 ? holidays[0].name : null;
       } else if (sortColumn === 'timer') {
-        groupKey = timelog.timer_id;
-        groupLabel = getTimerName(timelog.timer_id);
+        groupKey = expanded.timelog.timer_id;
+        groupLabel = getTimerName(expanded.timelog.timer_id);
       } else if (sortColumn === 'target') {
-        const targetId = getTargetId(timelog.timer_id);
+        const targetId = getTargetId(expanded.timelog.timer_id);
         groupKey = targetId || 'no-target';
-        groupLabel = targetId ? getTargetName(timelog.timer_id) : 'No Target';
+        groupLabel = targetId ? getTargetName(expanded.timelog.timer_id) : 'No Target';
       } else if (sortColumn === 'type') {
-        groupKey = timelog.type;
-        groupLabel = getTypeLabel(timelog.type);
+        groupKey = expanded.timelog.type;
+        groupLabel = getTypeLabel(expanded.timelog.type);
       }
       
       if (!groupMap.has(groupKey)) {
         const group: GroupData = {
           groupKey,
           groupLabel,
+          holidayName,
           timelogs: [],
           balances: new Map(),
           showBalances: shouldGroupByDate,
+          totalDuration: 0,
+          totalDue: 0,
+          totalWorked: 0,
+          totalDiff: 0,
         };
         groups.push(group);
         groupMap.set(groupKey, group);
       }
       
-      groupMap.get(groupKey)!.timelogs.push(timelog);
+      groupMap.get(groupKey)!.timelogs.push(expanded);
+      // Update holiday name if not set
+      if (holidayName && !groupMap.get(groupKey)!.holidayName) {
+        groupMap.get(groupKey)!.holidayName = holidayName;
+      }
     }
 
     // Sort timelogs within each group by start date when grouping by value
     if (shouldGroupByValue) {
       for (const group of groups) {
         group.timelogs.sort((a, b) => {
-          const timeA = new Date(a.start_timestamp).getTime();
-          const timeB = new Date(b.start_timestamp).getTime();
-          // Sort by start time ascending (oldest first) to match default behavior
+          const timeA = new Date(a.timelog.start_timestamp).getTime();
+          const timeB = new Date(b.timelog.start_timestamp).getTime();
           return timeA - timeB;
         });
       }
     }
 
-    // Calculate balances only for date-based grouping
+    // Calculate balances using daily balances from the store
     if (shouldGroupByDate) {
+      // Get all months from the groups
+      const months = new Set(groups.map(g => g.groupKey.substring(0, 7)));
+      const firstMonth = [...months].sort((a, b) => a.localeCompare(b))[0];
+      
+      // Get start balances (cumulative from previous months)
+      const startBalances = _monthlyBalances.filter(b => b.date < firstMonth);
+      
       // Sort groups chronologically for balance calculation
-      const chronologicalGroups = [...groups].sort((a, b) => 
-        a.groupKey.localeCompare(b.groupKey)
-      );
+      const chronologicalGroups = [...groups].sort((a, b) => a.groupKey.localeCompare(b.groupKey));
 
-      // Track running balances per target across all days
+      // Track running balances per target
       const runningBalances = new Map<string, number>();
 
-      // Initialize balances from monthly balances
-      if (chronologicalGroups.length > 0 && monthlyBalances.length > 0) {
-        const firstMonth = chronologicalGroups[0].groupKey.substring(0, 7); // YYYY-MM
+      // Initialize running balances from the last month before the first displayed month
+      for (const target of targets) {
+        const targetBalances = startBalances
+          .filter(b => b.target_id === target.id)
+          .sort((a, b) => b.date.localeCompare(a.date));
         
-        // Group balances by target
-        const targetBalances = new Map<string, Balance[]>();
-        for (const balance of monthlyBalances) {
-          if (balance.target_id) {
-            if (!targetBalances.has(balance.target_id)) {
-              targetBalances.set(balance.target_id, []);
-            }
-            targetBalances.get(balance.target_id)!.push(balance);
-          }
-        }
-        
-        // For each target, find the last balance before or at the first month
-        for (const [targetId, balances] of targetBalances.entries()) {
-          const sortedBalances = balances.sort((a, b) => a.date.localeCompare(b.date));
-          let cumulativeBalance = 0;
-          
-          for (const balance of sortedBalances) {
-            if (balance.date <= firstMonth) {
-              cumulativeBalance = balance.cumulative_minutes + (balance.worked_minutes - balance.due_minutes);
-            } else {
-              break;
-            }
-          }
-          
-          runningBalances.set(targetId, cumulativeBalance);
+        if (targetBalances.length > 0) {
+          const lastBalance = targetBalances[0];
+          // End-of-month balance = cumulative + (worked - due)
+          runningBalances.set(target.id, lastBalance.cumulative_minutes + (lastBalance.worked_minutes - lastBalance.due_minutes));
         }
       }
 
-      // Calculate balances for each day
+      // Use daily balances to calculate running balances
       for (const group of chronologicalGroups) {
         const date = group.groupKey;
-        const targetDailyWork = new Map<string, number>();
-        const targetDailyDue = new Map<string, number>();
-
-        // Aggregate worked minutes per target for this day
-        for (const timelog of group.timelogs) {
-          const targetId = getTargetId(timelog.timer_id);
-          if (targetId && timelog.duration_minutes !== undefined) {
-            const current = targetDailyWork.get(targetId) || 0;
-            targetDailyWork.set(targetId, current + timelog.duration_minutes);
-          }
-        }
-
-        // Calculate due minutes per target for this day
-        for (const targetId of targetDailyWork.keys()) {
-          const target = targets.find(t => t.id === targetId);
-          if (target) {
-            const dueMinutes = calculateDueMinutes(date, target as any, new Set());
-            targetDailyDue.set(targetId, dueMinutes);
-          }
-        }
-
-        // Update running balances
-        for (const targetId of targetDailyWork.keys()) {
-          const worked = targetDailyWork.get(targetId) || 0;
-          const due = targetDailyDue.get(targetId) || 0;
+        
+        // Find daily balances for this date
+        const dayBalances = _dailyBalances.filter(b => b.date === date);
+        
+        for (const dayBalance of dayBalances) {
+          const targetId = dayBalance.target_id;
           const currentBalance = runningBalances.get(targetId) || 0;
-          const newBalance = currentBalance + (worked - due);
+          const newBalance = currentBalance + (dayBalance.worked_minutes - dayBalance.due_minutes);
           runningBalances.set(targetId, newBalance);
           group.balances.set(targetId, newBalance);
         }
       }
     }
 
-    // Return groups in the order they appear after sorting
-    // (not chronological for date-based if sorted desc)
+    // Calculate cumulative statistics for each group
+    for (const group of groups) {
+      if (group.timelogs.length > 0) {
+        // Calculate from timelogs - reset totals since they were initialized to 0
+        group.totalDuration = 0;
+        group.totalDue = 0;
+        group.totalWorked = 0;
+        group.totalDiff = 0;
+        
+        for (const expanded of group.timelogs) {
+          const duration = getTotalDuration(expanded.timelog);
+          const due = getDueTime(expanded.timelog);
+          const worked = getEffectiveDuration(expanded.timelog);
+          const diff = getDiff(expanded.timelog);
+          
+          group.totalDuration += duration || 0;
+          group.totalDue += due;
+          group.totalWorked += worked;
+          group.totalDiff += diff;
+        }
+      }
+      // Empty groups from daily balances already have totals initialized,
+      // so we skip recalculation
+    }
+
+    // Sort groups based on sort direction
+    if (shouldGroupByDate) {
+      groups.sort((a, b) => {
+        const cmp = a.groupKey.localeCompare(b.groupKey);
+        return sortDirection === 'asc' ? cmp : -cmp;
+      });
+    }
+
     return groups;
   });
 </script>
@@ -482,7 +642,7 @@
             onclick={() => handleSort('timer')}
           >
             <div class="flex items-center gap-1">
-              Timer
+              {$_('common.timer')}
               {#if sortColumn === 'timer'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -495,7 +655,7 @@
             onclick={() => handleSort('target')}
           >
             <div class="flex items-center gap-1">
-              Target
+              {$_('common.target')}
               {#if sortColumn === 'target'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -508,7 +668,7 @@
             onclick={() => handleSort('type')}
           >
             <div class="flex items-center gap-1">
-              Type
+              {$_('common.type')}
               {#if sortColumn === 'type'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -521,7 +681,7 @@
             onclick={() => handleSort('start')}
           >
             <div class="flex items-center gap-1">
-              Start
+              {$_('common.start')}
               {#if sortColumn === 'start'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -534,7 +694,7 @@
             onclick={() => handleSort('end')}
           >
             <div class="flex items-center gap-1">
-              End
+              {$_('common.end')}
               {#if sortColumn === 'end'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -543,11 +703,11 @@
         {/if}
         {#if visibleColumns.totalDuration}
           <th
-            class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+            class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 min-w-[93px]"
             onclick={() => handleSort('total_duration')}
           >
             <div class="flex items-center gap-1">
-              Total Duration
+              {$_('table.totalDuration')}
               {#if sortColumn === 'total_duration'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
@@ -556,19 +716,45 @@
         {/if}
         {#if visibleColumns.effectiveDuration}
           <th
-            class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+            class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 min-w-[93px]"
             onclick={() => handleSort('effective_duration')}
           >
             <div class="flex items-center gap-1">
-              Effective Duration
+              {$_('table.effectiveDuration')}
               {#if sortColumn === 'effective_duration'}
                 <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
               {/if}
             </div>
           </th>
         {/if}
+        {#if visibleColumns.dueTime}
+          <th
+            class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 min-w-[93px]"
+            onclick={() => handleSort('due_time')}
+          >
+            <div class="flex items-center gap-1">
+              {$_('table.dueTime')}
+              {#if sortColumn === 'due_time'}
+                <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
+              {/if}
+            </div>
+          </th>
+        {/if}
+        {#if visibleColumns.diff}
+          <th
+            class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 min-w-[93px]"
+            onclick={() => handleSort('diff')}
+          >
+            <div class="flex items-center gap-1">
+              {$_('table.diff')}
+              {#if sortColumn === 'diff'}
+                <span class="{sortDirection === 'asc' ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
+              {/if}
+            </div>
+          </th>
+        {/if}
         {#if visibleColumns.notes}
-          <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notes</th>
+          <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{$_('timelog.notes')}</th>
         {/if}
       </tr>
     </thead>
@@ -576,34 +762,103 @@
       {#each groupedTimelogs as group (group.groupKey)}
         <!-- Group separator row -->
         {#if group.groupLabel}
-          <tr class="bg-gray-100 dark:bg-gray-800">
-            <td colspan={visibleColumnCount} class="px-3 py-2">
-              <div class="flex items-center justify-between">
-                <span class="font-semibold text-gray-900 dark:text-gray-100">
-                  {group.groupLabel}
-                </span>
-                {#if group.showBalances}
-                  <div class="flex gap-4 text-sm">
-                    {#each Array.from(group.balances.entries()) as [targetId, balance]}
-                      {@const target = targets.find(t => t.id === targetId)}
-                      {#if target}
-                        <span class="text-gray-600 dark:text-gray-400">
-                          {target.name}: 
-                          <span class:text-green-600={balance >= 0} class:text-red-600={balance < 0}>
-                            {formatBalance(balance)}
-                          </span>
-                        </span>
-                      {/if}
-                    {/each}
+          <tr class="bg-gray-100 dark:bg-gray-800 font-medium align-bottom">
+            {#if selectable}
+              <td class="px-3 py-2"></td>
+            {/if}
+            {#if visibleColumns.timer}
+              <td class="px-3 py-2 align-bottom" colspan={visibleColumns.target && visibleColumns.type && visibleColumns.start && visibleColumns.end ? 5 : 1}>
+                <div class="space-y-1 mt-2">
+                  <div class="font-semibold text-gray-900 dark:text-gray-100">
+                    {group.groupLabel}
+                    {#if group.holidayName}
+                      <span class="ml-2 text-sm font-normal text-green-600 dark:text-green-400">
+                        ({group.holidayName})
+                      </span>
+                    {/if}
                   </div>
-                {/if}
-              </div>
-            </td>
+                  {#if group.showBalances && group.balances.size > 0}
+                    <div class="flex gap-3 text-xs font-normal">
+                      {#each Array.from(group.balances.entries()) as [targetId, balance]}
+                        {@const target = targets.find(t => t.id === targetId)}
+                        {#if target}
+                          <span class="text-gray-500 dark:text-gray-500">
+                            {target.name}: 
+                            <span class:text-green-600={balance >= 0} class:text-red-600={balance < 0}>
+                              {formatBalance(balance)}
+                            </span>
+                          </span>
+                        {/if}
+                      {/each}
+                    </div>
+                  {/if}
+                </div>
+              </td>
+            {:else}
+              <td class="px-3 py-2 align-bottom" colspan={(() => {
+                let count = 0;
+                if (visibleColumns.target) count++;
+                if (visibleColumns.type) count++;
+                if (visibleColumns.start) count++;
+                if (visibleColumns.end) count++;
+                return count || 1;
+              })()}>
+                <div class="space-y-1 mt-2">
+                  <div class="font-semibold text-gray-900 dark:text-gray-100">
+                    {group.groupLabel}
+                    {#if group.holidayName}
+                      <span class="ml-2 text-sm font-normal text-green-600 dark:text-green-400">
+                        ({group.holidayName})
+                      </span>
+                    {/if}
+                  </div>
+                  {#if group.showBalances && group.balances.size > 0}
+                    <div class="flex gap-3 text-xs font-normal">
+                      {#each Array.from(group.balances.entries()) as [targetId, balance]}
+                        {@const target = targets.find(t => t.id === targetId)}
+                        {#if target}
+                          <span class="text-gray-500 dark:text-gray-500">
+                            {target.name}: 
+                            <span class:text-green-600={balance >= 0} class:text-red-600={balance < 0}>
+                              {formatBalance(balance)}
+                            </span>
+                          </span>
+                        {/if}
+                      {/each}
+                    </div>
+                  {/if}
+                </div>
+              </td>
+            {/if}
+            {#if visibleColumns.totalDuration}
+              <td class="px-3 py-2 align-bottom text-sm text-gray-600 dark:text-gray-400">
+                {formatBalance(group.totalDuration)}
+              </td>
+            {/if}
+            {#if visibleColumns.effectiveDuration}
+              <td class="px-3 py-2 align-bottom text-sm text-gray-600 dark:text-gray-400">
+                {formatBalance(group.totalWorked)}
+              </td>
+            {/if}
+            {#if visibleColumns.dueTime}
+              <td class="px-3 py-2 align-bottom text-sm text-gray-600 dark:text-gray-400">
+                {formatBalance(group.totalDue)}
+              </td>
+            {/if}
+            {#if visibleColumns.diff}
+              <td class="px-3 py-2 align-bottom text-sm" class:text-green-600={group.totalDiff >= 0} class:text-red-600={group.totalDiff < 0}>
+                {formatDiff(group.totalDiff)}
+              </td>
+            {/if}
+            {#if visibleColumns.notes}
+              <td class="px-3 py-2"></td>
+            {/if}
           </tr>
         {/if}
 
         <!-- Timelogs for this group -->
-        {#each group.timelogs as timelog (timelog.id)}
+        {#each group.timelogs as expanded (expanded.timelog.id + '_' + expanded.displayDate)}
+          {@const timelog = expanded.timelog}
           <tr 
             class="hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer"
             onclick={() => handleRowClick(timelog)}
@@ -669,14 +924,31 @@
             <!-- Total Duration -->
             {#if visibleColumns.totalDuration}
               <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                {formatDuration(getTotalDuration(timelog))}
+                {formatMinutesCompact(getTotalDuration(timelog), $_('timelog.running'))}
               </td>
             {/if}
             
             <!-- Effective Duration -->
             {#if visibleColumns.effectiveDuration}
               <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                {formatDuration(getEffectiveDuration(timelog))}
+                {formatMinutesCompact(getEffectiveDuration(timelog), $_('timelog.running'))}
+              </td>
+            {/if}
+            
+            <!-- Due Time -->
+            {#if visibleColumns.dueTime}
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                {formatMinutesCompact(getDueTime(timelog), $_('timelog.running'))}
+              </td>
+            {/if}
+            
+            <!-- Diff (Effective - Due) -->
+            {#if visibleColumns.diff}
+              {@const diff = getDiff(timelog)}
+              <td class="px-3 py-2 whitespace-nowrap text-sm">
+                <span class:text-green-600={diff !== undefined && diff >= 0} class:text-red-600={diff !== undefined && diff < 0} class:text-gray-900={diff === undefined} class:dark:text-gray-100={diff === undefined}>
+                  {formatDiff(diff)}
+                </span>
               </td>
             {/if}
             
@@ -691,7 +963,7 @@
       {:else}
         <tr>
           <td colspan={visibleColumnCount} class="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
-            No timelogs found
+            {$_('table.noTimelogsFound')}
           </td>
         </tr>
       {/each}

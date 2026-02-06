@@ -632,4 +632,37 @@ describe('Target Sync Routes with Nested Specs', () => {
     // The target's updated_at should reflect the spec change
     expect(newUpdatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
   });
+
+  it('should handle empty string state_code by converting to null/undefined', async () => {
+    const targetId = '990e8400-e29b-41d4-a716-446655440099';
+    const specId = '990e8400-e29b-41d4-a716-446655440100';
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/targets/sync',
+      headers: {
+        cookie: authCookie,
+      },
+      payload: {
+        targets: [{
+          id: targetId,
+          name: 'Target with Empty State Code',
+          target_specs: [{
+            id: specId,
+            duration_minutes: [480, 480, 480, 480, 480, 0, 0],
+            exclude_holidays: true,
+            state_code: '', // Empty string should be converted to null/undefined
+            starting_from: dayjs('2025-01-01').toISOString(),
+          }],
+        }],
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body.saved).toHaveLength(1);
+    expect(body.saved[0].target_specs).toHaveLength(1);
+    // state_code should be null or undefined, not empty string
+    expect(body.saved[0].target_specs[0].state_code).toBeUndefined();
+  });
 });
