@@ -289,6 +289,8 @@ export function getTypeColor(type: string): string | null {
       return '#F59E0B'; // Orange/Amber
     case 'child-sick':
       return '#EC4899'; // Pink
+    case 'homeoffice':
+      return '#06B6D4'; // Cyan
     case 'normal':
     default:
       return null; // null means use timer color

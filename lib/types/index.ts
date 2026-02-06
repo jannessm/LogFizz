@@ -19,6 +19,21 @@ export interface User {
   stripe_subscription_id?: string;
 }
 
+// User Settings types
+export interface UserSettings {
+  id: string;
+  user_id: string;
+  language: string; // 'en' | 'de'
+  locale: string; // Locale for date/time formatting e.g., 'en-US', 'de-DE'
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserSettingsEntity extends Omit<UserSettings, 'created_at' | 'updated_at'> {
+  created_at: Date;
+  updated_at: Date;
+}
+
 export interface State {
   code: string; // e.g., 'DE-BW' for Baden-Württemberg (primary key)
   country: string;
@@ -79,6 +94,7 @@ export interface Balance {
   holidays: number;
   business_trip: number;
   child_sick: number;
+  homeoffice: number;
   worked_days: number;
   
   created_at: string;
@@ -112,7 +128,7 @@ export function parseBalanceId(id: string): { targetId: string; date: string } |
 }
 
 // TimeLog type enum
-export type TimeLogType = 'normal' | 'sick' | 'holiday' | 'business-trip' | 'child-sick';
+export type TimeLogType = 'normal' | 'sick' | 'holiday' | 'business-trip' | 'child-sick' | 'homeoffice';
 
 // TimeLog types - Time range based system
 // Each TimeLog represents a time tracking session with start/end timestamps

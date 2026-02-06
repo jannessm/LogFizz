@@ -9,7 +9,8 @@
     type ButtonLongpressCallback,
     type ButtonTimerStoppedCallback
   } from './TimerButton.svelte';
-    import { getSetting } from '../../lib/db';
+  import { getSetting } from '../../lib/db';
+  import { _ } from '../../lib/i18n';
 
   let { 
     buttons,
@@ -66,8 +67,8 @@
   {#if buttons.length === 0}
     <div class="absolute inset-0 flex items-center justify-center text-center py-12 text-gray-500">
       <div>
-        <p class="text-lg mb-2">No tracking buttons yet</p>
-        <p class="text-sm">Click "Add Timer" to create your first timer</p>
+        <p class="text-lg mb-2">{$_('dashboard.noTrackingButtons')}</p>
+        <p class="text-sm">{$_('dashboard.clickAddTimer')}</p>
       </div>
     </div>
   {:else}

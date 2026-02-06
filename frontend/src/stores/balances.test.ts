@@ -63,6 +63,36 @@ import * as db from '../lib/db';
 import { balancesStore, balances, dailyBalances, monthlyBalances, yearlyBalances } from './balances';
 import { get } from 'svelte/store';
 
+/**
+ * Get a date N days in the past, but clamped to the current month's first day
+ * to avoid test failures when dates cross month boundaries.
+ */
+function getDaysAgoInCurrentMonth(daysAgo: number): Date {
+  const today = new Date();
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  
+  // If we crossed into the previous month, clamp to the 1st of current month
+  if (date.getMonth() !== today.getMonth() || date.getFullYear() !== today.getFullYear()) {
+    // Must set date to 1 FIRST to avoid month overflow when setting month
+    date.setDate(1);
+    date.setFullYear(today.getFullYear());
+    date.setMonth(today.getMonth());
+  }
+  
+  return date;
+}
+
+/**
+ * Calculate the number of days between two dates (inclusive).
+ */
+function daysBetweenInclusive(startDate: string, endDate: string): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffTime = end.getTime() - start.getTime();
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+}
+
 // Helper to initialize store with balances
 async function initStoreWithBalances(balancesList: Balance[]) {
   vi.mocked(db.getAllBalances).mockResolvedValue(balancesList);
@@ -437,13 +467,13 @@ describe('ensureBalancesUpToDate', () => {
     // Return saved daily balances when rebuilding monthly/yearly
     vi.mocked(db.getBalancesByTargetId).mockImplementation(async () => savedBalances);
     
-    // Target starting from 3 days ago
-    const threeDaysAgo = new Date();
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    // Target starting from 3 days ago (clamped to current month)
+    const threeDaysAgo = getDaysAgoInCurrentMonth(3);
     const startDate = threeDaysAgo.toISOString().split('T')[0];
     const today = new Date().toISOString().split('T')[0];
     const currentMonth = today.substring(0, 7); // YYYY-MM
     const currentYear = today.substring(0, 4); // YYYY
+    const expectedDailyCount = daysBetweenInclusive(startDate, today);
     
     mockTargets = [createMockTarget('target-1', 'user-1', startDate)];
     mockTimers = [{ id: 'timer-1', target_id: 'target-1' }];
@@ -456,11 +486,11 @@ describe('ensureBalancesUpToDate', () => {
     // Extract dates from the saved balances
     const savedDates = saveBalanceCalls.map(call => (call[0] as Balance).date);
     
-    // Should have 4 daily balances (3 days ago, 2 days ago, yesterday, today)
+    // Should have daily balances from startDate to today
     const dailyDates = savedDates.filter(d => d.length === 10);
-    expect(dailyDates).toHaveLength(4);
+    expect(dailyDates).toHaveLength(expectedDailyCount);
     
-    // Should have 1 monthly balance
+    // Should have 1 monthly balance (all dates in current month)
     const monthlyDates = savedDates.filter(d => d.length === 7);
     expect(monthlyDates).toHaveLength(1);
     expect(monthlyDates[0]).toBe(currentMonth);
@@ -470,8 +500,8 @@ describe('ensureBalancesUpToDate', () => {
     expect(yearlyDates).toHaveLength(1);
     expect(yearlyDates[0]).toBe(currentYear);
     
-    // Total: 4 daily + 1 monthly + 1 yearly = 6 balances
-    expect(db.saveBalance).toHaveBeenCalledTimes(6);
+    // Total: expectedDailyCount daily + 1 monthly + 1 yearly balances
+    expect(db.saveBalance).toHaveBeenCalledTimes(expectedDailyCount + 2);
     
     // Metadata should be updated with today's date
     expect(db.setBalanceCalcMetaForTarget).toHaveBeenCalledTimes(1);
@@ -614,15 +644,15 @@ describe('ensureBalancesUpToDate', () => {
   });
 
   it('should respect target spec ending_at date', async () => {
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    // Use dates clamped to current month to avoid month-boundary issues
+    const twoDaysAgo = getDaysAgoInCurrentMonth(2);
     const startDate = twoDaysAgo.toISOString().split('T')[0];
     
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterday = getDaysAgoInCurrentMonth(1);
     const endDate = yesterday.toISOString().split('T')[0];
     const endMonth = endDate.substring(0, 7);
     const endYear = endDate.substring(0, 4);
+    const expectedDailyCount = daysBetweenInclusive(startDate, endDate);
     
     await initStoreWithBalances([]);
     
@@ -644,13 +674,13 @@ describe('ensureBalancesUpToDate', () => {
     const saveBalanceCalls = vi.mocked(db.saveBalance).mock.calls;
     const savedDates = saveBalanceCalls.map(call => (call[0] as Balance).date);
     
-    // Should have 2 daily balances (2 days ago, yesterday) - NOT today since target ended
+    // Should have daily balances from startDate to endDate (NOT today since target ended)
     const dailyDates = savedDates.filter(d => d.length === 10);
-    expect(dailyDates).toHaveLength(2);
+    expect(dailyDates).toHaveLength(expectedDailyCount);
     expect(dailyDates).toContain(startDate);
     expect(dailyDates).toContain(endDate);
     
-    // Should have monthly balance
+    // Should have monthly balance (all dates in same month)
     const monthlyDates = savedDates.filter(d => d.length === 7);
     expect(monthlyDates).toHaveLength(1);
     expect(monthlyDates[0]).toBe(endMonth);
@@ -660,8 +690,8 @@ describe('ensureBalancesUpToDate', () => {
     expect(yearlyDates).toHaveLength(1);
     expect(yearlyDates[0]).toBe(endYear);
     
-    // Total: 2 daily + 1 monthly + 1 yearly = 4 balances
-    expect(db.saveBalance).toHaveBeenCalledTimes(4);
+    // Total: expectedDailyCount daily + 1 monthly + 1 yearly balances
+    expect(db.saveBalance).toHaveBeenCalledTimes(expectedDailyCount + 2);
 
     // The setBalanceCalcMetaForTarget should be called with the end date, not today
     expect(db.setBalanceCalcMetaForTarget).toHaveBeenCalledTimes(1);
@@ -673,15 +703,15 @@ describe('ensureBalancesUpToDate', () => {
   });
 
   it('should handle multi-day timelogs correctly', async () => {
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    // Use dates clamped to current month to avoid month-boundary issues
+    const twoDaysAgo = getDaysAgoInCurrentMonth(2);
     const startDate = twoDaysAgo.toISOString().split('T')[0];
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterday = getDaysAgoInCurrentMonth(1);
     const yesterdayStr = yesterday.toISOString().split('T')[0];
     const today = new Date().toISOString().split('T')[0];
     const currentMonth = today.substring(0, 7);
     const currentYear = today.substring(0, 4);
+    const expectedDailyCount = daysBetweenInclusive(startDate, yesterdayStr);
     
     await initStoreWithBalances([]);
     
@@ -703,7 +733,7 @@ describe('ensureBalancesUpToDate', () => {
     mockTargets = [createMockTarget('target-1', 'user-1', startDate)];
     mockTimers = [{ id: 'timer-1', target_id: 'target-1' }];
 
-    // Multi-day timelog spanning from 2 days ago to yesterday (2 days)
+    // Multi-day timelog spanning from startDate to yesterday
     const multiDayTimelog = createMockTimeLog(
       'timelog-1',
       'timer-1',
@@ -716,13 +746,13 @@ describe('ensureBalancesUpToDate', () => {
     const saveBalanceCalls = vi.mocked(db.saveBalance).mock.calls;
     const savedDates = saveBalanceCalls.map(call => (call[0] as Balance).date);
     
-    // Should recalculate 2 affected daily balances (startDate and yesterday)
+    // Should recalculate affected daily balances (startDate and yesterday)
     const dailyDates = savedDates.filter(d => d.length === 10);
-    expect(dailyDates).toHaveLength(2);
+    expect(dailyDates).toHaveLength(expectedDailyCount);
     expect(dailyDates).toContain(startDate);
     expect(dailyDates).toContain(yesterdayStr);
     
-    // Should rebuild monthly balance
+    // Should rebuild monthly balance (all dates in same month)
     const monthlyDates = savedDates.filter(d => d.length === 7);
     expect(monthlyDates).toHaveLength(1);
     expect(monthlyDates[0]).toBe(currentMonth);
@@ -732,8 +762,8 @@ describe('ensureBalancesUpToDate', () => {
     expect(yearlyDates).toHaveLength(1);
     expect(yearlyDates[0]).toBe(currentYear);
     
-    // Total: 2 daily + 1 monthly + 1 yearly = 4 balances
-    expect(db.saveBalance).toHaveBeenCalledTimes(4);
+    // Total: expectedDailyCount daily + 1 monthly + 1 yearly balances
+    expect(db.saveBalance).toHaveBeenCalledTimes(expectedDailyCount + 2);
     
     expect(db.setBalanceCalcMetaForTarget).toHaveBeenCalledTimes(1);
   });
@@ -824,9 +854,10 @@ describe('recalculateBalances', () => {
     const today = new Date().toISOString().split('T')[0];
     const currentMonth = today.substring(0, 7);
     const currentYear = today.substring(0, 4);
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    // Use dates clamped to current month to avoid month-boundary issues
+    const twoDaysAgo = getDaysAgoInCurrentMonth(2);
     const startDate = twoDaysAgo.toISOString().split('T')[0];
+    const expectedDailyCount = daysBetweenInclusive(startDate, today);
     
     await initStoreWithBalances([
       createMockBalance('target-1_' + today, today),
@@ -859,11 +890,11 @@ describe('recalculateBalances', () => {
     const saveBalanceCalls = vi.mocked(db.saveBalance).mock.calls;
     const savedDates = saveBalanceCalls.map(call => (call[0] as Balance).date);
     
-    // Should have 3 daily balances (twoDaysAgo, yesterday, today)
+    // Should have daily balances from startDate to today
     const dailyDates = savedDates.filter(d => d.length === 10);
-    expect(dailyDates).toHaveLength(3);
+    expect(dailyDates).toHaveLength(expectedDailyCount);
     
-    // Should have monthly balance
+    // Should have monthly balance (all dates in same month)
     const monthlyDates = savedDates.filter(d => d.length === 7);
     expect(monthlyDates).toHaveLength(1);
     expect(monthlyDates[0]).toBe(currentMonth);
@@ -873,16 +904,18 @@ describe('recalculateBalances', () => {
     expect(yearlyDates).toHaveLength(1);
     expect(yearlyDates[0]).toBe(currentYear);
     
-    // Total: 3 daily + 1 monthly + 1 yearly = 5 balances
-    expect(db.saveBalance).toHaveBeenCalledTimes(5);
+    // Total: expectedDailyCount daily + 1 monthly + 1 yearly balances
+    expect(db.saveBalance).toHaveBeenCalledTimes(expectedDailyCount + 2);
     
     expect(db.setBalanceCalcMetaForTarget).toHaveBeenCalledTimes(1);
   });
 
   it('should recalculate all targets when no targetId is provided', async () => {
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    // Use dates clamped to current month to avoid month-boundary issues
+    const twoDaysAgo = getDaysAgoInCurrentMonth(2);
     const startDate = twoDaysAgo.toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+    const expectedDailyCount = daysBetweenInclusive(startDate, today);
     
     await initStoreWithBalances([]);
     
@@ -919,8 +952,8 @@ describe('recalculateBalances', () => {
     // Should have called setBalanceCalcMetaForTarget for both targets
     expect(db.setBalanceCalcMetaForTarget).toHaveBeenCalledTimes(2);
     
-    // Each target should create: 3 daily + 1 monthly + 1 yearly = 5 balances
-    // Total for 2 targets = 10 balances
-    expect(db.saveBalance).toHaveBeenCalledTimes(10);
+    // Each target should create: expectedDailyCount daily + 1 monthly + 1 yearly balances
+    // Total for 2 targets = 2 * (expectedDailyCount + 2)
+    expect(db.saveBalance).toHaveBeenCalledTimes(2 * (expectedDailyCount + 2));
   });
 });

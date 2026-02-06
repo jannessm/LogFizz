@@ -13,14 +13,16 @@ describe('BottomNav Component', () => {
 
   it('renders all navigation tabs', () => {
     render(BottomNav, { props: { currentTab: 'timer' } });
-    expect(screen.getByText('Timer')).toBeInTheDocument();
+    // Text is now from i18n translation
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('History')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
   it('highlights timer tab when active', () => {
     const { container } = render(BottomNav, { props: { currentTab: 'timer' } });
-    const timerButton = screen.getByText('Timer').closest('button')!;
+    // Text is now "Dashboard" from i18n
+    const timerButton = screen.getByText('Dashboard').closest('button')!;
     expect(timerButton).toHaveClass('text-primary');
   });
 
@@ -40,7 +42,8 @@ describe('BottomNav Component', () => {
     const { navigate } = await import('../lib/navigation');
     render(BottomNav, { props: { currentTab: 'history' } });
     
-    const timerButton = screen.getByText('Timer').closest('button')!;
+    // Text is now "Dashboard" from i18n
+    const timerButton = screen.getByText('Dashboard').closest('button')!;
     await fireEvent.click(timerButton);
     
     expect(navigate).toHaveBeenCalledWith('/');

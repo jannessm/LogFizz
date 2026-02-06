@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { _ } from '../lib/i18n';
 
   interface Props {
     sitekey: string;
@@ -31,7 +32,7 @@
       script.defer = true;
       
       script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Failed to load hCaptcha script'));
+      script.onerror = () => reject(new Error($_('hcaptcha.loadError')));
       
       document.head.appendChild(script);
     });
@@ -79,7 +80,7 @@
       setTimeout(() => clearInterval(checkHCaptcha), 5000);
     } catch (error) {
       console.error('Error loading hCaptcha:', error);
-      if (onError) onError('Failed to load hCaptcha');
+      if (onError) onError($_('hcaptcha.loadError'));
     }
   });
 

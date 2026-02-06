@@ -12,6 +12,7 @@
     autoDetectColumns,
     detectProjectColumn,
   } from '../../../../lib/utils/csvImport.js';
+  import { _ } from '../../lib/i18n';
 
   // Step management
   let step = $state<'upload' | 'mapping' | 'edit'>('upload');
@@ -56,9 +57,21 @@
     warningMessage = '';
   }
 
+  const errMessages = {
+    noFile: $_('import.noFileSelected'),
+    emptyFile: $_('import.emptyCSVFile'),
+    invalidFormat: $_('import.invalidCSVFormat'),
+    failedParsing: $_('import.failedToParseCSV'),
+    unexpectedError: $_('import.unexpectedErrorParsing'),
+    missingColumns: $_('import.missingRequiredColumns'),
+    noLogs: $_('import.noValidTimelogsToImport'),
+    warnSemicolon: $_('import.semicolonDetected'),
+    warnNoAutoDetect: $_('import.couldNotAutoDetectColumns'),
+  };
+
   async function parseFile() {
     if (!file) {
-      errorMessage = '❌ No file selected. Please select a file to import.';
+      errorMessage = errMessages.noFile;
       return;
     }
 
@@ -69,7 +82,7 @@
       const text = await file.text();
       
       if (!text.trim()) {
-        errorMessage = '❌ The CSV file is empty. Please provide a file with data.';
+        errorMessage = errMessages.emptyFile;
         return;
       }
 
@@ -79,7 +92,7 @@
       parsedData = parsed.data;
 
       if (parsed.delimiter === ';') {
-        warningMessage = `ℹ️ Detected semicolon-separated CSV (common in European formats)`;
+        warningMessage = errMessages.warnSemicolon;
       }
 
       // Auto-detect columns
@@ -96,19 +109,19 @@
       }
 
       if (!detected.startTimeColumn || !detected.endTimeColumn) {
-        warningMessage = '⚠️ Could not auto-detect time columns. Please select them manually.';
+        warningMessage = errMessages.warnNoAutoDetect;
       }
 
       step = 'mapping';
     } catch (error) {
       if (error instanceof Error) {
         if (error.message.includes('at least a header row')) {
-          errorMessage = '❌ Invalid CSV format.\n\nThe file must contain:\n• A header row with column names\n• At least one data row';
+          errorMessage = errMessages.invalidFormat;
         } else {
-          errorMessage = `❌ Failed to parse CSV file.\n\nError: ${error.message}`;
+          errorMessage = errMessages.failedParsing + `\n\n${$_('common.error')}: ${error.message}`;
         }
       } else {
-        errorMessage = '❌ An unexpected error occurred while parsing the CSV file.';
+        errorMessage = errMessages.unexpectedError;
       }
       console.error('CSV parse error:', error);
     }
@@ -116,7 +129,7 @@
 
   function handleMappingComplete() {
     if (!startTimeColumn || !endTimeColumn) {
-      errorMessage = '❌ Missing required columns.\n\nPlease select:\n• Start Time Column\n• End Time Column';
+      errorMessage = errMessages.missingColumns;
       return;
     }
     
@@ -155,7 +168,7 @@
   }>) {
     try {
       if (timelogs.length === 0) {
-        snackbar.error('No valid timelogs to import');
+        snackbar.error(errMessages.noLogs);
         return;
       }
       
@@ -180,12 +193,12 @@
       
       const results = await Promise.all(createPromises);
       console.log('Import completed, created:', results.length, 'timelogs');
-      
-      snackbar.success(`Successfully imported ${timelogs.length} timelogs.`);
+
+      snackbar.success($_('import.successfullyImported' + timelogs.length));
       navigate(returnPath);
     } catch (error) {
       console.error('Import error:', error);
-      snackbar.error(`Failed to import timelogs: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      snackbar.error($_('import.failedToImportTimelogs') + (error instanceof Error ? error.message : $_('common.unknownError')));
     }
   }
 </script>
@@ -198,11 +211,11 @@
         <button
           onclick={handleCancel}
           class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-          aria-label="Go back"
+          aria-label={$_('import.goBack')}
         >
           <span class="icon-[si--arrow-left-line]" style="width: 24px; height: 24px;"></span>
         </button>
-        <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Import Timelogs</h1>
+        <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{$_('import.importTimelogs')}</h1>
       </div>
     </div>
   </header>
@@ -218,7 +231,7 @@
             class:dark:bg-orange-500={step === 'upload'}
             class:bg-green-500={step !== 'upload'}
           >1</span>
-          <span class="text-sm dark:text-gray-200" class:font-medium={step === 'upload'}>Upload</span>
+          <span class="text-sm dark:text-gray-200" class:font-medium={step === 'upload'}>{$_('import.upload')}</span>
         </div>
         <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
         <div class="flex items-center gap-2">
@@ -233,7 +246,7 @@
             class:text-gray-600={step === 'upload'}
             class:dark:text-gray-300={step === 'upload'}
           >2</span>
-          <span class="text-sm dark:text-gray-200" class:font-medium={step === 'mapping'}>Map Columns</span>
+          <span class="text-sm dark:text-gray-200" class:font-medium={step === 'mapping'}>{$_('import.mapColumns')}</span>
         </div>
         <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
         <div class="flex items-center gap-2">
@@ -247,7 +260,7 @@
             class:text-gray-600={step !== 'edit'}
             class:dark:text-gray-300={step !== 'edit'}
           >3</span>
-          <span class="text-sm dark:text-gray-200" class:font-medium={step === 'edit'}>Edit & Import</span>
+          <span class="text-sm dark:text-gray-200" class:font-medium={step === 'edit'}>{$_('import.editAndImport')}</span>
         </div>
       </div>
     </div>

@@ -2,6 +2,8 @@
   import type { TargetSpec, State } from "../../types";
   import { statesStore } from '../../stores/states';
   import { onlyUnique } from "../../../../lib/utils/helper";
+  import { _ } from '../../lib/i18n';
+  import { dayjs } from '../../types';
 
   type PartialTargetSpec = {
     id: string;
@@ -36,7 +38,12 @@
   let durationHours: number[] = $state([0, 0, 0, 0, 0, 0, 0]);
   let durationMins: number[] = $state([0, 0, 0, 0, 0, 0, 0]);
 
-  const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  // Get locale-aware weekday names (Sun-Sat, starting from Sunday index 0)
+  const weekdayNames = $derived(
+    Array.from({ length: 7 }, (_, i) => 
+      dayjs().day(i).format('ddd')
+    )
+  );
   
   let availableStates: State[] = $derived($statesStore.states || []);
   let availableCountries: string[] = $derived(
@@ -160,7 +167,7 @@
           {#if tempSpec.exclude_holidays}
             <div class="flex items-center gap-1 text-grey-400">
               <span class="icon-[si--sun-set-duotone] w-3 h-3"></span>
-              Excludes holidays {#if tempSpec.state_code && specState && specCountry} ({specState}, {specCountry}){/if}
+              {$_('common.excludeHolidays')} {#if tempSpec.state_code && specState && specCountry} ({specState}, {specCountry}){/if}
             </div>
           {/if}
         </div>
@@ -172,7 +179,7 @@
           type="button"
           onclick={toggleEditMode}
           class="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-          title="Edit"
+          title={$_('target.editSchedule')}
         >
           <span class="icon-[si--edit-detailed-duotone] w-4 h-4"></span>
         </button>
@@ -181,7 +188,7 @@
             type="button"
             onclick={() => deleteSpec()}
             class="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-            title="Delete schedule"
+            title={$_('target.deleteSchedule')}
           >
             <span class="icon-[si--bin-duotone] w-4 h-4"></span>
           </button>
@@ -190,7 +197,7 @@
             type="button"
             disabled
             class="p-1.5 text-gray-400 cursor-not-allowed rounded opacity-50"
-            title="Cannot delete the only schedule"
+            title={$_('target.cannotDeleteOnlySchedule')}
           >
             <span class="icon-[si--bin-duotone] w-4 h-4"></span>
           </button>
@@ -241,33 +248,33 @@
             bind:checked={tempSpec.exclude_holidays}
             class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
-          <span>Exclude public holidays</span>
+          <span>{$_('target.excludePublicHolidays')}</span>
         </label>
       </div>
 
       {#if tempSpec.exclude_holidays}
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1" for="country">Country</label>
+            <label class="block text-xs font-medium text-gray-700 mb-1" for="country">{$_('target.country')}</label>
             <select
               bind:value={selectedCountry}
               onchange={handleCountryChange}
               class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
-              <option value="">Select country</option>
+              <option value="">{$_('target.selectCountry')}</option>
               {#each availableCountries as country}
                 <option value={country}>{country}</option>
               {/each}
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-700 mb-1" for="state">State</label>
+            <label class="block text-xs font-medium text-gray-700 mb-1" for="state">{$_('target.state')}</label>
             <select
               bind:value={tempSpec.state_code}
               disabled={!selectedCountry}
               class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
             >
-              <option value="">Select state</option>
+              <option value="">{$_('target.selectState')}</option>
               {#each filteredStates as state}
                 <option value={state.code}>{state.state}</option>
               {/each}
@@ -284,7 +291,7 @@
             onclick={() => {editMode = false; resetTempSpec();}}
             class="flex-1 px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
           >
-            Cancel
+            {$_('common.cancel')}
           </button>
         {/if}
         <button
@@ -292,7 +299,7 @@
           onclick={handleSave}
           class="flex-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
         >
-          {targetSpec !== null ? 'Update' : 'Add'}
+          {$_('common.save')}
         </button>
       </div>
     </div>

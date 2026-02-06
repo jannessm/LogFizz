@@ -1,5 +1,6 @@
 <script lang="ts">
   import { type Snippet } from 'svelte';
+  import { _ } from '../lib/i18n';
 
   let {
     title = '',
@@ -64,7 +65,7 @@
             onclick={handleClose}
             class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
             style="width: 28px; height: 28px;"
-            aria-label="Close"
+            aria-label={$_('common.close')}
           ></button>
         {/if}
       </div>

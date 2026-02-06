@@ -4,7 +4,6 @@
   import { timeLogsStore } from '../stores/timelogs';
   import { authStore } from '../stores/auth';
   import { snackbar } from '../stores/snackbar';
-  import { authApi } from '../services/api';
   import EditOverview from '../components/Dashboard/EditOverview.svelte';
   import TimerGraph from '../components/Dashboard/TimerGraph.svelte';
 
@@ -17,6 +16,7 @@
   import type { Timer, TargetWithSpecs, TimeLog } from '../types';
   import { getSetting, saveSetting } from '../lib/db';
   import { saveTimelog, deleteTimelog } from '../services/formHandlers';
+  import { _ } from '../lib/i18n';
 
   let showTimerForm = $state(false);
   let showTimelogForm = $state(false);
@@ -28,7 +28,6 @@
   let editingTimelog: TimeLog | null = $state(null);
   let editingTarget: TargetWithSpecs | null = $state(null);
   let editFromOverview = $state(false);
-  let verificationReminderShown = $state(false);
   let editOnStopEnabled = $state(true);
   let timerToStop: any = $state(null);
   let subscriptionStatus: SubscriptionStatus | null = $state(null);
@@ -41,9 +40,6 @@
     // Load edit-on-stop setting
     const formOnStop = await getSetting('editOnStop');
     editOnStopEnabled = formOnStop !== false; // default to true if not set
-
-    // Check if email is verified and show reminder
-    checkEmailVerification();
 
     // Check subscription status
     checkSubscription();
@@ -62,9 +58,9 @@
           const daysRemaining = Math.ceil((new Date(subscriptionStatus.trialEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
           if (daysRemaining <= 7 && daysRemaining > 0) {
             snackbar.withAction(
-              `Your trial expires in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}. Subscribe to continue using TapShift.`,
+              $_('dashboard.trialExpiresIn', { values: { days: daysRemaining } }),
               'warning',
-              'Subscribe',
+              $_('dashboard.subscribe'),
               () => navigate('/payment'),
               0 // Don't auto-dismiss
             );
@@ -80,42 +76,6 @@
       console.error('Failed to check subscription status:', error);
     }
   }
-
-  function checkEmailVerification() {
-    if (!user || verificationReminderShown) return;
-
-    // Check if email is not verified (email_verified_at is null or undefined)
-    if (!user.email_verified_at) {
-      verificationReminderShown = true;
-      
-      snackbar.withAction(
-        'Please verify your email address to ensure account security',
-        'warning',
-        'Resend Email',
-        async () => {
-          try {
-            await authApi.resendVerification(user.email);
-            snackbar.success('Verification email sent! Please check your inbox.', 6000);
-          } catch (error: any) {
-            // Check for rate limiting (429 Too Many Requests)
-            if (error.response?.status === 429) {
-              snackbar.error('Too many verification requests. Please wait 15 minutes before trying again.', 8000);
-            } else {
-              snackbar.error('Failed to send verification email. Please try again later.', 5000);
-            }
-          }
-        },
-        10000 // 10s
-      );
-    }
-  }
-
-  // Watch for user changes to re-check verification status
-  $effect(() => {
-    if (user && !verificationReminderShown) {
-      checkEmailVerification();
-    }
-  });
 
   function handleShowAddSelector() {
     showAddSelector = true;
@@ -270,7 +230,7 @@
               class:text-primary={editOnStopEnabled}
               class:hover:bg-primary-hover={editOnStopEnabled}
               style="width: 32px; height: 32px;"></span>
-        <span class="py-1">Form on Stop</span>
+        <span class="py-1">{$_('settings.editOnStop')}</span>
       </button>
       <button
         onclick={toggleEditMode}
@@ -282,14 +242,14 @@
         class:hover:bg-gray-500={!showEditOverview}
         class:dark:hover:bg-gray-500={!showEditOverview}
         class:text-white={showEditOverview}
-        aria-label="Edit Overview"
+        aria-label={$_('dashboard.editOverview')}
         style="width: 32px; height: 32px;"
       ></button>
       <button 
         onclick={handleShowAddSelector}
         class="px-4 py-2 bg-primary rounded-full hover:bg-primary-hover transition-colors icon-[si--add-circle-duotone]"
         style="width: 32px; height: 32px;"
-        aria-label="Add"
+        aria-label={$_('common.add')}
       ></button>
     </div>
    </div>
@@ -320,7 +280,7 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3" />
         </svg>
-        Offline Mode
+        {$_('common.offline')}
       </span>
     </div>
   {/if}

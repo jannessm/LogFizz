@@ -3,6 +3,7 @@ import { generateWelcomeEmail } from '../templates/emails/welcome.template.js';
 import { generatePasswordResetEmail } from '../templates/emails/password-reset.template.js';
 import { generateStatisticsEmail } from '../templates/emails/statistics.template.js';
 import { SystemStatistics } from './statistics.service.js';
+import { t, getLanguageFromLocale, formatDateLocale } from '../i18n/index.js';
 import dotenv from 'dotenv';
   // Load environment variables
   dotenv.config();
@@ -55,19 +56,20 @@ export class EmailService {
     };
   }
 
-  async sendWelcomeEmail(email: string, verificationToken: string, userName: string): Promise<void> {
+  async sendWelcomeEmail(email: string, verificationToken: string, userName: string, locale: string = 'en-US'): Promise<void> {
     const verificationUrl = `${this.appUrl}/verify-email?token=${verificationToken}`;
 
     const emailContent = generateWelcomeEmail({
       userName,
       verificationUrl,
       appUrl: this.appUrl,
+      locale,
     });
 
     const mailOptions = {
       from: this.fromEmail,
       to: email,
-      subject: 'Welcome to TapShift - Please Verify Your Email',
+      subject: emailContent.subject,
       html: emailContent.html,
       text: emailContent.text,
     };
@@ -84,21 +86,24 @@ export class EmailService {
     email: string, 
     verificationToken: string, 
     userName: string, 
-    attemptedByEmail: string
+    attemptedByEmail: string,
+    locale: string = 'en-US'
   ): Promise<void> {
     const verificationUrl = `${this.appUrl}/verify-email?token=${verificationToken}`;
+    const lang = getLanguageFromLocale(locale);
 
     const emailContent = generateWelcomeEmail({
       userName,
       verificationUrl,
       appUrl: this.appUrl,
       securityNotice: `Note: Someone logged in as "${attemptedByEmail}" attempted to use your verification link. We've generated a new verification link for your security.`,
+      locale,
     });
 
     const mailOptions = {
       from: this.fromEmail,
       to: email,
-      subject: 'TapShift - New Email Verification Link (Security Notice)',
+      subject: emailContent.subject,
       html: emailContent.html,
       text: emailContent.text,
     };
@@ -111,20 +116,21 @@ export class EmailService {
     }
   }
 
-  async sendPasswordResetEmail(email: string, resetToken: string, userName: string): Promise<void> {
+  async sendPasswordResetEmail(email: string, resetToken: string, userName: string, locale: string = 'en-US'): Promise<void> {
     const resetUrl = `${this.appUrl}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
 
     const emailContent = generatePasswordResetEmail({
       userName,
       resetUrl,
       appUrl: this.appUrl,
-      email: email
+      email: email,
+      locale,
     });
 
     const mailOptions = {
       from: this.fromEmail,
       to: email,
-      subject: 'Password Reset Request',
+      subject: emailContent.subject,
       html: emailContent.html,
       text: emailContent.text,
     };
@@ -137,19 +143,22 @@ export class EmailService {
     }
   }
 
-  async sendStatisticsEmail(email: string, statistics: SystemStatistics): Promise<void> {
+  async sendStatisticsEmail(email: string, statistics: SystemStatistics, locale: string = 'en-US'): Promise<void> {
     const reportDate = new Date();
+    const lang = getLanguageFromLocale(locale);
+    const formattedDate = formatDateLocale(reportDate, locale, 'fullDate');
 
     const emailContent = generateStatisticsEmail({
       appUrl: this.appUrl,
       statistics,
       reportDate,
+      locale,
     });
 
     const mailOptions = {
       from: this.fromEmail,
       to: email,
-      subject: `TapShift System Statistics - ${reportDate.toLocaleDateString()}`,
+      subject: t('email.statisticsSubject', lang, { date: formattedDate }),
       html: emailContent.html,
       text: emailContent.text,
     };

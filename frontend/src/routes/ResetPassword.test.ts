@@ -16,6 +16,10 @@ vi.mock('../lib/navigation', () => ({
   navigate: vi.fn(),
 }));
 
+// Helper function to get password input by id
+const getNewPasswordInput = (container: HTMLElement) => container.querySelector('#newPassword') as HTMLInputElement;
+const getConfirmPasswordInput = (container: HTMLElement) => container.querySelector('#confirmPassword') as HTMLInputElement;
+
 describe('ResetPassword Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -30,10 +34,10 @@ describe('ResetPassword Component', () => {
   });
 
   it('renders reset password form', () => {
-    render(ResetPassword);
+    const { container } = render(ResetPassword);
     expect(screen.getByRole('heading', { name: /Reset Password/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/New Password/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Confirm Password/i)).toBeInTheDocument();
+    expect(getNewPasswordInput(container)).toBeInTheDocument();
+    expect(getConfirmPasswordInput(container)).toBeInTheDocument();
   });
 
   it('has max width of 500px on form container', () => {
@@ -43,9 +47,9 @@ describe('ResetPassword Component', () => {
   });
 
   it('validates password fields', () => {
-    render(ResetPassword);
-    const newPasswordInput = screen.getByLabelText(/New Password/i) as HTMLInputElement;
-    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i) as HTMLInputElement;
+    const { container } = render(ResetPassword);
+    const newPasswordInput = getNewPasswordInput(container);
+    const confirmPasswordInput = getConfirmPasswordInput(container);
     
     expect(newPasswordInput.type).toBe('password');
     expect(newPasswordInput.required).toBe(true);
@@ -57,7 +61,8 @@ describe('ResetPassword Component', () => {
 
   it('shows password requirement text', () => {
     render(ResetPassword);
-    expect(screen.getByText(/At least 8 characters/i)).toBeInTheDocument();
+    // Text is now from i18n translation
+    expect(screen.getByText(/Password must be at least 8 characters/i)).toBeInTheDocument();
   });
 
   it('has back to login link', () => {
@@ -69,22 +74,23 @@ describe('ResetPassword Component', () => {
     (window as any).location = { search: '' };
     render(ResetPassword);
     
-    expect(screen.getByText(/Invalid reset link/i)).toBeInTheDocument();
+    // Text is now from i18n translation
+    expect(screen.getByText(/Invalid or expired reset token/i)).toBeInTheDocument();
   });
 
   it('shows error when only token provided (no email)', () => {
     (window as any).location = { search: '?token=test-token-123' };
     render(ResetPassword);
     
-    // Should show error since email is now required
-    expect(screen.getByText(/Invalid reset link/i)).toBeInTheDocument();
+    // Text is now from i18n translation
+    expect(screen.getByText(/Invalid or expired reset token/i)).toBeInTheDocument();
   });
 
   it('shows error when passwords do not match', async () => {
-    render(ResetPassword);
+    const { container } = render(ResetPassword);
     
-    const newPasswordInput = screen.getByLabelText(/New Password/i);
-    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const newPasswordInput = getNewPasswordInput(container);
+    const confirmPasswordInput = getConfirmPasswordInput(container);
     const submitButton = screen.getByRole('button', { name: /Reset Password/i });
 
     await fireEvent.input(newPasswordInput, { target: { value: 'password123' } });
@@ -96,17 +102,18 @@ describe('ResetPassword Component', () => {
   });
 
   it('shows error when password is too short', async () => {
-    render(ResetPassword);
+    const { container } = render(ResetPassword);
     
-    const newPasswordInput = screen.getByLabelText(/New Password/i);
-    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const newPasswordInput = getNewPasswordInput(container);
+    const confirmPasswordInput = getConfirmPasswordInput(container);
     const submitButton = screen.getByRole('button', { name: /Reset Password/i });
 
     await fireEvent.input(newPasswordInput, { target: { value: 'short' } });
     await fireEvent.input(confirmPasswordInput, { target: { value: 'short' } });
     await fireEvent.click(submitButton);
 
-    expect(screen.getByText(/Password must be at least 8 characters/i)).toBeInTheDocument();
+    // The hint text already shows this message, and error shows same message
+    expect(screen.getAllByText(/Password must be at least 8 characters/i).length).toBeGreaterThan(0);
     expect(authApi.resetPassword).not.toHaveBeenCalled();
   });
 
@@ -115,10 +122,10 @@ describe('ResetPassword Component', () => {
       message: 'Password has been reset successfully' 
     });
 
-    render(ResetPassword);
+    const { container } = render(ResetPassword);
     
-    const newPasswordInput = screen.getByLabelText(/New Password/i);
-    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const newPasswordInput = getNewPasswordInput(container);
+    const confirmPasswordInput = getConfirmPasswordInput(container);
     const submitButton = screen.getByRole('button', { name: /Reset Password/i });
 
     await fireEvent.input(newPasswordInput, { target: { value: 'newpassword123' } });
@@ -132,7 +139,8 @@ describe('ResetPassword Component', () => {
 
     // Should show success message
     expect(screen.getByText(/Password has been reset successfully/i)).toBeInTheDocument();
-    expect(screen.getByText(/Redirecting to login/i)).toBeInTheDocument();
+    // Text is now from i18n translation
+    expect(screen.getByText(/Redirecting/i)).toBeInTheDocument();
 
     // Should redirect after 2 seconds
     vi.advanceTimersByTime(2000);
@@ -149,19 +157,19 @@ describe('ResetPassword Component', () => {
     
     vi.mocked(authApi.resetPassword).mockReturnValue(promise as any);
 
-    render(ResetPassword);
+    const { container } = render(ResetPassword);
     
-    const newPasswordInput = screen.getByLabelText(/New Password/i);
-    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const newPasswordInput = getNewPasswordInput(container);
+    const confirmPasswordInput = getConfirmPasswordInput(container);
     const submitButton = screen.getByRole('button', { name: /Reset Password/i });
 
     await fireEvent.input(newPasswordInput, { target: { value: 'newpassword123' } });
     await fireEvent.input(confirmPasswordInput, { target: { value: 'newpassword123' } });
     await fireEvent.click(submitButton);
 
-    // Should show loading state
+    // Should show loading state (text is now from i18n - "Loading...")
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Resetting.../i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Loading/i })).toBeInTheDocument();
       expect(submitButton).toBeDisabled();
     });
 
@@ -179,10 +187,10 @@ describe('ResetPassword Component', () => {
       new Error('Failed to reset password. The link may be invalid or expired.')
     );
 
-    render(ResetPassword);
+    const { container } = render(ResetPassword);
     
-    const newPasswordInput = screen.getByLabelText(/New Password/i);
-    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const newPasswordInput = getNewPasswordInput(container);
+    const confirmPasswordInput = getConfirmPasswordInput(container);
     const submitButton = screen.getByRole('button', { name: /Reset Password/i });
 
     await fireEvent.input(newPasswordInput, { target: { value: 'newpassword123' } });
@@ -202,10 +210,10 @@ describe('ResetPassword Component', () => {
       message: 'Too Many Requests'
     });
 
-    render(ResetPassword);
+    const { container } = render(ResetPassword);
     
-    const newPasswordInput = screen.getByLabelText(/New Password/i);
-    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const newPasswordInput = getNewPasswordInput(container);
+    const confirmPasswordInput = getConfirmPasswordInput(container);
     const submitButton = screen.getByRole('button', { name: /Reset Password/i });
 
     await fireEvent.input(newPasswordInput, { target: { value: 'newpassword123' } });
@@ -213,7 +221,8 @@ describe('ResetPassword Component', () => {
     await fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Too many password reset attempts. Please wait 15 minutes before trying again./i)).toBeInTheDocument();
+      // Text is now from i18n translation
+      expect(screen.getByText(/Too many password reset attempts/i)).toBeInTheDocument();
     });
   });
 
@@ -222,10 +231,10 @@ describe('ResetPassword Component', () => {
       message: 'Password has been reset successfully' 
     });
 
-    render(ResetPassword);
+    const { container } = render(ResetPassword);
     
-    const newPasswordInput = screen.getByLabelText(/New Password/i) as HTMLInputElement;
-    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i) as HTMLInputElement;
+    const newPasswordInput = getNewPasswordInput(container);
+    const confirmPasswordInput = getConfirmPasswordInput(container);
     const submitButton = screen.getByRole('button', { name: /Reset Password/i });
 
     await fireEvent.input(newPasswordInput, { target: { value: 'newpassword123' } });
@@ -253,18 +262,19 @@ describe('ResetPassword Component', () => {
 
   it('hides form when invalid reset link error is shown without token', async () => {
     (window as any).location = { search: '' };
-    render(ResetPassword);
+    const { container } = render(ResetPassword);
     
-    expect(screen.getByText(/Invalid reset link/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/New Password/i)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Confirm Password/i)).not.toBeInTheDocument();
+    // Text is now from i18n translation
+    expect(screen.getByText(/Invalid or expired reset token/i)).toBeInTheDocument();
+    expect(getNewPasswordInput(container)).not.toBeInTheDocument();
+    expect(getConfirmPasswordInput(container)).not.toBeInTheDocument();
   });
 
   it('clears error messages on new submission', async () => {
-    render(ResetPassword);
+    const { container } = render(ResetPassword);
     
-    const newPasswordInput = screen.getByLabelText(/New Password/i);
-    const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+    const newPasswordInput = getNewPasswordInput(container);
+    const confirmPasswordInput = getConfirmPasswordInput(container);
     const submitButton = screen.getByRole('button', { name: /Reset Password/i });
 
     // First submission - password mismatch

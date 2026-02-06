@@ -3,6 +3,7 @@
   import type { TargetWithSpecs } from '../../types';
   import { userTimezone } from '../../../../lib/utils/dayjs';
   import DateTimeInput from '../forms/DateTimeInput.svelte';
+  import { _ } from '../../lib/i18n';
 
   export interface FilterState {
     dateFrom: dayjs.Dayjs | null;
@@ -32,13 +33,14 @@
     onReset?: () => void;
   } = $props();
 
-  const typeOptions: { value: TimeLogType; label: string }[] = [
-    { value: 'normal', label: 'Normal' },
-    { value: 'sick', label: 'Sick' },
-    { value: 'holiday', label: 'Holiday' },
-    { value: 'business-trip', label: 'Business Trip' },
-    { value: 'child-sick', label: 'Child Sick' },
-  ];
+  const typeOptions: { value: TimeLogType; label: string }[] = $derived([
+    { value: 'normal', label: $_('timelog.typeNormal') },
+    { value: 'homeoffice', label: $_('timelog.typeHomeoffice') },
+    { value: 'sick', label: $_('timelog.typeSick') },
+    { value: 'holiday', label: $_('timelog.typeHoliday') },
+    { value: 'business-trip', label: $_('timelog.typeBusinessTrip') },
+    { value: 'child-sick', label: $_('timelog.typeChildSick') },
+  ]);
 
   let showAdvanced = $state(false);
 
@@ -101,11 +103,11 @@
 
 <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
   <!-- Search and Date Range (always in one row) -->
-  <div class="flex flex-col lg:flex-row gap-4">
+  <div class="flex flex-col sm:flex-row gap-4">
     <!-- Search -->
     <div class="flex-1">
       <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        Search
+        {$_('common.search')}
       </label>
       <div class="relative">
         <span class="absolute left-3 top-1/2 -translate-y-1/2 icon-[si--search-line] w-4 h-4 text-gray-400"></span>
@@ -113,7 +115,7 @@
           id="search"
           type="text"
           bind:value={filters.searchText}
-          placeholder="Search notes, timers, targets..."
+          placeholder={$_('table.searchPlaceholder')}
           class="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent"
         />
       </div>
@@ -126,14 +128,14 @@
           bind:value={dateFrom}
           timezone={userTimezone}
           dateOnly
-          dateLabel="From"
+          dateLabel={$_('common.from')}
           dateId="dateFrom"
         />
         <DateTimeInput
           bind:value={dateTo}
           timezone={userTimezone}
           dateOnly
-          dateLabel="To"
+          dateLabel={$_('common.to')}
           dateId="dateTo"
         />
       </div>
@@ -147,7 +149,7 @@
     class="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
   >
     <span class="{showAdvanced ? 'icon-[proicons--chevron-up]' : 'icon-[proicons--chevron-down]'} w-4 h-4"></span>
-    {showAdvanced ? 'Hide' : 'Show'} Advanced Filters
+    {showAdvanced ? $_('common.hide') : $_('common.show')} {$_('common.advancedFilters')}
   </button>
 
   <!-- Advanced Filters -->
@@ -156,7 +158,7 @@
       <!-- Type Filter -->
       <div>
         <span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Type
+          {$_('timelog.type')}
         </span>
         <div class="flex flex-wrap gap-2">
           {#each typeOptions as { value, label }}
@@ -185,7 +187,7 @@
       {#if timers.length > 0}
         <div>
           <span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Timers
+            {$_('dashboard.timers')}
           </span>
           <div class="flex flex-wrap gap-2">
             {#each timers as timer}
@@ -215,7 +217,7 @@
       {#if targets.length > 0}
         <div>
           <span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Targets
+            {$_('target.title')}
           </span>
           <div class="flex flex-wrap gap-2">
             {#each targets as target}
@@ -252,7 +254,7 @@
         class="flex items-center gap-1 px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
       >
         <span class="icon-[si--close-line] w-4 h-4"></span>
-        Reset Filters
+        {$_('table.resetFilters')}
       </button>
     </div>
   {/if}

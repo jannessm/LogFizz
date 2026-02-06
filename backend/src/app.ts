@@ -17,6 +17,7 @@ import { targetRoutes } from './routes/target.routes.js';
 import { stateRoutes } from './routes/state.routes.js';
 import { balanceRoutes } from './routes/balance.routes.js';
 import { paymentRoutes } from './routes/payment.routes.js';
+import { userSettingsRoutes } from './routes/user-settings.routes.js';
 import { registerRateLimit } from './config/rateLimit.js';
 import { debugRoutes } from './routes/debug.routes.js';
 import './types/session.js';
@@ -175,6 +176,7 @@ export async function buildApp() {
   await fastify.register(balanceRoutes, { prefix: '/api/balances' });
   await fastify.register(stateRoutes, { prefix: '/api' });
   await fastify.register(paymentRoutes, { prefix: '/api/payment' });
+  await fastify.register(userSettingsRoutes, { prefix: '/api/user-settings' });
 
   if (process.env.NODE_ENV !== 'production') {
     await fastify.register(debugRoutes, { prefix: '/api/debug' });

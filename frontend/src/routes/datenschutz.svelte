@@ -29,5 +29,5 @@
     </div>
   </div>
 
-  <BottomNav currentTab="settings" />
+  <BottomNav currentTab={null} />
 </div>

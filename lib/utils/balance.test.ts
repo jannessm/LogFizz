@@ -143,8 +143,9 @@ describe('Balance Calculation Utilities', () => {
         },
       ];
       
-      const result = calculateWorkedMinutesForDate(date, timelogs as TimeLog[]);
-      expect(result.worked_minutes).toBe(0);
+      // Pass dueMinutes > 0 to indicate it's a working day
+      const result = calculateWorkedMinutesForDate(date, timelogs as TimeLog[], 480);
+      expect(result.worked_minutes).toBe(480);
       expect(result.counters.sick_days).toBe(1);
     });
 
@@ -259,6 +260,7 @@ describe('Balance Calculation Utilities', () => {
           holidays: 0,
           business_trip: 0,
           child_sick: 0,
+          homeoffice: 0,
           worked_days: 1,
           created_at: '2024-06-01T00:00:00Z',
           updated_at: '2024-06-01T00:00:00Z',
@@ -276,6 +278,7 @@ describe('Balance Calculation Utilities', () => {
           holidays: 0,
           business_trip: 0,
           child_sick: 0,
+          homeoffice: 0,
           worked_days: 1,
           created_at: '2024-06-02T00:00:00Z',
           updated_at: '2024-06-02T00:00:00Z',
@@ -308,6 +311,7 @@ describe('Balance Calculation Utilities', () => {
           holidays: 0,
           business_trip: 0,
           child_sick: 0,
+          homeoffice: 0,
           worked_days: 1,
           created_at: '2024-06-01T00:00:00Z',
           updated_at: '2024-06-01T00:00:00Z',
@@ -334,6 +338,7 @@ describe('Balance Calculation Utilities', () => {
           holidays: 0,
           business_trip: 0,
           child_sick: 0,
+          homeoffice: 0,
           worked_days: 1,
           created_at: '2024-06-01T00:00:00Z',
           updated_at: '2024-06-01T00:00:00Z',
@@ -362,6 +367,7 @@ describe('Balance Calculation Utilities', () => {
           holidays: 0,
           business_trip: 0,
           child_sick: 0,
+          homeoffice: 0,
           worked_days: 20,
           created_at: '2024-01-01T00:00:00Z',
           updated_at: '2024-01-31T00:00:00Z',
@@ -379,6 +385,7 @@ describe('Balance Calculation Utilities', () => {
           holidays: 2,
           business_trip: 0,
           child_sick: 0,
+          homeoffice: 0,
           worked_days: 19,
           created_at: '2024-02-01T00:00:00Z',
           updated_at: '2024-02-29T00:00:00Z',
@@ -449,6 +456,7 @@ function createMockBalanceForCumulation(date: string, due: number, worked: numbe
     holidays: 0,
     business_trip: 0,
     child_sick: 0,
+    homeoffice: 0,
     worked_days: 1,
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',

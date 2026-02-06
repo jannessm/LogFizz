@@ -11,6 +11,7 @@
     parseDateTime,
   } from '../../../../lib/utils/csvImport.js';
   import type { TimeLogType } from '../../../../lib/types';
+  import { _ } from '../../lib/i18n';
 
   let {
     headers,
@@ -193,7 +194,7 @@
         timerId: '',
         isValid,
         isSkipped: false,
-        errorMsg: !isValid ? 'Invalid date/time' : undefined,
+        errorMsg: !isValid ? $_('import.invalidDateFormat') : undefined,
       };
     });
   });
@@ -234,7 +235,7 @@
       const startStr = updated.startDate ? `${updated.startDate} ${updated.startTime}` : updated.startTime;
       const endStr = updated.endDate ? `${updated.endDate} ${updated.endTime}` : updated.endTime;
       updated.isValid = isValidDateTime(startStr, customDateFormats) && isValidDateTime(endStr, customDateFormats);
-      updated.errorMsg = !updated.isValid ? 'Invalid date/time' : undefined;
+      updated.errorMsg = !updated.isValid ? $_('import.invalidDateFormat') : undefined;
       
       return updated;
     });
@@ -289,10 +290,10 @@
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
   <div class="flex items-center justify-between mb-4">
-    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Edit & Import</h2>
+    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{$_('import.editAndImport')}</h2>
     <div class="flex items-center gap-4">
       <div class="text-sm text-gray-500 dark:text-gray-400">
-        {validRowCount} valid, {invalidRowCount} need attention, {skippedRowCount} skipped
+        {validRowCount} {$_('import.valid')}, {invalidRowCount} {$_('import.needAttention')}, {skippedRowCount} {$_('import.skipped')}
       </div>
     </div>
   </div>
@@ -302,11 +303,11 @@
     <div class="flex items-end gap-4">
       <div class="flex-1">
         <label for="global-timer" class="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-          Assign all to timer
+          {$_('import.assignAllToTimer')}
         </label>
         <TimerSelectWithCreate
           bind:value={globalTimerId}
-          placeholder="Select timer for all rows..."
+          placeholder={$_('import.selectTimerForAll')}
         />
       </div>
       <button
@@ -314,7 +315,7 @@
         disabled={!globalTimerId}
         class="px-4 py-2 bg-blue-600 dark:bg-orange-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-orange-600 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
       >
-        Apply to All
+        {$_('import.applyToAll')}
       </button>
     </div>
   </div>
@@ -326,7 +327,7 @@
         onclick={toggleSkipAll}
         class="text-sm text-blue-600 dark:text-orange-400 hover:underline"
       >
-        {rows.every(r => r.isSkipped) ? 'Include All' : 'Skip All'}
+        {rows.every(r => r.isSkipped) ? $_('import.includeAll') : $_('import.skipAll')}
       </button>
       
       <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -335,15 +336,15 @@
           disabled={currentPage === 0}
           class="px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          ← Previous
+          ← {$_('common.previous')}
         </button>
-        <span>Page {currentPage + 1} / {totalPages}</span>
+        <span>{$_('common.page')} {currentPage + 1} / {totalPages}</span>
         <button
           onclick={() => currentPage = Math.min(totalPages - 1, currentPage + 1)}
           disabled={currentPage >= totalPages - 1}
           class="px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Next →
+          {$_('common.next')} →
         </button>
       </div>
     </div>
@@ -354,16 +355,16 @@
     <table class="w-full text-sm">
       <thead class="bg-gray-100 dark:bg-gray-700">
         <tr>
-          <th class="px-2 py-2 text-left w-12">Skip</th>
+          <th class="px-2 py-2 text-left w-12">{$_('import.skip')}</th>
           <th class="px-2 py-2 text-left w-10">#</th>
-          <th class="px-2 py-2 text-left min-w-[120px]">Start Date</th>
-          <th class="px-2 py-2 text-left min-w-[100px]">Start Time</th>
-          <th class="px-2 py-2 text-left min-w-[120px]">End Date</th>
-          <th class="px-2 py-2 text-left min-w-[100px]">End Time</th>
-          <th class="px-2 py-2 text-left min-w-[120px]">Type</th>
-          <th class="px-2 py-2 text-left min-w-[180px]">Timer</th>
-          <th class="px-2 py-2 text-left min-w-[150px]">Notes</th>
-          <th class="px-2 py-2 text-left w-16">Status</th>
+          <th class="px-2 py-2 text-left min-w-[120px]">{$_('export.startDate')}</th>
+          <th class="px-2 py-2 text-left min-w-[100px]">{$_('export.startTime')}</th>
+          <th class="px-2 py-2 text-left min-w-[120px]">{$_('export.endDate')}</th>
+          <th class="px-2 py-2 text-left min-w-[100px]">{$_('export.endTime')}</th>
+          <th class="px-2 py-2 text-left min-w-[120px]">{$_('timelog.type')}</th>
+          <th class="px-2 py-2 text-left min-w-[180px]">{$_('table.timer')}</th>
+          <th class="px-2 py-2 text-left min-w-[150px]">{$_('timelog.notes')}</th>
+          <th class="px-2 py-2 text-left w-16">{$_('import.status')}</th>
         </tr>
       </thead>
       <tbody>
@@ -380,7 +381,7 @@
 
   {#if rows.length === 0}
     <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-      No data to import.
+      {$_('import.noDataToImport')}
     </div>
   {/if}
 
@@ -389,7 +390,7 @@
     <div class="text-sm text-gray-500 dark:text-gray-400">
       {#if invalidRowCount > 0}
         <span class="text-amber-600 dark:text-amber-400">
-          ⚠️ {invalidRowCount} row{invalidRowCount !== 1 ? 's' : ''} need a timer assignment or have invalid dates
+          ⚠️ {invalidRowCount} {invalidRowCount !== 1 ? $_('import.rows') : $_('import.row')} {$_('import.needTimerAssignment')}
         </span>
       {/if}
     </div>
@@ -398,14 +399,14 @@
         onclick={onBack}
         class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
       >
-        Back
+        {$_('import.back')}
       </button>
       <button
         onclick={handleImport}
         disabled={validRowCount === 0}
         class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
       >
-        Import {validRowCount} Timelog{validRowCount !== 1 ? 's' : ''}
+        {$_('import.import')} {validRowCount} {validRowCount !== 1 ? $_('import.timelogs') : $_('import.timelog')}
       </button>
     </div>
   </div>

@@ -6,6 +6,7 @@ import type { TargetSpec } from '../../../lib/types/index.js';
 export { dayjs, userTimezone } from '../../../lib/utils/dayjs';
 export type {
   User,
+  UserSettings,
   State,
   Timer,
   Balance,

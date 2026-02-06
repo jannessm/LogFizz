@@ -11,6 +11,7 @@
   import { createCalendarStore, loadCalendarMonth } from '../services/calendar';
   import { navigate } from '../lib/navigation';
   import { onMount } from 'svelte';
+  import { _ } from '../lib/i18n';
 
   
   // Initialize from URL query parameters if available
@@ -89,25 +90,25 @@
   <!-- Header spanning full width -->
   <div class="w-full px-4 pt-6 pb-2">
     <div class="w-full max-w-7xl mx-auto flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">History</h1>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100">{$_('history.title')}</h1>
       <div class="flex gap-1">
         <button
           onclick={navigateToTable}
           class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--table-duotone] text-gray-600 dark:text-gray-400"
           style="width: 28px; height: 28px;"
-          aria-label="Table view"
+          aria-label={$_('table.tableView')}
         ></button>
         <button
           onclick={handleExportClick}
           class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-upload-duotone] text-gray-600 dark:text-gray-400"
           style="width: 28px; height: 28px;"
-          aria-label="Export timelogs"
+          aria-label={$_('export.title')}
         ></button>
         <button
           onclick={handleImportClick}
           class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[si--file-download-duotone] text-gray-600 dark:text-gray-400"
           style="width: 28px; height: 28px;"
-          aria-label="Import timelogs"
+          aria-label={$_('import.title')}
         ></button>
       </div>
     </div>
@@ -128,7 +129,7 @@
       <!-- Column 2: Yearly + Monthly balance -->
       <div class="w-full flex flex-col gap-4">
         <BalancesOverview
-          title="Balance Overview"
+          title={$_('history.balance')}
           targets={$targets}
           periods={{
             day: { date: selectedDate.date.format('YYYY-MM-DD') },

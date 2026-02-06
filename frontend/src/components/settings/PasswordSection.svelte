@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { _ } from '../../lib/i18n';
+
   let {
     onsubmit,
     onerror
@@ -13,12 +15,12 @@
 
   async function handlePasswordChange() {
     if (newPassword !== confirmPassword) {
-      onerror?.('New passwords do not match');
+      onerror?.($_('settings.passwordMismatch'));
       return;
     }
 
     if (newPassword.length < 8) {
-      onerror?.('Password must be at least 8 characters');
+      onerror?.($_('auth.passwordMinLength'));
       return;
     }
 
@@ -32,12 +34,12 @@
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-  <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Change Password</h2>
+  <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">{$_('settings.changePassword')}</h2>
   
   <div class="space-y-4">
     <div>
       <label for="currentPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        Current Password
+        {$_('settings.currentPassword')}
       </label>
       <input
         id="currentPassword"
@@ -49,7 +51,7 @@
 
     <div>
       <label for="newPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        New Password
+        {$_('settings.newPassword')}
       </label>
       <input
         id="newPassword"
@@ -62,7 +64,7 @@
 
     <div>
       <label for="confirmPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-        Confirm New Password
+        {$_('settings.confirmPassword')}
       </label>
       <input
         id="confirmPassword"
@@ -78,7 +80,7 @@
       class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-hover transition-colors flex items-center justify-center gap-2"
     >
       <span class="w-5 h-5 icon-[si--key-line]"></span>
-      Change Password
+      {$_('settings.changePassword')}
     </button>
   </div>
 </div>

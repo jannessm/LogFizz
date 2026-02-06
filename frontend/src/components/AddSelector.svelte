@@ -1,5 +1,6 @@
 <script lang="ts">
   import Modal from './Modal.svelte';
+  import { _ } from '../lib/i18n';
 
   let {
     close,
@@ -10,7 +11,7 @@
   } = $props();
 </script>
 
-<Modal title="Add New" maxWidth="max-w-sm" onclose={close}>
+<Modal title={$_('common.add')} maxWidth="max-w-sm" onclose={close}>
   {#snippet children()}
     <div class="space-y-3">
       <button
@@ -21,8 +22,8 @@
           <span class="icon-[si--clock-alt-duotone] text-blue-600 dark:text-blue-400 group-hover:text-white" style="width: 28px; height: 28px;"></span>
         </div>
         <div class="text-left">
-          <h3 class="font-semibold text-gray-800 dark:text-gray-100 group-hover:text-primary">Add Timer</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400">Create a new timer button</p>
+          <h3 class="font-semibold text-gray-800 dark:text-gray-100 group-hover:text-primary">{$_('dashboard.addTimer')}</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400">{$_('dashboard.addTimerDescription')}</p>
         </div>
       </button>
 
@@ -34,8 +35,8 @@
           <span class="icon-[si--clipboard-check-alt-duotone] text-green-600 dark:text-green-400 group-hover:text-white" style="width: 28px; height: 28px;"></span>
         </div>
         <div class="text-left">
-          <h3 class="font-semibold text-gray-800 dark:text-gray-100 group-hover:text-green-700 dark:group-hover:text-green-400">Add Target</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400">Create a new target</p>
+          <h3 class="font-semibold text-gray-800 dark:text-gray-100 group-hover:text-green-700 dark:group-hover:text-green-400">{$_('target.add')}</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400">{$_('target.addDescription')}</p>
         </div>
       </button>
     </div>

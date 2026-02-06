@@ -11,8 +11,13 @@
   import { balancesStore } from '../../stores/balances';
   import { targetsStore } from '../../stores/targets';
   import { formatMinutes, formatHours, getBalanceColor } from '../../../../lib/utils/timeFormat.js';
+  import { _ } from '../../lib/i18n';
 
   let { year, month }: { year: number; month: number; } = $props();
+
+  const errMessages = {
+    loadFailed: $_('history.loadBalancesFailed'),
+  };
 
   let balances: Balance[] = [];
   let targetsWithoutStartingFrom: TargetWithSpecs[] = [];
@@ -44,7 +49,7 @@
       }
     } catch (err: any) {
       console.error('Failed to load monthly balances:', err);
-      error = err.message || 'Failed to load balances';
+      error = err.message || errMessages.loadFailed;
     } finally {
       loading = false;
     }
@@ -115,7 +120,7 @@
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
   <div class="flex justify-between items-center mb-3">
-    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Monthly Balance</h3>
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">{$_('history.monthlyBalance')}</h3>
   </div>
 
   {#if error}
@@ -123,16 +128,16 @@
   {/if}
 
   {#if loading && balances.length === 0 && targetsWithoutStartingFrom.length === 0}
-    <div class="text-gray-500 dark:text-gray-400 text-sm">Loading balances...</div>
+    <div class="text-gray-500 dark:text-gray-400 text-sm">{$_('history.loadingBalances')}</div>
   {:else if balances.length === 0 && targetsWithoutStartingFrom.length === 0}
-    <div class="text-gray-500 dark:text-gray-400 text-sm">No targets configured for this month.</div>
+    <div class="text-gray-500 dark:text-gray-400 text-sm">{$_('history.noTargetsConfiguredThisMonth')}</div>
   {:else}
     <div class="space-y-3">
       {#each balances as balance (balance.id)}
         <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
           <div class="flex justify-between items-start mb-2">
             <div>
-              <h4 class="font-medium text-gray-800 dark:text-gray-100">Target</h4>
+              <h4 class="font-medium text-gray-800 dark:text-gray-100">{$_('target.title')}</h4>
             </div>
             <div class="text-right">
               <div class={`text-lg font-bold ${getBalanceColor(balance.cumulative_minutes)}`}>
@@ -143,11 +148,11 @@
           
           <div class="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <span class="text-gray-600 dark:text-gray-400">Worked:</span>
+              <span class="text-gray-600 dark:text-gray-400">{$_('history.workedLabel')}</span>
               <span class="font-medium text-gray-800 dark:text-gray-100 ml-1">{formatHours(balance.worked_minutes)}</span>
             </div>
             <div>
-              <span class="text-gray-600 dark:text-gray-400">Due:</span>
+              <span class="text-gray-600 dark:text-gray-400">{$_('history.dueLabel')}</span>
               <span class="font-medium text-gray-800 dark:text-gray-100 ml-1">{formatHours(balance.due_minutes)}</span>
             </div>
           </div>
@@ -160,7 +165,7 @@
             <div>
               <h4 class="font-medium text-gray-800 dark:text-gray-100">{target.name}</h4>
               <span class="text-xs text-amber-700 dark:text-amber-400">
-                ⚠️ No starting date set - balance cannot be calculated
+                ⚠️ {$_('history.noStartingDateSet')}
               </span>
             </div>
             <div class="text-right">

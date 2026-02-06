@@ -2,6 +2,7 @@ import { timersStore } from "../stores/timers";
 import { timeLogsStore } from "../stores/timelogs";
 import { targetsStore } from "../stores/targets";
 import { balancesStore } from "../stores/balances";
+import { initLocaleFromSettings } from "../lib/dateFormatting";
 
 export async function loadData(isAuthenticated: boolean) {
     if (!isAuthenticated) {
@@ -23,4 +24,6 @@ export async function loadData(isAuthenticated: boolean) {
     // - Extension (balances exist but < today)
     // - No-op (balances already up to date)
     await balancesStore.init();
+
+    initLocaleFromSettings();
 }

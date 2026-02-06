@@ -6,11 +6,14 @@
   import { timeLogsStore, timerlogs } from '../../stores/timelogs';
   import { timers } from '../../stores/timers';
   import { targets } from '../../stores/targets';
-  import { monthlyBalances } from '../../stores/balances';
   import { dayjs, type TimeLog } from '../../types';
   import { userTimezone } from '../../../../lib/utils/dayjs';
   import { navigate } from '../../lib/navigation';
   import { snackbar } from '../../stores/snackbar';
+  import { calculateDueMinutes } from '../../../../lib/utils/balance';
+  import { _ } from '../../lib/i18n';
+  import { get } from 'svelte/store';
+  import { formatMinutesHHMM } from '../../../../lib/utils/timeFormat';
 
   // Column visibility state
   let visibleColumns = $state({
@@ -21,6 +24,8 @@
     end: true,
     totalDuration: true,
     effectiveDuration: true,
+    dueTime: true,
+    diff: true,
     notes: true,
   });
 
@@ -209,7 +214,7 @@
   // Helper functions for CSV export
   function getTimerName(timerId: string): string {
     const timer = $timers.find(t => t.id === timerId);
-    return timer ? (timer.emoji ? `${timer.emoji} ${timer.name}` : timer.name) : 'Unknown';
+    return timer ? (timer.emoji ? `${timer.emoji} ${timer.name}` : timer.name) : $_('common.unknown');
   }
 
   function getTargetName(timerId: string): string {
@@ -219,13 +224,6 @@
     return target?.name || '-';
   }
 
-  function formatDuration(minutes?: number): string {
-    if (minutes === undefined) return '';
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-  }
-
   function getTotalDuration(timelog: TimeLog): number | undefined {
     if (!timelog.end_timestamp) return undefined;
     const start = dayjs(timelog.start_timestamp);
@@ -233,11 +231,55 @@
     return end.diff(start, 'minute');
   }
 
+  function getTimerId(timerId: string): string | undefined {
+    const timer = $timers.find(t => t.id === timerId);
+    return timer?.target_id;
+  }
+
+  function getDueTime(timelog: TimeLog): number | undefined {
+    const targetId = getTimerId(timelog.timer_id);
+    if (!targetId) return undefined;
+    
+    const target = $targets.find(t => t.id === targetId);
+    if (!target) return undefined;
+    
+    const date = dayjs.utc(timelog.start_timestamp).tz(timelog.timezone || userTimezone).format('YYYY-MM-DD');
+    return calculateDueMinutes(date, target as any, new Set());
+  }
+
+  function getDiff(timelog: TimeLog): number | undefined {
+    const effective = timelog.duration_minutes;
+    const due = getDueTime(timelog);
+    if (effective === undefined || due === undefined) return undefined;
+    return effective - due;
+  }
+
+  function formatDiff(minutes: number | undefined): string {
+    if (minutes === undefined) return '';
+    const isNegative = minutes < 0;
+    const absMinutes = Math.abs(minutes);
+    const hours = Math.floor(absMinutes / 60);
+    const mins = absMinutes % 60;
+    const sign = isNegative ? '-' : '+';
+    return `${sign}${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+  }
+
+  // Remove isolated Unicode symbols (emojis and special characters) from text
+  function removeUnicodeSymbols(text: string): string {
+    // Remove emojis and other Unicode symbols
+    // Keep only ASCII and common Latin/European characters
+    return text
+      .replace(/[\p{So}\p{Sk}]/gu, '') // Remove symbols (other, modifier)
+      .replace(/[\p{Cn}]/gu, '') // Remove unassigned characters
+      .replace(/[\u200B-\u200D\uFEFF]/g, '') // Remove zero-width characters
+      .trim();
+  }
+
   // Check if any column is selected for export
   let hasSelectedColumns = $derived(
     visibleColumns.timer || visibleColumns.target || visibleColumns.type ||
     visibleColumns.start || visibleColumns.end || visibleColumns.totalDuration ||
-    visibleColumns.effectiveDuration || visibleColumns.notes
+    visibleColumns.effectiveDuration || visibleColumns.dueTime || visibleColumns.diff || visibleColumns.notes
   );
 
   // Generate CSV content
@@ -247,14 +289,16 @@
 
     // Build header row
     const headers: string[] = [];
-    if (visibleColumns.timer) headers.push('Timer');
-    if (visibleColumns.target) headers.push('Target');
-    if (visibleColumns.type) headers.push('Type');
-    if (visibleColumns.start) headers.push('Start Date', 'Start Time');
-    if (visibleColumns.end) headers.push('End Date', 'End Time');
-    if (visibleColumns.totalDuration) headers.push('Total Duration');
-    if (visibleColumns.effectiveDuration) headers.push('Effective Duration');
-    if (visibleColumns.notes) headers.push('Notes');
+    if (visibleColumns.timer) headers.push($_('common.timer'));
+    if (visibleColumns.target) headers.push($_('common.target'));
+    if (visibleColumns.type) headers.push($_('common.type'));
+    if (visibleColumns.start) headers.push($_('common.start'), $_('table.startTime'));
+    if (visibleColumns.end) headers.push($_('common.end'), $_('table.endTime'));
+    if (visibleColumns.totalDuration) headers.push($_('table.totalDuration'));
+    if (visibleColumns.effectiveDuration) headers.push($_('table.effectiveDuration'));
+    if (visibleColumns.dueTime) headers.push($_('table.dueTime'));
+    if (visibleColumns.diff) headers.push($_('table.diff'));
+    if (visibleColumns.notes) headers.push($_('timelog.notes'));
 
     // Build data rows
     const rows: string[][] = [];
@@ -264,9 +308,9 @@
       const startDayjs = dayjs.utc(log.start_timestamp).tz(logTimezone);
       const endDayjs = log.end_timestamp ? dayjs.utc(log.end_timestamp).tz(logTimezone) : null;
 
-      if (visibleColumns.timer) row.push(getTimerName(log.timer_id).replace(/"/g, '""'));
-      if (visibleColumns.target) row.push(getTargetName(log.timer_id).replace(/"/g, '""'));
-      if (visibleColumns.type) row.push(log.type);
+      if (visibleColumns.timer) row.push(removeUnicodeSymbols(getTimerName(log.timer_id)).replace(/"/g, '""'));
+      if (visibleColumns.target) row.push(removeUnicodeSymbols(getTargetName(log.timer_id)).replace(/"/g, '""'));
+      if (visibleColumns.type) row.push(removeUnicodeSymbols(log.type));
       if (visibleColumns.start) {
         row.push(startDayjs.format('L'));
         row.push(startDayjs.format('LT'));
@@ -275,9 +319,11 @@
         row.push(endDayjs ? endDayjs.format('L') : '');
         row.push(endDayjs ? endDayjs.format('LT') : '');
       }
-      if (visibleColumns.totalDuration) row.push(formatDuration(getTotalDuration(log)));
-      if (visibleColumns.effectiveDuration) row.push(formatDuration(log.duration_minutes));
-      if (visibleColumns.notes) row.push((log.notes || '').replace(/"/g, '""').replace(/\n/g, ' '));
+      if (visibleColumns.totalDuration) row.push(formatMinutesHHMM(getTotalDuration(log)));
+      if (visibleColumns.effectiveDuration) row.push(formatMinutesHHMM(log.duration_minutes));
+      if (visibleColumns.dueTime) row.push(formatMinutesHHMM(getDueTime(log)));
+      if (visibleColumns.diff) row.push(formatDiff(getDiff(log)));
+      if (visibleColumns.notes) row.push(removeUnicodeSymbols((log.notes || '')).replace(/"/g, '""').replace(/\n/g, ' '));
 
       rows.push(row);
     }
@@ -301,12 +347,12 @@
   // Handle export
   function handleExport() {
     if (!hasSelectedColumns) {
-      snackbar.error('Please select at least one column to export.');
+      snackbar.error($_('export.selectColumnError'));
       return;
     }
 
     if (filteredTimelogs.length === 0) {
-      snackbar.error('No timelogs found for the current filters.');
+      snackbar.error($_('export.noTimelogsError'));
       return;
     }
 
@@ -319,18 +365,32 @@
       const link = document.createElement('a');
       link.href = url;
       
-      // Generate filename with date
-      const today = dayjs().format('YYYY-MM-DD');
-      link.download = `timelogs_${today}.csv`;
+      // Generate filename with date range
+      let filename = 'timelogs';
+      if (filters.dateFrom && filters.dateTo) {
+        const fromDate = filters.dateFrom.format('YYYY-MM-DD');
+        const toDate = filters.dateTo.format('YYYY-MM-DD');
+        filename = `timelogs_${fromDate}_to_${toDate}`;
+      } else if (filters.dateFrom) {
+        const fromDate = filters.dateFrom.format('YYYY-MM-DD');
+        filename = `timelogs_from_${fromDate}`;
+      } else if (filters.dateTo) {
+        const toDate = filters.dateTo.format('YYYY-MM-DD');
+        filename = `timelogs_until_${toDate}`;
+      } else {
+        const today = dayjs().format('YYYY-MM-DD');
+        filename = `timelogs_${today}`;
+      }
+      link.download = `${filename}.csv`;
       
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
-      snackbar.success(`Exported ${filteredTimelogs.length} timelogs to CSV.`);
+
+      snackbar.success($_('export.exportSuccess', { values: { count: filteredTimelogs.length } }));
     } catch (error) {
-      snackbar.error('Failed to export timelogs. Please try again.');
+      snackbar.error($_('export.exportError'));
       console.error('Export error:', error);
     }
   }
@@ -345,6 +405,8 @@
       end: true,
       totalDuration: true,
       effectiveDuration: true,
+      dueTime: true,
+      diff: true,
       notes: true,
     };
   }
@@ -358,6 +420,8 @@
       end: false,
       totalDuration: false,
       effectiveDuration: false,
+      dueTime: false,
+      diff: false,
       notes: false,
     };
   }
@@ -371,11 +435,11 @@
         <button
           onclick={handleCancel}
           class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-          aria-label="Go back"
+          aria-label={$_('import.goBack')}
         >
           <span class="icon-[si--arrow-left-line]" style="width: 24px; height: 24px;"></span>
         </button>
-        <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Export Timelogs</h1>
+        <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{$_('export.title')}</h1>
       </div>
       <button
         onclick={handleExport}
@@ -383,7 +447,7 @@
         class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center gap-2"
       >
         <span class="icon-[si--file-download-duotone]" style="width: 16px; height: 16px;"></span>
-        Export {filteredTimelogs.length} Timelogs
+        {$_('export.exportCount', { values: { count: filteredTimelogs.length } })}
       </button>
     </div>
   </header>
@@ -402,21 +466,21 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
         <div class="flex items-center justify-between mb-3">
           <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
-            Columns to Export
+            {$_('export.columnsToExport')}
           </span>
           <div class="flex gap-2">
             <button
               onclick={selectAllColumns}
               class="text-xs text-blue-600 dark:text-orange-400 hover:underline"
             >
-              Select All
+              {$_('export.selectAll')}
             </button>
             <span class="text-gray-400">|</span>
             <button
               onclick={deselectAllColumns}
               class="text-xs text-blue-600 dark:text-orange-400 hover:underline"
             >
-              Deselect All
+              {$_('export.deselectAll')}
             </button>
           </div>
         </div>
@@ -427,7 +491,7 @@
               bind:checked={visibleColumns.timer}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Timer</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('common.timer')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -435,7 +499,7 @@
               bind:checked={visibleColumns.target}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Target</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('common.target')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -443,7 +507,7 @@
               bind:checked={visibleColumns.type}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Type</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('common.type')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -451,7 +515,7 @@
               bind:checked={visibleColumns.start}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Start</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('table.start')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -459,7 +523,7 @@
               bind:checked={visibleColumns.end}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">End</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('table.end')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -467,7 +531,7 @@
               bind:checked={visibleColumns.totalDuration}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Total Duration</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('table.totalDuration')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -475,7 +539,23 @@
               bind:checked={visibleColumns.effectiveDuration}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Effective Duration</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('table.effectiveDuration')}</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              bind:checked={visibleColumns.dueTime}
+              class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
+            />
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('table.dueTime')}</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              bind:checked={visibleColumns.diff}
+              class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
+            />
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('table.difference')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -483,7 +563,7 @@
               bind:checked={visibleColumns.notes}
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
-            <span class="text-sm text-gray-700 dark:text-gray-200">Notes</span>
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('timelog.notes')}</span>
           </label>
         </div>
       </div>
@@ -491,9 +571,9 @@
       <!-- Results count and pagination info -->
       <div class="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
         <span>
-          {filteredTimelogs.length} timelogs found
+          {filteredTimelogs.length} {$_('export.timelogsFound')}
           {#if totalPages > 1}
-            • Showing {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredTimelogs.length)}
+            • {$_('export.showing')} {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, filteredTimelogs.length)}
           {/if}
         </span>
         {#if totalPages > 1}
@@ -503,15 +583,15 @@
               disabled={currentPage === 1}
               class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              Previous
+              {$_('common.previous')}
             </button>
-            <span>Page {currentPage} of {totalPages}</span>
+            <span>{$_('table.page')} {currentPage} {$_('table.of')} {totalPages}</span>
             <button
               onclick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}
               class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              Next
+              {$_('common.next')}
             </button>
           </div>
         {/if}
@@ -528,7 +608,8 @@
             timelogs={paginatedTimelogs}
             timers={$timers}
             targets={$targets}
-            monthlyBalances={$monthlyBalances}
+            dateFrom={filters.dateFrom}
+            dateTo={filters.dateTo}
             {visibleColumns}
           />
         {/if}
@@ -542,14 +623,14 @@
             disabled={currentPage === 1}
             class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            First
+            {$_('common.first')}
           </button>
           <button
             onclick={() => goToPage(currentPage - 1)}
             disabled={currentPage === 1}
             class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            Previous
+            {$_('common.previous')}
           </button>
           
           {#each Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -576,14 +657,14 @@
             disabled={currentPage === totalPages}
             class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            Next
+            {$_('common.next')}
           </button>
           <button
             onclick={() => goToPage(totalPages)}
             disabled={currentPage === totalPages}
             class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700"
           >
-            Last
+            {$_('common.last')}
           </button>
         </div>
       {/if}
@@ -591,4 +672,4 @@
   </div>
 </div>
 
-<BottomNav currentTab="history" />
+<BottomNav currentTab={null} />

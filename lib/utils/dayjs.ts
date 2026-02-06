@@ -7,6 +7,11 @@ import weekOfYear from 'dayjs/plugin/weekOfYear.js';
 import LocalizedFormat from 'dayjs/plugin/localizedFormat.js';
 import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 
+// Import locale data
+import 'dayjs/locale/de.js';
+import 'dayjs/locale/en.js';
+import 'dayjs/locale/en-gb.js';
+
 // Extend dayjs with UTC and timezone plugins
 dayjs.extend(utc);
 dayjs.extend(timezone);

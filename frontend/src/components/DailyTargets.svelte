@@ -7,6 +7,7 @@
   import type { TargetWithSpecs } from '../types';
   import dayjs from 'dayjs';
   import { getActiveTargetSpec } from '../lib/utils/targetSpec';
+  import { formatMinutesCompact } from '../../../lib/utils/timeFormat';
 
   let activeTargets: TargetWithSpecs[] = [];
   let inactiveTargets: TargetWithSpecs[] = [];
@@ -138,19 +139,6 @@
     };
   }
 
-  function formatDuration(minutes: number): string {
-    const hours = Math.floor(minutes / 60);
-    const mins = Math.ceil(minutes % 60);
-    
-    if (hours === 0) {
-      return `${mins}m`;
-    } else if (mins === 0) {
-      return `${hours}h`;
-    } else {
-      return `${hours}h ${mins}m`;
-    }
-  }
-
 </script>
 
 {#if displayedTargets.length > 0}
@@ -187,7 +175,7 @@
             <div 
               class="text-xs transition-colors duration-300 text-gray-500 dark:text-gray-400"
             >
-              {isActive ? Math.ceil(progress.percentage) : progress.percentage}% ({formatDuration(progress.totalMinutes)} / {formatDuration(progress.targetDuration)})
+              {isActive ? Math.ceil(progress.percentage) : progress.percentage}% ({formatMinutesCompact(progress.totalMinutes)} / {formatMinutesCompact(progress.targetDuration)})
             </div>
           </div>
         </div>

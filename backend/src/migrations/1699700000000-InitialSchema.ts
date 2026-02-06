@@ -195,6 +195,7 @@ export class InitialSchema1699700000000 implements MigrationInterface {
                 "business_trip" integer NOT NULL DEFAULT 0,
                 "child_sick" integer NOT NULL DEFAULT 0,
                 "worked_days" integer NOT NULL DEFAULT 0,
+                "homeoffice" integer NOT NULL DEFAULT 0,
                 
                 "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
@@ -226,6 +227,22 @@ export class InitialSchema1699700000000 implements MigrationInterface {
             ON CONFLICT (key) DO NOTHING
         `);
 
+        // Create user_settings table for user-specific settings
+        await queryRunner.query(`
+            CREATE TABLE IF NOT EXISTS "user_settings" (
+                "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
+                "user_id" uuid NOT NULL,
+                "language" character varying NOT NULL DEFAULT 'en',
+                "locale" character varying NOT NULL DEFAULT 'en-US',
+                "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+                "updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+                CONSTRAINT "PK_user_settings_id" PRIMARY KEY ("id"),
+                CONSTRAINT "UQ_user_settings_user_id" UNIQUE ("user_id"),
+                CONSTRAINT "FK_user_settings_user_id" FOREIGN KEY ("user_id") 
+                    REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION
+            )
+        `);
+
         // Create indexes for better performance
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_targets_user_id" ON "targets" ("user_id")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_targets_deleted_at" ON "targets" ("deleted_at")`);
@@ -245,12 +262,14 @@ export class InitialSchema1699700000000 implements MigrationInterface {
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_deleted_at" ON "time_logs" ("deleted_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_timers_updated_at" ON "timers" ("updated_at")`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_time_logs_updated_at" ON "time_logs" ("updated_at")`);
+        await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_user_settings_updated_at" ON "user_settings" ("updated_at")`);
 
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         // Drop tables in reverse order (respecting foreign key constraints)
         await queryRunner.query(`DROP TABLE IF EXISTS "balances"`);
+        await queryRunner.query(`DROP TABLE IF EXISTS "user_settings"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "settings"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "time_logs"`);
         await queryRunner.query(`DROP TABLE IF EXISTS "timers"`);

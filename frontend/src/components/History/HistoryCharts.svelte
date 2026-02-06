@@ -2,6 +2,7 @@
   import dayjs from 'dayjs';
   import PieChart from './PieChart.svelte';
   import BarChart from './BarChart.svelte';
+  import { _ } from '../../lib/i18n';
             
   let { timers, timeLogs, currentMonth, dateSelect }: {
     timers: any[];
@@ -12,9 +13,9 @@
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
-  <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Monthly Summary</h3>
+  <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">{$_('history.monthlySummary')}</h3>
   {#if timeLogs.length === 0}
-    <p class="text-gray-500 dark:text-gray-400 text-sm">No time logs for this month.</p>
+    <p class="text-gray-500 dark:text-gray-400 text-sm">{$_('history.noTimeLogsThisMonth')}</p>
   {:else}
     <div class="h-40">
       <PieChart 

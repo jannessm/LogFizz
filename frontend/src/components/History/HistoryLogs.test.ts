@@ -139,7 +139,7 @@ describe('HistoryLogs Component', () => {
     });
 
     // Add timelog button should be present
-    expect(screen.getByRole('button', { name: /add time entry/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add timelog/i })).toBeInTheDocument();
   });
 
   it('renders timeline section', () => {

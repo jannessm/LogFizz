@@ -2,6 +2,7 @@
   import type { Timer } from '../../types';
   import { timersStore } from '../../stores/timers';
   import EmojiPicker from './EmojiPicker.svelte';
+  import { _ } from '../../lib/i18n';
 
   let {
     timer = null,
@@ -11,6 +12,12 @@
     close: () => void;
   } = $props();
 
+  const errMessages = {
+    timerNameRequired: $_('timer.nameRequired'),
+    saveFailed: $_('timer.saveFailed'),
+    deleteFailed: $_('timer.deleteFailed'),
+  };
+
   let name = $derived(timer?.name || '');
   let emoji = $derived(timer?.emoji || '');
   let color = $derived(timer?.color || '#3B82F6');
@@ -18,6 +25,7 @@
   let archived = $derived(timer?.archived ?? false);
   let isLoading = $state(false);
   let errorMessage = $state('');
+  let showDeleteConfirm = $state(false);
 
   const colorPresets = [
     '#3B82F6', '#EF4444', '#10B981', '#F59E0B', 
@@ -26,7 +34,7 @@
 
   async function handleSubmit() {
     if (!name.trim()) {
-      errorMessage = 'Please enter a timer name';
+      errorMessage = errMessages.timerNameRequired;
       return;
     }
 
@@ -50,10 +58,34 @@
 
       close();
     } catch (error: any) {
-      errorMessage = error.message || 'Failed to save timer';
+      errorMessage = error.message || errMessages.saveFailed;
     } finally {
       isLoading = false;
     }
+  }
+
+  function handleDeleteClick() {
+    showDeleteConfirm = true;
+  }
+
+  async function handleDeleteConfirm() {
+    if (!timer) return;
+    
+    isLoading = true;
+    try {
+      await timersStore.delete($state.snapshot(timer));
+      showDeleteConfirm = false;
+      close();
+    } catch (error: any) {
+      errorMessage = error.message || errMessages.deleteFailed;
+      showDeleteConfirm = false;
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function handleDeleteCancel() {
+    showDeleteConfirm = false;
   }
 </script>
 
@@ -74,12 +106,12 @@
   >
     <!-- Header -->
     <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{timer ? 'Edit' : 'Add'} Timer</h2>
+      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{timer ? $_('timerform.edit') : $_('timerform.add')}</h2>
       <button
         onclick={close}
         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
         style="width: 28px; height: 28px;"
-        aria-label="Close"
+        aria-label={$_('common.close')}
       ></button>
     </div>
 
@@ -101,7 +133,7 @@
         <!-- Name -->
         <div>
           <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Button Name *
+            {$_('timer.buttonName')}
           </label>
           <input
             id="name"
@@ -109,14 +141,14 @@
             bind:value={name}
             required
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder="e.g., Work, Exercise"
+            placeholder={$_('timer.placeholderTimerName')}
           />
         </div>
 
         <!-- Color -->
         <div>
           <label for="colorPicker" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Color
+            {$_('timer.color')}
           </label>
           <div class="flex gap-2 flex-wrap mb-2">
             {#each colorPresets as preset}
@@ -151,12 +183,12 @@
             class="w-4 h-4 text-primary border-gray-300 dark:border-gray-600 rounded focus:ring-primary"
           />
           <label for="autoBreaks" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-            Automatically subtract break time
+            {$_('timer.automaticallySubtractBreaks')}
           </label>
         </div>
         <div class="text-xs text-gray-500 dark:text-gray-400 pl-6">
-          <p>• 6-9 hours: 30 min break</p>
-          <p>• 9+ hours: 45 min break</p>
+          <p>{$_('timer.breakRules6to9')}</p>
+          <p>{$_('timer.breakRules9plus')}</p>
         </div>
 
         <!-- Archived -->
@@ -168,11 +200,11 @@
             class="w-4 h-4 text-primary border-gray-300 dark:border-gray-600 rounded focus:ring-primary"
           />
           <label for="archived" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-            Archive this timer
+            {$_('timer.archiveTimer')}
           </label>
         </div>
         <div class="text-xs text-gray-500 dark:text-gray-400 pl-6">
-          <p>Archived timers are hidden from the main view but can still be accessed in reports</p>
+          <p>{$_('timer.archivedTimersHidden')}</p>
         </div>
 
         <!-- Actions -->
@@ -182,20 +214,85 @@
             onclick={close}
             class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
-            Cancel
+            {$_('common.cancel')}
           </button>
           <button
             type="submit"
             disabled={isLoading}
             class="flex-1 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Saving...' : timer ? 'Update' : 'Create'}
+            {isLoading ? $_('common.saving') : $_('common.save')}
           </button>
         </div>
+        
+        <!-- Delete Button (only shown when editing) -->
+        {#if timer}
+          <button
+            type="button"
+            onclick={handleDeleteClick}
+            class="w-full px-4 py-2 border-2 border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-400 dark:hover:border-red-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <span class="icon-[si--bin-duotone]" style="width: 20px; height: 20px;"></span>
+            {$_('timer.deleteTimer')}
+          </button>
+        {/if}
       </form>
     </div>
   </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+{#if showDeleteConfirm}
+  <div 
+    class="fixed inset-0 z-[60] flex items-center justify-center p-4"
+    onclick={handleDeleteCancel}
+    onkeydown={(e) => e.key === 'Escape' && handleDeleteCancel()}
+    role="button"
+    tabindex="0"
+  >
+    <!-- Modal Content -->
+    <div 
+      class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-[400px] overflow-hidden flex flex-col"
+      onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
+    >
+      <!-- Header -->
+      <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
+        <h3 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{$_('timer.deleteTimer')}</h3>
+        <button
+          onclick={handleDeleteCancel}
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
+          style="width: 28px; height: 28px;"
+          aria-label={$_('common.close')}
+        ></button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6 space-y-6">
+        <p class="text-gray-600 dark:text-gray-400">
+          {$_('timer.deleteConfirmation')} "{timer?.name}"?
+        </p>
+        <div class="flex gap-3">
+          <button
+            onclick={handleDeleteCancel}
+            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            {$_('common.cancel')}
+          </button>
+          <button
+            onclick={handleDeleteConfirm}
+            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            {$_('common.delete')}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   /* Add backdrop blur effect */

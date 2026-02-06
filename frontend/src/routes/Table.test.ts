@@ -100,29 +100,30 @@ describe('Table Route', () => {
 
   it('renders the page title', () => {
     render(Table);
-    expect(screen.getByText('Timelogs Table')).toBeInTheDocument();
+    // Title is now from i18n translation
+    expect(screen.getByText('Table')).toBeInTheDocument();
   });
 
   it('renders export button', () => {
     render(Table);
-    expect(screen.getByLabelText('Export timelogs')).toBeInTheDocument();
+    expect(screen.getByLabelText('Export Data')).toBeInTheDocument();
   });
 
   it('renders import button', () => {
     render(Table);
-    expect(screen.getByLabelText('Import timelogs')).toBeInTheDocument();
+    expect(screen.getByLabelText('Import Data')).toBeInTheDocument();
   });
 
   it('renders pagination controls', () => {
     render(Table);
     // The component uses pagination, so there should be page navigation or results display
-    // Results count is shown
-    expect(screen.getByText(/timelogs found/)).toBeInTheDocument();
+    // Results count is shown (using translation which shows "entries found" or "entry found")
+    expect(screen.getByText(/(entries|entry) found/)).toBeInTheDocument();
   });
 
   it('renders filters component', () => {
     render(Table);
-    expect(screen.getByPlaceholderText(/Search notes, timers, targets/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Search notes, projects, targets/)).toBeInTheDocument();
   });
 
   it('renders table headers when not loading', async () => {

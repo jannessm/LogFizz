@@ -39,7 +39,7 @@ describe('SyncStatusSection Component', () => {
     render(SyncStatusSection, {
       props: { hasPendingSync: false, isOnline: true },
     });
-    expect(screen.getByText('All synced')).toBeInTheDocument();
+    expect(screen.getByText('All changes synced')).toBeInTheDocument();
   });
 
   it('renders sync now button', () => {

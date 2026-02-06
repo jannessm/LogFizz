@@ -1,10 +1,11 @@
 <script lang="ts">
   import { timers } from '../../stores/timers';
   import { TimerForm } from '../../components/forms';
+  import { _ } from '../../lib/i18n';
 
   let {
     value = $bindable(''),
-    placeholder = 'Select a timer...',
+    placeholder = $_('import.selectTimer'),
     onchange = undefined,
   }: {
     value?: string;
@@ -53,7 +54,7 @@
     </option>
   {/each}
   <option value="__create_new__" class="font-medium text-blue-600 dark:text-orange-400">
-    ➕ Create new timer...
+    {$_('import.createNewTimer')}
   </option>
 </select>
 

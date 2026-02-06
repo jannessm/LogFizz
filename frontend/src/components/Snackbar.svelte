@@ -1,6 +1,7 @@
 <script lang="ts">
   import { snackbar } from '../stores/snackbar';
   import { fly, fade } from 'svelte/transition';
+  import { _ } from '../lib/i18n';
   
   $: messages = $snackbar.messages;
 
@@ -65,7 +66,7 @@
       <button
         on:click={() => snackbar.dismiss(message.id)}
         class="w-5 h-5 icon-[si--close-line] flex-shrink-0 hover:bg-white/20 rounded transition-colors"
-        aria-label="Close"
+        aria-label={$_('common.close')}
       ></button>
     </div>
   {/each}

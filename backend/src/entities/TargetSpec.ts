@@ -26,7 +26,13 @@ export class TargetSpec implements TargetSpecEntity {
   @Column('boolean', { default: false })
   exclude_holidays!: boolean; // Whether to exclude public holidays from target calculation
 
-  @Column('varchar', { nullable: true })
+  @Column('varchar', { 
+    nullable: true,
+    transformer: {
+      to: (value: string | null | undefined) => value === '' || value === undefined ? null : value,
+      from: (value: string | null) => value === '' || value === null ? undefined : value,
+    },
+  })
   state_code?: string;
 
 
