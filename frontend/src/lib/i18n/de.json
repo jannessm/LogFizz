@@ -357,7 +357,7 @@
     "downloadDataFailed": "Daten konnten nicht heruntergeladen werden. Bitte versuchen Sie es erneut.",
     "downloadDataSuccess": "Ihre Daten wurden erfolgreich heruntergeladen.",
     "downloading": "Wird heruntergeladen...",
-    "editOnStop": "Bearbeitungsformular beim Stoppen von Projekten öffnen",
+    "editOnStop": "Formular beim Stoppen öffnen",
     "editOnStopDescription": "Wenn aktiviert, wird beim Stoppen eines Projekts das Bearbeitungsformular geöffnet, um bspw. Notizen hinzuzufügen.",
     "firstDayDescription": "Legt den ersten Tag der Woche in Kalenderansichten fest",
     "firstDayOfWeek": "Erster Tag der Woche",
