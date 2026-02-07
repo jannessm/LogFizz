@@ -65,11 +65,12 @@ export function getEffectiveRange(
   start: string,
   end?: string | null
 ): { effectiveStart: dayjs.Dayjs; effectiveEnd: dayjs.Dayjs } | null {
-  const dayStart = dayjs(date).startOf('day');
-  const dayEnd = dayjs(date).endOf('day');
+  // Parse all times in UTC to ensure consistency
+  const dayStart = dayjs.utc(date).startOf('day');
+  const dayEnd = dayjs.utc(date).endOf('day');
   
-  const logStart = dayjs(start);
-  const logEnd = end ? dayjs(end) : dayjs(); // Use current time for running logs
+  const logStart = dayjs.utc(start);
+  const logEnd = end ? dayjs.utc(end) : dayjs.utc(); // Use current time for running logs
   
   // Check if timespans overlap
   if (logEnd.isBefore(dayStart) || logStart.isAfter(dayEnd)) {
@@ -107,8 +108,8 @@ export function calculateTimelogDuration(timelog: TimeLog): number {
     return 0;
   }
   
-  const start = dayjs(timelog.start_timestamp);
-  const end = dayjs(timelog.end_timestamp);
+  const start = dayjs.utc(timelog.start_timestamp);
+  const end = dayjs.utc(timelog.end_timestamp);
   let duration = end.diff(start, 'minute');
   
   // Apply break calculation if enabled
@@ -174,9 +175,9 @@ export function calculateWorkedMinutesForDate(
     
     // calculate worked minutes
     const { effectiveStart, effectiveEnd } = range;
-    const logStart = dayjs(timelog.start_timestamp);
-    const logEnd = timelog.end_timestamp ? dayjs(timelog.end_timestamp) : dayjs();
-    const dayEnd = dayjs(date).endOf('day');
+    const logStart = dayjs.utc(timelog.start_timestamp);
+    const logEnd = timelog.end_timestamp ? dayjs.utc(timelog.end_timestamp) : dayjs.utc();
+    const dayEnd = dayjs.utc(date).endOf('day');
     const totalDuration = duration;
     const actualDuration = logEnd.diff(logStart, 'minute');
     
@@ -210,13 +211,13 @@ export function calculateDueMinutes(
   target: Target,
   holidays: Set<string> = new Set()
 ): number {
-  const dateObj = dayjs(date);
+  const dateObj = dayjs.utc(date);
   const weekday = dateObj.day(); // 0=Sunday, 6=Saturday
   
   // Find the applicable duration spec for this date
   for (const spec of target.target_specs) {
-    const startDate = dayjs(spec.starting_from);
-    const endDate = spec.ending_at ? dayjs(spec.ending_at) : null;
+    const startDate = dayjs.utc(spec.starting_from);
+    const endDate = spec.ending_at ? dayjs.utc(spec.ending_at) : null;
     
     // Check if date is within this spec's range
     if (dateObj.isBefore(startDate, 'day')) continue;
