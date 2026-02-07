@@ -1,5 +1,11 @@
 import { AppDataSource } from '../config/database.js';
 import { User } from '../entities/User.js';
+import { Timer } from '../entities/Timer.js';
+import { TimeLog } from '../entities/TimeLog.js';
+import { Target } from '../entities/Target.js';
+import { TargetSpec } from '../entities/TargetSpec.js';
+import { Balance } from '../entities/Balance.js';
+import { UserSettings } from '../entities/UserSettings.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { IsNull, MoreThan } from 'typeorm';
 import { EmailService } from './email.service.js';
@@ -260,5 +266,101 @@ export class AuthService {
     }
 
     return true;
+  }
+
+  /**
+   * Delete a user account and all associated data permanently.
+   * This is a GDPR-compliant hard delete that removes all user data from the database.
+   */
+  async deleteAccount(userId: string, password: string): Promise<boolean> {
+    const user = await this.getUserById(userId);
+    if (!user) {
+      return false;
+    }
+
+    // Verify password before deletion
+    const isValid = await verifyPassword(password, user.password_hash);
+    if (!isValid) {
+      return false;
+    }
+
+    // Delete all user data (cascade deletes should handle most of this, but we ensure complete cleanup)
+    // The order matters less here due to CASCADE constraints, but we delete explicitly for clarity
+    
+    // Delete balances
+    const balanceRepository = AppDataSource.getRepository(Balance);
+    await balanceRepository.delete({ user_id: userId });
+
+    // Delete timelogs
+    const timeLogRepository = AppDataSource.getRepository(TimeLog);
+    await timeLogRepository.delete({ user_id: userId });
+
+    // Delete timers
+    const timerRepository = AppDataSource.getRepository(Timer);
+    await timerRepository.delete({ user_id: userId });
+
+    // Delete target specs
+    const targetSpecRepository = AppDataSource.getRepository(TargetSpec);
+    await targetSpecRepository.delete({ user_id: userId });
+
+    // Delete targets
+    const targetRepository = AppDataSource.getRepository(Target);
+    await targetRepository.delete({ user_id: userId });
+
+    // Delete user settings
+    const userSettingsRepository = AppDataSource.getRepository(UserSettings);
+    await userSettingsRepository.delete({ user_id: userId });
+
+    // Finally, delete the user
+    await this.userRepository.delete({ id: userId });
+
+    return true;
+  }
+
+  /**
+   * Export all user data for GDPR compliance.
+   * Returns a structured object containing all data associated with the user.
+   */
+  async exportUserData(userId: string): Promise<{
+    user: Partial<User>;
+    timers: Timer[];
+    timelogs: TimeLog[];
+    targets: Target[];
+    targetSpecs: TargetSpec[];
+    balances: Balance[];
+    userSettings: UserSettings | null;
+  } | null> {
+    const user = await this.getUserById(userId);
+    if (!user) {
+      return null;
+    }
+
+    const timerRepository = AppDataSource.getRepository(Timer);
+    const timeLogRepository = AppDataSource.getRepository(TimeLog);
+    const targetRepository = AppDataSource.getRepository(Target);
+    const targetSpecRepository = AppDataSource.getRepository(TargetSpec);
+    const balanceRepository = AppDataSource.getRepository(Balance);
+    const userSettingsRepository = AppDataSource.getRepository(UserSettings);
+
+    // Fetch all user data
+    const timers = await timerRepository.find({ where: { user_id: userId } });
+    const timelogs = await timeLogRepository.find({ where: { user_id: userId } });
+    const targets = await targetRepository.find({ where: { user_id: userId } });
+    const targetSpecs = await targetSpecRepository.find({ where: { user_id: userId } });
+    const balances = await balanceRepository.find({ where: { user_id: userId } });
+    const userSettings = await userSettingsRepository.findOne({ where: { user_id: userId } });
+
+    // Return user data without sensitive fields
+    const { password_hash, reset_token, email_verification_token, ...safeUserData } = user;
+
+    return {
+      user: safeUserData,
+      timers,
+      timelogs,
+      targets,
+      targetSpecs,
+      balances,
+      userSettings,
+    };
   }
 }

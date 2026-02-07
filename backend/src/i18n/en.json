@@ -1,8 +1,10 @@
 {
   "auth": {
+    "accountDeleted": "Your account and all associated data have been permanently deleted.",
     "emailVerifiedSuccess": "Email has been verified successfully",
     "invalidCredentials": "Invalid credentials",
     "invalidOldPassword": "Invalid old password",
+    "invalidPassword": "Invalid password",
     "invalidResetToken": "Invalid or expired reset token",
     "invalidVerificationToken": "Invalid or expired verification token",
     "loggedOutSuccess": "Logged out successfully",

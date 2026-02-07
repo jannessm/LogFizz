@@ -365,4 +365,83 @@ export async function authRoutes(fastify: FastifyInstance) {
       message: t('auth.verificationSent')
     });
   });
+
+  // Delete account endpoint (GDPR right to erasure)
+  fastify.delete('/account', {
+    ...generalAuthRateLimit,
+    schema: {
+      tags: ['Authentication'],
+      body: Type.Object({
+        password: Type.String(),
+      }),
+      response: {
+        200: Type.Object({
+          message: Type.String(),
+        }),
+        401: Type.Object({
+          error: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.session.userId;
+    
+    if (!userId) {
+      return reply.code(401).send({ error: t('common.notAuthenticated') });
+    }
+
+    const { password } = request.body as any;
+    const success = await authService.deleteAccount(userId, password);
+
+    if (!success) {
+      return reply.code(401).send({ error: t('auth.invalidPassword') });
+    }
+
+    // Destroy the session after successful deletion
+    return new Promise((resolve, reject) => {
+      request.session.destroy((err) => {
+        if (err) {
+          // Account is already deleted, so we still return success
+          console.error('Failed to destroy session after account deletion:', err);
+        }
+        reply.send({ message: t('auth.accountDeleted') });
+        resolve(undefined);
+      });
+    });
+  });
+
+  // Export user data endpoint (GDPR right to data portability)
+  fastify.get('/export-data', {
+    schema: {
+      tags: ['Authentication'],
+      response: {
+        200: Type.Object({
+          user: Type.Any(),
+          timers: Type.Array(Type.Any()),
+          timelogs: Type.Array(Type.Any()),
+          targets: Type.Array(Type.Any()),
+          targetSpecs: Type.Array(Type.Any()),
+          balances: Type.Array(Type.Any()),
+          userSettings: Type.Any(),
+        }),
+        401: Type.Object({
+          error: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.session.userId;
+    
+    if (!userId) {
+      return reply.code(401).send({ error: t('common.notAuthenticated') });
+    }
+
+    const data = await authService.exportUserData(userId);
+
+    if (!data) {
+      return reply.code(401).send({ error: t('auth.userNotFound') });
+    }
+
+    return reply.send(data);
+  });
 }
