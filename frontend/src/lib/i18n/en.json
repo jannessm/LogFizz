@@ -357,7 +357,7 @@
     "downloadDataFailed": "Failed to download data. Please try again.",
     "downloadDataSuccess": "Your data has been downloaded successfully.",
     "downloading": "Downloading...",
-    "editOnStop": "Open edit form when stopping projects",
+    "editOnStop": "Open form when stopping",
     "editOnStopDescription": "When enabled, stopping a project will open the edit form to add e.g. notes.",
     "firstDayDescription": "Sets the first day of the week in calendar views",
     "firstDayOfWeek": "First Day of Week",
