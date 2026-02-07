@@ -40,11 +40,15 @@
   let isOnline = $derived(typeof navigator !== 'undefined' ? navigator.onLine : true);
 
   // Available locales with examples
-  const localeOptions = [
-    { value: 'en-US', label: $_('settings.dateEnglishUS')},
-    { value: 'en-GB', label: $_('settings.dateEnglishUK')},
-    { value: 'de-DE', label: $_('settings.dateGerman')},
-  ];
+  let localeOptions: { value: string; label: string }[] = $state([]);
+  $effect(() => {
+    // Update locale options with translated labels
+     localeOptions = [
+      { value: 'en-US', label: $_('settings.dateEnglishUS')},
+      { value: 'en-GB', label: $_('settings.dateEnglishUK')},
+      { value: 'de-DE', label: $_('settings.dateGerman')},
+    ];
+  });
 
   let dateExample = $state('');
   $effect(() => {
