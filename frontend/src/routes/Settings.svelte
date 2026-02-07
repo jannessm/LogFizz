@@ -29,6 +29,12 @@
   let firstDayOfWeek: 'sunday' | 'monday' = $state('sunday');
   let language: 'en' | 'de' = $state('en');
   let locale: string = $state('en-US');
+  
+  // Data & Privacy section
+  let isDownloading = $state(false);
+  let showDeleteConfirmation = $state(false);
+  let deletePassword = $state('');
+  let isDeleting = $state(false);
 
   let user = $derived($authStore.user);
   let isOnline = $derived(typeof navigator !== 'undefined' ? navigator.onLine : true);
@@ -181,6 +187,57 @@
       snackbar.success($_('settings.dateFormatUpdated'));
     } catch (error: any) {
       snackbar.error(error.message || $_('common.error'));
+    }
+  }
+
+  async function handleDownloadData() {
+    if (isDownloading) return;
+    
+    try {
+      isDownloading = true;
+      const data = await authStore.exportUserData();
+      
+      // Create a downloadable JSON file
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `tapshift-data-${dayjs().format('YYYY-MM-DD')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      snackbar.success($_('settings.downloadDataSuccess'));
+    } catch (error: any) {
+      snackbar.error(error.message || $_('settings.downloadDataFailed'));
+    } finally {
+      isDownloading = false;
+    }
+  }
+
+  function openDeleteConfirmation() {
+    showDeleteConfirmation = true;
+    deletePassword = '';
+  }
+
+  function closeDeleteConfirmation() {
+    showDeleteConfirmation = false;
+    deletePassword = '';
+  }
+
+  async function handleDeleteAccount() {
+    if (isDeleting || !deletePassword) return;
+    
+    try {
+      isDeleting = true;
+      await authStore.deleteAccount(deletePassword);
+      snackbar.success($_('settings.deleteAccountSuccess'));
+      navigate('/login');
+    } catch (error: any) {
+      snackbar.error(error.message || $_('settings.deleteAccountFailed'));
+    } finally {
+      isDeleting = false;
     }
   }
 </script>
@@ -370,8 +427,29 @@
         </p>
       </div>
 
+      <!-- Data & Privacy -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{$_('settings.dataPrivacy')}</h3>
+        <button
+          onclick={handleDownloadData}
+          disabled={isDownloading || !isOnline}
+          class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-hover transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {#if isDownloading}
+            <span class="w-5 h-5 icon-[svg-spinners--3-dots-fade]"></span>
+            {$_('settings.downloading')}
+          {:else}
+            <span class="w-5 h-5 icon-[si--file-download-duotone]"></span>
+            {$_('settings.downloadData')}
+          {/if}
+        </button>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+          {$_('settings.downloadDataDescription')}
+        </p>
+      </div>
+
       <!-- Logout -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
         <button
           onclick={handleLogout}
           class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
@@ -379,6 +457,22 @@
           <span class="w-5 h-5 icon-[si--sign-out-line]"></span>
           {$_('auth.logout')}
         </button>
+      </div>
+
+      <!-- Danger Zone - Delete Account -->
+      <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-red-800 dark:text-red-200 mb-4">{$_('settings.accountDangerZone')}</h3>
+        <button
+          onclick={openDeleteConfirmation}
+          disabled={!isOnline}
+          class="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          <span class="w-5 h-5 icon-[si--bin-duotone]"></span>
+          {$_('settings.deleteAccount')}
+        </button>
+        <p class="text-sm text-red-600 dark:text-red-400 mt-2">
+          {$_('settings.deleteAccountDescription')}
+        </p>
       </div>
 
       <!-- Footer with version and legal links -->
@@ -391,6 +485,49 @@
       </div>
     </div>
   </div>
+
+  <!-- Delete Account Confirmation Modal -->
+  {#if showDeleteConfirmation}
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 class="text-lg font-semibold text-red-600 dark:text-red-400 mb-4">{$_('settings.deleteAccount')}</h3>
+        <p class="text-gray-700 dark:text-gray-300 mb-4">
+          {$_('settings.deleteAccountConfirmation')}
+        </p>
+        <div class="mb-4">
+          <label for="delete-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            {$_('settings.deleteAccountPasswordLabel')}
+          </label>
+          <input
+            type="password"
+            id="delete-password"
+            bind:value={deletePassword}
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            placeholder={$_('auth.password')}
+          />
+        </div>
+        <div class="flex gap-3">
+          <button
+            onclick={closeDeleteConfirmation}
+            class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            {$_('common.cancel')}
+          </button>
+          <button
+            onclick={handleDeleteAccount}
+            disabled={isDeleting || !deletePassword}
+            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {#if isDeleting}
+              <span class="w-5 h-5 icon-[svg-spinners--3-dots-fade]"></span>
+            {:else}
+              {$_('common.delete')}
+            {/if}
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <BottomNav currentTab="settings" />
 </div>

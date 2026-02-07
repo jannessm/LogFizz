@@ -220,6 +220,47 @@ function createAuthStore() {
       }
     },
 
+    async deleteAccount(password: string): Promise<{ message: string }> {
+      update(state => ({ ...state, isLoading: true, error: null }));
+      try {
+        const response = await authApi.deleteAccount(password);
+        // Clear all local data after account deletion
+        await clearAllData();
+        set({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
+        });
+        return response;
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.error || 'Failed to delete account';
+        update(state => ({ 
+          ...state, 
+          error: errorMessage,
+          isLoading: false 
+        }));
+        throw new Error(errorMessage);
+      }
+    },
+
+    async exportUserData(): Promise<any> {
+      update(state => ({ ...state, isLoading: true, error: null }));
+      try {
+        const data = await authApi.exportUserData();
+        update(state => ({ ...state, isLoading: false }));
+        return data;
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.error || 'Failed to export user data';
+        update(state => ({ 
+          ...state, 
+          error: errorMessage,
+          isLoading: false 
+        }));
+        throw new Error(errorMessage);
+      }
+    },
+
     clearError() {
       update(state => ({ ...state, error: null }));
     },
