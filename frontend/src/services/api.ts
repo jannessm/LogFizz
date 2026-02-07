@@ -98,6 +98,17 @@ export const authApi = {
   async resendVerification(email: string): Promise<{ message: string }> {
     return api.post('api/auth/resend-verification', { json: { email } }).json();
   },
+
+  async deleteAccount(password: string): Promise<{ message: string }> {
+    // Get current user email for hashing
+    const currentUser = await this.getCurrentUser();
+    const hashedPassword = await hashPasswordForTransport(password, currentUser.email);
+    return api.delete('api/auth/account', { json: { password: hashedPassword } }).json();
+  },
+
+  async exportUserData(): Promise<any> {
+    return api.get('api/auth/export-data').json();
+  },
 };
 
 // Timer API (formerly Button)

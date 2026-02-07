@@ -123,7 +123,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     }
 
     try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-12-15.clover' });
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2026-01-28.clover' });
       
       // Get the raw body as string
       const payload = JSON.stringify(request.body);
