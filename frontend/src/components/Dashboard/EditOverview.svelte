@@ -63,15 +63,22 @@
     // Get active target spec for today
     const activeSpec = getActiveTargetSpec(target);
     const today = dayjs().day(); // 0 (Sun) to 6 (Sat)
-    const targetDuration = activeSpec?.duration_minutes[today] || 60;
+    const targetDuration = activeSpec?.duration_minutes[today] || 0;
     
-    const percentage = Math.min(100, Math.round((totalMinutes / targetDuration) * 100));
-    
+    let percentage = Math.min(100, Math.round((totalMinutes / targetDuration) * 100));
+    if (targetDuration === 0) {
+      percentage = 100; // Avoid division by zero, treat as 0% if no target set
+    }
+
     return { totalMinutes, targetDuration, percentage };
   }
 
+  const dayNames = [0,1,2,3,4,5,6].map(i => {
+    const date = dayjs().day(i);
+    return date.format('ddd');
+  });
+
   function getActiveWeekdays(spec: any): string {
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const activeDays = spec.duration_minutes
       .map((duration: number, index: number) => duration > 0 ? dayNames[index] : null)
       .filter((day: string | null) => day !== null);
