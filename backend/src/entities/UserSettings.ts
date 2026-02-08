@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Unique } from 'typeorm';
 import { User } from './User.js';
+import type { StatisticsEmailFrequency } from '../../../lib/types/index.js';
 
 @Entity('user_settings')
 @Unique(['user_id'])
