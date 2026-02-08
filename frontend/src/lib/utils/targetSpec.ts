@@ -3,6 +3,7 @@
  */
 import type { TargetWithSpecs, TargetSpec } from '../../types';
 import dayjs from '../../../../lib/utils/dayjs.js';
+import { getDayAbbreviation } from '../dateFormatting.js';
 
 /**
  * Get the active TargetSpec for a given date
@@ -94,12 +95,11 @@ export function isTargetEnded(target: TargetWithSpecs): boolean {
 }
 
 /**
- * Get weekday names for display
+ * Get weekday names for display based on language setting
  * 
  * @param weekdays - Array of weekday numbers (0=Sun, 6=Sat)
  * @returns Comma-separated string of weekday abbreviations
  */
 export function getWeekdayNames(weekdays: number[]): string {
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  return weekdays.map(d => dayNames[d]).join(', ');
+  return weekdays.map(d => getDayAbbreviation(d)).join(', ');
 }
