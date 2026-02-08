@@ -446,6 +446,30 @@
           </p>
         </div>
       </div>
+
+      <!-- Notifications -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{$_('settings.statisticsEmail')}</h3>
+        
+        <div>
+          <label for="statistics-email-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            {$_('settings.statisticsEmail')}
+          </label>
+          <select
+            id="statistics-email-select"
+            bind:value={statisticsEmailFrequency}
+            onchange={handleStatisticsEmailChange}
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          >
+            <option value="none">{$_('settings.statisticsEmailFrequencyNone')}</option>
+            <option value="weekly">{$_('settings.statisticsEmailFrequencyWeekly')}</option>
+            <option value="monthly">{$_('settings.statisticsEmailFrequencyMonthly')}</option>
+          </select>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            {$_('settings.statisticsEmailDescription')}
+          </p>
+        </div>
+      </div>
   
       <!-- Subscription -->
       <!-- <div class="bg-white rounded-lg shadow-md p-6 mb-6">
