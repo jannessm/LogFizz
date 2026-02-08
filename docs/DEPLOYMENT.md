@@ -335,8 +335,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./backend/Dockerfile
     container_name: clock-backend
     restart: unless-stopped
     env_file:
@@ -351,15 +351,18 @@ services:
       - traefik-public
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.clock-backend.rule=Host(`api.yourdomain.com`)"
+      # Route all /api and /health requests to backend
+      - "traefik.http.routers.clock-backend.rule=Host(`yourdomain.com`) && (PathPrefix(`/api`) || Path(`/health`) || Path(`/docs`))"
       - "traefik.http.routers.clock-backend.entrypoints=websecure"
       - "traefik.http.routers.clock-backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.clock-backend.loadbalancer.server.port=3000"
+      # Higher priority to match /api before frontend catches all
+      - "traefik.http.routers.clock-backend.priority=100"
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./frontend/Dockerfile
     container_name: clock-frontend
     restart: unless-stopped
     depends_on:
@@ -368,10 +371,13 @@ services:
       - traefik-public
     labels:
       - "traefik.enable=true"
+      # Route all other requests to frontend
       - "traefik.http.routers.clock-frontend.rule=Host(`yourdomain.com`) || Host(`www.yourdomain.com`)"
       - "traefik.http.routers.clock-frontend.entrypoints=websecure"
       - "traefik.http.routers.clock-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.clock-frontend.loadbalancer.server.port=80"
+      # Lower priority so /api routes are matched first
+      - "traefik.http.routers.clock-frontend.priority=1"
 
 volumes:
   postgres_data:
@@ -383,6 +389,14 @@ networks:
   traefik-public:
     external: true
 ```
+
+**Note on Routing Configuration:**
+
+This setup uses Traefik to route requests to the same domain:
+- All requests to `yourdomain.com/api/*` are routed to the backend
+- Requests to `yourdomain.com/health` and `yourdomain.com/docs` are also routed to the backend
+- All other requests to `yourdomain.com/*` are routed to the frontend
+- The backend has higher priority (100) to ensure `/api`, `/health`, and `/docs` routes are matched first
 
 ### 2. Update Configuration
 
@@ -574,7 +588,8 @@ docker exec -it clock-backend npm run migration:run
 docker compose -f docker-compose.prod.yml ps
 
 # Health check endpoints
-curl https://api.yourdomain.com/health
+curl https://yourdomain.com/health
+curl https://yourdomain.com/api/auth/me
 curl https://yourdomain.com
 ```
 

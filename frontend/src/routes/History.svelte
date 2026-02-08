@@ -4,7 +4,7 @@
   import {
     HistoryCharts, HistoryCalendar,
     HistoryLogs, BalancesOverview
-  } from '../components/History';
+  } from '../components/history';
   import { timers } from '../stores/timers';
   import { targets } from '../stores/targets';
   import { dayjs } from '../types'; // ensure consistent dayjs instance

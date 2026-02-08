@@ -34,8 +34,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./backend/Dockerfile
     container_name: clock-backend
     environment:
       DB_HOST: postgres
@@ -62,8 +62,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./frontend/Dockerfile
     container_name: clock-frontend
     ports:
       - "8080:80"
