@@ -1,4 +1,11 @@
 {
+  "setup": {
+    "title": "Willkommen bei TapShift",
+    "description": "Bitte wählen Sie Ihre bevorzugte Sprache und Ihr Datumsformat, um zu beginnen.",
+    "language": "Sprache",
+    "dateFormat": "Datum & Zeitformat",
+    "getStarted": "Los geht's"
+  },
   "auth": {
     "authFailed": "Authentifizierung fehlgeschlagen",
     "completeHCaptcha": "Bitte führen Sie die hCaptcha-Verifizierung durch",
