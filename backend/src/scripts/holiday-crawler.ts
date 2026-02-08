@@ -9,6 +9,7 @@
  *   npm run holiday:crawl -- --list-countries
  */
 
+import '../env.js';
 import 'reflect-metadata';
 import { AppDataSource } from '../config/database.js';
 import { HolidayCrawlerService } from '../services/holiday-crawler.service.js';
