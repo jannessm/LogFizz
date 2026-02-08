@@ -19,13 +19,15 @@
   import Payment from './routes/Payment.svelte';
   import PaymentSuccess from './routes/PaymentSuccess.svelte';
   import Snackbar from './components/Snackbar.svelte';
+  import SetupModal from './components/SetupModal.svelte';
   import { syncService } from './services/sync';
   import { currentPath, navigate } from './lib/navigation';
   import { loadData } from './services/data';
-  import { getDB } from './lib/db';
+  import { getDB, getSetting } from './lib/db';
   import { snackbar } from './stores/snackbar';
 
   let isLoading = $state(true);
+  let showSetupModal = $state(false);
   const skipEmailVerification = import.meta.env.VITE_SKIP_EMAIL_VERIFICATION === 'true';
   console.log('Skip Email Verification:', skipEmailVerification);
 
@@ -57,6 +59,12 @@
       }
       if (settings?.locale) {
         setDayjsLocale(settings.locale);
+      }
+      
+      // Check if setup has been completed on this device
+      const setupComplete = await getSetting('setupComplete');
+      if (!setupComplete) {
+        showSetupModal = true;
       }
     }
     
@@ -107,6 +115,10 @@
       navigate('/', { replace: true });
     }
   });
+
+  function handleSetupComplete() {
+    showSetupModal = false;
+  }
 </script>
 
 {#if isLoading}
@@ -148,3 +160,8 @@
 
 <!-- Global Snackbar component -->
 <Snackbar />
+
+<!-- Setup Modal - shown once on first visit for authenticated users -->
+{#if showSetupModal && authenticated && emailVerified}
+  <SetupModal oncomplete={handleSetupComplete} />
+{/if}
