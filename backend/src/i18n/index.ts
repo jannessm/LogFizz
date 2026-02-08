@@ -1,13 +1,6 @@
-import dayjs from 'dayjs';
-import 'dayjs/locale/de';
-import 'dayjs/locale/en';
-import LocalizedFormat from 'dayjs/plugin/localizedFormat';
-
-import en from './en.json';
-import de from './de.json';
-
-// Extend dayjs with localized format plugin
-dayjs.extend(LocalizedFormat);
+import dayjs from '../../../lib/utils/dayjs.js';
+import en from './en.json' with { type: 'json' };
+import de from './de.json' with { type: 'json' };
 
 type TranslationData = typeof en;
 

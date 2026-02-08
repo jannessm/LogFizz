@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ RUN npm ci
 COPY backend/ ./
 
 # Build TypeScript
-RUN npm run build
+RUN npm run build --omit=dev
 
 # Expose port
 EXPOSE 3000

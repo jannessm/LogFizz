@@ -1,3 +1,4 @@
+import './env.js';
 import 'reflect-metadata';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
