@@ -58,8 +58,8 @@
   }
 
   function handleLanguageChange() {
-    // When language changes, also set locale to match for a better UX
-    setLocale(language);
+    // When language changes, also update the default locale to match for better UX
+    // Note: We don't call setLocale here - the UI locale is only updated in handleSubmit
     if (language === 'de') {
       locale = 'de-DE';
     } else {

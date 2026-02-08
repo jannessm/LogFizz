@@ -115,8 +115,13 @@ describe('SetupModal Component', () => {
       }
     });
 
-    // Find and click the submit button
-    const submitButton = container.querySelector('button[type="button"]');
+    // Find the submit button by its text content
+    const buttons = container.querySelectorAll('button');
+    const submitButton = Array.from(buttons).find(btn => 
+      btn.textContent?.includes('setup.getStarted')
+    );
+    
+    expect(submitButton).not.toBeUndefined();
     if (submitButton) {
       await fireEvent.click(submitButton);
       
