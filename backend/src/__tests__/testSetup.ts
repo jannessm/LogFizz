@@ -21,6 +21,9 @@ vi.mock('../services/email.service.js', () => {
     async sendStatisticsEmail() {
       return Promise.resolve();
     }
+    async sendUserBalanceEmail() {
+      return Promise.resolve();
+    }
     async verifyConnection() {
       return Promise.resolve(true);
     }

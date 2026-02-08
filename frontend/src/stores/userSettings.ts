@@ -98,7 +98,7 @@ function createUserSettingsStore() {
     /**
      * Update user settings
      */
-    async updateSettings(updates: { language?: string; locale?: string }) {
+    async updateSettings(updates: { language?: string; locale?: string; statistics_email_frequency?: string }) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
         const currentState = get({ subscribe });
