@@ -33,7 +33,7 @@
   const now = $derived(dayjs.utc(selectedDate));
 
   let newLog: Partial<TimeLog> = $state({
-    timer_id: '',
+    timer_id: undefined,
     type: 'normal',
     whole_day: false,
     apply_break_calculation: false,
@@ -152,6 +152,7 @@
     }
 
     // is not TimeLog type
+    console.log('saving:', newLog);
     save(newLog);
   }
 

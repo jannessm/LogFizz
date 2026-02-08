@@ -26,14 +26,7 @@ export async function saveTimelog(
     });
   } else {
     // Creating new timelog
-    await timeLogsStore.create({
-      type: newLog.type,
-      whole_day: newLog.whole_day,
-      start_timestamp: newLog.start_timestamp,
-      end_timestamp: newLog.end_timestamp || undefined,
-      apply_break_calculation: newLog.apply_break_calculation,
-      notes: newLog.notes || undefined,
-    });
+    await timeLogsStore.create(newLog);
   }
 }
 
