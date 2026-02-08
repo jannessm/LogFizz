@@ -185,7 +185,7 @@ export class HolidayCrawlerService {
   }> {
     const results = [];
 
-    for (const year of years) {
+    for (let year = years[0]; year <= years[1]; year++) {
       const result = await this.crawlHolidays(country, year, forceRefresh);
       results.push({
         year,
@@ -271,7 +271,7 @@ export class HolidayCrawlerService {
    */
   async initializeCommonHolidays(): Promise<void> {
     const currentYear = new Date().getFullYear();
-    const years = [currentYear - 5, currentYear, currentYear + 5];
+    const years = [currentYear - 5, currentYear + 5];
     
     // Common countries (can be expanded)
     const countries = ['DE', 'AT', 'CH'];//, 'US', 'GB', 'FR', 'AT', 'CH'];

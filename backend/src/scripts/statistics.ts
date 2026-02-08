@@ -10,6 +10,7 @@
  *   npm run statistics:show
  */
 
+import '../env.js';
 import 'reflect-metadata';
 import { AppDataSource } from '../config/database.js';
 import { StatisticsService } from '../services/statistics.service.js';
