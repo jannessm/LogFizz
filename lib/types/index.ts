@@ -20,11 +20,14 @@ export interface User {
 }
 
 // User Settings types
+export type StatisticsEmailFrequency = 'none' | 'weekly' | 'monthly';
+
 export interface UserSettings {
   id: string;
   user_id: string;
   language: string; // 'en' | 'de'
   locale: string; // Locale for date/time formatting e.g., 'en-US', 'de-DE'
+  statistics_email_frequency: StatisticsEmailFrequency; // How often to receive balance statistics emails
   created_at: string;
   updated_at: string;
 }

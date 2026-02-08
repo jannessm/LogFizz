@@ -7,6 +7,30 @@ const userSettingsService = new UserSettingsService();
 // Allowed values for validation
 const ALLOWED_LANGUAGES = ['en', 'de'];
 const ALLOWED_LOCALES = ['en-US', 'en-GB', 'de-DE', 'de-AT', 'de-CH'];
+const ALLOWED_FREQUENCIES = ['none', 'weekly', 'monthly'];
+
+// Reusable schema for settings response
+const SettingsResponseSchema = Type.Object({
+  id: Type.String(),
+  user_id: Type.String(),
+  language: Type.String(),
+  locale: Type.String(),
+  statistics_email_frequency: Type.String(),
+  created_at: Type.String(),
+  updated_at: Type.String(),
+});
+
+function settingsToResponse(settings: any) {
+  return {
+    id: settings.id,
+    user_id: settings.user_id,
+    language: settings.language,
+    locale: settings.locale,
+    statistics_email_frequency: settings.statistics_email_frequency,
+    created_at: settings.created_at.toISOString(),
+    updated_at: settings.updated_at.toISOString(),
+  };
+}
 
 export async function userSettingsRoutes(fastify: FastifyInstance) {
   // Get user settings
@@ -14,14 +38,7 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['User Settings'],
       response: {
-        200: Type.Object({
-          id: Type.String(),
-          user_id: Type.String(),
-          language: Type.String(),
-          locale: Type.String(),
-          created_at: Type.String(),
-          updated_at: Type.String(),
-        }),
+        200: SettingsResponseSchema,
         401: Type.Object({
           error: Type.String(),
         }),
@@ -36,14 +53,7 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
 
     const settings = await userSettingsService.getOrCreateSettings(userId);
     
-    return reply.send({
-      id: settings.id,
-      user_id: settings.user_id,
-      language: settings.language,
-      locale: settings.locale,
-      created_at: settings.created_at.toISOString(),
-      updated_at: settings.updated_at.toISOString(),
-    });
+    return reply.send(settingsToResponse(settings));
   });
 
   // Update user settings
@@ -59,16 +69,14 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
           Type.Literal('de-AT'),
           Type.Literal('de-CH'),
         ])),
+        statistics_email_frequency: Type.Optional(Type.Union([
+          Type.Literal('none'),
+          Type.Literal('weekly'),
+          Type.Literal('monthly'),
+        ])),
       }),
       response: {
-        200: Type.Object({
-          id: Type.String(),
-          user_id: Type.String(),
-          language: Type.String(),
-          locale: Type.String(),
-          created_at: Type.String(),
-          updated_at: Type.String(),
-        }),
+        200: SettingsResponseSchema,
         401: Type.Object({
           error: Type.String(),
         }),
@@ -81,17 +89,10 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
       return reply.code(401).send({ error: 'Not authenticated' });
     }
 
-    const { language, locale } = request.body as any;
-    const settings = await userSettingsService.updateSettings(userId, { language, locale });
+    const { language, locale, statistics_email_frequency } = request.body as any;
+    const settings = await userSettingsService.updateSettings(userId, { language, locale, statistics_email_frequency });
     
-    return reply.send({
-      id: settings.id,
-      user_id: settings.user_id,
-      language: settings.language,
-      locale: settings.locale,
-      created_at: settings.created_at.toISOString(),
-      updated_at: settings.updated_at.toISOString(),
-    });
+    return reply.send(settingsToResponse(settings));
   });
 
   // Sync endpoint - GET changes since timestamp
@@ -103,14 +104,7 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
       }),
       response: {
         200: Type.Object({
-          settings: Type.Optional(Type.Object({
-            id: Type.String(),
-            user_id: Type.String(),
-            language: Type.String(),
-            locale: Type.String(),
-            created_at: Type.String(),
-            updated_at: Type.String(),
-          })),
+          settings: Type.Optional(SettingsResponseSchema),
           cursor: Type.String(),
         }),
         401: Type.Object({
@@ -129,14 +123,7 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
     const settings = await userSettingsService.getSyncChanges(userId, since);
     
     return reply.send({
-      settings: settings ? {
-        id: settings.id,
-        user_id: settings.user_id,
-        language: settings.language,
-        locale: settings.locale,
-        created_at: settings.created_at.toISOString(),
-        updated_at: settings.updated_at.toISOString(),
-      } : undefined,
+      settings: settings ? settingsToResponse(settings) : undefined,
       cursor: new Date().toISOString(),
     });
   });
@@ -155,19 +142,17 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
             Type.Literal('de-AT'),
             Type.Literal('de-CH'),
           ])),
+          statistics_email_frequency: Type.Optional(Type.Union([
+            Type.Literal('none'),
+            Type.Literal('weekly'),
+            Type.Literal('monthly'),
+          ])),
           updated_at: Type.Optional(Type.String()),
         }),
       }),
       response: {
         200: Type.Object({
-          settings: Type.Object({
-            id: Type.String(),
-            user_id: Type.String(),
-            language: Type.String(),
-            locale: Type.String(),
-            created_at: Type.String(),
-            updated_at: Type.String(),
-          }),
+          settings: SettingsResponseSchema,
           conflict: Type.Optional(Type.Boolean()),
           cursor: Type.String(),
         }),
@@ -187,14 +172,7 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
     const result = await userSettingsService.pushSyncChanges(userId, clientSettings);
     
     return reply.send({
-      settings: {
-        id: result.settings.id,
-        user_id: result.settings.user_id,
-        language: result.settings.language,
-        locale: result.settings.locale,
-        created_at: result.settings.created_at.toISOString(),
-        updated_at: result.settings.updated_at.toISOString(),
-      },
+      settings: settingsToResponse(result.settings),
       conflict: result.conflict,
       cursor: new Date().toISOString(),
     });

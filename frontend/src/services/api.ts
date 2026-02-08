@@ -237,7 +237,7 @@ export const userSettingsApi = {
     return api.get('api/user-settings').json();
   },
 
-  async updateSettings(updates: { language?: string; locale?: string }): Promise<import('../types').UserSettings> {
+  async updateSettings(updates: { language?: string; locale?: string; statistics_email_frequency?: string }): Promise<import('../types').UserSettings> {
     return api.put('api/user-settings', { json: updates }).json();
   },
 
