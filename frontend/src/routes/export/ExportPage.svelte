@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import BottomNav from '../../components/BottomNav.svelte';
-  import TimelogsTable from '../../components/History/TimelogsTable.svelte';
-  import TableFilters, { type FilterState } from '../../components/History/TableFilters.svelte';
+  import TimelogsTable from '../../components/history/TimelogsTable.svelte';
+  import TableFilters, { type FilterState } from '../../components/history/TableFilters.svelte';
   import { timeLogsStore, timerlogs } from '../../stores/timelogs';
   import { timers } from '../../stores/timers';
   import { targets } from '../../stores/targets';

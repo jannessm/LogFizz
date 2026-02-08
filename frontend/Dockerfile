@@ -1,16 +1,30 @@
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy lib directory (shared dependency)
+COPY lib/package*.json ./lib/
+COPY lib/tsconfig.json ./lib/
 
-# Install dependencies
+# Install lib dependencies
+WORKDIR /app/lib
 RUN npm ci
 
-# Copy source code
-COPY . .
+# Copy lib source and build it
+COPY lib/ ./
+RUN npm run build
+
+# Copy frontend package files
+WORKDIR /app
+COPY frontend/package*.json ./frontend/
+
+# Install frontend dependencies
+WORKDIR /app/frontend
+RUN npm ci
+
+# Copy frontend source code
+COPY frontend/ ./
 
 # Build the app
 RUN npm run build
@@ -19,10 +33,10 @@ RUN npm run build
 FROM nginx:alpine
 
 # Copy built assets from builder
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/frontend/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80
