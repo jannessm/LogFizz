@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { setDayjsLocale, formatDate, formatDateTime, formatTime, formatFullDate, formatMonthYear } from './dateFormatting';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { setDayjsLocale, formatDate, formatDateTime, formatTime, formatFullDate, formatMonthYear, getDayAbbreviation, getDayAbbreviations } from './dateFormatting';
 import { dayjs } from '../types';
+import { userSettingsStore } from '../stores/userSettings';
 
 describe('dateFormatting', () => {
   describe('setDayjsLocale', () => {
@@ -88,6 +89,67 @@ describe('dateFormatting', () => {
       const formatted = formatFullDate(date);
       expect(formatted).toMatch(/Mittwoch/);
       expect(formatted).toMatch(/15\. Januar 2025/);
+    });
+  });
+
+  describe('getDayAbbreviation', () => {
+    it('should return English day abbreviations when language is en', () => {
+      expect(getDayAbbreviation(0, 'en')).toBe('Sun');
+      expect(getDayAbbreviation(1, 'en')).toBe('Mon');
+      expect(getDayAbbreviation(2, 'en')).toBe('Tue');
+      expect(getDayAbbreviation(3, 'en')).toBe('Wed');
+      expect(getDayAbbreviation(4, 'en')).toBe('Thu');
+      expect(getDayAbbreviation(5, 'en')).toBe('Fri');
+      expect(getDayAbbreviation(6, 'en')).toBe('Sat');
+    });
+
+    it('should return German day abbreviations when language is de', () => {
+      expect(getDayAbbreviation(0, 'de')).toBe('So.');
+      expect(getDayAbbreviation(1, 'de')).toBe('Mo.');
+      expect(getDayAbbreviation(2, 'de')).toBe('Di.');
+      expect(getDayAbbreviation(3, 'de')).toBe('Mi.');
+      expect(getDayAbbreviation(4, 'de')).toBe('Do.');
+      expect(getDayAbbreviation(5, 'de')).toBe('Fr.');
+      expect(getDayAbbreviation(6, 'de')).toBe('Sa.');
+    });
+
+    it('should use user settings language when no language parameter provided', () => {
+      // Mock userSettingsStore to return 'de'
+      vi.spyOn(userSettingsStore, 'getLanguage').mockReturnValue('de');
+      expect(getDayAbbreviation(0)).toBe('So.');
+      expect(getDayAbbreviation(1)).toBe('Mo.');
+    });
+
+    it('should not be affected by global dayjs locale setting', () => {
+      // Set global locale to German
+      setDayjsLocale('de-DE');
+      
+      // But request English day names - should get English regardless of global locale
+      expect(getDayAbbreviation(0, 'en')).toBe('Sun');
+      expect(getDayAbbreviation(1, 'en')).toBe('Mon');
+      
+      // And German when requested
+      expect(getDayAbbreviation(0, 'de')).toBe('So.');
+      expect(getDayAbbreviation(1, 'de')).toBe('Mo.');
+    });
+  });
+
+  describe('getDayAbbreviations', () => {
+    it('should return all English day abbreviations', () => {
+      const days = getDayAbbreviations('en');
+      expect(days).toEqual(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+    });
+
+    it('should return all German day abbreviations', () => {
+      const days = getDayAbbreviations('de');
+      expect(days).toEqual(['So.', 'Mo.', 'Di.', 'Mi.', 'Do.', 'Fr.', 'Sa.']);
+    });
+
+    it('should use user settings language when no language parameter provided', () => {
+      // Mock userSettingsStore to return 'en'
+      vi.spyOn(userSettingsStore, 'getLanguage').mockReturnValue('en');
+      const days = getDayAbbreviations();
+      expect(days).toEqual(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
     });
   });
 });

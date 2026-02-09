@@ -4,6 +4,7 @@
   import { onMount } from 'svelte';
   import { getSetting } from '../../lib/db';
   import { _ } from '../../lib/i18n';
+  import { getDayAbbreviation } from '../../lib/dateFormatting';
 
   let {
     timeLogs,
@@ -85,11 +86,12 @@
 
   let firstDayOfWeek = $state<'sunday' | 'monday'>('sunday');
   
-  // Get locale-aware day names based on first day of week setting
+  // Get language-aware day names based on first day of week setting
+  // Uses language setting (en/de) instead of locale (en-US/en-GB/de-DE)
   let dayNames = $derived(
     firstDayOfWeek === 'monday'
-      ? Array.from({ length: 7 }, (_, i) => dayjs().day((i + 1) % 7).format('ddd'))
-      : Array.from({ length: 7 }, (_, i) => dayjs().day(i).format('ddd'))
+      ? Array.from({ length: 7 }, (_, i) => getDayAbbreviation((i + 1) % 7))
+      : Array.from({ length: 7 }, (_, i) => getDayAbbreviation(i))
   );
   
   let calendarDays = $derived.by(() => {
