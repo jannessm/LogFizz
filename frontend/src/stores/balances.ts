@@ -14,7 +14,7 @@ import {
 } from '../lib/db';
 import { syncService } from '../services/sync';
 import { createBaseStore, type BaseStoreConfig, mapToArray } from './base-store';
-import dayjs from '../../../lib/utils/dayjs.js';
+import { dayjs, userTimezone } from '../../../lib/utils/dayjs.js';
 import { timers } from './timers';
 import { targets } from './targets';
 import { holidaysStore } from './holidays';
@@ -257,7 +257,7 @@ function createBalancesStore() {
      * @returns Created or updated balance
      */
     async calculateAndUpsertDailyBalance(targetId: string, date: string): Promise<Balance | null> {
-      const dateObj = dayjs(date);
+      const dateObj = dayjs(date).tz(userTimezone);
       const year = dateObj.year();
       const month = dateObj.month() + 1;
 
