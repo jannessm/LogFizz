@@ -585,6 +585,10 @@
     "noTarget": "Kein Abrietsziel",
     "placeholderTimerName": "z.B. Arbeit, Sport",
     "saveFailed": "Projekt konnte nicht gespeichert werden",
+    "selectTarget": "Wählen Sie ein Arbeitsziel",
+    "target": "Arbeitsziel",
+    "targetDescription": "Dies bestimmt, auf welche Arbeitsstunden dieses Projekt angerechnet wird",
+    "targetRequired": "Bitte wählen Sie ein Arbeitsziel",
     "updated": "Projekt aktualisiert"
   },
   "timerform": {

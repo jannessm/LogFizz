@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Timer } from '../../types';
   import { timersStore } from '../../stores/timers';
+  import { targets } from '../../stores/targets';
   import EmojiPicker from './EmojiPicker.svelte';
   import { _ } from '../../lib/i18n';
 
@@ -14,6 +15,7 @@
 
   const errMessages = {
     timerNameRequired: $_('timer.nameRequired'),
+    targetRequired: $_('timer.targetRequired'),
     saveFailed: $_('timer.saveFailed'),
     deleteFailed: $_('timer.deleteFailed'),
   };
@@ -23,6 +25,7 @@
   let color = $derived(timer?.color || '#3B82F6');
   let autoSubtractBreaks = $derived(timer?.auto_subtract_breaks ?? false);
   let archived = $derived(timer?.archived ?? false);
+  let targetId = $state(timer?.target_id || '');
   let isLoading = $state(false);
   let errorMessage = $state('');
   let showDeleteConfirm = $state(false);
@@ -38,6 +41,11 @@
       return;
     }
 
+    if (!targetId) {
+      errorMessage = errMessages.targetRequired;
+      return;
+    }
+
     isLoading = true;
     errorMessage = '';
 
@@ -48,6 +56,7 @@
         color,
         auto_subtract_breaks: autoSubtractBreaks,
         archived,
+        target_id: targetId,
       };
 
       if (timer) {
@@ -173,7 +182,27 @@
           />
         </div>
 
-        <!-- Goal Time -->
+        <!-- Target Selection -->
+        <div>
+          <label for="target" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {$_('timer.target')} *
+          </label>
+          <select
+            id="target"
+            bind:value={targetId}
+            required
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="">{$_('timer.selectTarget')}</option>
+            {#each $targets as target}
+              <option value={target.id}>{target.name}</option>
+            {/each}
+          </select>
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            {$_('timer.targetDescription')}
+          </div>
+        </div>
+
         <!-- Auto subtract breaks -->
         <div class="flex items-center">
           <input
