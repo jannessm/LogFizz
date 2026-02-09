@@ -108,3 +108,29 @@ export function formatShortDate(date: string | Date | dayjs.Dayjs): string {
 export function formatShortDateYear(date: string | Date | dayjs.Dayjs): string {
   return dayjs(date).format('ll');
 }
+
+/**
+ * Get day abbreviation based on language setting
+ * Unlike locale-based formatting, this uses the language setting (en/de)
+ * to ensure consistent day name abbreviations regardless of locale variant (en-US vs en-GB)
+ * 
+ * @param dayIndex - Day of week (0=Sunday, 6=Saturday)
+ * @param language - Language code ('en' or 'de'). If not provided, uses current user language setting
+ * @returns Day abbreviation (e.g., 'Sun', 'Mon' for en; 'So', 'Mo' for de)
+ */
+export function getDayAbbreviation(dayIndex: number, language?: string): string {
+  const lang = language || userSettingsStore.getLanguage();
+  // Create a temporary dayjs instance with the language-specific locale
+  // This ensures we get day names based on language, not the global locale
+  return dayjs().locale(lang).day(dayIndex).format('ddd');
+}
+
+/**
+ * Get all day abbreviations for a week based on language setting
+ * 
+ * @param language - Language code ('en' or 'de'). If not provided, uses current user language setting
+ * @returns Array of day abbreviations starting from Sunday [Sun, Mon, ..., Sat] or [So, Mo, ..., Sa]
+ */
+export function getDayAbbreviations(language?: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => getDayAbbreviation(i, language));
+}

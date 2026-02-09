@@ -8,6 +8,7 @@
   import { dayjs } from '../../types';
   import { _ } from '../../lib/i18n';
   import { formatMinutesCompact } from '../../../../lib/utils/timeFormat';
+  import { getDayAbbreviations } from '../../lib/dateFormatting';
 
   let {
     editTimer,
@@ -73,10 +74,9 @@
     return { totalMinutes, targetDuration, percentage };
   }
 
-  const dayNames = [0,1,2,3,4,5,6].map(i => {
-    const date = dayjs().day(i);
-    return date.format('ddd');
-  });
+  // Get language-aware day abbreviations
+  // Uses language setting (en/de) instead of locale (en-US/en-GB/de-DE)
+  const dayNames = getDayAbbreviations();
 
   function getActiveWeekdays(spec: any): string {
     const activeDays = spec.duration_minutes

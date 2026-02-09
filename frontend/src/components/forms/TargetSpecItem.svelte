@@ -4,6 +4,7 @@
   import { onlyUnique } from "../../../../lib/utils/helper";
   import { _ } from '../../lib/i18n';
   import { dayjs } from '../../types';
+  import { getDayAbbreviations } from '../../lib/dateFormatting';
 
   type PartialTargetSpec = {
     id: string;
@@ -38,12 +39,9 @@
   let durationHours: number[] = $state([0, 0, 0, 0, 0, 0, 0]);
   let durationMins: number[] = $state([0, 0, 0, 0, 0, 0, 0]);
 
-  // Get locale-aware weekday names (Sun-Sat, starting from Sunday index 0)
-  const weekdayNames = $derived(
-    Array.from({ length: 7 }, (_, i) => 
-      dayjs().day(i).format('ddd')
-    )
-  );
+  // Get language-aware weekday names (Sun-Sat, starting from Sunday index 0)
+  // Uses language setting (en/de) instead of locale (en-US/en-GB/de-DE)
+  const weekdayNames = $derived(getDayAbbreviations());
   
   let availableStates: State[] = $derived($statesStore.states || []);
   let availableCountries: string[] = $derived(
