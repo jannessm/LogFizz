@@ -7,6 +7,8 @@
     type BalancePeriod,
   } from '../../services/balanceOverview';
   import { _ } from '../../lib/i18n';
+  import { balancesStore } from '../../stores/balances';
+  import { dayjs } from '../../types';
 
   type BalancesOverviewPeriods = {
     day: BalancePeriod & { date: string };
@@ -30,6 +32,9 @@
   let balancesYearByTargetId = $state<Map<string, Balance>>(new Map());
 
   let selectedTargetId = $state<string | null>(null);
+  
+  // Subscribe to balance store changes to trigger reload
+  let balanceStoreState = $derived($balancesStore);
 
   const activeTargets = $derived((targets || []).filter(t => !t.deleted_at));
 
@@ -38,6 +43,11 @@
       ? activeTargets.find(t => t.id === selectedTargetId) || null
       : null
   );
+
+  const formattedDate = $derived(() => {
+    if (!periods?.day) return '';
+    return dayjs(periods.day.date).format('dddd, DD MMMM YYYY');
+  });
 
   function getTargetButtonClass(targetId: string): string {
     const isSelected = targetId === selectedTargetId;
@@ -111,7 +121,8 @@
   }
 
   $effect(() => {
-    if (periods?.day && periods?.month && periods?.year) {
+    // Reload when periods change OR when balance store changes
+    if (balanceStoreState && periods?.day && periods?.month && periods?.year) {
       load();
     }
   });

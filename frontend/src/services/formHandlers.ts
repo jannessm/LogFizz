@@ -6,13 +6,16 @@ export async function saveTimelog(
   existingLog: TimeLog | null = null,
   timerToStop: TimeLog | null = null,
 ) {
-  // If this is a timer being stopped (timerToStop is set), stop it with the notes and custom end time
+  // If this is a timer being stopped (timerToStop is set), stop it with the notes, custom end time, and start time
   if (timerToStop) {
-    await timeLogsStore.stopTimer(
-      timerToStop,
-      newLog.notes || undefined,
-      newLog.end_timestamp || undefined
-    );
+    await timeLogsStore.update(timerToStop.id, {
+      start_timestamp: newLog.start_timestamp,
+      end_timestamp: newLog.end_timestamp || undefined,
+      notes: newLog.notes || undefined,
+      type: newLog.type,
+      whole_day: newLog.whole_day,
+      apply_break_calculation: newLog.apply_break_calculation,
+    });
     return {timerToStop: null};
   } else if (existingLog) {
     // Editing existing timelog

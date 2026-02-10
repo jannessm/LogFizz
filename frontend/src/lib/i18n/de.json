@@ -582,9 +582,14 @@
     "linkToTarget": "Mit Ziel verknüpfen",
     "name": "Projektname",
     "nameRequired": "Bitte geben Sie einen Projektnamen ein",
-    "noTarget": "Kein Abrietsziel",
+    "timerName": "Projektname",
+    "noTarget": "Kein Arbeitsziel",
     "placeholderTimerName": "z.B. Arbeit, Sport",
     "saveFailed": "Projekt konnte nicht gespeichert werden",
+    "selectTarget": "Wählen Sie ein Arbeitsziel",
+    "target": "Arbeitsziel",
+    "targetDescription": "Dies bestimmt, auf welche Arbeitsstunden dieses Projekt angerechnet wird",
+    "targetRequired": "Bitte wählen Sie ein Arbeitsziel",
     "updated": "Projekt aktualisiert"
   },
   "timerform": {
