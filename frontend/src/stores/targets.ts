@@ -73,7 +73,7 @@ function createTargetsStore() {
     },
 
     async getTargetsByTimerIds(timerIds: string[]): Promise<TargetWithSpecs[]> {
-      if (timerIds.length > 0) {
+      if (timerIds.length == 0) {
         return [];
       }
 

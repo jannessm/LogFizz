@@ -238,6 +238,7 @@ function createBalancesStore() {
       // First check in-memory store (O(1) lookup)
       const state = baseStore.getState();
       const inMemory = state.items.get(id);
+      console.log(`Looking up balance with ID ${id} in-memory:`, inMemory);
       if (inMemory && !inMemory.deleted_at) return inMemory;
       
       // Fall back to DB
@@ -424,7 +425,7 @@ function createBalancesStore() {
         const affectedEnd = (affectedTimelog.end_timestamp
           ? dayjs(affectedTimelog.end_timestamp)
           : dayjs()
-        ).startOf('day');
+        ).endOf('day');
 
         // Update earliest impacted for monthly/yearly rebuild
         if (affectedStart.isBefore(earliestImpacted)) {

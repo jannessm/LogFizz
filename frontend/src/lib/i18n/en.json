@@ -582,6 +582,7 @@
     "linkToTarget": "Link to Target",
     "name": "Project Name",
     "nameRequired": "Please enter a project name",
+    "timerName": "Project Name",
     "noTarget": "No work target",
     "placeholderTimerName": "e.g., Work, Exercise",
     "saveFailed": "Failed to save project",

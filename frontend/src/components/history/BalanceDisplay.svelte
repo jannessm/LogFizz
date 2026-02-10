@@ -1,6 +1,6 @@
 <script lang="ts">
   import { dayjs, type Balance, type TargetWithSpecs } from '../../types';
-  import { formatMinutes, formatHours, getBalanceColor } from '../../../../lib/utils/timeFormat.js';
+  import { formatMinutes, formatMinutesCompact, getBalanceColor } from '../../../../lib/utils/timeFormat.js';
   import type { BalanceGranularity } from '../../services/balanceOverview';
   import { _ } from '../../lib/i18n';
 
@@ -106,13 +106,47 @@
       <div class="grid grid-cols-2 gap-2 text-sm">
         <div>
           <span class="text-gray-600 dark:text-gray-400">{$_('history.workedLabel')}</span>
-          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{formatHours(balance.worked_minutes)}</span>
+          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{formatMinutesCompact(balance.worked_minutes)}</span>
         </div>
         <div>
           <span class="text-gray-600 dark:text-gray-400">{$_('history.dueLabel')}</span>
-          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{formatHours(balance.due_minutes)}</span>
+          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{formatMinutesCompact(balance.due_minutes)}</span>
         </div>
       </div>
+
+      {#if granularity === 'month'}
+        <!-- Monthly counters (worked days, sick days, holidays, etc.) -->
+        <div class="border-t border-gray-200 dark:border-gray-600 mt-3 pt-3">
+          <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">{$_('history.workedDays')}</span>
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.worked_days}</span>
+            </div>
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">{$_('history.sickDays')}</span>
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.sick_days}</span>
+            </div>
+
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">{$_('history.holidays')}</span>
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.holidays}</span>
+            </div>
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">{$_('history.businessTrip')}</span>
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.business_trip}</span>
+            </div>
+
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">{$_('history.childSick')}</span>
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.child_sick}</span>
+            </div>
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">{$_('history.homeoffice')}</span>
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.homeoffice}</span>
+            </div>
+          </div>
+        </div>
+      {/if}
     </div>
   {/if}
 {/if}

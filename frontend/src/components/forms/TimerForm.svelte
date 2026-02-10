@@ -20,11 +20,11 @@
     deleteFailed: $_('timer.deleteFailed'),
   };
 
-  let name = $derived(timer?.name || '');
-  let emoji = $derived(timer?.emoji || '');
-  let color = $derived(timer?.color || '#3B82F6');
-  let autoSubtractBreaks = $derived(timer?.auto_subtract_breaks ?? false);
-  let archived = $derived(timer?.archived ?? false);
+  let name = $state(timer?.name || '');
+  let emoji = $state(timer?.emoji || '');
+  let color = $state(timer?.color || '#3B82F6');
+  let autoSubtractBreaks = $state(timer?.auto_subtract_breaks ?? false);
+  let archived = $state(timer?.archived ?? false);
   let targetId = $state(timer?.target_id || '');
   let isLoading = $state(false);
   let errorMessage = $state('');
@@ -41,11 +41,6 @@
       return;
     }
 
-    if (!targetId) {
-      errorMessage = errMessages.targetRequired;
-      return;
-    }
-
     isLoading = true;
     errorMessage = '';
 
@@ -56,7 +51,7 @@
         color,
         auto_subtract_breaks: autoSubtractBreaks,
         archived,
-        target_id: targetId,
+        target_id: targetId || undefined,
       };
 
       if (timer) {
@@ -136,13 +131,17 @@
 
         <!-- Emoji -->
         <div>
-          <EmojiPicker value={emoji} />
+          <EmojiPicker 
+            value={emoji} 
+            select={(e) => emoji = e}
+            clear={() => emoji = ''}
+          />
         </div>
 
         <!-- Name -->
         <div>
           <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {$_('timer.buttonName')}
+            {$_('timer.timerName')}
           </label>
           <input
             id="name"
@@ -185,12 +184,11 @@
         <!-- Target Selection -->
         <div>
           <label for="target" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {$_('timer.target')} *
+            {$_('timer.target')}
           </label>
           <select
             id="target"
             bind:value={targetId}
-            required
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">{$_('timer.selectTarget')}</option>

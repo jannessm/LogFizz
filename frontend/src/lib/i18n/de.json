@@ -582,6 +582,7 @@
     "linkToTarget": "Mit Ziel verknüpfen",
     "name": "Projektname",
     "nameRequired": "Bitte geben Sie einen Projektnamen ein",
+    "timerName": "Projektname",
     "noTarget": "Kein Arbeitsziel",
     "placeholderTimerName": "z.B. Arbeit, Sport",
     "saveFailed": "Projekt konnte nicht gespeichert werden",
