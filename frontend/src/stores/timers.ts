@@ -47,6 +47,7 @@ function createTimersStore() {
         color: timerData.color,
         auto_subtract_breaks: timerData.auto_subtract_breaks ?? false,
         archived: timerData.archived ?? false,
+        target_id: timerData.target_id, // Include target_id
         created_at: dayjs().toISOString(),
         updated_at: dayjs().toISOString(),
       });

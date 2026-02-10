@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { _ } from '../../lib/i18n';
+  import 'emoji-picker-element';
 
   let {
     value = '',
@@ -14,20 +15,31 @@
 
   let showPicker = $state(false);
   let containerRef: HTMLElement | null = null;
+  let pickerElement: HTMLElement | null = null;
 
   $effect(() => {
     if (showPicker) {
-      // Lazy load the emoji picker library
+      // Wait for the emoji picker to be rendered
       setTimeout(() => {
-        document.querySelector('emoji-picker')?.addEventListener('emoji-click', (e: any) => handleEmojiClick(e));
+        pickerElement = document.querySelector('emoji-picker');
+        if (pickerElement) {
+          pickerElement.addEventListener('emoji-click', handleEmojiClick as EventListener);
+        }
       }, 100);
+    } else {
+      // Clean up event listener when picker is hidden
+      if (pickerElement) {
+        pickerElement.removeEventListener('emoji-click', handleEmojiClick as EventListener);
+        pickerElement = null;
+      }
     }
   });
 
   function handleEmojiClick(event: CustomEvent) {
     const emoji = event.detail?.unicode || '';
-    value = emoji;
-    select && select(emoji);
+    if (select) {
+      select(emoji);
+    }
     showPicker = false;
   }
 
@@ -42,8 +54,9 @@
   }
 
   function clearEmoji() {
-    value = '';
-    clear && clear();
+    if (clear) {
+      clear();
+    }
   }
 
   onMount(() => {
@@ -52,6 +65,9 @@
 
   onDestroy(() => {
     document.removeEventListener('click', handleClickOutside);
+    if (pickerElement) {
+      pickerElement.removeEventListener('emoji-click', handleEmojiClick as EventListener);
+    }
   });
 </script>
 

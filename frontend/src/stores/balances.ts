@@ -14,7 +14,7 @@ import {
 } from '../lib/db';
 import { syncService } from '../services/sync';
 import { createBaseStore, type BaseStoreConfig, mapToArray } from './base-store';
-import dayjs from '../../../lib/utils/dayjs.js';
+import { dayjs, userTimezone } from '../../../lib/utils/dayjs.js';
 import { timers } from './timers';
 import { targets } from './targets';
 import { holidaysStore } from './holidays';
@@ -238,6 +238,7 @@ function createBalancesStore() {
       // First check in-memory store (O(1) lookup)
       const state = baseStore.getState();
       const inMemory = state.items.get(id);
+      console.log(`Looking up balance with ID ${id} in-memory:`, inMemory);
       if (inMemory && !inMemory.deleted_at) return inMemory;
       
       // Fall back to DB
@@ -257,7 +258,7 @@ function createBalancesStore() {
      * @returns Created or updated balance
      */
     async calculateAndUpsertDailyBalance(targetId: string, date: string): Promise<Balance | null> {
-      const dateObj = dayjs(date);
+      const dateObj = dayjs(date).tz(userTimezone);
       const year = dateObj.year();
       const month = dateObj.month() + 1;
 
@@ -424,7 +425,7 @@ function createBalancesStore() {
         const affectedEnd = (affectedTimelog.end_timestamp
           ? dayjs(affectedTimelog.end_timestamp)
           : dayjs()
-        ).startOf('day');
+        ).endOf('day');
 
         // Update earliest impacted for monthly/yearly rebuild
         if (affectedStart.isBefore(earliestImpacted)) {
