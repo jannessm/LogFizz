@@ -224,11 +224,13 @@
             ></div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
-                <span class="font-semibold text-gray-800">{typeLabel}</span>
-                <span class="text-gray-600">•</span>
                 <span class="text-gray-700">
                   {timer.emoji ? `${timer.emoji} ` : ''}{timer.name}
                 </span>
+                {#if session.log?.type && session.log.type !== 'normal'}
+                  <span class="text-gray-600">•</span>
+                  <span class="font-semibold text-gray-800">{typeLabel}</span>
+                {/if}
               </div>
               {#if isMultiDay}
                 <p class="text-xs text-gray-600 mb-1">
