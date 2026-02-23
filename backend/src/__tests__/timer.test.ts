@@ -304,6 +304,59 @@ describe('Timer Sync Routes', () => {
     expect(response.statusCode).toBe(401);
   });
 
+  it('should remove target assignment when target_id is set to null', async () => {
+    // Create a target first
+    const targetId = 'bb0e8400-e29b-41d4-a716-446655440010';
+    await app.inject({
+      method: 'POST',
+      url: '/api/targets/sync',
+      headers: { cookie: authCookie },
+      payload: {
+        targets: [{
+          id: targetId,
+          name: 'Test Target',
+          target_specs: [],
+        }],
+      },
+    });
+
+    // Create a timer with a target assigned
+    const timerId = 'bb0e8400-e29b-41d4-a716-446655440011';
+    await app.inject({
+      method: 'POST',
+      url: '/api/timers/sync',
+      headers: { cookie: authCookie },
+      payload: {
+        timers: [{
+          id: timerId,
+          name: 'Timer With Target',
+          auto_subtract_breaks: false,
+          target_id: targetId,
+        }],
+      },
+    });
+
+    // Now remove the target assignment by setting target_id to null
+    const updateResponse = await app.inject({
+      method: 'POST',
+      url: '/api/timers/sync',
+      headers: { cookie: authCookie },
+      payload: {
+        timers: [{
+          id: timerId,
+          name: 'Timer With Target',
+          auto_subtract_breaks: false,
+          target_id: null,
+        }],
+      },
+    });
+
+    expect(updateResponse.statusCode).toBe(200);
+    const body = JSON.parse(updateResponse.body);
+    expect(body.saved).toHaveLength(1);
+    expect(body.saved[0].target_id).toBeNull(); // Assignment should be removed
+  });
+
   it('should handle empty string target_id by converting to null/undefined', async () => {
     const timerId = '990e8400-e29b-41d4-a716-446655440099';
     const response = await app.inject({

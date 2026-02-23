@@ -49,7 +49,7 @@ export interface Timer {
   color?: string;
   auto_subtract_breaks: boolean;
   archived: boolean;
-  target_id?: string; // Optional: link to Target for balance calculation
+  target_id?: string | null; // Optional: link to Target for balance calculation
   goal_time_minutes?: number; // Optional: daily goal for this timer
   created_at: string;
   updated_at: string;

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import type { TargetWithSpecs, Timer, TargetSpec } from '../../types';
   import { targetsStore, targets } from '../../stores/targets';
   import { statesStore } from '../../stores/states';
@@ -17,7 +17,37 @@
     close: () => void;
   } = $props();
 
-  let name = $state('');
+  // Whether we're editing an existing target or creating a new one
+  let isEditing = $derived(target !== null);
+
+  // Working copy of the target - always initialized so we can work uniformly
+  // Initial value is set in the $effect below when target prop changes
+  let workingTarget: TargetWithSpecs = $state(createWorkingCopy(null));
+
+  function createWorkingCopy(src: TargetWithSpecs | null | undefined): TargetWithSpecs {
+    if (src) {
+      return {
+        id: src.id,
+        user_id: src.user_id,
+        name: src.name,
+        target_specs: src.target_specs.map(spec => ({
+          ...spec,
+          duration_minutes: [...spec.duration_minutes],
+        })),
+        created_at: src.created_at,
+        updated_at: src.updated_at,
+        deleted_at: src.deleted_at,
+      };
+    }
+    return {
+      id: crypto.randomUUID(),
+      user_id: '',
+      name: '',
+      target_specs: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  }
   
   // Manage multiple target specs with their start dates
   type SpecWithDate = {
@@ -43,60 +73,65 @@
   // Get all targets for displaying which target a timer is assigned to
   let allTargets = $derived($targets || []);
 
-  // Effect for initializing form data from target prop
+  // Initialize form data from the target prop.
+  // untrack wraps the writes so they don't trigger cascading reactive updates.
   $effect(() => {
-    // Only run when target prop changes
-    const targetId = target?.id;
-    
-    name = target?.name || '';
-    
-    if (target?.target_specs?.length) {
-      // Sort specs by start date descending (newest first)
-      const sortedSpecs = [...target.target_specs].sort((a, b) => 
-        dayjs(b.starting_from).valueOf() - dayjs(a.starting_from).valueOf()
-      );
-      
-      targetSpecs = sortedSpecs.map(spec => ({
-        spec: spec,
-        startDate: dayjs(spec.starting_from).format('YYYY-MM-DD')
-      }));
-    } else {
-      targetSpecs = [{
-        spec: null,
-        startDate: dayjs().format('YYYY-MM-DD')
-      }];
-    }
-    
-    // Set archive date from the first (newest) spec's ending_at if it exists
-    if (target?.target_specs?.length) {
-      const newestSpec = [...target.target_specs].sort((a, b) => 
-        dayjs(b.starting_from).valueOf() - dayjs(a.starting_from).valueOf()
-      )[0]; // Newest spec (at index 0 after descending sort)
-      
-      if (newestSpec?.ending_at) {
-        archiveDate = dayjs(newestSpec.ending_at).format('YYYY-MM-DD');
+    // Track only the target prop identity
+    const _targetId = target?.id;
+
+    untrack(() => {
+      const copy = createWorkingCopy(target);
+      workingTarget = copy;
+
+      if (copy.target_specs.length) {
+        // Sort specs by start date descending (newest first)
+        const sortedSpecs = [...copy.target_specs].sort((a, b) => 
+          dayjs(b.starting_from).valueOf() - dayjs(a.starting_from).valueOf()
+        );
+        
+        targetSpecs = sortedSpecs.map(spec => ({
+          spec: spec,
+          startDate: dayjs(spec.starting_from).format('YYYY-MM-DD')
+        }));
+
+        const newestSpec = sortedSpecs[0];
+        archiveDate = newestSpec?.ending_at
+          ? dayjs(newestSpec.ending_at).format('YYYY-MM-DD')
+          : null;
       } else {
+        targetSpecs = [{
+          spec: null,
+          startDate: dayjs().format('YYYY-MM-DD')
+        }];
         archiveDate = null;
       }
-    } else {
-      archiveDate = null;
-    }
-    
-    initialized = false;
+
+      initialized = false;
+    });
   });
 
   // Separate effect for timers to avoid circular dependencies
   $effect(() => {
-    if ($timers) {
-      availableTimers = $timers;
-      
-      // Only pre-select on initial load
-      if (target?.id && !initialized) {
-        selectedTimerIds = availableTimers
-          .filter(b => b.target_id === target.id)
+    const currentTimers = $timers;
+    untrack(() => {
+      availableTimers = currentTimers;
+    });
+  });
+
+  // Pre-select timers assigned to this target on initial load
+  $effect(() => {
+    // Track availableTimers and initialized
+    const _timers = availableTimers;
+    const _init = initialized;
+    
+    if (_timers.length > 0 && !_init) {
+      untrack(() => {
+        const wId = workingTarget.id;
+        selectedTimerIds = _timers
+          .filter(b => b.target_id === wId)
           .map(b => b.id);
         initialized = true;
-      }
+      });
     }
   });
 
@@ -112,8 +147,8 @@
     // Create a proper TargetSpec from the partial spec
     const fullSpec: TargetSpec = {
       id: spec.id,
-      user_id: spec.user_id || target?.user_id || '',
-      target_id: spec.target_id || target?.id || '',
+      user_id: spec.user_id || workingTarget.user_id,
+      target_id: spec.target_id || workingTarget.id,
       duration_minutes: spec.duration_minutes,
       exclude_holidays: spec.exclude_holidays,
       state_code: spec.state_code,
@@ -187,7 +222,7 @@
   }
 
   async function handleSubmit() {
-    if (!name.trim()) {
+    if (!workingTarget.name.trim()) {
       errorMessage = 'Please enter a target name';
       return;
     }
@@ -238,21 +273,24 @@
 
     try {
       const targetData: Partial<TargetWithSpecs> = {
-        name: name.trim(),
+        name: workingTarget.name.trim(),
         target_specs: validSpecs.map(spec => ({
           ...spec,
-          user_id: target?.user_id || '',
-          target_id: target?.id || '',
+          user_id: workingTarget.user_id,
+          target_id: workingTarget.id,
         })),
       };
 
       let savedTargetId: string;
 
-      if (target) {
-        await targetsStore.update(target.id, targetData);
-        savedTargetId = target.id;
+      if (isEditing) {
+        await targetsStore.update(workingTarget.id, targetData);
+        savedTargetId = workingTarget.id;
       } else {
-        const newTarget = await targetsStore.create(targetData);
+        const newTarget = await targetsStore.create({
+          ...targetData,
+          id: workingTarget.id,
+        });
         savedTargetId = newTarget.id;
       }
 
@@ -272,11 +310,11 @@
   }
 
   async function handleDeleteConfirm() {
-    if (!target) return;
+    if (!isEditing) return;
     
     isLoading = true;
     try {
-      await targetsStore.delete($state.snapshot(target));
+      await targetsStore.delete($state.snapshot(workingTarget));
       showDeleteConfirm = false;
       close();
     } catch (error: any) {
@@ -309,7 +347,7 @@
   >
     <!-- Header -->
     <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
-      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{target ? $_('targetform.edit') : $_('targetform.add')} {$_('targetform.target')}</h2>
+      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{isEditing ? $_('targetform.edit') : $_('targetform.add')} {$_('targetform.target')}</h2>
       <button
         onclick={close}
         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors icon-[si--close-circle-duotone]"
@@ -335,7 +373,7 @@
           <input
             id="name"
             type="text"
-            bind:value={name}
+            bind:value={workingTarget.name}
             required
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder={$_('target.placeholderTargetName')}
@@ -483,8 +521,7 @@
         </div>
 
         <!-- Button Assignment -->
-        {#if target}
-          <div class="border-t dark:border-gray-700 pt-4 mt-4">
+        <div class="border-t dark:border-gray-700 pt-4 mt-4">
             <div class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
               {$_('target.assignTimers')}
             </div>
@@ -527,7 +564,7 @@
 
                     <span class="text-sm font-medium text-gray-800 dark:text-gray-200 text-center line-clamp-2">{timer.name}</span>
 
-                    {#if assignedTarget && assignedTarget.id !== target?.id}
+                    {#if assignedTarget && assignedTarget.id !== workingTarget.id}
                       <span class="text-[10px] text-orange-600 dark:text-orange-400 mt-1 text-center" title="Currently assigned to {assignedTarget.name}">{$_('common.assignedTo')}: {assignedTarget.name}</span>
                     {/if}
                   </button>
@@ -535,7 +572,6 @@
               </div>
             {/if}
           </div>
-        {/if}
 
         <!-- Actions -->
         <div class="flex gap-3 pt-4">
@@ -551,12 +587,12 @@
             disabled={isLoading}
             class="flex-1 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Saving...' : $_(target ? 'common.save' : 'common.save')}
+            {isLoading ? 'Saving...' : $_(isEditing ? 'common.save' : 'common.save')}
           </button>
         </div>
         
         <!-- Delete Button (only shown when editing) -->
-        {#if target}
+        {#if isEditing}
           <button
             type="button"
             onclick={handleDeleteClick}
@@ -603,7 +639,7 @@
       <!-- Content -->
       <div class="p-6 space-y-6">
         <p class="text-gray-600 dark:text-gray-400">
-          {$_('target.deleteConfirmation')} "{target?.name}"?
+          {$_('target.deleteConfirmation')} "{workingTarget.name}"?
         </p>
         <div class="flex gap-3">
           <button

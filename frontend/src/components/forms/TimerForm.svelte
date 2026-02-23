@@ -51,7 +51,7 @@
         color,
         auto_subtract_breaks: autoSubtractBreaks,
         archived,
-        target_id: targetId || undefined,
+        target_id: targetId || null,
       };
 
       if (timer) {

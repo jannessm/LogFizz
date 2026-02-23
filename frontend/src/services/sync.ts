@@ -107,6 +107,9 @@ export class SyncService {
 
   // Timer queue operations
   async queueUpsertTimer(timer: Timer): Promise<void> {
+    if (!timer.target_id) {
+      timer.target_id = null; // Ensure target_id is null if not set, to avoid sync issues
+    }
     await this.queueOperation('timer', timer, saveTimer);
   }
 

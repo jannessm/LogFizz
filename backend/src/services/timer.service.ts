@@ -69,9 +69,20 @@ export class TimerService {
           Object.assign(existing, change);
           // Remove updated_at from client to let TypeORM auto-update it
           delete (existing as any).updated_at;
-          // Handle null target_id - convert empty string to undefined
+          // Handle empty string target_id - normalise to null
           if (existing.target_id === '') {
             existing.target_id = undefined;
+          }
+          // TypeORM's save() silently skips setting a nullable FK column to NULL
+          // when the value is null/undefined on the entity. Force it with a direct
+          // UPDATE so that an explicit "remove target" operation is persisted.
+          if ('target_id' in change && (change.target_id === null || change.target_id === '' || change.target_id === undefined)) {
+            await this.timerRepository
+              .createQueryBuilder()
+              .update(Timer)
+              .set({ target_id: null as any })
+              .where('id = :id', { id: existing.id })
+              .execute();
           }
           await this.timerRepository.save(existing);
           // Reload to get auto-generated timestamps

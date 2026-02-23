@@ -272,6 +272,33 @@ describe('timersStore', () => {
     });
   });
 
+  describe('target_id handling', () => {
+    it('should remove target assignment when target_id is set to empty string', async () => {
+      const existingTimer: Timer = {
+        id: 'timer-1',
+        user_id: 'user-1',
+        name: 'Work',
+        auto_subtract_breaks: false,
+        archived: false,
+        target_id: 'target-abc',
+        created_at: '2024-12-01T00:00:00Z',
+        updated_at: '2024-12-01T00:00:00Z',
+      };
+
+      await initStoreWithTimers([existingTimer]);
+      vi.mocked(db.saveTimer).mockResolvedValue();
+
+      // The form sets target_id to '' when no target is selected
+      const updatedTimer = await timersStore.update('timer-1', {
+        target_id: '',
+      } as any);
+
+      expect(updatedTimer.target_id).toBeUndefined();
+      const savedArg = vi.mocked(db.saveTimer).mock.calls[0][0] as Timer;
+      expect(savedArg.target_id).toBeUndefined();
+    });
+  });
+
   describe('derived stores', () => {
     it('timers derived store should return items', async () => {
       const mockTimers: Timer[] = [
