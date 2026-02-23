@@ -129,6 +129,9 @@
         </span>
       </div>
       <div class="text-xs text-white opacity-90 mt-1">
+        {#if session.log.type === 'homeoffice'}
+          <span class="text-m icon-[si--home-duotone]"></span>
+        {/if}
         {#if isClippedAtStart()}
           {displayStart().format('LL LT')}
         {:else}
@@ -148,6 +151,11 @@
           <span class="text-xs opacity-75 ml-1">({logTimezone})</span>
         {/if}
       </div>
+      {#if session.log.timezone && isDifferentTimezone}
+        <div class="text-xs text-white opacity-90 mt-1">
+          🌍 {session.log.timezone}
+        </div>
+      {/if}
     </div>
 
     <!-- Action buttons (visible on hover) -->
