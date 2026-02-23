@@ -28,6 +28,7 @@ import {
   type WholeDayCounters,
 } from '../../../lib/utils/balance.js';
 import { generateBalanceId } from '../../../lib/types/index.js';
+import { calculateTimelogDuration } from '../../../lib/dist/utils/balance';
 
 /**
  * Configuration for the balances store
@@ -95,6 +96,9 @@ async function prepareCalculationContext(
     if (tl.deleted_at) return false;
     const timer = _timers.find(t => t.id === tl.timer_id);
     return timer !== undefined && timer.target_id === targetId;
+  });
+  allTimelogs.forEach(tl => {
+    tl.duration_minutes = calculateTimelogDuration(tl);
   });
 
   // Build holidays set for the target
@@ -421,10 +425,13 @@ function createBalancesStore() {
       let earliestImpacted = extendFrom;
       
       if (affectedTimelog) {
-        const affectedStart = dayjs(affectedTimelog.start_timestamp).startOf('day');
+        // Use the timelog's own timezone so that e.g. a Berlin 00:30-01:30 log
+        // (UTC 23:30 prev day - 00:30) is attributed to the correct Berlin date
+        const logTz = affectedTimelog.timezone || userTimezone;
+        const affectedStart = dayjs.utc(affectedTimelog.start_timestamp).tz(logTz).startOf('day');
         const affectedEnd = (affectedTimelog.end_timestamp
-          ? dayjs(affectedTimelog.end_timestamp)
-          : dayjs()
+          ? dayjs.utc(affectedTimelog.end_timestamp).tz(logTz)
+          : dayjs().tz(logTz)
         ).endOf('day');
 
         // Update earliest impacted for monthly/yearly rebuild

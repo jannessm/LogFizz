@@ -53,21 +53,25 @@ export interface WorkedCalculation {
 
 /**
  * Get the effective date range for a timelog within a specific day
- * Clips the timelog's start/end to the day boundaries
+ * Clips the timelog's start/end to the day boundaries in the given timezone
  * 
  * @param date - The date to calculate for (YYYY-MM-DD)
  * @param start - Timelog start timestamp
  * @param end - Timelog end timestamp (optional for running timelogs)
+ * @param timezone - Timezone to use for day boundaries (defaults to UTC)
  * @returns Effective start and end times clipped to the day
  */
 export function getEffectiveRange(
   date: string,
   start: string,
-  end?: string | null
+  end?: string | null,
+  timezone?: string
 ): { effectiveStart: dayjs.Dayjs; effectiveEnd: dayjs.Dayjs } | null {
-  // Parse all times in UTC to ensure consistency
-  const dayStart = dayjs.utc(date).startOf('day');
-  const dayEnd = dayjs.utc(date).endOf('day');
+  // Parse day boundaries in the timelog's timezone so that a Berlin log
+  // from 00:30-01:30 is attributed to the correct Berlin date
+  const tz = timezone || 'UTC';
+  const dayStart = dayjs.tz(date, tz).startOf('day');
+  const dayEnd = dayjs.tz(date, tz).endOf('day');
   
   const logStart = dayjs.utc(start);
   const logEnd = end ? dayjs.utc(end) : dayjs.utc(); // Use current time for running logs
@@ -98,11 +102,6 @@ export function calculateTimelogDuration(timelog: TimeLog): number {
     return -1;
   }
   
-  // If duration is already calculated, use it
-  if (timelog.duration_minutes !== undefined && timelog.duration_minutes !== null) {
-    return timelog.duration_minutes;
-  }
-
   // Calculate from timestamps
   if (!timelog.start_timestamp || !timelog.end_timestamp) {
     return 0;
@@ -148,8 +147,11 @@ export function calculateWorkedMinutesForDate(
   };
   
   for (const timelog of timelogs) {
-    // Get effective range for this date
-    const range = getEffectiveRange(date, timelog.start_timestamp, timelog.end_timestamp);
+    // Use the timelog's own timezone for day boundary calculations
+    const logTimezone = timelog.timezone || 'UTC';
+
+    // Get effective range for this date in the timelog's timezone
+    const range = getEffectiveRange(date, timelog.start_timestamp, timelog.end_timestamp, logTimezone);
     if (!range) continue; // Timelog doesn't overlap with this date
     
     const duration = calculateTimelogDuration(timelog);
@@ -177,7 +179,7 @@ export function calculateWorkedMinutesForDate(
     const { effectiveStart, effectiveEnd } = range;
     const logStart = dayjs.utc(timelog.start_timestamp);
     const logEnd = timelog.end_timestamp ? dayjs.utc(timelog.end_timestamp) : dayjs.utc();
-    const dayEnd = dayjs.utc(date).endOf('day');
+    const dayEnd = dayjs.utc(date).tz(logTimezone).endOf('day');
     const totalDuration = duration;
     const actualDuration = logEnd.diff(logStart, 'minute');
     

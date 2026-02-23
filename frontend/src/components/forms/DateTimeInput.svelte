@@ -51,9 +51,9 @@
   let dateValue = $derived(
     isStringMode 
       ? (stringValue || '') 
-      : (value ? value.tz(timezone).format('YYYY-MM-DD') : '')
+      : (value ? value.format('YYYY-MM-DD') : '')
   );
-  let timeValue = $derived(value ? value.tz(timezone).format('HH:mm') : '');
+  let timeValue = $derived(value ? value.format('HH:mm') : '');
 </script>
 
 <div class="grid gap-4" class:grid-cols-2={!dateOnly} class:grid-cols-1={dateOnly}>

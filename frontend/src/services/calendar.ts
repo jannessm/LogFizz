@@ -73,11 +73,17 @@ export function createCalendarStore(
     const relevantLogs = mapToArray($timeLogsStore.items).filter((tl: TimeLog) => {
       if (tl.deleted_at) return false;
     
-      const logYear = tl.year ?? dayjs(tl.start_timestamp).tz(userTimezone).year();
-      const logMonth = tl.month ?? dayjs(tl.start_timestamp).tz(userTimezone).month() + 1;
+      const logTimezone = tl.timezone || userTimezone;
+      const logStartYear = tl.year ?? dayjs.utc(tl.start_timestamp).tz(logTimezone).year();
+      const logStartMonth = tl.month ?? dayjs.utc(tl.start_timestamp).tz(logTimezone).month() + 1;
+      const logEndYear = tl.end_timestamp ? (tl.year ?? dayjs.utc(tl.end_timestamp).tz(logTimezone).year()) : logStartYear;
+      const logEndMonth = tl.end_timestamp ? (tl.month ?? dayjs.utc(tl.end_timestamp).tz(logTimezone).month() + 1) : logStartMonth;
+
+      // Check if either the start or end month/year matches the target months
       
       return targetMonths.some(
-        (target) => target.year === logYear && target.month === logMonth
+        (target) => (target.year === logStartYear && target.month === logStartMonth) ||
+                     (target.year === logEndYear && target.month === logEndMonth)
       );
     });
 
@@ -180,8 +186,8 @@ function calculateMultiDayRange(
 
     // Convert timestamps to user's timezone
     const logTimezone = tl.timezone || userTimezone;
-    const start = dayjs.tz(tl.start_timestamp, logTimezone).startOf('day');
-    const end = dayjs.tz(tl.end_timestamp, logTimezone).endOf('day') || dayjs().tz(logTimezone).endOf('day');
+    const start = dayjs.utc(tl.start_timestamp).tz(logTimezone).startOf('day');
+    const end = dayjs.utc(tl.end_timestamp).tz(logTimezone).endOf('day') || dayjs().tz(logTimezone).endOf('day');
 
     // If the end date is before the start date, skip this log
     if (start.isAfter(endDate) || end.isBefore(startDate)) continue;
