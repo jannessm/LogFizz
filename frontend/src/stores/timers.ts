@@ -20,6 +20,18 @@ const timerStoreConfig: BaseStoreConfig<Timer> = {
     queueDelete: syncService.queueDeleteTimer.bind(syncService),
     syncType: 'timer',
   },
+  hooks: {
+    beforeCreate(item) {
+      if (item.target_id === '') {
+        item.target_id = undefined;
+      }
+    },
+    beforeUpdate(item) {
+      if (item.target_id === '') {
+        item.target_id = undefined;
+      }
+    },
+  },
   storeName: 'Timer',
 };
 
