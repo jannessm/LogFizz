@@ -3,6 +3,7 @@ import type { DBSchema, IDBPDatabase } from 'idb';
 import type { Timer, TimeLog, User, SyncQueueItem, Balance, Holiday, BalanceCalcMeta } from '../../types';
 import type { TargetWithSpecs } from '../../types';
 import { dayjs, userTimezone } from '../../../../lib/utils/dayjs.js';
+import { calculateTimelogDuration } from '../../../../lib/utils/balance';
 
 interface TapShiftDB extends DBSchema {
   timers: {
@@ -160,48 +161,31 @@ export async function saveTimeLog(timelog: TimeLog): Promise<void> {
     year: dayjs(timelog.start_timestamp).tz(userTimezone).year(),
   };
 
-  if (type === 'normal' && timelog.start_timestamp && timelog.end_timestamp) {
-    
-    // Determine whether to apply break calculation
-    // Priority: timelog's explicit setting > timer's auto_subtract_breaks > false
-    let applyBreaks = timelog.apply_break_calculation;
-    
-    // Only check timer setting if apply_break_calculation is not explicitly set
-    if (applyBreaks === undefined && timelog.timer_id) {
-      try {
-        const timer = await getTimer(timelog.timer_id);
-        if (timer) {
-          applyBreaks = timer.auto_subtract_breaks;
-        }
-      } catch (err) {
-        console.warn('Failed to read timer for break calculation:', err);
+  // Determine whether to apply break calculation
+  // Priority: timelog's explicit setting > timer's auto_subtract_breaks > false
+  let applyBreaks = timelog.apply_break_calculation;
+  
+  // Only check timer setting if apply_break_calculation is not explicitly set
+  if (applyBreaks === undefined && timelog.timer_id) {
+    try {
+      const timer = await getTimer(timelog.timer_id);
+      if (timer) {
+        applyBreaks = timer.auto_subtract_breaks;
       }
+    } catch (err) {
+      console.warn('Failed to read timer for break calculation:', err);
     }
-    
-    // Default to false if still undefined
-    applyBreaks = applyBreaks ?? false;
-    
-    // Calculate duration in minutes
-    const start = new Date(timelog.start_timestamp).getTime();
-    const end = new Date(timelog.end_timestamp).getTime();
-    let minutes = Math.round((end - start) / (1000 * 60));
-    
-    // Apply German break rules if enabled
-    if (applyBreaks) {
-      if (minutes >= 9 * 60) {
-        minutes -= 45; // 45 minutes break for 9+ hours
-      } else if (minutes >= 6 * 60) {
-        minutes -= 30; // 30 minutes break for 6-9 hours
-      }
-    }
-    
-    finalTimelog = {
-      ...finalTimelog,
-      duration_minutes: Math.max(0, minutes),
-      apply_break_calculation: applyBreaks,
-    };
   }
-  // For special types, keep the duration as-is (calculated by backend from daily target)
+  
+  // Default to false if still undefined
+  applyBreaks = applyBreaks ?? false;
+    
+
+  finalTimelog = {
+    ...finalTimelog,
+    duration_minutes: calculateTimelogDuration(finalTimelog),
+    apply_break_calculation: applyBreaks,
+  };
 
   await db.put('timelogs', finalTimelog);
 }

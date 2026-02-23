@@ -35,6 +35,10 @@ function timelogEndedAfter(timelog: TimeLog, timestamp?: string): boolean {
  * Timelogs represent time tracking entries with start/end timestamps
  * Includes hooks for balance recalculation on CRUD operations
  */
+// Captured previous timelog state for balance recalculation on update.
+// Set in beforeUpdate, consumed in afterUpdate.
+let previousTimelogForRecalc: TimeLog | undefined;
+
 const timeLogStoreConfig: BaseStoreConfig<TimeLog> = {
   db: {
     getAll: () => getTimeLogsByYearMonth(
@@ -54,6 +58,10 @@ const timeLogStoreConfig: BaseStoreConfig<TimeLog> = {
       await recalculateBalancesForTimeLog(timeLog);
     },
     beforeUpdate: async (timeLog, state) => {
+      // Capture the old version so afterUpdate can recalculate the union of old+new ranges
+      const oldTimelog = state.items.get(timeLog.id);
+      previousTimelogForRecalc = oldTimelog ? { ...oldTimelog } : undefined;
+
       // sort all timelogs by start_timestamp
       const allTimeLogs = mapToArray(state.items).filter(tl => tl.id !== timeLog.id)
         .sort((a, b) =>
@@ -73,7 +81,8 @@ const timeLogStoreConfig: BaseStoreConfig<TimeLog> = {
       return timeLog;
     },
     afterUpdate: async (timeLog) => {
-      await recalculateBalancesForTimeLog(timeLog);
+      await recalculateBalancesForTimeLog(timeLog, undefined, previousTimelogForRecalc);
+      previousTimelogForRecalc = undefined;
     },
     afterDelete: async (timeLog) => {
       await recalculateBalancesForTimeLog(timeLog);
@@ -189,8 +198,8 @@ function createTimeLogsStore() {
         notes: timeLogData.notes || '',
         created_at: dayjs().toISOString(),
         updated_at: dayjs().toISOString(),
-        year: (dayjs(timeLogData.start_timestamp || dayjs()).tz(userTimezone).year()),
-        month: (dayjs(timeLogData.start_timestamp || dayjs()).tz(userTimezone).month() + 1),
+        year: (dayjs(timeLogData.start_timestamp || dayjs()).tz(timeLogData.timezone || userTimezone).year()),
+        month: (dayjs(timeLogData.start_timestamp || dayjs()).tz(timeLogData.timezone || userTimezone).month() + 1),
       });
     },
 
@@ -207,8 +216,9 @@ function createTimeLogsStore() {
       if (loadedMonths.has(key)) {
         const existingLogs = mapToArray(baseStore.getState().items).filter((tl: TimeLog) => {
           // Use year/month properties if available, otherwise parse from start_timestamp
-          const logYear = tl.year ?? dayjs(tl.start_timestamp).tz(userTimezone).year();
-          const logMonth = tl.month ?? (dayjs(tl.start_timestamp).tz(userTimezone).month() + 1);
+          const logTz = tl.timezone || userTimezone;
+          const logYear = tl.year ?? dayjs(tl.start_timestamp).tz(logTz).year();
+          const logMonth = tl.month ?? (dayjs(tl.start_timestamp).tz(logTz).month() + 1);
           return logYear === year && logMonth === month;
         });
         return existingLogs;
