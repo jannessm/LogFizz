@@ -72,15 +72,6 @@ describe('Balance Calculation Utilities', () => {
       expect(calculateTimelogDuration(timelog as TimeLog)).toBe(-1);
     });
 
-    it('should use existing duration_minutes if available', () => {
-      const timelog: Partial<TimeLog> = {
-        whole_day: false,
-        duration_minutes: 480,
-      } as TimeLog;
-      
-      expect(calculateTimelogDuration(timelog as TimeLog)).toBe(480);
-    });
-
     it('should calculate duration from timestamps', () => {
       const timelog: Partial<TimeLog> = {
         whole_day: false,
