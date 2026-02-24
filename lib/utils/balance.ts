@@ -102,6 +102,11 @@ export function calculateTimelogDuration(timelog: TimeLog): number {
     return -1;
   }
   
+  // Use existing duration_minutes if available
+  if (timelog.duration_minutes != null && timelog.duration_minutes > 0) {
+    return timelog.duration_minutes;
+  }
+
   // Calculate from timestamps
   if (!timelog.start_timestamp || !timelog.end_timestamp) {
     return 0;
