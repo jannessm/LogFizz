@@ -6,7 +6,8 @@
   import { formatTime } from '../../../../lib/utils/timeFormat.js';
   import { _ } from '../../lib/i18n';
   import { get } from 'svelte/store';
-    import { formatMinutesCompact } from '../../../../lib/dist/utils/timeFormat';
+  import { formatMinutesCompact } from '../../../../lib/dist/utils/timeFormat';
+  import { calculateTimelogDuration } from '../../../../lib/dist/utils/balance';
 
   export type ButtonEditCallback = (timer: Timer) => void;
   export type ButtonLongpressCallback = (timer: Timer, timelog: TimeLog | undefined, isActive: boolean) => void;
@@ -38,6 +39,7 @@
   let isActive = $state(false);
 
   let todayTime = $state(0); // in minutes
+  let timePassed = $state(0); // in seconds, for progress calculation
 
   $effect(() => {
     activeTimeLog = $activeTimeLogs.find(t => t.timer_id === timer.id);
@@ -45,6 +47,7 @@
     if (activeTimeLog) {
       isActive = true;
       updateProgress();
+      updateTodayTime();
     } else {
       isActive = false;
       elapsedTime = 0;
@@ -53,6 +56,30 @@
   });
 
   $effect(() => {
+    if (timePassed >= 0 && elapsedTime % 60 == 0 && $timerlogs.length > 0 && (isActive || activeTimeLog)) {
+      updateTodayTime();
+    }
+    updateProgress();
+  });
+
+  onMount(() => {
+    // Update elapsed time every second for active timers
+    interval = setInterval(() => timePassed++, 1000) as unknown as number;
+  });
+
+  function updateProgress() {
+    if (isActive && activeTimeLog) {
+      const startTime = dayjs(activeTimeLog.start_timestamp).valueOf();
+      elapsedTime = Math.floor((dayjs().valueOf() - startTime) / 1000);
+      
+      // Calculate stroke-dashoffset directly for Firefox compatibility
+      const secProgress = (elapsedTime % 60) / 60;
+      const circumference = 351.858; // 2 * PI * 56
+      strokeDashoffset = circumference - (circumference * secProgress);
+    }
+  }
+
+  function updateTodayTime() {
     // Calculate today's total time from completed timelogs
     const today = dayjs().format('YYYY-MM-DD');
     const todayLogs = $timerlogs.filter(tl => 
@@ -66,35 +93,20 @@
         _todayTime += log.duration_minutes;
       } else if (log.end_timestamp) {
         // Calculate if duration wasn't stored
-        const start = new Date(log.start_timestamp).getTime();
-        const end = new Date(log.end_timestamp).getTime();
+        const start = dayjs.utc(log.start_timestamp).valueOf();
+        const end = dayjs.utc(log.end_timestamp).valueOf();
         _todayTime += Math.floor((end - start) / 60000);
       }
     }
     
     // Add time for currently active timer
     if (isActive && activeTimeLog && activeTimeLog.start_timestamp.startsWith(today)) {
-      const start = new Date(activeTimeLog.start_timestamp).getTime();
-      _todayTime += Math.floor((Date.now() - start) / 60000);
+      const end = dayjs().toISOString();
+      const modLog = { ...activeTimeLog, end_timestamp: end };
+      _todayTime += calculateTimelogDuration(modLog);
     }
+
     todayTime = _todayTime;
-  });
-
-  onMount(() => {
-    // Update elapsed time every second for active timers
-    interval = setInterval(updateProgress, 1000) as unknown as number;
-  });
-
-  function updateProgress() {
-    if (isActive && activeTimeLog) {
-      const startTime = dayjs(activeTimeLog.start_timestamp).valueOf();
-      elapsedTime = Math.floor((dayjs().valueOf() - startTime) / 1000);
-      
-      // Calculate stroke-dashoffset directly for Firefox compatibility
-      const secProgress = (elapsedTime % 60) / 60;
-      const circumference = 351.858; // 2 * PI * 56
-      strokeDashoffset = circumference - (circumference * secProgress);
-    }
   }
 
   onDestroy(() => {

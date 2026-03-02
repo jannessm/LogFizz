@@ -106,7 +106,7 @@ async function prepareCalculationContext(
   for (const spec of target.target_specs || []) {
     if (spec.exclude_holidays && spec.state_code) {
       const holidays = holidaysStore.getHolidaysForMonth(
-        spec.state_code.split('-')[0],
+        spec.state_code,
         year,
         month
       );
@@ -242,7 +242,6 @@ function createBalancesStore() {
       // First check in-memory store (O(1) lookup)
       const state = baseStore.getState();
       const inMemory = state.items.get(id);
-      console.log(`Looking up balance with ID ${id} in-memory:`, inMemory);
       if (inMemory && !inMemory.deleted_at) return inMemory;
       
       // Fall back to DB

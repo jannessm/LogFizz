@@ -30,7 +30,8 @@
 
   // When editing, convert from stored timezone to user's local timezone
   // For new entries, use selectedDate and current time as defaults
-  const now = $derived(dayjs.utc(selectedDate));
+  const now = $derived(dayjs.utc(selectedDate).tz(userTimezone));
+  console.log(now.toISOString(), userTimezone);
 
   let newLog: Partial<TimeLog> = $state({
     timer_id: undefined,
@@ -266,7 +267,7 @@
               id="running"
               type="checkbox"
               bind:checked={isRunning}
-              disabled={newLog.whole_day}
+              disabled={newLog.whole_day || (!!existingLog && !existingLog.end_timestamp && !isTimerStop)}
               onchange={() => {
                 if (isRunning) {
                   errorMessage = '';

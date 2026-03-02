@@ -195,6 +195,43 @@
     return timelog.duration_minutes;
   }
 
+  // Map of "date|targetId" -> timelogs sorted by start_timestamp (ascending).
+  // Used to compute how much effective work preceding entries already covered
+  // so the due time for later entries on the same day+target is reduced accordingly.
+  let priorWorkMap = $derived.by(() => {
+    const map = new Map<string, TimeLog[]>();
+    for (const timelog of timelogs) {
+      const targetId = getTargetId(timelog.timer_id);
+      if (!targetId) continue;
+      const date = dayjs.utc(timelog.start_timestamp).tz(timelog.timezone || userTimezone).format('YYYY-MM-DD');
+      const key = `${date}|${targetId}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(timelog);
+    }
+    // Sort each bucket by start time
+    for (const bucket of map.values()) {
+      bucket.sort((a, b) => new Date(a.start_timestamp).getTime() - new Date(b.start_timestamp).getTime());
+    }
+    return map;
+  });
+
+  // Returns how many minutes of effective work for the same date+target come
+  // from timelogs that started BEFORE this one (i.e. already "used up" due time).
+  function getPriorWork(timelog: TimeLog): number {
+    const targetId = getTargetId(timelog.timer_id);
+    if (!targetId) return 0;
+    const date = dayjs.utc(timelog.start_timestamp).tz(timelog.timezone || userTimezone).format('YYYY-MM-DD');
+    const key = `${date}|${targetId}`;
+    const bucket = priorWorkMap.get(key);
+    if (!bucket) return 0;
+    let prior = 0;
+    for (const t of bucket) {
+      if (t.id === timelog.id) break;
+      prior += getEffectiveDuration(t);
+    }
+    return prior;
+  }
+
   function getDueTime(timelog: TimeLog): number {
     const targetId = getTargetId(timelog.timer_id);
     if (!targetId) return 0;
@@ -203,7 +240,9 @@
     if (!target) return 0;
     
     const date = dayjs.utc(timelog.start_timestamp).tz(timelog.timezone || userTimezone).format('YYYY-MM-DD');
-    return calculateDueMinutes(date, target as any, new Set());
+    const fullDue = calculateDueMinutes(date, target as any, new Set());
+    const prior = getPriorWork(timelog);
+    return Math.max(0, fullDue - prior);
   }
 
   function getDiff(timelog: TimeLog): number | undefined {
@@ -405,12 +444,13 @@
   function getStateCodes(): string[] {
     const stateCodes = new Set<string>();
     for (const target of targets) {
-      for (const spec of target.specs || []) {
+      for (const spec of target.target_specs || []) {
         if (spec.state_code) {
           stateCodes.add(spec.state_code);
         }
       }
     }
+    console.log('Derived state codes for holiday lookup:', targets);
     return Array.from(stateCodes);
   }
 
@@ -441,7 +481,6 @@
     const _dailyBalances = get(dailyBalances);
     const _monthlyBalances = get(monthlyBalances);
     const stateCodes = getStateCodes();
-    const countries = stateCodes.map(s => s.split('-')[0]);
 
     // For date-based grouping, determine the date range from both timelogs and daily balances
     let minDate = dateFrom.format('YYYY-MM-DD');
@@ -453,7 +492,7 @@
         // Only include dates within the overall range
         if (date >= minDate && date <= maxDate && !groupMap.has(date)) {
           const dateDayjs = dayjs(date);
-          const holidays = holidaysStore.getHolidaysForDate(date, countries);
+          const holidays = holidaysStore.getHolidaysForDate(date, stateCodes);
           const holidayName = holidays.length > 0 ? holidays[0].name : null;
           
           if (!holidayName && balance.worked_minutes === 0 && balance.due_minutes === 0) {
@@ -491,7 +530,7 @@
         groupLabel = date.format('L');
         
         // Check for holiday
-        const holidays = holidaysStore.getHolidaysForDate(groupKey, countries);
+        const holidays = holidaysStore.getHolidaysForDate(groupKey, stateCodes);
         holidayName = holidays.length > 0 ? holidays[0].name : null;
       } else if (sortColumn === 'timer') {
         groupKey = expanded.timelog.timer_id;
@@ -583,31 +622,6 @@
           group.balances.set(targetId, newBalance);
         }
       }
-    }
-
-    // Calculate cumulative statistics for each group
-    for (const group of groups) {
-      if (group.timelogs.length > 0) {
-        // Calculate from timelogs - reset totals since they were initialized to 0
-        group.totalDuration = 0;
-        group.totalDue = 0;
-        group.totalWorked = 0;
-        group.totalDiff = 0;
-        
-        for (const expanded of group.timelogs) {
-          const duration = getTotalDuration(expanded.timelog);
-          const due = getDueTime(expanded.timelog);
-          const worked = getEffectiveDuration(expanded.timelog);
-          const diff = getDiff(expanded.timelog);
-          
-          group.totalDuration += duration || 0;
-          group.totalDue += due;
-          group.totalWorked += worked;
-          group.totalDiff += diff;
-        }
-      }
-      // Empty groups from daily balances already have totals initialized,
-      // so we skip recalculation
     }
 
     // Sort groups based on sort direction
@@ -832,22 +846,18 @@
             {/if}
             {#if visibleColumns.totalDuration}
               <td class="px-3 py-2 align-bottom text-sm text-gray-600 dark:text-gray-400">
-                {formatBalance(group.totalDuration)}
               </td>
             {/if}
             {#if visibleColumns.effectiveDuration}
               <td class="px-3 py-2 align-bottom text-sm text-gray-600 dark:text-gray-400">
-                {formatBalance(group.totalWorked)}
               </td>
             {/if}
             {#if visibleColumns.dueTime}
               <td class="px-3 py-2 align-bottom text-sm text-gray-600 dark:text-gray-400">
-                {formatBalance(group.totalDue)}
               </td>
             {/if}
             {#if visibleColumns.diff}
-              <td class="px-3 py-2 align-bottom text-sm" class:text-green-600={group.totalDiff >= 0} class:text-red-600={group.totalDiff < 0}>
-                {formatDiff(group.totalDiff)}
+              <td class="px-3 py-2 align-bottom text-sm">
               </td>
             {/if}
             {#if visibleColumns.notes}
