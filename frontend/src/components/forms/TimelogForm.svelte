@@ -6,6 +6,63 @@
   import DateTimeInput from './DateTimeInput.svelte';
   import { _ } from '../../lib/i18n';
 
+  // Build sorted list of IANA timezones, excluding Etc/* entries
+  const timezones: string[] = Intl.supportedValuesOf('timeZone').filter(tz => !tz.startsWith('Etc/'));
+
+  let timezoneSearch = $state('');
+  let timezoneDropdownOpen = $state(false);
+  let filteredTimezones = $derived(
+    timezoneSearch
+      ? timezones.filter(tz => tz.toLowerCase().includes(timezoneSearch.toLowerCase()))
+      : timezones
+  );
+  let highlightedIndex = $state(-1);
+  let dropdownRef: HTMLUListElement | undefined = $state(undefined);
+
+  function selectTimezone(tz: string) {
+    handleTimezoneChange(tz);
+    timezoneSearch = '';
+    timezoneDropdownOpen = false;
+    highlightedIndex = -1;
+  }
+
+  function handleTimezoneKeydown(e: KeyboardEvent) {
+    if (!timezoneDropdownOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter') {
+        timezoneDropdownOpen = true;
+        highlightedIndex = 0;
+        e.preventDefault();
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      highlightedIndex = Math.min(highlightedIndex + 1, filteredTimezones.length - 1);
+      scrollHighlightedIntoView();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      highlightedIndex = Math.max(highlightedIndex - 1, 0);
+      scrollHighlightedIntoView();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && highlightedIndex < filteredTimezones.length) {
+        selectTimezone(filteredTimezones[highlightedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      timezoneDropdownOpen = false;
+      timezoneSearch = '';
+      highlightedIndex = -1;
+    }
+  }
+
+  function scrollHighlightedIntoView() {
+    requestAnimationFrame(() => {
+      const el = dropdownRef?.querySelector('[data-highlighted="true"]');
+      el?.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
   let {
     selectedDate,
     existingLog = undefined,
@@ -169,6 +226,20 @@
   function handleDeleteCancel() {
     showDeleteConfirm = false;
   }
+
+  function handleTimezoneChange(newTz: string) {
+    const oldTz = newLog.timezone || userTimezone;
+    newLog.timezone = newTz;
+
+    // Re-interpret the same wall-clock times in the new timezone
+    startTimestamp = dayjs.utc(startTimestamp.format('YYYY-MM-DDTHH:mm:ss'), 'YYYY-MM-DDTHH:mm:ss').tz(newTz, true);
+    newLog.start_timestamp = startTimestamp.toISOString();
+
+    if (newLog.end_timestamp) {
+      endTimestamp = dayjs.utc(endTimestamp.format('YYYY-MM-DDTHH:mm:ss'), 'YYYY-MM-DDTHH:mm:ss').tz(newTz, true);
+      newLog.end_timestamp = endTimestamp.toISOString();
+    }
+  }
 </script>
 
 <!-- Modal Overlay -->
@@ -318,6 +389,61 @@
         </label>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
           {$_('timelog.applyBreakCalcDescription')}
+        </p>
+      </div>
+
+      <!-- Timezone Selector -->
+      <div class="relative">
+        <label for="timezone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          {$_('timelog.timezone')}
+        </label>
+        <input
+          type="text"
+          id="timezone"
+          value={timezoneDropdownOpen ? timezoneSearch : (newLog.timezone || userTimezone)}
+          onfocus={() => { timezoneDropdownOpen = true; timezoneSearch = ''; highlightedIndex = -1; }}
+          oninput={(e) => { timezoneSearch = e.currentTarget.value; highlightedIndex = 0; }}
+          onkeydown={handleTimezoneKeydown}
+          placeholder={newLog.timezone || userTimezone}
+          autocomplete="off"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent"
+        />
+
+        {#if timezoneDropdownOpen}
+          <ul
+            bind:this={dropdownRef}
+            class="absolute z-50 mt-1 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+            role="listbox"
+          >
+            {#each filteredTimezones as tz, i}
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
+              <!-- svelte-ignore a11y_click_events_have_key_events -->
+              <li
+                role="option"
+                aria-selected={tz === (newLog.timezone || userTimezone)}
+                data-highlighted={i === highlightedIndex}
+                class="px-3 py-1.5 text-sm cursor-pointer
+                  {i === highlightedIndex ? 'bg-primary/20 text-primary dark:text-primary' : ''}
+                  {tz === (newLog.timezone || userTimezone) ? 'font-semibold' : ''}
+                  hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100"
+                onclick={() => selectTimezone(tz)}
+                onmouseenter={() => highlightedIndex = i}
+              >
+                {tz}
+              </li>
+            {:else}
+              <li class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 italic">
+                {$_('timelog.noTimezonesFound')}
+              </li>
+            {/each}
+          </ul>
+          <!-- Invisible backdrop to close dropdown on outside click -->
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
+          <div class="fixed inset-0 z-40" onclick={() => { timezoneDropdownOpen = false; timezoneSearch = ''; }}></div>
+        {/if}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          {$_('timelog.changeTimezone')}
         </p>
       </div>
 

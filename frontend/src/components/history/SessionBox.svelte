@@ -39,31 +39,31 @@
   let isClippedAtStart = $derived(() => {
     if (!selectedDate) return false;
     const dayStart = selectedDate.startOf('day');
-    const sessionStart = dayjs(session.startTime);
+    const sessionStart = dayjs.utc(session.startTime).tz(logTimezone);
     return sessionStart.isBefore(dayStart);
   });
 
   let isClippedAtEnd = $derived(() => {
     if (!selectedDate || !session.endTime) return false;
     const dayEnd = selectedDate.endOf('day');
-    const sessionEnd = dayjs(session.endTime);
+    const sessionEnd = dayjs.utc(session.endTime).tz(logTimezone);
     return sessionEnd.isAfter(dayEnd);
   });
 
-  // Get display times (clipped to day boundaries)
+  // Get display times in the log's timezone (clipped to day boundaries)
   let displayStart = $derived(() => {
-    if (!selectedDate) return dayjs(session.startTime);
+    if (!selectedDate) return dayjs.utc(session.startTime).tz(logTimezone);
     const dayStart = selectedDate.startOf('day');
-    const sessionStart = dayjs(session.startTime);
+    const sessionStart = dayjs.utc(session.startTime).tz(logTimezone);
     return sessionStart.isBefore(dayStart) ? dayStart : sessionStart;
   });
 
   let displayEnd = $derived(() => {
     if (!selectedDate) {
-      return session.endTime ? dayjs(session.endTime) : dayjs();
+      return session.endTime ? dayjs.utc(session.endTime).tz(logTimezone) : dayjs().tz(logTimezone);
     }
     const dayEnd = selectedDate.endOf('day');
-    const sessionEnd = session.endTime ? dayjs(session.endTime) : dayjs();
+    const sessionEnd = session.endTime ? dayjs.utc(session.endTime).tz(logTimezone) : dayjs().tz(logTimezone);
     return sessionEnd.isAfter(dayEnd) ? dayEnd : sessionEnd;
   });
 
@@ -146,9 +146,6 @@
           {/if}
         {:else}
           - {$_('common.running')}
-        {/if}
-        {#if isDifferentTimezone}
-          <span class="text-xs opacity-75 ml-1">({logTimezone})</span>
         {/if}
       </div>
       {#if session.log?.timezone && isDifferentTimezone}

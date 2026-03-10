@@ -15,6 +15,7 @@ export async function saveTimelog(
       type: newLog.type,
       whole_day: newLog.whole_day,
       apply_break_calculation: newLog.apply_break_calculation,
+      timezone: newLog.timezone,
     });
     return {timerToStop: null};
   } else if (existingLog) {
@@ -26,6 +27,7 @@ export async function saveTimelog(
       end_timestamp: newLog.end_timestamp || undefined,
       apply_break_calculation: newLog.apply_break_calculation,
       notes: newLog.notes || undefined,
+      timezone: newLog.timezone,
     });
   } else {
     // Creating new timelog
