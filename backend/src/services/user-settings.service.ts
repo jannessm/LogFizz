@@ -68,7 +68,7 @@ export class UserSettingsService {
    */
   async getSettingsByFrequency(frequency: StatisticsEmailFrequency): Promise<UserSettings[]> {
     return this.userSettingsRepository.find({
-      where: { statistics_email_frequency: frequency },
+      where: { stats_mail_frequency: frequency },
       relations: ['user'],
     });
   }
