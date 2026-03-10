@@ -24,8 +24,8 @@ export class UserSettings {
   @Column('varchar', { default: 'sunday' })
   first_day_of_week!: string; // 'sunday' | 'monday'
 
-  @Column('varchar', { default: 'never' })
-  stats_mail_frequency!: string; // 'never' | 'weekly' | 'monthly'
+  @Column('varchar', { name: 'statistics_email_frequency', default: 'none' })
+  statistics_email_frequency!: StatisticsEmailFrequency; // 'none' | 'weekly' | 'monthly'
 
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;

@@ -29,7 +29,7 @@
   let firstDayOfWeek: 'sunday' | 'monday' = $state('sunday');
   let language: 'en' | 'de' = $state('en');
   let locale: string = $state('en-US');
-  let statsMailFrequency: 'never' | 'weekly' | 'monthly' = $state('never');
+  let statisticsEmailFrequency: 'none' | 'weekly' | 'monthly' = $state('none');
   
   // Data & Privacy section
   let isDownloading = $state(false);
@@ -88,7 +88,7 @@
       language = (userSettings.language as 'en' | 'de') || 'en';
       locale = userSettings.locale || 'en-US';
       firstDayOfWeek = (userSettings.first_day_of_week as 'sunday' | 'monday') || 'sunday';
-      statsMailFrequency = (userSettings.stats_mail_frequency as 'never' | 'weekly' | 'monthly') || 'never';
+      statisticsEmailFrequency = (userSettings.statistics_email_frequency as 'none' | 'weekly' | 'monthly') || 'none';
     }
   });
 
@@ -186,14 +186,6 @@
   async function handleFirstDayChange() {
     try {
       await userSettingsStore.updateSettings({ first_day_of_week: firstDayOfWeek });
-    } catch (error: any) {
-      snackbar.error(error.message || $_('common.error'));
-    }
-  }
-
-  async function handleStatsMailChange() {
-    try {
-      await userSettingsStore.updateSettings({ stats_mail_frequency: statsMailFrequency });
     } catch (error: any) {
       snackbar.error(error.message || $_('common.error'));
     }
@@ -413,7 +405,7 @@
           </label>
           <select
             id="statistics-email-select"
-            bind:value={statsMailFrequency}
+            bind:value={statisticsEmailFrequency}
             onchange={handleStatisticsEmailChange}
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >

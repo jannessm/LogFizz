@@ -6,8 +6,11 @@
  * Recalculates all balances before sending (like the frontend does on page load).
  * 
  * Usage:
- *   npm run balance-email:weekly    # Send to users with weekly frequency
- *   npm run balance-email:monthly   # Send to users with monthly frequency
+ *   npm run balance-email:weekly         # Send to users with weekly frequency
+ *   npm run balance-email:monthly        # Send to users with monthly frequency
+ *   npm run balance-email:test -- <email> [userId]
+ *                                        # Send a test email to <email>, optionally
+ *                                        #   using real balance data for [userId]
  */
 
 import 'reflect-metadata';
@@ -20,7 +23,58 @@ import type { StatisticsEmailFrequency } from '../../../lib/types/index.js';
 
 async function main() {
   const args = process.argv.slice(2);
-  
+
+  // ── Test mode ──────────────────────────────────────────────────────────────
+  // Usage: tsx send-user-balance-emails.ts --test <email> [userId]
+  if (args.includes('--test')) {
+    const testIdx = args.indexOf('--test');
+    const testEmail = args[testIdx + 1];
+    if (!testEmail || testEmail.startsWith('--')) {
+      console.error('Usage: npm run balance-email:test -- <email> [userId]');
+      process.exit(1);
+    }
+    const testUserId = args[testIdx + 2] && !args[testIdx + 2].startsWith('--')
+      ? args[testIdx + 2]
+      : undefined;
+
+    console.log(`\n[TEST MODE] Sending balance email to ${testEmail}\n`);
+
+    await AppDataSource.initialize();
+    console.log('✓ Database connected\n');
+
+    const emailService = new EmailService();
+    const userBalanceService = new UserBalanceService();
+
+    let summaries: Awaited<ReturnType<UserBalanceService['recalculateAndSummarize']>> = [];
+    let displayName = 'Test User';
+    let locale = 'en-US';
+
+    if (testUserId) {
+      const userRepository = AppDataSource.getRepository(User);
+      const user = await userRepository.findOne({ where: { id: testUserId } });
+      if (!user) {
+        console.error(`✗ User ${testUserId} not found`);
+        await AppDataSource.destroy();
+        process.exit(1);
+      }
+      displayName = user.name ?? user.email;
+      console.log(`  → Recalculating balances for user ${user.email}...`);
+      summaries = await userBalanceService.recalculateAndSummarize(testUserId);
+      console.log(`    Found ${summaries.length} target(s) with balance data`);
+    } else {
+      console.log('  (No userId provided – sending email with empty balance data)');
+    }
+
+    console.log(`  → Sending test email to ${testEmail}...`);
+    await emailService.sendUserBalanceEmail(testEmail, displayName, summaries, locale);
+    console.log(`\n  ✓ Test email sent to ${testEmail}`);
+
+    await AppDataSource.destroy();
+    console.log('✓ Database connection closed');
+    return;
+  }
+
+  // ── Regular (scheduled) mode ───────────────────────────────────────────────
   // Determine frequency from command line
   let frequency: StatisticsEmailFrequency = 'weekly';
   if (args.includes('--monthly')) {

@@ -81,7 +81,7 @@ vi.mock('../stores/userSettings', () => ({
           language: 'en',
           locale: 'en-US',
           first_day_of_week: 'sunday',
-          stats_mail_frequency: 'never',
+          statistics_email_frequency: 'none',
         },
         isLoading: false,
         isInitialized: true,
