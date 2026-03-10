@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { dayjs, type TimeLog } from '../../types';
+  import { dayjs, type TimeLog, userTimezone } from '../../types';
   import { hasSpecialType, loadCalendarMonth, type CalendarTimeLogData } from '../../services/calendar';
   import { onMount, onDestroy } from 'svelte';
-  import { getSetting } from '../../lib/db';
   import { _ } from '../../lib/i18n';
   import { getDayAbbreviation } from '../../lib/dateFormatting';
+  import { userSettingsStore } from '../../stores/userSettings';
 
   let {
     timeLogs,
@@ -126,7 +126,9 @@
     window.removeEventListener('keydown', handleKeydown);
   });
 
-  let firstDayOfWeek = $state<'sunday' | 'monday'>('sunday');
+  let firstDayOfWeek = $derived<'sunday' | 'monday'>(
+    ($userSettingsStore.settings?.first_day_of_week as 'sunday' | 'monday') || 'sunday'
+  );
   
   // Get language-aware day names based on first day of week setting
   // Uses language setting (en/de) instead of locale (en-US/en-GB/de-DE)
@@ -139,8 +141,10 @@
   let calendarDays = $derived.by(() => {
     const firstDay = selectedDate.month.startOf('month');
 
-    // Get the day of week for the first day (0 = Sunday, 6 = Saturday)
-    let firstDayOfWeekNum: number = firstDay.day();
+    // Evaluate day-of-week in local timezone — dayjs.tz.setDefault('UTC') is set
+    // globally, so firstDay.day() would return the UTC weekday which can be off by
+    // one for users east/west of UTC, causing the grid to start on the wrong column.
+    let firstDayOfWeekNum: number = firstDay.tz(userTimezone).day();
     
     // Adjust for Monday as first day of week
     if (firstDayOfWeek === 'monday') {
@@ -160,12 +164,6 @@
     }
     
     return days;
-  });
-
-  onMount(async () => {
-    // Load first day of week setting
-    const firstDaySetting = await getSetting('firstDayOfWeek') as 'sunday' | 'monday' | null;
-    firstDayOfWeek = firstDaySetting || 'sunday'; // default sunday
   });
 
   let weekNumbers = $derived.by(() => {
