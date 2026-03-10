@@ -7,7 +7,7 @@ export class AddUserSettingsColumns1741600000000 implements MigrationInterface {
     await queryRunner.query(`
       ALTER TABLE "user_settings"
         ADD COLUMN IF NOT EXISTS "first_day_of_week" character varying NOT NULL DEFAULT 'sunday',
-        ADD COLUMN IF NOT EXISTS "stats_mail_frequency" character varying NOT NULL DEFAULT 'never'
+        ADD COLUMN IF NOT EXISTS "statistics_email_frequency" character varying NOT NULL DEFAULT 'none'
     `);
   }
 
@@ -15,7 +15,7 @@ export class AddUserSettingsColumns1741600000000 implements MigrationInterface {
     await queryRunner.query(`
       ALTER TABLE "user_settings"
         DROP COLUMN IF EXISTS "first_day_of_week",
-        DROP COLUMN IF EXISTS "stats_mail_frequency"
+        DROP COLUMN IF EXISTS "statistics_email_frequency"
     `);
   }
 }

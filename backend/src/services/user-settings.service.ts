@@ -1,6 +1,6 @@
 import { AppDataSource } from '../config/database.js';
 import { UserSettings } from '../entities/UserSettings.js';
-import type { UserSettings as UserSettingsType } from '../../../lib/types/index.js';
+import type { UserSettings as UserSettingsType, StatisticsEmailFrequency } from '../../../lib/types/index.js';
 
 export class UserSettingsService {
   private userSettingsRepository = AppDataSource.getRepository(UserSettings);
@@ -23,6 +23,7 @@ export class UserSettingsService {
         user_id: userId,
         language: 'en',
         locale: 'en-US',
+        statistics_email_frequency: 'none',
       });
       await this.userSettingsRepository.save(settings);
       // Reload to get auto-generated fields
@@ -41,7 +42,7 @@ export class UserSettingsService {
    */
   async updateSettings(
     userId: string, 
-    updates: Partial<Pick<UserSettingsType, 'language' | 'locale' | 'first_day_of_week' | 'stats_mail_frequency'>>
+    updates: Partial<Pick<UserSettingsType, 'language' | 'locale' | 'first_day_of_week' | 'statistics_email_frequency'>>
   ): Promise<UserSettings> {
     let settings = await this.getOrCreateSettings(userId);
     
@@ -54,12 +55,22 @@ export class UserSettingsService {
     if (updates.first_day_of_week !== undefined) {
       settings.first_day_of_week = updates.first_day_of_week;
     }
-    if (updates.stats_mail_frequency !== undefined) {
-      settings.stats_mail_frequency = updates.stats_mail_frequency;
+    if (updates.statistics_email_frequency !== undefined) {
+      settings.statistics_email_frequency = updates.statistics_email_frequency;
     }
     
     await this.userSettingsRepository.save(settings);
     return settings;
+  }
+
+  /**
+   * Get all user settings with a specific statistics email frequency
+   */
+  async getSettingsByFrequency(frequency: StatisticsEmailFrequency): Promise<UserSettings[]> {
+    return this.userSettingsRepository.find({
+      where: { statistics_email_frequency: frequency },
+      relations: ['user'],
+    });
   }
 
   /**
@@ -98,7 +109,7 @@ export class UserSettingsService {
         language: clientSettings.language,
         locale: clientSettings.locale,
         first_day_of_week: clientSettings.first_day_of_week,
-        stats_mail_frequency: clientSettings.stats_mail_frequency,
+        statistics_email_frequency: clientSettings.statistics_email_frequency,
       });
       return { settings };
     }
@@ -115,7 +126,7 @@ export class UserSettingsService {
       language: clientSettings.language,
       locale: clientSettings.locale,
       first_day_of_week: clientSettings.first_day_of_week,
-      stats_mail_frequency: clientSettings.stats_mail_frequency,
+      statistics_email_frequency: clientSettings.statistics_email_frequency,
     });
     return { settings };
   }
