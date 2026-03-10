@@ -2,7 +2,9 @@ import nodemailer from 'nodemailer';
 import { generateWelcomeEmail } from '../templates/emails/welcome.template.js';
 import { generatePasswordResetEmail } from '../templates/emails/password-reset.template.js';
 import { generateStatisticsEmail } from '../templates/emails/statistics.template.js';
+import { generateUserBalanceEmail } from '../templates/emails/user-balance.template.js';
 import { SystemStatistics } from './statistics.service.js';
+import type { TargetBalanceSummary } from './user-balance.service.js';
 import { t, getLanguageFromLocale, formatDateLocale } from '../i18n/index.js';
 import dotenv from 'dotenv';
   // Load environment variables
@@ -168,6 +170,38 @@ export class EmailService {
     } catch (error) {
       console.error('Failed to send statistics email:', error);
       throw new Error('Failed to send statistics email');
+    }
+  }
+
+  async sendUserBalanceEmail(
+    email: string,
+    userName: string,
+    summaries: TargetBalanceSummary[],
+    locale: string = 'en-US'
+  ): Promise<void> {
+    const reportDate = new Date();
+
+    const emailContent = generateUserBalanceEmail({
+      userName,
+      appUrl: this.appUrl,
+      summaries,
+      reportDate,
+      locale,
+    });
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: email,
+      subject: emailContent.subject,
+      html: emailContent.html,
+      text: emailContent.text,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send user balance email:', error);
+      throw new Error('Failed to send user balance email');
     }
   }
 

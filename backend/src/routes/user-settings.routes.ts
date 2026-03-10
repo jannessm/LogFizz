@@ -8,7 +8,7 @@ const userSettingsService = new UserSettingsService();
 const ALLOWED_LANGUAGES = ['en', 'de'];
 const ALLOWED_LOCALES = ['en-US', 'en-GB', 'de-DE', 'de-AT', 'de-CH'];
 const ALLOWED_FIRST_DAYS = ['sunday', 'monday'];
-const ALLOWED_STATS_MAIL_FREQUENCIES = ['never', 'weekly', 'monthly'];
+const ALLOWED_STATS_MAIL_FREQUENCIES = ['none', 'weekly', 'monthly'];
 
 /** Reusable TypeBox schema for a full settings response object */
 const settingsResponseSchema = Type.Object({
@@ -17,7 +17,7 @@ const settingsResponseSchema = Type.Object({
   language: Type.String(),
   locale: Type.String(),
   first_day_of_week: Type.String(),
-  stats_mail_frequency: Type.String(),
+  statistics_email_frequency: Type.String(),
   created_at: Type.String(),
   updated_at: Type.String(),
 });
@@ -30,7 +30,7 @@ function toResponse(settings: any) {
     language: settings.language,
     locale: settings.locale,
     first_day_of_week: settings.first_day_of_week,
-    stats_mail_frequency: settings.stats_mail_frequency,
+    statistics_email_frequency: settings.statistics_email_frequency,
     created_at: settings.created_at.toISOString(),
     updated_at: settings.updated_at.toISOString(),
   };
@@ -71,8 +71,8 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
           Type.Literal('sunday'),
           Type.Literal('monday'),
         ])),
-        stats_mail_frequency: Type.Optional(Type.Union([
-          Type.Literal('never'),
+        statistics_email_frequency: Type.Optional(Type.Union([
+          Type.Literal('none'),
           Type.Literal('weekly'),
           Type.Literal('monthly'),
         ])),
@@ -86,12 +86,12 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
     const userId = request.session.userId;
     if (!userId) return reply.code(401).send({ error: 'Not authenticated' });
 
-    const { language, locale, first_day_of_week, stats_mail_frequency } = request.body as any;
+    const { language, locale, first_day_of_week, statistics_email_frequency } = request.body as any;
     const settings = await userSettingsService.updateSettings(userId, {
       language,
       locale,
       first_day_of_week,
-      stats_mail_frequency,
+      statistics_email_frequency,
     });
     return reply.send(toResponse(settings));
   });
@@ -142,8 +142,8 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
             Type.Literal('sunday'),
             Type.Literal('monday'),
           ])),
-          stats_mail_frequency: Type.Optional(Type.Union([
-            Type.Literal('never'),
+          statistics_email_frequency: Type.Optional(Type.Union([
+            Type.Literal('none'),
             Type.Literal('weekly'),
             Type.Literal('monthly'),
           ])),

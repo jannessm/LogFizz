@@ -5,7 +5,7 @@
   import { userSettingsStore } from '../stores/userSettings';
   import { saveSetting } from '../lib/db';
   import { dayjs } from '../types';
-  import type { StatsMailFrequency } from '../../../lib/types/index.js';
+  import type { StatisticsEmailFrequency } from '../../../lib/types/index.js';
 
   let {
     oncomplete
@@ -16,7 +16,7 @@
   let language: 'en' | 'de' = $state('en');
   let locale: string = $state('en-US');
   let firstDayOfWeek: 'sunday' | 'monday' = $state('sunday');
-  let statsMailFrequency: StatsMailFrequency = $state('never');
+  let statisticsEmailFrequency: StatisticsEmailFrequency = $state('none');
   let isSubmitting = $state(false);
 
   // Available locales with examples
@@ -44,7 +44,7 @@
         language,
         locale,
         first_day_of_week: firstDayOfWeek,
-        stats_mail_frequency: statsMailFrequency,
+        statistics_email_frequency: statisticsEmailFrequency,
       });
       
       // Update i18n locale
@@ -148,10 +148,10 @@
       </p>
       <select
         id="setup-stats-mail"
-        bind:value={statsMailFrequency}
+        bind:value={statisticsEmailFrequency}
         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
       >
-        <option value="never">{$_('setup.statsMailNever')}</option>
+        <option value="none">{$_('setup.statsMailNever')}</option>
         <option value="weekly">{$_('setup.statsMailWeekly')}</option>
         <option value="monthly">{$_('setup.statsMailMonthly')}</option>
       </select>
