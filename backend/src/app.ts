@@ -29,6 +29,11 @@ export async function buildApp() {
   
   const fastify = Fastify({
     logger: !isTest,
+    // Trust the reverse proxy (e.g. Traefik) so that:
+    // 1. X-Forwarded-Proto is respected → Fastify knows the original request was HTTPS
+    // 2. @fastify/session will set Secure cookies even though it only sees plain HTTP
+    //    from the proxy — without this, secure:true causes the cookie to never be sent.
+    trustProxy: true,
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   // Register CORS
