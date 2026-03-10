@@ -78,6 +78,18 @@
         syncService.sync('all');
       }
     }, 1 * 60 * 1000);
+
+    // Sync when the tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine && authenticated) {
+        syncService.sync('all');
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   });
 
   // Redirect to login if not authenticated and not on a public route
