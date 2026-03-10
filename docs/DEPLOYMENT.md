@@ -10,6 +10,7 @@ This guide covers deploying the Clock application on a production server using D
 - [Traefik Setup](#traefik-setup)
 - [Application Deployment](#application-deployment)
 - [Database Backups](#database-backups)
+- [Scheduled Balance Emails](#scheduled-balance-emails)
 - [SSL/TLS Certificates](#ssltls-certificates)
 - [Monitoring and Maintenance](#monitoring-and-maintenance)
 
@@ -521,6 +522,69 @@ rclone config
 
 # Add to crontab to sync backups daily at 3:00 AM
 0 3 * * * rclone sync /opt/backups/clock-db your-remote:clock-backups >> /opt/backups/rclone.log 2>&1
+```
+
+---
+
+## Scheduled Balance Emails
+
+TapShift can send personalized balance-statistics emails to users who have opted in via their account settings. The emails are sent by a standalone script in the backend and are intended to be triggered by cron jobs.
+
+### Prerequisites
+
+Ensure the following environment variables are set in `backend/.env`:
+
+```bash
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-email@example.com
+SMTP_PASS=your-email-password
+ADMIN_EMAIL=admin@yourdomain.com
+```
+
+### Manual Test
+
+Before scheduling, verify that emails are delivered correctly:
+
+```bash
+# Send a test email (empty balance data)
+docker exec -it clock-backend npm run balance-email:test -- admin@yourdomain.com
+
+# Send a test email using real balance data for a specific user
+docker exec -it clock-backend npm run balance-email:test -- admin@yourdomain.com <userId>
+```
+
+### Schedule with Cron
+
+Add cron jobs on the **host machine** to trigger the script inside the running container:
+
+```bash
+# Edit crontab
+crontab -e
+```
+
+Add the following lines (adjust day/time to match your preferences):
+
+```bash
+# Weekly balance emails – every Monday at 7:00 AM
+0 7 * * 1 docker exec clock-backend npm run balance-email:weekly >> /opt/clock-app/logs/email.log 2>&1
+
+# Monthly balance emails – 1st of every month at 7:00 AM
+0 7 1 * * docker exec clock-backend npm run balance-email:monthly >> /opt/clock-app/logs/email.log 2>&1
+```
+
+> **Note**: Both cron jobs can coexist. On the 1st of a month that is also a Monday, both weekly and monthly emails are sent, which is the expected behaviour (they serve different user preferences).
+
+### Create Log Directory
+
+```bash
+mkdir -p /opt/clock-app/logs
+```
+
+### Check Logs
+
+```bash
+tail -f /opt/clock-app/logs/email.log
 ```
 
 ---
