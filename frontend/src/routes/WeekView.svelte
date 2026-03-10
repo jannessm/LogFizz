@@ -11,7 +11,6 @@
   import { navigate } from '../lib/navigation';
   import { onMount } from 'svelte';
   import { _ } from '../lib/i18n';
-  import { getSetting } from '../lib/db';
   import { computeIndentation, type Session } from '../lib/utils/computeIndentation';
   import {
     getHourLabels, getSessionsForSelectedDate,
@@ -19,19 +18,27 @@
   import { saveTimelog } from '../services/formHandlers';
   import { formatMinutesCompact } from '../../../lib/dist/utils/timeFormat';
   import { getDayAbbreviation } from '../lib/dateFormatting';
+  import { userSettingsStore } from '../stores/userSettings';
 
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-  let firstDayOfWeek = $state<'sunday' | 'monday'>('sunday');
+  let firstDayOfWeek = $derived<'sunday' | 'monday'>(
+    ($userSettingsStore.settings?.first_day_of_week as 'sunday' | 'monday') || 'sunday'
+  );
 
-  // Compute start of week respecting firstDayOfWeek setting
+  // Compute start of week respecting firstDayOfWeek setting.
+  // date.day() must be evaluated in the user's local timezone because
+  // dayjs.tz.setDefault('UTC') is set globally — without .tz(), a date like
+  // "Sun 1 Mar 00:00 local" resolves to "Sat 28 Feb 23:00 UTC" and returns
+  // day=6 instead of day=0, causing the week to snap to the wrong Monday/Sunday.
   function getWeekStart(date: dayjs.Dayjs): dayjs.Dayjs {
+    const localDate = date.tz(userTimezone);
+    const dow = localDate.day(); // 0=Sun .. 6=Sat, in local tz
     if (firstDayOfWeek === 'monday') {
-      const dow = date.day(); // 0=Sun .. 6=Sat
       const offset = dow === 0 ? 6 : dow - 1;
-      return date.subtract(offset, 'day').startOf('day');
+      return localDate.subtract(offset, 'day').startOf('day');
     }
-    return date.subtract(date.day(), 'day').startOf('day');
+    return localDate.subtract(dow, 'day').startOf('day');
   }
 
   // Initialize week anchor from URL query parameter
@@ -219,8 +226,6 @@
 
   // Load settings and calendar data
   onMount(async () => {
-    const firstDaySetting = await getSetting('firstDayOfWeek') as 'sunday' | 'monday' | null;
-    firstDayOfWeek = firstDaySetting || 'sunday';
     rawWeekAnchor = getInitialAnchor();
     await loadMonthsForWeek();
   });
