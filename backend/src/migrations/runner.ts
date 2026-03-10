@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import '../env.js';
 import { AppDataSource } from '../config/database.js';
 
 export async function runMigrations() {
