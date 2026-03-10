@@ -81,6 +81,30 @@
 # 0 0,12 * * *     - Every day at midnight and noon
 
 # ============================================================================
+# USER BALANCE EMAILS
+# ============================================================================
+#
+# Send personalized balance statistics emails to opted-in users.
+# Run from the /backend directory (or adjust the path accordingly).
+#
+# IMPORTANT: The backend .env file must be configured with valid SMTP settings.
+
+# Send weekly balance emails every Monday at 7:00 AM
+0 7 * * 1 cd /path/to/TapShift/backend && npm run balance-email:weekly >> /path/to/TapShift/backups/email.log 2>&1
+
+# Send monthly balance emails on the 1st of each month at 7:00 AM
+0 7 1 * * cd /path/to/TapShift/backend && npm run balance-email:monthly >> /path/to/TapShift/backups/email.log 2>&1
+
+# Combined: weekly on Mondays AND monthly on the 1st at 7:00 AM
+# (Both lines together; the monthly job only fires on the 1st)
+0 7 * * 1 cd /path/to/TapShift/backend && npm run balance-email:weekly >> /path/to/TapShift/backups/email.log 2>&1
+0 7 1 * * cd /path/to/TapShift/backend && npm run balance-email:monthly >> /path/to/TapShift/backups/email.log 2>&1
+
+# Send a test email to verify SMTP configuration (run manually, not as a cron job):
+#   cd /path/to/TapShift/backend && npm run balance-email:test -- admin@example.com
+#   cd /path/to/TapShift/backend && npm run balance-email:test -- admin@example.com <userId>
+
+# ============================================================================
 # TESTING YOUR CRON JOB
 # ============================================================================
 #
