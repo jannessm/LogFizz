@@ -44,6 +44,21 @@
   const verificationExemptRoutes = ['/verify-email-required', '/verify-email'];
   const isVerificationExempt = (path: string) => verificationExemptRoutes.some(r => path.startsWith(r));
 
+  async function checkAndShowSetupModal() {
+    const settings = $userSettingsStore.settings;
+    if (settings?.language) {
+      setLocale(settings.language);
+    }
+    if (settings?.locale) {
+      setDayjsLocale(settings.locale);
+    }
+
+    // Check if setup has been completed on this device
+    if (!userSettingsStore.setupDone()) {
+      showSetupModal = true;
+    }
+  }
+
   onMount(async () => {
     await getDB(); // ensure DB is initialized
     await authStore.init();
@@ -52,20 +67,7 @@
     
     // Initialize user settings and set i18n locale if authenticated
     if (authenticated) {
-      await userSettingsStore.init();
-      const settings = $userSettingsStore.settings;
-      if (settings?.language) {
-        setLocale(settings.language);
-      }
-      if (settings?.locale) {
-        setDayjsLocale(settings.locale);
-      }
-      
-      // Check if setup has been completed on this device
-      const setupComplete = await getSetting('setupComplete');
-      if (!setupComplete) {
-        showSetupModal = true;
-      }
+      await checkAndShowSetupModal();
     }
     
     isLoading = false;
@@ -113,6 +115,13 @@
   $effect(() => {
     if (!isLoading && authenticated && emailVerified && path.startsWith('/verify-email-required')) {
       navigate('/', { replace: true });
+    }
+  });
+
+  // Check whether the setup modal should be shown after login/registration
+  $effect(() => {
+    if (!isLoading && authenticated && emailVerified && !showSetupModal) {
+      checkAndShowSetupModal();
     }
   });
 

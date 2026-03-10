@@ -73,6 +73,27 @@ vi.mock('../lib/navigation', () => ({
   navigate: vi.fn(),
 }));
 
+vi.mock('../stores/userSettings', () => ({
+  userSettingsStore: {
+    subscribe: vi.fn((callback) => {
+      callback({
+        settings: {
+          language: 'en',
+          locale: 'en-US',
+          first_day_of_week: 'sunday',
+          stats_mail_frequency: 'never',
+        },
+        isLoading: false,
+        isInitialized: true,
+        error: null,
+      });
+      return () => {};
+    }),
+    init: vi.fn().mockResolvedValue(undefined),
+    updateSettings: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 vi.mock('../components/BottomNav.svelte', () => {
   return {
     default: Object,
@@ -127,9 +148,7 @@ describe('Settings Component', () => {
   it('has correct theme options', async () => {
     const { container } = render(Settings);
     
-    // Find the theme select - it's the first select element after "Appearance"
-    const selects = container.querySelectorAll('select');
-    const themeSelect = selects[0] as HTMLSelectElement;
+    const themeSelect = container.querySelector('#theme-select') as HTMLSelectElement;
     const options = Array.from(themeSelect.options).map(opt => opt.value);
     
     expect(options).toEqual(['light', 'dark', 'auto']);
@@ -138,9 +157,7 @@ describe('Settings Component', () => {
   it('has correct first day of week options', async () => {
     const { container } = render(Settings);
     
-    // Find the first day of week select - it's the second select element
-    const selects = container.querySelectorAll('select');
-    const firstDaySelect = selects[1] as HTMLSelectElement;
+    const firstDaySelect = container.querySelector('#first-day-select') as HTMLSelectElement;
     const options = Array.from(firstDaySelect.options).map(opt => opt.value);
     
     expect(options).toEqual(['sunday', 'monday']);
@@ -150,8 +167,7 @@ describe('Settings Component', () => {
     const { themeStore } = await import('../stores/theme');
     const { container } = render(Settings);
     
-    const selects = container.querySelectorAll('select');
-    const themeSelect = selects[0] as HTMLSelectElement;
+    const themeSelect = container.querySelector('#theme-select') as HTMLSelectElement;
     await fireEvent.change(themeSelect, { target: { value: 'dark' } });
     
     // Wait for the change handler
@@ -160,18 +176,17 @@ describe('Settings Component', () => {
     expect(themeStore.setMode).toHaveBeenCalled();
   });
 
-  it('calls saveSetting when first day of week is changed', async () => {
-    const { saveSetting } = await import('../lib/db');
+  it('calls userSettingsStore.updateSettings when first day of week is changed', async () => {
+    const { userSettingsStore } = await import('../stores/userSettings');
     const { container } = render(Settings);
     
-    const selects = container.querySelectorAll('select');
-    const firstDaySelect = selects[1] as HTMLSelectElement;
+    const firstDaySelect = container.querySelector('#first-day-select') as HTMLSelectElement;
     await fireEvent.change(firstDaySelect, { target: { value: 'monday' } });
     
     // Wait for the change handler
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    expect(saveSetting).toHaveBeenCalledWith('firstDayOfWeek', 'monday');
+    expect(userSettingsStore.updateSettings).toHaveBeenCalledWith({ first_day_of_week: 'monday' });
   });
 
   it('renders timer behavior section', async () => {

@@ -4,6 +4,12 @@
     "description": "Please select your preferred language and date format to get started.",
     "language": "Language",
     "dateFormat": "Date & Time Format",
+    "firstDayOfWeek": "First Day of Week",
+    "statsMail": "Stats Email",
+    "statsMailDescription": "Receive a summary of your working hours by email.",
+    "statsMailNever": "Never",
+    "statsMailWeekly": "Weekly",
+    "statsMailMonthly": "Monthly",
     "getStarted": "Get Started"
   },
   "auth": {
@@ -68,6 +74,7 @@
     "noDataAvailable": "No data available",
     "of": "of",
     "offline": "Offline",
+    "offlineUnavailable": "Not available while offline",
     "ok": "OK",
     "online": "Online",
     "page": "Page",

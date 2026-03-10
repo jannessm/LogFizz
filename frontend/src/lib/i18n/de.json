@@ -4,6 +4,12 @@
     "description": "Bitte wählen Sie Ihre bevorzugte Sprache und Ihr Datumsformat, um zu beginnen.",
     "language": "Sprache",
     "dateFormat": "Datum & Zeitformat",
+    "firstDayOfWeek": "Erster Wochentag",
+    "statsMail": "Statistik-E-Mail",
+    "statsMailDescription": "Eine Zusammenfassung Ihrer Arbeitsstunden per E-Mail erhalten.",
+    "statsMailNever": "Nie",
+    "statsMailWeekly": "Wöchentlich",
+    "statsMailMonthly": "Monatlich",
     "getStarted": "Los geht's"
   },
   "auth": {
@@ -68,6 +74,7 @@
     "noDataAvailable": "Keine Daten verfügbar",
     "of": "von",
     "offline": "Offline",
+    "offlineUnavailable": "Nicht verfügbar im Offline-Modus",
     "ok": "OK",
     "online": "Online",
     "page": "Seite",

@@ -676,7 +676,9 @@ async function seed() {
   }
 }
 
-// Run the seed script
+export { seed };
+
+// Run the seed script when invoked directly
 seed().catch((error) => {
   console.error('Failed to seed database:', error);
   process.exit(1);

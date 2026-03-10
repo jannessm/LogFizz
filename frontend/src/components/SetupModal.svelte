@@ -5,6 +5,7 @@
   import { userSettingsStore } from '../stores/userSettings';
   import { saveSetting } from '../lib/db';
   import { dayjs } from '../types';
+  import type { StatsMailFrequency } from '../../../lib/types/index.js';
 
   let {
     oncomplete
@@ -14,6 +15,8 @@
 
   let language: 'en' | 'de' = $state('en');
   let locale: string = $state('en-US');
+  let firstDayOfWeek: 'sunday' | 'monday' = $state('sunday');
+  let statsMailFrequency: StatsMailFrequency = $state('never');
   let isSubmitting = $state(false);
 
   // Available locales with examples
@@ -37,7 +40,12 @@
     isSubmitting = true;
     try {
       // Update user settings
-      await userSettingsStore.updateSettings({ language, locale });
+      await userSettingsStore.updateSettings({
+        language,
+        locale,
+        first_day_of_week: firstDayOfWeek,
+        stats_mail_frequency: statsMailFrequency,
+      });
       
       // Update i18n locale
       setLocale(language);
@@ -113,6 +121,40 @@
           {dateExample}
         </p>
       {/if}
+    </div>
+
+    <!-- First Day of Week -->
+    <div>
+      <label for="setup-first-day" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        {$_('setup.firstDayOfWeek')}
+      </label>
+      <select
+        id="setup-first-day"
+        bind:value={firstDayOfWeek}
+        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+      >
+        <option value="sunday">{$_('settings.sunday')}</option>
+        <option value="monday">{$_('settings.monday')}</option>
+      </select>
+    </div>
+
+    <!-- Stats Mail Frequency -->
+    <div>
+      <label for="setup-stats-mail" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        {$_('setup.statsMail')}
+      </label>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+        {$_('setup.statsMailDescription')}
+      </p>
+      <select
+        id="setup-stats-mail"
+        bind:value={statsMailFrequency}
+        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-primary focus:border-primary bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+      >
+        <option value="never">{$_('setup.statsMailNever')}</option>
+        <option value="weekly">{$_('setup.statsMailWeekly')}</option>
+        <option value="monthly">{$_('setup.statsMailMonthly')}</option>
+      </select>
     </div>
   </div>
 

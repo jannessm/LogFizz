@@ -41,7 +41,7 @@ export class UserSettingsService {
    */
   async updateSettings(
     userId: string, 
-    updates: Partial<Pick<UserSettingsType, 'language' | 'locale'>>
+    updates: Partial<Pick<UserSettingsType, 'language' | 'locale' | 'first_day_of_week' | 'stats_mail_frequency'>>
   ): Promise<UserSettings> {
     let settings = await this.getOrCreateSettings(userId);
     
@@ -50,6 +50,12 @@ export class UserSettingsService {
     }
     if (updates.locale !== undefined) {
       settings.locale = updates.locale;
+    }
+    if (updates.first_day_of_week !== undefined) {
+      settings.first_day_of_week = updates.first_day_of_week;
+    }
+    if (updates.stats_mail_frequency !== undefined) {
+      settings.stats_mail_frequency = updates.stats_mail_frequency;
     }
     
     await this.userSettingsRepository.save(settings);
@@ -91,6 +97,8 @@ export class UserSettingsService {
       const settings = await this.updateSettings(userId, {
         language: clientSettings.language,
         locale: clientSettings.locale,
+        first_day_of_week: clientSettings.first_day_of_week,
+        stats_mail_frequency: clientSettings.stats_mail_frequency,
       });
       return { settings };
     }
@@ -106,6 +114,8 @@ export class UserSettingsService {
     const settings = await this.updateSettings(userId, {
       language: clientSettings.language,
       locale: clientSettings.locale,
+      first_day_of_week: clientSettings.first_day_of_week,
+      stats_mail_frequency: clientSettings.stats_mail_frequency,
     });
     return { settings };
   }

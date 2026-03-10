@@ -39,6 +39,9 @@ export async function authRoutes(fastify: FastifyInstance) {
       
       const user = await authService.register(email, password, name);
 
+      // Set session data
+      request.session.userId = user.id;
+
       return reply.code(201).send({
         id: user.id,
         email: user.email,

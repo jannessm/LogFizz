@@ -4,7 +4,7 @@ This repo contians an offline-first app to track working hours and display impor
 
 ## Overview
 
-This repo contains the code for the backend (`./backend`: fastify 11, typeorm 0.3), frontend (`./frontend`: svelte 5, tailwind 4, typescript 4, vite 7), and important functional code and datatypes in (`./lib`: typescript 5, dayjs 1.11). The whole app is in development, so all migrations and refactorings should be done inplace. As a database postgresql 16 is used and provided as a docker container.
+This repo contains the code for the backend (`./backend`: fastify 11, typeorm 0.3), frontend (`./frontend`: svelte 5, tailwind 4, typescript 4, vite 7), and important functional code and datatypes in (`./lib`: typescript 5, dayjs 1.11). As a database postgresql 16 is used and provided as a docker container.
 
 The data is shared only over `GET: <data_type>/sync?since=2025-11-01T10:00:00Z` and `POST: <data_type>/sync` endpoints that compare the updated_at field and check whether the currently stored data in the backend is older than the pushed one. on conflicts the frontend gets notified and clears the conflict.
 

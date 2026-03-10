@@ -20,11 +20,15 @@ export interface User {
 }
 
 // User Settings types
+export type StatsMailFrequency = 'never' | 'weekly' | 'monthly';
+
 export interface UserSettings {
   id: string;
   user_id: string;
   language: string; // 'en' | 'de'
   locale: string; // Locale for date/time formatting e.g., 'en-US', 'de-DE'
+  first_day_of_week: 'sunday' | 'monday'; // Starting day of the week in calendar views
+  stats_mail_frequency: StatsMailFrequency; // How often to send stats emails
   created_at: string;
   updated_at: string;
 }
