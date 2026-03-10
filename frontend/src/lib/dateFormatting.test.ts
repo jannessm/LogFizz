@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { setDayjsLocale, formatDate, formatDateTime, formatTime, formatFullDate, formatMonthYear, getDayAbbreviation, getDayAbbreviations } from './dateFormatting';
+import { setDayjsLocale, formatDate, formatDateTime, formatTime, formatFullDate, formatMonthYear, getDayAbbreviation, getDayAbbreviations, uses12HourClock } from './dateFormatting';
 import { dayjs } from '../types';
 import { userSettingsStore } from '../stores/userSettings';
 
@@ -150,6 +150,23 @@ describe('dateFormatting', () => {
       vi.spyOn(userSettingsStore, 'getLanguage').mockReturnValue('en');
       const days = getDayAbbreviations();
       expect(days).toEqual(['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+    });
+  });
+
+  describe('uses12HourClock', () => {
+    it('should return true for en-US (12-hour clock)', () => {
+      setDayjsLocale('en-US');
+      expect(uses12HourClock()).toBe(true);
+    });
+
+    it('should return false for en-GB (24-hour clock)', () => {
+      setDayjsLocale('en-GB');
+      expect(uses12HourClock()).toBe(false);
+    });
+
+    it('should return false for de-DE (24-hour clock)', () => {
+      setDayjsLocale('de-DE');
+      expect(uses12HourClock()).toBe(false);
     });
   });
 });

@@ -5,11 +5,13 @@
     email,
     name = $bindable(),
     originalName,
+    isOnline = true,
     onsubmit,
   }: {
     email: string;
     name: string;
     originalName: string;
+    isOnline?: boolean;
     onsubmit: (data: { name: string }) => void;
   } = $props();
 
@@ -23,6 +25,13 @@
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
   <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">{$_('settings.profile')}</h2>
   
+  {#if !isOnline}
+    <p class="text-sm text-yellow-600 dark:text-yellow-400 mb-4 flex items-center gap-1">
+      <span class="icon-[si--alert-duotone]" style="width: 20px; height: 20px;"></span>
+      {$_('common.offlineUnavailable')}
+    </p>
+  {/if}
+
   <div class="space-y-4">
     <div>
       <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -52,13 +61,14 @@
         id="name"
         type="text"
         bind:value={name}
-        class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 {hasNameChanged ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20 focus:ring-orange-500' : 'border-gray-300 dark:border-gray-600 focus:ring-primary'}"
+        disabled={!isOnline}
+        class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed {hasNameChanged ? 'border-orange-400 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20 focus:ring-orange-500' : 'border-gray-300 dark:border-gray-600 focus:ring-primary'}"
       />
     </div>
 
     <button
       onclick={handleSubmit}
-      disabled={!hasNameChanged}
+      disabled={!hasNameChanged || !isOnline}
       class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-hover transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <span class="w-5 h-5 icon-[si--check-line]"></span>

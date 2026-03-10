@@ -110,6 +110,19 @@ export function formatShortDateYear(date: string | Date | dayjs.Dayjs): string {
 }
 
 /**
+ * Detect whether the current locale uses a 12-hour clock (AM/PM).
+ * Checks by formatting a known PM time with the locale-aware 'LT' token
+ * and looking for an AM/PM meridiem marker.
+ *
+ * @returns true if the locale uses 12-hour clock (AM/PM), false for 24-hour clock
+ */
+export function uses12HourClock(): boolean {
+  // Format 13:00 (1 PM) with locale-aware time token and check for meridiem
+  const formatted = dayjs().hour(13).minute(0).format('LT');
+  return /[aApP][mM]/.test(formatted);
+}
+
+/**
  * Get day abbreviation based on language setting
  * Unlike locale-based formatting, this uses the language setting (en/de)
  * to ensure consistent day name abbreviations regardless of locale variant (en-US vs en-GB)

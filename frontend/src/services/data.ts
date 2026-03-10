@@ -3,6 +3,7 @@ import { timeLogsStore } from "../stores/timelogs";
 import { targetsStore } from "../stores/targets";
 import { balancesStore } from "../stores/balances";
 import { initLocaleFromSettings } from "../lib/dateFormatting";
+import { userSettingsStore } from "../stores/userSettings";
 
 export async function loadData(isAuthenticated: boolean) {
     if (!isAuthenticated) {
@@ -13,6 +14,7 @@ export async function loadData(isAuthenticated: boolean) {
         timersStore.load(),
         targetsStore.load(), // fetches holidays as well
         balancesStore.load(),
+        userSettingsStore.init(),
     ];
 
     await Promise.all(parallel);

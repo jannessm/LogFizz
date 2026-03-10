@@ -2,18 +2,16 @@
   import { onMount } from 'svelte';
   import { nonArchivedTimers } from '../stores/timers';
   import { timeLogsStore } from '../stores/timelogs';
-  import { authStore } from '../stores/auth';
   import { snackbar } from '../stores/snackbar';
   import EditOverview from '../components/Dashboard/EditOverview.svelte';
   import TimerGraph from '../components/Dashboard/TimerGraph.svelte';
+  import TargetProgressBar from '../components/Dashboard/TargetProgressBar.svelte';
 
   import { TargetForm, TimelogForm, TimerForm } from '../components/forms';
   import { paymentApi, type SubscriptionStatus } from '../services/payment';
   import { navigate } from '../lib/navigation';
   import BottomNav from '../components/BottomNav.svelte';
-  import AddSelector from '../components/AddSelector.svelte';
-  import dayjs from 'dayjs';
-  import type { Timer, TargetWithSpecs, TimeLog } from '../types';
+  import { type Timer, type TargetWithSpecs, type TimeLog, dayjs } from '../types';
   import { getSetting, saveSetting } from '../lib/db';
   import { saveTimelog, deleteTimelog } from '../services/formHandlers';
   import { _ } from '../lib/i18n';
@@ -22,7 +20,6 @@
   let showTimelogForm = $state(false);
   let showTargetForm = $state(false);
   let showEditOverview = $state(false);
-  let showAddSelector = $state(false);
   let editMode = $state(false);
   let editingTimer: Timer | null = $state(null);
   let editingTimelog: TimeLog | null = $state(null);
@@ -34,7 +31,6 @@
   let paywallEnabled = $state(false);
 
   let timers = nonArchivedTimers;
-  let user = $authStore.user;
 
   onMount(async () => {
     // Load edit-on-stop setting
@@ -74,23 +70,6 @@
       }
     } catch (error: any) {
       console.error('Failed to check subscription status:', error);
-    }
-  }
-
-  function handleShowAddSelector() {
-    showAddSelector = true;
-  }
-
-  function handleAddSelectorClose() {
-    showAddSelector = false;
-  }
-
-  function handleAddSelectorSelect(type: 'timer' | 'target') {
-    showAddSelector = false;
-    if (type === 'timer') {
-      handleAddTimer();
-    } else {
-      handleAddTarget();
     }
   }
 
@@ -219,7 +198,7 @@
 
 <div class="h-screen flex flex-col">
   <!-- Header -->
-   <div class="flex flex-col absolute top-0 left-0 right-0">
+   <div class="flex flex-col">
     <div class="flex mx-auto px-4 pt-4 gap-2 w-full z-20 justify-end grow-0">
       <button
         onclick={toggleFormOnStop}
@@ -245,19 +224,14 @@
         aria-label={$_('dashboard.editOverview')}
         style="width: 32px; height: 32px;"
       ></button>
-      <button 
-        onclick={handleShowAddSelector}
-        class="px-4 py-2 bg-primary rounded-full hover:bg-primary-hover transition-colors icon-[si--add-circle-duotone]"
-        style="width: 32px; height: 32px;"
-        aria-label={$_('common.add')}
-      ></button>
     </div>
    </div>
 
   <!-- Scrollable Button Area -->
   <div class="flex grow-1 overflow-y-auto">
-    <div class="mx-auto px-4 py-6 min-w-full w-full h-full">
+    <div class="mx-auto px-4 py-2 min-w-full w-full h-full">
       <!-- Daily Targets Overview -->
+      <TargetProgressBar />
 
       <!-- Timer Graph -->
       <TimerGraph
@@ -309,14 +283,6 @@
     <TargetForm 
       target={editingTarget}
       close={handleCloseTargetForm}
-    />
-  {/if}
-
-  <!-- Add Selector Modal -->
-  {#if showAddSelector}
-    <AddSelector 
-      close={handleAddSelectorClose}
-      select={handleAddSelectorSelect}
     />
   {/if}
 

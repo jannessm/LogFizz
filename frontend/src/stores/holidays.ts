@@ -13,6 +13,16 @@ interface HolidaysState {
 }
 
 
+function filterHolidaysByCounties(holidays: Holiday[], stateCodes: string[]): Holiday[] {
+  return holidays.filter(h => {
+    if (h.counties.length === 0) {
+      return true; // Include if no counties specified
+    }
+    return h.counties.some(county => stateCodes.includes(county));
+  });
+}
+
+
 function createHolidaysStore() {
   const { subscribe, update, set } = writable<HolidaysState>({
     holidays: [],
@@ -185,14 +195,15 @@ function createHolidaysStore() {
     /**
      * Get all holidays for a specific date across all or specified countries
      */
-    getHolidaysForDate(dateString: string, countries?: string[]): Holiday[] {
+    getHolidaysForDate(dateString: string, stateCodes?: string[]): Holiday[] {
       let result: Holiday[] = [];
       
       update(state => {
-        if (countries && countries.length > 0) {
-          result = state.holidays.filter(
-            h => countries.includes(h.country) && h.date === dateString
+        if (stateCodes && stateCodes.length > 0) {
+          result = filterHolidaysByCounties(state.holidays, stateCodes).filter(
+            h => h.date === dateString
           );
+          console.log(`Found ${result.length} holidays for date ${dateString} in states ${stateCodes.join(', ')}`);
         } else {
           result = state.holidays.filter(h => h.date === dateString);
         }
@@ -205,15 +216,15 @@ function createHolidaysStore() {
     /**
      * Get all holidays for a specific month
      */
-    getHolidaysForMonth(country: string, year: number, month: number): Holiday[] {
+    getHolidaysForMonth(county: string, year: number, month: number): Holiday[] {
       let result: Holiday[] = [];
       
       update(state => {
         const monthStr = month.toString().padStart(2, '0');
         const prefix = `${year}-${monthStr}`;
         
-        result = state.holidays.filter(
-          h => h.country === country && h.date.startsWith(prefix)
+        result = filterHolidaysByCounties(state.holidays, [county]).filter(
+          h => h.date.startsWith(prefix)
         );
         return state;
       });

@@ -270,7 +270,7 @@ function getRelevantHolidaysForDate(
       
       if (holiday && !addedHolidayIds.has(holiday.id)) {
         // If global holiday or specific to this state
-        if (holiday.global || holiday.counties.length === 0 || 
+        if (holiday.counties.length === 0 || 
             holiday.counties.includes(spec.state_code)) {
           relevantHolidays.push(holiday);
           addedHolidayIds.add(holiday.id);

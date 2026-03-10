@@ -98,7 +98,7 @@ function createUserSettingsStore() {
     /**
      * Update user settings
      */
-    async updateSettings(updates: { language?: string; locale?: string }) {
+    async updateSettings(updates: { language?: string; locale?: string; first_day_of_week?: 'sunday' | 'monday'; stats_mail_frequency?: 'never' | 'weekly' | 'monthly' }) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
         const currentState = get({ subscribe });
@@ -172,6 +172,15 @@ function createUserSettingsStore() {
         error: null,
       });
     },
+
+    setupDone() {
+      const state = get({ subscribe });
+      const settings = state.settings;
+      return !!(settings?.language &&
+                settings?.locale &&
+                settings?.first_day_of_week &&
+                settings?.stats_mail_frequency);
+    }
   };
 }
 

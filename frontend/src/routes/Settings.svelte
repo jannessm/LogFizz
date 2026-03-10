@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import BottomNav from '../components/BottomNav.svelte';
   import ProfileSection from '../components/settings/ProfileSection.svelte';
   import PasswordSection from '../components/settings/PasswordSection.svelte';
@@ -29,6 +29,7 @@
   let firstDayOfWeek: 'sunday' | 'monday' = $state('sunday');
   let language: 'en' | 'de' = $state('en');
   let locale: string = $state('en-US');
+  let statsMailFrequency: 'never' | 'weekly' | 'monthly' = $state('never');
   
   // Data & Privacy section
   let isDownloading = $state(false);
@@ -37,7 +38,13 @@
   let isDeleting = $state(false);
 
   let user = $derived($authStore.user);
-  let isOnline = $derived(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  let isOnline = $state(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  function updateOnlineStatus() {
+    if (typeof navigator !== 'undefined') {
+      isOnline = navigator.onLine;
+    }
+  }
 
   // Available locales with examples
   let localeOptions: { value: string; label: string }[] = $state([]);
@@ -59,6 +66,9 @@
   });
 
   onMount(async () => {
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
     if (user) {
       name = user.name;
       originalName = user.name;
@@ -72,15 +82,20 @@
     // Load theme setting
     themeMode = $themeStore.mode;
     
-    // Load first day of week setting
-    const firstDaySetting = await getSetting('firstDayOfWeek');
-    firstDayOfWeek = firstDaySetting || 'sunday'; // default sunday
-
     // Read user settings from store (already initialized in App.svelte)
     const userSettings = $userSettingsStore.settings;
     if (userSettings) {
       language = (userSettings.language as 'en' | 'de') || 'en';
       locale = userSettings.locale || 'en-US';
+      firstDayOfWeek = (userSettings.first_day_of_week as 'sunday' | 'monday') || 'sunday';
+      statsMailFrequency = (userSettings.stats_mail_frequency as 'never' | 'weekly' | 'monthly') || 'never';
+    }
+  });
+
+  onDestroy(() => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
     }
   });
 
@@ -169,7 +184,19 @@
   }
 
   async function handleFirstDayChange() {
-    await saveSetting('firstDayOfWeek', firstDayOfWeek);
+    try {
+      await userSettingsStore.updateSettings({ first_day_of_week: firstDayOfWeek });
+    } catch (error: any) {
+      snackbar.error(error.message || $_('common.error'));
+    }
+  }
+
+  async function handleStatsMailChange() {
+    try {
+      await userSettingsStore.updateSettings({ stats_mail_frequency: statsMailFrequency });
+    } catch (error: any) {
+      snackbar.error(error.message || $_('common.error'));
+    }
   }
 
   async function handleLanguageChange() {
@@ -258,6 +285,7 @@
         email={user?.email || ''}
         bind:name
         {originalName}
+        {isOnline}
         onsubmit={handleProfileUpdate}
         onerror={handleError}
       />
@@ -265,6 +293,7 @@
       <PasswordSection
         onsubmit={handlePasswordChange}
         onerror={handleError}
+        {isOnline}
       />
 
       <SyncStatusSection
@@ -273,7 +302,7 @@
         onsync={handleSync}
       />
 
-      <!-- Appearance -->
+      <!-- Appearance, Language & Region -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{$_('settings.appearance')}</h3>
         
@@ -297,30 +326,8 @@
           </p>
         </div>
 
-        <!-- First Day of Week Setting -->
-        <div>
-          <label for="first-day-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {$_('settings.firstDayOfWeek')}
-          </label>
-          <select
-            id="first-day-select"
-            bind:value={firstDayOfWeek}
-            onchange={handleFirstDayChange}
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-          >
-            <option value="sunday">{$_('settings.sunday')}</option>
-            <option value="monday">{$_('settings.monday')}</option>
-          </select>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            {$_('settings.firstDayDescription')}
-          </p>
-        </div>
-      </div>
+        <hr class="border-gray-200 dark:border-gray-600 mb-4" />
 
-      <!-- Language & Region -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{$_('settings.languageRegion')}</h3>
-        
         <!-- Language Setting -->
         <div class="mb-4">
           <label for="language-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -341,7 +348,7 @@
         </div>
 
         <!-- Locale/Date Format Setting -->
-        <div>
+        <div class="mb-4">
           <label for="locale-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {$_('settings.dateTimeFormat')}
           </label>
@@ -364,6 +371,45 @@
           {/each}
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
             {$_('settings.dateTimeDescription')}
+          </p>
+        </div>
+
+        <!-- First Day of Week Setting -->
+        <div class="mb-4">
+          <label for="first-day-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            {$_('settings.firstDayOfWeek')}
+          </label>
+          <select
+            id="first-day-select"
+            bind:value={firstDayOfWeek}
+            onchange={handleFirstDayChange}
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          >
+            <option value="sunday">{$_('settings.sunday')}</option>
+            <option value="monday">{$_('settings.monday')}</option>
+          </select>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            {$_('settings.firstDayDescription')}
+          </p>
+        </div>
+
+        <!-- Stats Mail Setting -->
+        <div>
+          <label for="stats-mail-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            {$_('setup.statsMail')}
+          </label>
+          <select
+            id="stats-mail-select"
+            bind:value={statsMailFrequency}
+            onchange={handleStatsMailChange}
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          >
+            <option value="never">{$_('setup.statsMailNever')}</option>
+            <option value="weekly">{$_('setup.statsMailWeekly')}</option>
+            <option value="monthly">{$_('setup.statsMailMonthly')}</option>
+          </select>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            {$_('setup.statsMailDescription')}
           </p>
         </div>
       </div>
@@ -434,6 +480,12 @@
       <!-- Data & Privacy -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{$_('settings.dataPrivacy')}</h3>
+        {#if !isOnline}
+          <p class="text-sm text-yellow-600 dark:text-yellow-400 mb-4 flex items-center gap-1">
+            <span class="icon-[si--alert-duotone]" style="width: 20px; height: 20px;"></span>
+            {$_('common.offlineUnavailable')}
+          </p>
+        {/if}
         <button
           onclick={handleDownloadData}
           disabled={isDownloading || !isOnline}
@@ -466,6 +518,12 @@
       <!-- Danger Zone - Delete Account -->
       <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg shadow-md p-6 mb-6">
         <h3 class="text-lg font-semibold text-red-800 dark:text-red-200 mb-4">{$_('settings.accountDangerZone')}</h3>
+        {#if !isOnline}
+          <p class="text-sm text-yellow-600 dark:text-yellow-400 mb-4 flex items-center gap-1">
+            <span class="icon-[si--alert-duotone]" style="width: 20px; height: 20px;"></span>
+            {$_('common.offlineUnavailable')}
+          </p>
+        {/if}
         <button
           onclick={openDeleteConfirmation}
           disabled={!isOnline}

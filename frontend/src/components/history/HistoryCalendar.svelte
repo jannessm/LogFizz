@@ -1,7 +1,7 @@
 <script lang="ts">
   import { dayjs, type TimeLog } from '../../types';
   import { hasSpecialType, loadCalendarMonth, type CalendarTimeLogData } from '../../services/calendar';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { getSetting } from '../../lib/db';
   import { _ } from '../../lib/i18n';
   import { getDayAbbreviation } from '../../lib/dateFormatting';
@@ -83,6 +83,48 @@
   function selectDate(date: dayjs.Dayjs) {
     selectedDate.date = date;
   }
+
+  function navigateDate(days: number) {
+    const newDate = selectedDate.date.add(days, 'day');
+    selectedDate.date = newDate;
+    // Auto-switch month when crossing month boundaries
+    if (!newDate.isSame(selectedDate.month, 'month')) {
+      selectedDate.month = newDate.startOf('month');
+    }
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    // Don't intercept if a select/input element is focused
+    const tag = (e.target as HTMLElement)?.tagName;
+    if (tag === 'SELECT' || tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        navigateDate(-1);
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        navigateDate(1);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        navigateDate(-7);
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        navigateDate(7);
+        break;
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener('keydown', handleKeydown);
+  });
+
+  onDestroy(() => {
+    window.removeEventListener('keydown', handleKeydown);
+  });
 
   let firstDayOfWeek = $state<'sunday' | 'monday'>('sunday');
   
@@ -198,6 +240,7 @@
   }
 </script>
 
+<div>
 <!-- Month Navigation -->
 <div class="flex justify-between items-center mb-4">
   <div class="flex items-center gap-2">
@@ -417,4 +460,5 @@
       </div>
     </div>
   </div>
+</div>
 </div>

@@ -15,6 +15,7 @@
     "test:coverage": "vitest --coverage",
     "test:migrations": "tsx src/scripts/test-migrations.ts",
     "seed": "tsx src/scripts/seed.ts",
+    "db:reset": "tsx src/scripts/reset-db.ts",
     "migration:generate": "tsx src/migrations/runner.ts generate",
     "migration:run": "tsx src/migrations/runner.ts run",
     "migration:revert": "tsx src/migrations/runner.ts revert",
