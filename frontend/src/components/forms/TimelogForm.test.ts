@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/sv
 import TimelogForm from './TimelogForm.svelte';
 import dayjs from '../../../../lib/utils/dayjs.js';
 import { get } from 'svelte/store';
+import { setDayjsLocale } from '../../lib/dateFormatting';
 
 // Mock the stores
 const mockButtons = [
@@ -48,6 +49,8 @@ describe('TimelogForm Component', () => {
   
   beforeEach(() => {
     vi.clearAllMocks();
+    // Use a 24-hour locale so time inputs use HH:mm format throughout tests
+    setDayjsLocale('de-DE');
   });
 
   afterEach(() => {
