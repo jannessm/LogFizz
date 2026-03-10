@@ -9,6 +9,7 @@
   import Dashboard from './routes/Dashboard.svelte';
   import History from './routes/History.svelte';
   import Table from './routes/Table.svelte';
+  import WeekView from './routes/WeekView.svelte';
   import Settings from './routes/Settings.svelte';
   import ForgotPassword from './routes/ForgotPassword.svelte';
   import ResetPassword from './routes/ResetPassword.svelte';
@@ -166,6 +167,8 @@
     <PaymentSuccess />
   {:else if path.startsWith('/history')}
     <History />
+  {:else if path.startsWith('/week')}
+    <WeekView />
   {:else if path.startsWith('/import')}
     <ImportPage />
   {:else if path.startsWith('/export')}

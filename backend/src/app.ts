@@ -149,39 +149,42 @@ export async function buildApp() {
   await registerRateLimit(fastify);
 
   // Register Swagger
-  await fastify.register(swagger, {
-    openapi: {
-      info: {
-        title: 'Clock Time Tracking API',
-        description: 'API for the Clock time tracking application',
-        version: '1.0.0',
-      },
-      servers: [
-        {
-          url: 'http://localhost:3000',
-          description: 'Development server',
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Registering Swagger for API documentation');
+    await fastify.register(swagger, {
+      openapi: {
+        info: {
+          title: 'Clock Time Tracking API',
+          description: 'API for the Clock time tracking application',
+          version: '1.0.0',
         },
-      ],
-      tags: [
-        { name: 'Authentication', description: 'Authentication endpoints' },
-        { name: 'Timers', description: 'Timer management endpoints' },
-        { name: 'TimeLogs', description: 'Time logging endpoints' },
-        { name: 'Holidays', description: 'Holiday management endpoints' },
-        { name: 'Targets', description: 'Target management endpoints' },
-        { name: 'Balance', description: 'Balance management endpoints' },
-        { name: 'States', description: 'German states reference endpoints' },
-        { name: 'Payment', description: 'Payment and subscription endpoints' },
-      ],
-    },
-  });
+        servers: [
+          {
+            url: 'http://localhost:3000',
+            description: 'Development server',
+          },
+        ],
+        tags: [
+          { name: 'Authentication', description: 'Authentication endpoints' },
+          { name: 'Timers', description: 'Timer management endpoints' },
+          { name: 'TimeLogs', description: 'Time logging endpoints' },
+          { name: 'Holidays', description: 'Holiday management endpoints' },
+          { name: 'Targets', description: 'Target management endpoints' },
+          { name: 'Balance', description: 'Balance management endpoints' },
+          { name: 'States', description: 'German states reference endpoints' },
+          { name: 'Payment', description: 'Payment and subscription endpoints' },
+        ],
+      },
+    });
 
-  await fastify.register(swaggerUi, {
-    routePrefix: '/docs',
-    uiConfig: {
-      docExpansion: 'list',
-      deepLinking: false,
-    },
-  });
+    await fastify.register(swaggerUi, {
+      routePrefix: '/docs',
+      uiConfig: {
+        docExpansion: 'list',
+        deepLinking: false,
+      },
+    });
+  }
 
   // Register routes
   await fastify.register(authRoutes, { prefix: '/api/auth' });
