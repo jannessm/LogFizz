@@ -33,7 +33,7 @@ export async function buildApp() {
     // 1. X-Forwarded-Proto is respected → Fastify knows the original request was HTTPS
     // 2. @fastify/session will set Secure cookies even though it only sees plain HTTP
     //    from the proxy — without this, secure:true causes the cookie to never be sent.
-    trustProxy: true,
+    // trustProxy: true,
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   // Register CORS
@@ -88,7 +88,8 @@ export async function buildApp() {
   
   // Register session support with Redis store if available
   const isProduction = process.env.NODE_ENV === 'production';
-  const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours in ms
+  const SESSION_MAX_AGE = 24 * 60 * 60;
+  const SESSION_MAX_AGE_MS = SESSION_MAX_AGE * 1000; // 24 hours in ms
   const sessionConfig: any = {
     secret: process.env.SESSION_SECRET || 'a-very-secret-key-minimum-32-chars-change-in-production',
     cookieName: 'sessionId', // Explicit cookie name
@@ -96,7 +97,8 @@ export async function buildApp() {
       // Secure must be true in production so Safari treats the cookie as persistent.
       // Without Secure, Safari (especially on iOS via ITP) may treat the cookie as
       // a session cookie and drop it when the app is backgrounded or suspended.
-      secure: isProduction,
+      secure: false,
+      // secure: isProduction,
       httpOnly: true,
       maxAge: SESSION_MAX_AGE_MS,
       // Provide an explicit Expires date alongside Max-Age. Some Safari versions
@@ -119,7 +121,7 @@ export async function buildApp() {
     sessionConfig.store = new RedisStore({
       client: redis,
       prefix: 'session:',
-      ttl: SESSION_MAX_AGE_MS / 1000, // 24 hours in seconds; rolling:true will refresh this on each request
+      ttl: SESSION_MAX_AGE , // 24 hours in seconds; rolling:true will refresh this on each request
     });
     console.log('✓ Session storage configured with Redis');
   } else {
