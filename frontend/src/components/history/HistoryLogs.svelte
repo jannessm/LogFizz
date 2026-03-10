@@ -13,6 +13,7 @@
     import { saveTimelog } from '../../services/formHandlers';
   import { _ } from '../../lib/i18n';
     import { formatMinutesCompact } from '../../../../lib/dist/utils/timeFormat';
+  import { navigate } from '../../lib/navigation';
 
   // Get user's timezone
   const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -145,6 +146,12 @@
   function nextDay() {
     selectedDate.date = selectedDate.date.add(1, 'day');
   }
+
+  function navigateToWeekView() {
+    const params = new URLSearchParams();
+    params.set('week', selectedDate.date.format('YYYY-MM-DD'));
+    navigate(`/week?${params.toString()}`);
+  }
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
@@ -167,12 +174,20 @@
         aria-label={$_('history.nextDay')}
       ></button>
     </div>
-    <button
-      onclick={handleAddTimelog}
-      class="rounded-full bg-primary hover:bg-primary-hover transition-colors flex items-center gap-1 icon-[si--add-circle-duotone]"
-      style="width: 32px; height: 32px;"
-      aria-label={$_('history.addTimeEntry')}
-    ></button>
+    <div class="flex items-center gap-1">
+      <button
+        onclick={navigateToWeekView}
+        class="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors icon-[proicons--calendar] text-gray-600 dark:text-gray-400"
+        style="width: 28px; height: 28px;"
+        aria-label={$_('history.weekView')}
+      ></button>
+      <button
+        onclick={handleAddTimelog}
+        class="rounded-full bg-primary hover:bg-primary-hover transition-colors flex items-center gap-1 icon-[si--add-circle-duotone]"
+        style="width: 32px; height: 32px;"
+        aria-label={$_('history.addTimeEntry')}
+      ></button>
+    </div>
   </div>
 
   <!-- Filter Dropdown -->
@@ -243,11 +258,6 @@
               {/if}
               {#if session.log?.notes}
                 <p class="text-sm text-gray-600 truncate">{session.log.notes}</p>
-              {/if}
-              {#if session.duration}
-                <p class="text-xs text-gray-500 mt-1">
-                  {formatMinutesCompact(session.duration)}
-                </p>
               {/if}
             </div>
           </button>

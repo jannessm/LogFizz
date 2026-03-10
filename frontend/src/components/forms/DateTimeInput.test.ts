@@ -2,10 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/svelte';
 import DateTimeInput from './DateTimeInput.svelte';
 import dayjs from '../../../../lib/utils/dayjs.js';
+import { setDayjsLocale } from '../../lib/dateFormatting';
 
 describe('DateTimeInput Component', () => {
   const testDate = dayjs('2024-12-15T14:30:00Z');
   const timezone = 'UTC';
+
+  beforeEach(() => {
+    // Use a 24-hour locale by default so existing time tests are unaffected
+    setDayjsLocale('de-DE');
+  });
 
   afterEach(() => {
     cleanup();
@@ -255,6 +261,137 @@ describe('DateTimeInput Component', () => {
       await fireEvent.input(dateInput, { target: { value: '' } });
 
       expect(capturedValue).toBe(null);
+    });
+  });
+
+  describe('AM/PM toggle (12-hour clock)', () => {
+    beforeEach(() => {
+      setDayjsLocale('en-US'); // 12-hour locale
+    });
+
+    afterEach(() => {
+      setDayjsLocale('en-US'); // reset
+      cleanup();
+    });
+
+    it('shows AM/PM button when locale uses 12-hour clock', () => {
+      render(DateTimeInput, {
+        props: {
+          value: testDate,
+          timezone,
+          dateLabel: 'Date',
+          timeLabel: 'Time',
+          dateId: 'date',
+          timeId: 'time',
+        }
+      });
+
+      expect(screen.getByRole('button', { name: /AM|PM/i })).toBeInTheDocument();
+    });
+
+    it('shows PM when hour is >= 12', () => {
+      const pmDate = dayjs('2024-12-15T14:30:00Z'); // 2:30 PM
+      render(DateTimeInput, {
+        props: {
+          value: pmDate,
+          timezone,
+          dateLabel: 'Date',
+          timeLabel: 'Time',
+          dateId: 'date',
+          timeId: 'time',
+        }
+      });
+
+      expect(screen.getByRole('button', { name: 'PM' })).toBeInTheDocument();
+    });
+
+    it('shows AM when hour is < 12', () => {
+      const amDate = dayjs('2024-12-15T09:30:00Z'); // 9:30 AM
+      render(DateTimeInput, {
+        props: {
+          value: amDate,
+          timezone,
+          dateLabel: 'Date',
+          timeLabel: 'Time',
+          dateId: 'date',
+          timeId: 'time',
+        }
+      });
+
+      expect(screen.getByRole('button', { name: 'AM' })).toBeInTheDocument();
+    });
+
+    it('toggles from PM to AM and updates value', async () => {
+      let capturedValue = dayjs('2024-12-15T14:30:00Z'); // 2:30 PM
+      render(DateTimeInput, {
+        props: {
+          get value() { return capturedValue; },
+          set value(v) { capturedValue = v; },
+          timezone,
+          dateLabel: 'Date',
+          timeLabel: 'Time',
+          dateId: 'date',
+          timeId: 'time',
+        }
+      });
+
+      const button = screen.getByRole('button', { name: 'PM' });
+      await fireEvent.click(button);
+
+      expect(capturedValue.hour()).toBe(2); // 14 - 12 = 2 AM
+    });
+
+    it('toggles from AM to PM and updates value', async () => {
+      let capturedValue = dayjs('2024-12-15T09:30:00Z'); // 9:30 AM
+      render(DateTimeInput, {
+        props: {
+          get value() { return capturedValue; },
+          set value(v) { capturedValue = v; },
+          timezone,
+          dateLabel: 'Date',
+          timeLabel: 'Time',
+          dateId: 'date',
+          timeId: 'time',
+        }
+      });
+
+      const button = screen.getByRole('button', { name: 'AM' });
+      await fireEvent.click(button);
+
+      expect(capturedValue.hour()).toBe(21); // 9 + 12 = 21
+    });
+
+    it('does not show AM/PM button when locale uses 24-hour clock', () => {
+      setDayjsLocale('de-DE');
+      render(DateTimeInput, {
+        props: {
+          value: testDate,
+          timezone,
+          dateLabel: 'Date',
+          timeLabel: 'Time',
+          dateId: 'date',
+          timeId: 'time',
+        }
+      });
+
+      expect(screen.queryByRole('button', { name: /AM|PM/i })).not.toBeInTheDocument();
+    });
+
+    it('displays time in 12-hour format in the time input', () => {
+      const pmDate = dayjs('2024-12-15T14:30:00Z'); // 14:30 → 02:30 (PM)
+      render(DateTimeInput, {
+        props: {
+          value: pmDate,
+          timezone,
+          dateLabel: 'Date',
+          timeLabel: 'Time',
+          dateId: 'date',
+          timeId: 'time',
+        }
+      });
+
+      const timeInput = screen.getByLabelText(/Time/) as HTMLInputElement;
+      expect(timeInput.value).toBe('02:30');
     });
   });
 });

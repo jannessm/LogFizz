@@ -20,6 +20,12 @@ export class UserSettings {
   @Column('varchar', { default: 'en-US' })
   locale!: string; // Locale for date/time formatting e.g., 'en-US', 'de-DE'
 
+  @Column('varchar', { default: 'sunday' })
+  first_day_of_week!: string; // 'sunday' | 'monday'
+
+  @Column('varchar', { default: 'never' })
+  stats_mail_frequency!: string; // 'never' | 'weekly' | 'monthly'
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 

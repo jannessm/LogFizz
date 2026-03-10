@@ -71,6 +71,8 @@ export async function buildApp() {
       callback(new Error('Not allowed by CORS'), false);
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   });
 
   // Register cookie support
@@ -80,18 +82,31 @@ export async function buildApp() {
   const redis = createRedisClient();
   
   // Register session support with Redis store if available
+  const isProduction = process.env.NODE_ENV === 'production';
+  const SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours in ms
   const sessionConfig: any = {
     secret: process.env.SESSION_SECRET || 'a-very-secret-key-minimum-32-chars-change-in-production',
     cookieName: 'sessionId', // Explicit cookie name
     cookie: {
-      secure: false, // Set to false for tests and development
+      // Secure must be true in production so Safari treats the cookie as persistent.
+      // Without Secure, Safari (especially on iOS via ITP) may treat the cookie as
+      // a session cookie and drop it when the app is backgrounded or suspended.
+      secure: isProduction,
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax', // Use 'lax' for better compatibility
+      maxAge: SESSION_MAX_AGE_MS,
+      // Provide an explicit Expires date alongside Max-Age. Some Safari versions
+      // prefer the absolute Expires attribute and ignore or mishandle Max-Age-only
+      // cookies, causing them to expire much sooner than expected.
+      expires: new Date(Date.now() + SESSION_MAX_AGE_MS),
+      sameSite: 'lax',
       path: '/',
     },
     saveUninitialized: false, // Don't create session until something is stored
-    rolling: false, // Don't reset cookie expiration on every response (for better test stability)
+    // Rolling true resets Max-Age + Expires on every authenticated response,
+    // preventing sessions from expiring mid-use. Safe now that the app calls
+    // /auth/me regularly. Previously false only for test stability — tests are
+    // unaffected because they don't check cookie expiry headers.
+    rolling: true,
   };
 
   // Use Redis store if Redis is available
@@ -99,7 +114,7 @@ export async function buildApp() {
     sessionConfig.store = new RedisStore({
       client: redis,
       prefix: 'session:',
-      ttl: 24 * 60 * 60, // 24 hours in seconds
+      ttl: SESSION_MAX_AGE_MS / 1000, // 24 hours in seconds; rolling:true will refresh this on each request
     });
     console.log('✓ Session storage configured with Redis');
   } else {
@@ -134,39 +149,42 @@ export async function buildApp() {
   await registerRateLimit(fastify);
 
   // Register Swagger
-  await fastify.register(swagger, {
-    openapi: {
-      info: {
-        title: 'Clock Time Tracking API',
-        description: 'API for the Clock time tracking application',
-        version: '1.0.0',
-      },
-      servers: [
-        {
-          url: 'http://localhost:3000',
-          description: 'Development server',
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Registering Swagger for API documentation');
+    await fastify.register(swagger, {
+      openapi: {
+        info: {
+          title: 'Clock Time Tracking API',
+          description: 'API for the Clock time tracking application',
+          version: '1.0.0',
         },
-      ],
-      tags: [
-        { name: 'Authentication', description: 'Authentication endpoints' },
-        { name: 'Timers', description: 'Timer management endpoints' },
-        { name: 'TimeLogs', description: 'Time logging endpoints' },
-        { name: 'Holidays', description: 'Holiday management endpoints' },
-        { name: 'Targets', description: 'Target management endpoints' },
-        { name: 'Balance', description: 'Balance management endpoints' },
-        { name: 'States', description: 'German states reference endpoints' },
-        { name: 'Payment', description: 'Payment and subscription endpoints' },
-      ],
-    },
-  });
+        servers: [
+          {
+            url: 'http://localhost:3000',
+            description: 'Development server',
+          },
+        ],
+        tags: [
+          { name: 'Authentication', description: 'Authentication endpoints' },
+          { name: 'Timers', description: 'Timer management endpoints' },
+          { name: 'TimeLogs', description: 'Time logging endpoints' },
+          { name: 'Holidays', description: 'Holiday management endpoints' },
+          { name: 'Targets', description: 'Target management endpoints' },
+          { name: 'Balance', description: 'Balance management endpoints' },
+          { name: 'States', description: 'German states reference endpoints' },
+          { name: 'Payment', description: 'Payment and subscription endpoints' },
+        ],
+      },
+    });
 
-  await fastify.register(swaggerUi, {
-    routePrefix: '/docs',
-    uiConfig: {
-      docExpansion: 'list',
-      deepLinking: false,
-    },
-  });
+    await fastify.register(swaggerUi, {
+      routePrefix: '/docs',
+      uiConfig: {
+        docExpansion: 'list',
+        deepLinking: false,
+      },
+    });
+  }
 
   // Register routes
   await fastify.register(authRoutes, { prefix: '/api/auth' });

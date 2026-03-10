@@ -1,5 +1,6 @@
 <script lang="ts">
   import { dayjs, userTimezone } from '../../types';
+  import { uses12HourClock } from '../../lib/dateFormatting';
 
   let {
     value = $bindable(),
@@ -32,6 +33,19 @@
   // Support both dayjs and string modes
   const isStringMode = $derived(stringValue !== undefined);
 
+  // Re-evaluate 12h detection whenever the locale store changes
+  const is12Hour = $derived(uses12HourClock());
+
+  // AM/PM state: derived from the current hour, toggleable by the user
+  let isPM = $state(value ? value.hour() >= 12 : false);
+
+  // Keep isPM in sync when the external value changes
+  $effect(() => {
+    if (value) {
+      isPM = value.hour() >= 12;
+    }
+  });
+
   function handleDateChange(input: string) {
     if (isStringMode) {
       stringValue = input || null;
@@ -43,9 +57,29 @@
 
   function handleTimeChange(input: string) {
     if (!isStringMode && value && input.includes(':')) {
-      const [hours, minutes] = input.split(':').map(Number);
+      let [hours, minutes] = input.split(':').map(Number);
+      if (is12Hour) {
+        // Convert 12h display value back to 24h for internal storage
+        if (isPM && hours < 12) hours += 12;
+        if (!isPM && hours === 12) hours = 0;
+      }
       value = value.set('hour', hours).set('minute', minutes);
     }
+  }
+
+  function toggleAmPm() {
+    if (!value || disabled || timeDisabled) return;
+    isPM = !isPM;
+    const currentHour = value.hour();
+    let newHour: number;
+    if (isPM) {
+      // Switch to PM: add 12 unless already in PM range
+      newHour = currentHour < 12 ? currentHour + 12 : currentHour;
+    } else {
+      // Switch to AM: subtract 12 unless already in AM range
+      newHour = currentHour >= 12 ? currentHour - 12 : currentHour;
+    }
+    value = value.set('hour', newHour);
   }
 
   let dateValue = $derived(
@@ -53,7 +87,17 @@
       ? (stringValue || '') 
       : (value ? value.format('YYYY-MM-DD') : '')
   );
-  let timeValue = $derived(value ? value.format('HH:mm') : '');
+
+  // For 12h mode the time input shows hours in 1–12 range
+  let timeValue = $derived(() => {
+    if (!value) return '';
+    if (is12Hour) {
+      const h = value.hour() % 12 || 12;
+      const m = value.minute().toString().padStart(2, '0');
+      return `${h.toString().padStart(2, '0')}:${m}`;
+    }
+    return value.format('HH:mm');
+  });
 </script>
 
 <div class="grid gap-4" class:grid-cols-2={!dateOnly} class:grid-cols-1={dateOnly}>
@@ -83,18 +127,34 @@
           {timeLabel} {#if required}*{/if}
         </label>
       {/if}
-      <input
-        id={timeId}
-        type="time"
-        value={timeValue}
-        oninput={(e) => handleTimeChange(e.currentTarget.value)}
-        disabled={disabled || timeDisabled}
-        {required}
-        class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
-        class:border-gray-300={!hasError}
-        class:dark:border-gray-600={!hasError}
-        class:border-red-500={hasError}
-      />
+      <div class="flex gap-2">
+        <input
+          id={timeId}
+          type="time"
+          value={timeValue()}
+          oninput={(e) => handleTimeChange(e.currentTarget.value)}
+          disabled={disabled || timeDisabled}
+          {required}
+          class="flex-1 px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
+          class:border-gray-300={!hasError}
+          class:dark:border-gray-600={!hasError}
+          class:border-red-500={hasError}
+        />
+        {#if is12Hour}
+          <button
+            type="button"
+            onclick={toggleAmPm}
+            disabled={disabled || timeDisabled}
+            class="px-3 py-2 rounded-lg border text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            class:border-gray-300={!hasError}
+            class:dark:border-gray-600={!hasError}
+            class:border-red-500={hasError}
+            aria-label={isPM ? 'PM' : 'AM'}
+          >
+            {isPM ? 'PM' : 'AM'}
+          </button>
+        {/if}
+      </div>
     </div>
   {/if}
 </div>

@@ -7,6 +7,34 @@ const userSettingsService = new UserSettingsService();
 // Allowed values for validation
 const ALLOWED_LANGUAGES = ['en', 'de'];
 const ALLOWED_LOCALES = ['en-US', 'en-GB', 'de-DE', 'de-AT', 'de-CH'];
+const ALLOWED_FIRST_DAYS = ['sunday', 'monday'];
+const ALLOWED_STATS_MAIL_FREQUENCIES = ['never', 'weekly', 'monthly'];
+
+/** Reusable TypeBox schema for a full settings response object */
+const settingsResponseSchema = Type.Object({
+  id: Type.String(),
+  user_id: Type.String(),
+  language: Type.String(),
+  locale: Type.String(),
+  first_day_of_week: Type.String(),
+  stats_mail_frequency: Type.String(),
+  created_at: Type.String(),
+  updated_at: Type.String(),
+});
+
+/** Helper: map an entity to the response shape */
+function toResponse(settings: any) {
+  return {
+    id: settings.id,
+    user_id: settings.user_id,
+    language: settings.language,
+    locale: settings.locale,
+    first_day_of_week: settings.first_day_of_week,
+    stats_mail_frequency: settings.stats_mail_frequency,
+    created_at: settings.created_at.toISOString(),
+    updated_at: settings.updated_at.toISOString(),
+  };
+}
 
 export async function userSettingsRoutes(fastify: FastifyInstance) {
   // Get user settings
@@ -14,36 +42,16 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['User Settings'],
       response: {
-        200: Type.Object({
-          id: Type.String(),
-          user_id: Type.String(),
-          language: Type.String(),
-          locale: Type.String(),
-          created_at: Type.String(),
-          updated_at: Type.String(),
-        }),
-        401: Type.Object({
-          error: Type.String(),
-        }),
+        200: settingsResponseSchema,
+        401: Type.Object({ error: Type.String() }),
       },
     },
   }, async (request, reply) => {
     const userId = request.session.userId;
-    
-    if (!userId) {
-      return reply.code(401).send({ error: 'Not authenticated' });
-    }
+    if (!userId) return reply.code(401).send({ error: 'Not authenticated' });
 
     const settings = await userSettingsService.getOrCreateSettings(userId);
-    
-    return reply.send({
-      id: settings.id,
-      user_id: settings.user_id,
-      language: settings.language,
-      locale: settings.locale,
-      created_at: settings.created_at.toISOString(),
-      updated_at: settings.updated_at.toISOString(),
-    });
+    return reply.send(toResponse(settings));
   });
 
   // Update user settings
@@ -59,39 +67,33 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
           Type.Literal('de-AT'),
           Type.Literal('de-CH'),
         ])),
+        first_day_of_week: Type.Optional(Type.Union([
+          Type.Literal('sunday'),
+          Type.Literal('monday'),
+        ])),
+        stats_mail_frequency: Type.Optional(Type.Union([
+          Type.Literal('never'),
+          Type.Literal('weekly'),
+          Type.Literal('monthly'),
+        ])),
       }),
       response: {
-        200: Type.Object({
-          id: Type.String(),
-          user_id: Type.String(),
-          language: Type.String(),
-          locale: Type.String(),
-          created_at: Type.String(),
-          updated_at: Type.String(),
-        }),
-        401: Type.Object({
-          error: Type.String(),
-        }),
+        200: settingsResponseSchema,
+        401: Type.Object({ error: Type.String() }),
       },
     },
   }, async (request, reply) => {
     const userId = request.session.userId;
-    
-    if (!userId) {
-      return reply.code(401).send({ error: 'Not authenticated' });
-    }
+    if (!userId) return reply.code(401).send({ error: 'Not authenticated' });
 
-    const { language, locale } = request.body as any;
-    const settings = await userSettingsService.updateSettings(userId, { language, locale });
-    
-    return reply.send({
-      id: settings.id,
-      user_id: settings.user_id,
-      language: settings.language,
-      locale: settings.locale,
-      created_at: settings.created_at.toISOString(),
-      updated_at: settings.updated_at.toISOString(),
+    const { language, locale, first_day_of_week, stats_mail_frequency } = request.body as any;
+    const settings = await userSettingsService.updateSettings(userId, {
+      language,
+      locale,
+      first_day_of_week,
+      stats_mail_frequency,
     });
+    return reply.send(toResponse(settings));
   });
 
   // Sync endpoint - GET changes since timestamp
@@ -103,40 +105,21 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
       }),
       response: {
         200: Type.Object({
-          settings: Type.Optional(Type.Object({
-            id: Type.String(),
-            user_id: Type.String(),
-            language: Type.String(),
-            locale: Type.String(),
-            created_at: Type.String(),
-            updated_at: Type.String(),
-          })),
+          settings: Type.Optional(settingsResponseSchema),
           cursor: Type.String(),
         }),
-        401: Type.Object({
-          error: Type.String(),
-        }),
+        401: Type.Object({ error: Type.String() }),
       },
     },
   }, async (request, reply) => {
     const userId = request.session.userId;
-    
-    if (!userId) {
-      return reply.code(401).send({ error: 'Not authenticated' });
-    }
+    if (!userId) return reply.code(401).send({ error: 'Not authenticated' });
 
     const { since } = request.query as any;
     const settings = await userSettingsService.getSyncChanges(userId, since);
-    
+
     return reply.send({
-      settings: settings ? {
-        id: settings.id,
-        user_id: settings.user_id,
-        language: settings.language,
-        locale: settings.locale,
-        created_at: settings.created_at.toISOString(),
-        updated_at: settings.updated_at.toISOString(),
-      } : undefined,
+      settings: settings ? toResponse(settings) : undefined,
       cursor: new Date().toISOString(),
     });
   });
@@ -155,46 +138,36 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
             Type.Literal('de-AT'),
             Type.Literal('de-CH'),
           ])),
+          first_day_of_week: Type.Optional(Type.Union([
+            Type.Literal('sunday'),
+            Type.Literal('monday'),
+          ])),
+          stats_mail_frequency: Type.Optional(Type.Union([
+            Type.Literal('never'),
+            Type.Literal('weekly'),
+            Type.Literal('monthly'),
+          ])),
           updated_at: Type.Optional(Type.String()),
         }),
       }),
       response: {
         200: Type.Object({
-          settings: Type.Object({
-            id: Type.String(),
-            user_id: Type.String(),
-            language: Type.String(),
-            locale: Type.String(),
-            created_at: Type.String(),
-            updated_at: Type.String(),
-          }),
+          settings: settingsResponseSchema,
           conflict: Type.Optional(Type.Boolean()),
           cursor: Type.String(),
         }),
-        401: Type.Object({
-          error: Type.String(),
-        }),
+        401: Type.Object({ error: Type.String() }),
       },
     },
   }, async (request, reply) => {
     const userId = request.session.userId;
-    
-    if (!userId) {
-      return reply.code(401).send({ error: 'Not authenticated' });
-    }
+    if (!userId) return reply.code(401).send({ error: 'Not authenticated' });
 
     const { settings: clientSettings } = request.body as any;
     const result = await userSettingsService.pushSyncChanges(userId, clientSettings);
-    
+
     return reply.send({
-      settings: {
-        id: result.settings.id,
-        user_id: result.settings.user_id,
-        language: result.settings.language,
-        locale: result.settings.locale,
-        created_at: result.settings.created_at.toISOString(),
-        updated_at: result.settings.updated_at.toISOString(),
-      },
+      settings: toResponse(result.settings),
       conflict: result.conflict,
       cursor: new Date().toISOString(),
     });
