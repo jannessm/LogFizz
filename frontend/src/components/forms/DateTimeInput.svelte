@@ -1,6 +1,6 @@
 <script lang="ts">
   import { dayjs, userTimezone } from '../../types';
-  import { uses12HourClock } from '../../lib/dateFormatting';
+  import { uses12HourClock, currentLocale } from '../../lib/dateFormatting';
 
   let {
     value = $bindable(),
@@ -46,6 +46,69 @@
     }
   });
 
+  // Local text state for the date input field (locale-formatted)
+  let dateInputText = $state('');
+  let dateInputDirty = $state(false);
+
+  // Keep dateInputText in sync with value when not being edited
+  $effect(() => {
+    // Re-run whenever locale changes
+    const _locale = $currentLocale;
+    if (!dateInputDirty) {
+      if (isStringMode) {
+        dateInputText = stringValue ? dayjs(stringValue).format('L') : '';
+      } else if (value) {
+        dateInputText = value.format('L');
+      } else {
+        dateInputText = '';
+      }
+    }
+  });
+
+  // Locale-aware date placeholder (e.g. "MM/DD/YYYY" or "DD.MM.YYYY")
+  let datePlaceholder = $derived.by(() => {
+    const _locale = $currentLocale;
+    return dayjs('2001-12-31').format('L')
+      .replace('2001', 'YYYY')
+      .replace('31', 'DD')
+      .replace('12', 'MM');
+  });
+
+  function handleDateInput(input: string) {
+    dateInputText = input;
+    dateInputDirty = true;
+  }
+
+  function commitDateInput() {
+    dateInputDirty = false;
+    const raw = dateInputText.trim();
+
+    if (isStringMode) {
+      if (!raw) {
+        stringValue = null;
+        return;
+      }
+      const parsed = dayjs(raw, 'L', true);
+      if (parsed.isValid()) {
+        stringValue = parsed.format('YYYY-MM-DD');
+        dateInputText = parsed.format('L');
+      } else {
+        // Restore previous display value
+        dateInputText = stringValue ? dayjs(stringValue).format('L') : '';
+      }
+    } else if (value) {
+      if (!raw) return;
+      const parsed = dayjs(raw, 'L', true);
+      if (parsed.isValid()) {
+        value = value.set('year', parsed.year()).set('month', parsed.month()).set('date', parsed.date());
+        dateInputText = value.format('L');
+      } else {
+        // Restore previous display value
+        dateInputText = value.format('L');
+      }
+    }
+  }
+
   function handleDateChange(input: string) {
     if (isStringMode) {
       stringValue = input || null;
@@ -82,12 +145,6 @@
     value = value.set('hour', newHour);
   }
 
-  let dateValue = $derived(
-    isStringMode 
-      ? (stringValue || '') 
-      : (value ? value.format('YYYY-MM-DD') : '')
-  );
-
   // For 12h mode the time input shows hours in 1–12 range
   let timeValue = $derived(() => {
     if (!value) return '';
@@ -109,9 +166,12 @@
     {/if}
     <input
       id={dateId}
-      type="date"
-      value={dateValue}
-      oninput={(e) => handleDateChange(e.currentTarget.value)}
+      type="text"
+      value={dateInputText}
+      placeholder={datePlaceholder}
+      oninput={(e) => handleDateInput(e.currentTarget.value)}
+      onblur={commitDateInput}
+      onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitDateInput(); } }}
       {disabled}
       {required}
       class="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
