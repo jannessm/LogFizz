@@ -33,7 +33,7 @@ export async function buildApp() {
     // 1. X-Forwarded-Proto is respected → Fastify knows the original request was HTTPS
     // 2. @fastify/session will set Secure cookies even though it only sees plain HTTP
     //    from the proxy — without this, secure:true causes the cookie to never be sent.
-    // trustProxy: true,
+    trustProxy: true,
   }).withTypeProvider<TypeBoxTypeProvider>();
 
   // Register CORS
@@ -87,24 +87,15 @@ export async function buildApp() {
   const redis = createRedisClient();
   
   // Register session support with Redis store if available
-  const isProduction = process.env.NODE_ENV === 'production';
   const SESSION_MAX_AGE = 24 * 60 * 60 * 30;
   const SESSION_MAX_AGE_MS = SESSION_MAX_AGE * 1000; // 30 days in ms
   const sessionConfig: any = {
     secret: process.env.SESSION_SECRET || 'a-very-secret-key-minimum-32-chars-change-in-production',
     cookieName: 'sessionId', // Explicit cookie name
     cookie: {
-      // Secure must be true in production so Safari treats the cookie as persistent.
-      // Without Secure, Safari (especially on iOS via ITP) may treat the cookie as
-      // a session cookie and drop it when the app is backgrounded or suspended.
-      secure: isProduction,
-      // secure: isProduction,
+      secure: false,
       httpOnly: true,
       maxAge: SESSION_MAX_AGE_MS,
-      // Provide an explicit Expires date alongside Max-Age. Some Safari versions
-      // prefer the absolute Expires attribute and ignore or mishandle Max-Age-only
-      // cookies, causing them to expire much sooner than expected.
-      expires: new Date(Date.now() + SESSION_MAX_AGE_MS),
       sameSite: 'lax',
       path: '/',
     },
@@ -150,6 +141,24 @@ export async function buildApp() {
         'access-control-allow-origin': reply.getHeader('access-control-allow-origin'),
       });
     }
+  });
+
+  // If the original request came in over HTTPS (X-Forwarded-Proto set by Traefik),
+  // patch any Set-Cookie headers to add the Secure flag. This ensures the session
+  // cookie is marked Secure in production without relying on NODE_ENV or cookie.secure.
+  fastify.addHook('onSend', async (request, reply) => {
+    const proto = request.headers['x-forwarded-proto'];
+    const isHttps = proto === 'https' || (Array.isArray(proto) && proto[0] === 'https');
+    if (!isHttps) return;
+
+    const setCookie = reply.getHeader('set-cookie');
+    if (!setCookie) return;
+
+    const cookies = Array.isArray(setCookie) ? setCookie : [setCookie as string];
+    const secured = cookies.map((c) =>
+      c.includes('Secure') ? c : `${c}; Secure`
+    );
+    reply.header('set-cookie', secured);
   });
 
   // Register rate limiting
