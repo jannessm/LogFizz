@@ -4,9 +4,9 @@
   import { todayTargets } from '../../stores/targets';
   import { timers } from '../../stores/timers';
   import { timeLogsStore } from '../../stores/timelogs';
-  import { holidaysStore } from '../../stores/holidays';
   import { mapToArray } from '../../stores/base-store';
   import { calculateDueMinutes, calculateWorkedMinutesForDate } from '../../../../lib/utils/balance.js';
+  import { buildHolidaysSet } from '../../stores/balances';
   import { dayjs } from '../../types';
   import { _ } from '../../lib/i18n';
   import { formatMinutesCompact } from '../../../../lib/utils/timeFormat.js';
@@ -52,16 +52,7 @@
 
     for (const target of get(todayTargets)) {
       // Build holidays set for this target
-      const holidaysSet = new Set<string>();
-      for (const spec of target.target_specs || []) {
-        if (spec.exclude_holidays && spec.state_code) {
-          const country = spec.state_code.split('-')[0];
-          const year = dayjs().year();
-          const month = dayjs().month() + 1;
-          const holidays = holidaysStore.getHolidaysForMonth(country, year, month);
-          holidays.forEach(h => holidaysSet.add(h.date));
-        }
-      }
+      const holidaysSet = buildHolidaysSet(target, dayjs().year(), dayjs().month() + 1);
 
       const dueMinutes = calculateDueMinutes(todayStr, target as any, holidaysSet);
       if (dueMinutes <= 0) continue;

@@ -21,6 +21,9 @@ export class Holiday implements HolidayEntity {
   @Column('varchar')
   name!: string;
 
+  @Column('varchar', { default: '' })
+  localName!: string;
+
   @Column('int')
   year!: number;
 }

@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { Type } from '@sinclair/typebox';
 import { UserSettingsService } from '../services/user-settings.service.js';
+import dayjs from '../../../lib/utils/dayjs.js';
 
 const userSettingsService = new UserSettingsService();
 
@@ -120,7 +121,7 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
 
     return reply.send({
       settings: settings ? toResponse(settings) : undefined,
-      cursor: new Date().toISOString(),
+      cursor: dayjs().toISOString(),
     });
   });
 
@@ -169,7 +170,7 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
     return reply.send({
       settings: toResponse(result.settings),
       conflict: result.conflict,
-      cursor: new Date().toISOString(),
+      cursor: dayjs().toISOString(),
     });
   });
 }

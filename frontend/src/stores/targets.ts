@@ -134,8 +134,8 @@ function createTargetsStore() {
         user_id: '',
         name: targetData.name || '',
         target_specs: targetData.target_specs || [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        created_at: dayjs().toISOString(),
+        updated_at: dayjs().toISOString(),
       });
     },
 

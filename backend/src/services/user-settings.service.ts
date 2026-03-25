@@ -1,6 +1,7 @@
 import { AppDataSource } from '../config/database.js';
 import { UserSettings } from '../entities/UserSettings.js';
 import type { UserSettings as UserSettingsType, StatisticsEmailFrequency } from '../../../lib/types/index.js';
+import dayjs from '../../../lib/utils/dayjs.js';
 
 export class UserSettingsService {
   private userSettingsRepository = AppDataSource.getRepository(UserSettings);
@@ -86,8 +87,8 @@ export class UserSettingsService {
     }
     
     // Check if settings were updated after 'since' timestamp
-    const sinceDate = new Date(since);
-    if (settings.updated_at > sinceDate) {
+    const sinceDate = dayjs(since);
+    if (dayjs(settings.updated_at).isAfter(sinceDate)) {
       return settings;
     }
     
@@ -115,8 +116,8 @@ export class UserSettingsService {
     }
     
     // Check for conflict (server is newer)
-    const clientUpdatedAt = clientSettings.updated_at ? new Date(clientSettings.updated_at) : new Date(0);
-    if (serverSettings.updated_at > clientUpdatedAt) {
+    const clientUpdatedAt = clientSettings.updated_at ? dayjs(clientSettings.updated_at) : dayjs(0);
+    if (dayjs(serverSettings.updated_at).isAfter(clientUpdatedAt)) {
       // Server is newer, return current server settings as conflict
       return { settings: serverSettings, conflict: true };
     }

@@ -7,7 +7,9 @@
   import { _ } from '../../lib/i18n';
   import { get } from 'svelte/store';
   import { formatMinutesCompact } from '../../../../lib/dist/utils/timeFormat';
-  import { calculateTimelogDuration } from '../../../../lib/dist/utils/balance';
+  import { calculateTimelogDuration, calculateWorkedMinutesForDate, calculateDueMinutes } from '../../../../lib/dist/utils/balance';
+  import { targets } from '../../stores/targets';
+  import { buildHolidaysSet } from '../../stores/balances';
 
   export type ButtonEditCallback = (timer: Timer) => void;
   export type ButtonLongpressCallback = (timer: Timer, timelog: TimeLog | undefined, isActive: boolean) => void;
@@ -47,12 +49,12 @@
     if (activeTimeLog) {
       isActive = true;
       updateProgress();
-      updateTodayTime();
     } else {
       isActive = false;
       elapsedTime = 0;
       strokeDashoffset = 351.858; // reset
     }
+    updateTodayTime();
   });
 
   $effect(() => {
@@ -83,21 +85,24 @@
     // Calculate today's total time from completed timelogs
     const today = dayjs().format('YYYY-MM-DD');
     const todayLogs = $timerlogs.filter(tl => 
-      tl.timer_id === timer.id && tl.start_timestamp && tl.start_timestamp.startsWith(today)
+      tl.timer_id === timer.id && tl.start_timestamp && tl.end_timestamp && 
+      dayjs.utc(tl.start_timestamp).isSameOrBefore(dayjs.utc(today).endOf('day')) &&
+      dayjs.utc(tl.end_timestamp).isSameOrAfter(dayjs.utc(today).startOf('day'))
     );
-    
-    // Sum up durations from completed logs
-    let _todayTime = 0;
-    for (const log of todayLogs) {
-      if (log.end_timestamp && log.duration_minutes) {
-        _todayTime += log.duration_minutes;
-      } else if (log.end_timestamp) {
-        // Calculate if duration wasn't stored
-        const start = dayjs.utc(log.start_timestamp).valueOf();
-        const end = dayjs.utc(log.end_timestamp).valueOf();
-        _todayTime += Math.floor((end - start) / 60000);
+
+    // Resolve due minutes for today using the timer's linked target
+    let dueMinutes = 0;
+    if (timer.target_id) {
+      const target = $targets.find(t => t.id === timer.target_id);
+      if (target) {
+        const holidaysSet = buildHolidaysSet(target, dayjs().year(), dayjs().month() + 1);
+        dueMinutes = calculateDueMinutes(today, target as any, holidaysSet);
       }
     }
+
+    // Sum up durations from completed logs
+    const { worked_minutes } = calculateWorkedMinutesForDate(today, todayLogs, dueMinutes);
+    let _todayTime = worked_minutes;
     
     // Add time for currently active timer
     if (isActive && activeTimeLog && activeTimeLog.start_timestamp.startsWith(today)) {

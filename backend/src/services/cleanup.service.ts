@@ -4,6 +4,7 @@ import { Timer } from '../entities/Timer.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { LessThan, Not, IsNull } from 'typeorm';
 import { HolidayCrawlerService } from './holiday-crawler.service.js';
+import dayjs from '../../../lib/utils/dayjs.js';
 
 export class CleanupService {
   private userRepository = AppDataSource.getRepository(User);
@@ -19,8 +20,7 @@ export class CleanupService {
     timersDeleted: number;
     timeLogsDeleted: number;
   }> {
-    const fourMonthsAgo = new Date();
-    fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
+    const fourMonthsAgo = dayjs().subtract(4, 'month').toDate();
 
     // Delete TimeLogs first (has foreign keys to Timer and User)
     const timeLogsResult = await this.timeLogRepository.delete({
@@ -52,8 +52,7 @@ export class CleanupService {
     timers: number;
     timeLogs: number;
   }> {
-    const fourMonthsAgo = new Date();
-    fourMonthsAgo.setMonth(fourMonthsAgo.getMonth() - 4);
+    const fourMonthsAgo = dayjs().subtract(4, 'month').toDate();
 
     const users = await this.userRepository.count({
       where: {
@@ -82,7 +81,7 @@ export class CleanupService {
    */
   async refreshHolidays(): Promise<void> {
     console.log('=== Holiday Data Refresh Job Started ===');
-    console.log(`Timestamp: ${new Date().toISOString()}`);
+    console.log(`Timestamp: ${dayjs().toISOString()}`);
 
     try {
       const result = await this.holidayCrawler.refreshOutdatedHolidays();
@@ -110,7 +109,7 @@ export class CleanupService {
    * Check and ensure current year holidays are available
    */
   async ensureCurrentYearHolidays(countries: string[]): Promise<void> {
-    const currentYear = new Date().getFullYear();
+    const currentYear = dayjs().year();
     
     console.log(`Ensuring holidays for ${countries.length} countries for year ${currentYear}...`);
 

@@ -3,6 +3,52 @@ import { Holiday } from '../entities/Holiday.js';
 import { HolidayMetadata } from '../entities/HolidayMetadata.js';
 import { MoreThan } from 'typeorm';
 import type { HolidayData } from '../../../lib/types/index.js';
+import dayjs from '../../../lib/utils/dayjs.js';
+
+/**
+ * Fallback translation map for German/Austrian holiday names.
+ * Used when the API does not provide a localName.
+ * Key: English name from the Nager.Date API → Value: German local name.
+ */
+const HOLIDAY_LOCAL_NAME_FALLBACK: Record<string, string> = {
+  // === German holidays ===
+  "New Year's Day": 'Neujahr',
+  'Epiphany': 'Heilige Drei Könige',
+  'Good Friday': 'Karfreitag',
+  'Easter Sunday': 'Ostersonntag',
+  'Easter Monday': 'Ostermontag',
+  'Labour Day': 'Tag der Arbeit',
+  'Ascension Day': 'Christi Himmelfahrt',
+  'Whit Sunday': 'Pfingstsonntag',
+  'Whit Monday': 'Pfingstmontag',
+  'Corpus Christi': 'Fronleichnam',
+  'Assumption Day': 'Mariä Himmelfahrt',
+  'German Unity Day': 'Tag der Deutschen Einheit',
+  'Reformation Day': 'Reformationstag',
+  "All Saints' Day": 'Allerheiligen',
+  'Day of Repentance and Prayer': 'Buß- und Bettag',
+  'Christmas Day': '1. Weihnachtstag',
+  "St. Stephen's Day": '2. Weihnachtstag',
+  'International Women\'s Day': 'Internationaler Frauentag',
+  'World Children\'s Day': 'Weltkindertag',
+  'Liberation Day': 'Tag der Befreiung',
+
+  // === Austrian holidays ===
+  'National Holiday': 'Nationalfeiertag',
+  "All Souls' Day": 'Allerseelen',
+  'Immaculate Conception': 'Mariä Empfängnis',
+  "New Year's Eve": 'Silvester',
+  'Saint Joseph\'s Day': 'Josefitag',
+  'Saint Leopold\'s Day': 'Leopolditag',
+  'Saint Martin\'s Day': 'Martinstag',
+  'Saint Rupert\'s Day': 'Rupertitag',
+  'Saint Florian\'s Day': 'Florianitag',
+
+  // === Swiss holidays (German-speaking) ===
+  'Berchtolds Day': 'Berchtoldstag',
+  'Federal Day of Thanksgiving, Repentance and Prayer': 'Eidgenössischer Dank-, Buss- und Bettag',
+  'Swiss National Day': 'Bundesfeiertag',
+};
 
 
 /**
@@ -31,8 +77,7 @@ export class HolidayCrawlerService {
       return true;
     }
 
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const threeMonthsAgo = dayjs().subtract(3, 'month').toDate();
 
     return metadata.last_updated < threeMonthsAgo;
   }
@@ -87,6 +132,7 @@ export class HolidayCrawlerService {
         counties: holiday.counties || [],
         date: new Date(holiday.date),
         name: holiday.name,
+        localName: holiday.localName || HOLIDAY_LOCAL_NAME_FALLBACK[holiday.name] || holiday.name,
         year: year,
       }));
     } catch (error) {
@@ -148,12 +194,12 @@ export class HolidayCrawlerService {
       });
 
       if (metadata) {
-        metadata.last_updated = new Date();
+        metadata.last_updated = dayjs().toDate();
       } else {
         metadata = this.metadataRepository.create({
           country,
           year,
-          last_updated: new Date(),
+          last_updated: dayjs().toDate(),
         });
       }
 
@@ -216,8 +262,7 @@ export class HolidayCrawlerService {
   }> {
     console.log('Starting refresh of outdated holiday data...');
 
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const threeMonthsAgo = dayjs().subtract(3, 'month').toDate();
 
     // Find all metadata entries older than 3 months
     const outdatedMetadata = await this.metadataRepository.find({
@@ -270,7 +315,7 @@ export class HolidayCrawlerService {
    * Useful for initial setup
    */
   async initializeCommonHolidays(): Promise<void> {
-    const currentYear = new Date().getFullYear();
+    const currentYear = dayjs().year();
     const years = [currentYear - 5, currentYear + 5];
     
     // Common countries (can be expanded)

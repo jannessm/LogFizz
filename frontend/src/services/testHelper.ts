@@ -22,28 +22,28 @@ export const EXERCISE_TIMER_OLD_ID = 'exercise-timer-old-1';
 // These would be fetched by the holiday crawler in seed.ts
 const HOLIDAYS_DE_BY: Holiday[] = [
   // 2025 holidays
-  { id: 'h1', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-01-01', name: 'Neujahr', year: 2025 },
-  { id: 'h2', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-01-06', name: 'Heilige Drei Könige', year: 2025 },
-  { id: 'h3', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-04-18', name: 'Karfreitag', year: 2025 },
-  { id: 'h4', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-04-21', name: 'Ostermontag', year: 2025 },
-  { id: 'h5', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-05-01', name: 'Tag der Arbeit', year: 2025 },
-  { id: 'h6', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-05-29', name: 'Christi Himmelfahrt', year: 2025 },
-  { id: 'h7', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-06-09', name: 'Pfingstmontag', year: 2025 },
-  { id: 'h8', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-06-19', name: 'Fronleichnam', year: 2025 },
-  { id: 'h9', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-08-15', name: 'Mariä Himmelfahrt', year: 2025 },
-  { id: 'h10', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-10-03', name: 'Tag der Deutschen Einheit', year: 2025 },
-  { id: 'h11', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-11-01', name: 'Allerheiligen', year: 2025 },
-  { id: 'h12', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-12-25', name: '1. Weihnachtstag', year: 2025 },
-  { id: 'h13', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-12-26', name: '2. Weihnachtstag', year: 2025 },
+  { id: 'h1', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-01-01', name: "New Year's Day", localName: 'Neujahr', year: 2025 },
+  { id: 'h2', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-01-06', name: 'Epiphany', localName: 'Heilige Drei Könige', year: 2025 },
+  { id: 'h3', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-04-18', name: 'Good Friday', localName: 'Karfreitag', year: 2025 },
+  { id: 'h4', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-04-21', name: 'Easter Monday', localName: 'Ostermontag', year: 2025 },
+  { id: 'h5', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-05-01', name: 'Labour Day', localName: 'Tag der Arbeit', year: 2025 },
+  { id: 'h6', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-05-29', name: 'Ascension Day', localName: 'Christi Himmelfahrt', year: 2025 },
+  { id: 'h7', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-06-09', name: 'Whit Monday', localName: 'Pfingstmontag', year: 2025 },
+  { id: 'h8', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-06-19', name: 'Corpus Christi', localName: 'Fronleichnam', year: 2025 },
+  { id: 'h9', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-08-15', name: 'Assumption Day', localName: 'Mariä Himmelfahrt', year: 2025 },
+  { id: 'h10', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-10-03', name: 'German Unity Day', localName: 'Tag der Deutschen Einheit', year: 2025 },
+  { id: 'h11', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-11-01', name: "All Saints' Day", localName: 'Allerheiligen', year: 2025 },
+  { id: 'h12', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-12-25', name: 'Christmas Day', localName: '1. Weihnachtstag', year: 2025 },
+  { id: 'h13', country: 'DE', global: false, counties: ['DE-BY'], date: '2025-12-26', name: "St. Stephen's Day", localName: '2. Weihnachtstag', year: 2025 },
   // 2026 holidays
-  { id: 'h14', country: 'DE', global: false, counties: ['DE-BY'], date: '2026-01-01', name: 'Neujahr', year: 2026 },
-  { id: 'h15', country: 'DE', global: false, counties: ['DE-BY'], date: '2026-01-06', name: 'Heilige Drei Könige', year: 2026 },
+  { id: 'h14', country: 'DE', global: false, counties: ['DE-BY'], date: '2026-01-01', name: "New Year's Day", localName: 'Neujahr', year: 2026 },
+  { id: 'h15', country: 'DE', global: false, counties: ['DE-BY'], date: '2026-01-06', name: 'Epiphany', localName: 'Heilige Drei Könige', year: 2026 },
 ];
 
 const HOLIDAYS_DE_BW: Holiday[] = [
   // December 2025 - Baden-Württemberg
-  { id: 'bw1', country: 'DE', global: false, counties: ['DE-BW'], date: '2025-12-25', name: '1. Weihnachtstag', year: 2025 },
-  { id: 'bw2', country: 'DE', global: false, counties: ['DE-BW'], date: '2025-12-26', name: '2. Weihnachtstag', year: 2025 },
+  { id: 'bw1', country: 'DE', global: false, counties: ['DE-BW'], date: '2025-12-25', name: 'Christmas Day', localName: '1. Weihnachtstag', year: 2025 },
+  { id: 'bw2', country: 'DE', global: false, counties: ['DE-BW'], date: '2025-12-26', name: "St. Stephen's Day", localName: '2. Weihnachtstag', year: 2025 },
 ];
 
 /**

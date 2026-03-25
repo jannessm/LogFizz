@@ -163,6 +163,7 @@ export interface Holiday {
   counties: string[];
   date: string;
   name: string;
+  localName: string;
   year: number;
 }
 

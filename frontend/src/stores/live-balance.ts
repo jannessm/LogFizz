@@ -135,13 +135,11 @@ activeTimeLogs.subscribe($activeTimeLogs => {
 export const activeTimelogDurations = derived(
   [activeTimeLogs, liveBalanceTick],
   ([$activeTimeLogs, _tick]) => {
-    const now = new Date();
-    
+    const now = dayjs();
+
     return $activeTimeLogs.map(timelog => {
-      const startTime = new Date(timelog.start_timestamp);
-      const elapsedMs = now.getTime() - startTime.getTime();
-      const elapsedMinutes = Math.floor(elapsedMs / 60000);
-      
+      const elapsedMinutes = now.diff(dayjs(timelog.start_timestamp), 'minute');
+
       return {
         ...timelog,
         elapsed_minutes: elapsedMinutes,
