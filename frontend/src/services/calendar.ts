@@ -187,7 +187,7 @@ function calculateMultiDayRange(
     // Convert timestamps to user's timezone
     const logTimezone = tl.timezone || userTimezone;
     const start = dayjs.utc(tl.start_timestamp).tz(logTimezone).startOf('day');
-    const end = dayjs.utc(tl.end_timestamp).tz(logTimezone).endOf('day') || dayjs().tz(logTimezone).endOf('day');
+    const end = dayjs.utc(tl.end_timestamp).tz(logTimezone).endOf('day') || dayjs.utc().tz(logTimezone).endOf('day');
 
     // If the end date is before the start date, skip this log
     if (start.isAfter(endDate) || end.isBefore(startDate)) continue;

@@ -178,8 +178,7 @@ function createUserSettingsStore() {
       const settings = state.settings;
       return !!(settings?.language &&
                 settings?.locale &&
-                settings?.first_day_of_week &&
-                settings?.statistics_email_frequency);
+                settings?.first_day_of_week);
     }
   };
 }

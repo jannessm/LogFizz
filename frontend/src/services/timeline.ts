@@ -19,7 +19,7 @@ export function getSessionsForSelectedDate(
   timeLogs: any[]
 ): SessionData {
   const dateStr = selectedDate.format('YYYY-MM-DD');
-  const now = dayjs.tz(undefined, userTimezone);
+  const now = dayjs.utc().tz(userTimezone);
 
   const sessions: Session[] = [];
   const multiDaySessions: Session[] = [];
@@ -30,12 +30,12 @@ export function getSessionsForSelectedDate(
       
       // Convert UTC timestamp to user's timezone for comparison
       const logTimezone = tl.timezone || userTimezone;
-      const startDate = dayjs.tz(tl.start_timestamp, logTimezone);
+      const startDate = dayjs.utc(tl.start_timestamp).tz(logTimezone);
       
       // For ended log, check if selected date is within start and end
       if (tl.end_timestamp) {
-        const endDate = dayjs.tz(tl.end_timestamp, logTimezone);
-        const selectedDay = dayjs.tz(dateStr, logTimezone).startOf('day');
+        const endDate = dayjs.utc(tl.end_timestamp).tz(logTimezone);
+        const selectedDay = dayjs.utc(dateStr).tz(logTimezone).startOf('day');
         
         // Check if selected date is within the range (inclusive)
         return selectedDay.isSameOrAfter(startDate, 'day') && selectedDay.isSameOrBefore(endDate, 'day');
@@ -50,8 +50,8 @@ export function getSessionsForSelectedDate(
       // For running sessions (no end_timestamp), calculate duration to current time
       let duration = log.duration_minutes;
       const logTimezone = log.timezone || userTimezone;
-      const start = dayjs.tz(log.start_timestamp, logTimezone);
-      const end = log.end_timestamp ? dayjs.tz(log.end_timestamp, logTimezone) : now;
+      const start = dayjs.utc(log.start_timestamp).tz(logTimezone);
+      const end = log.end_timestamp ? dayjs.utc(log.end_timestamp).tz(logTimezone) : now;
 
       if (!log.end_timestamp && log.start_timestamp) {
         duration = now.diff(start, 'minute');

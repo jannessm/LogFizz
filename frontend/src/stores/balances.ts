@@ -62,6 +62,31 @@ function getGranularity(date: string): 'daily' | 'monthly' | 'yearly' {
 }
 
 /**
+ * Build a Set of holiday date strings for a given target and month.
+ * Iterates the target's specs and collects holidays from the store for each
+ * spec that has `exclude_holidays` enabled with a `state_code`.
+ *
+ * @param target - Target whose specs are inspected
+ * @param year  - Year to look up holidays for
+ * @param month - Month (1-12) to look up holidays for
+ * @returns Set of holiday dates in YYYY-MM-DD format
+ */
+export function buildHolidaysSet(
+  target: TargetWithSpecs,
+  year: number,
+  month: number
+): Set<string> {
+  const holidaysSet = new Set<string>();
+  for (const spec of target.target_specs || []) {
+    if (spec.exclude_holidays && spec.state_code) {
+      holidaysStore.getHolidaysForMonth(spec.state_code, year, month)
+        .forEach(h => holidaysSet.add(h.date));
+    }
+  }
+  return holidaysSet;
+}
+
+/**
  * Helper to get target and prepare calculation context
  * Loads target, timelogs, and builds holidays set for balance calculations
  * 
@@ -102,17 +127,7 @@ async function prepareCalculationContext(
   });
 
   // Build holidays set for the target
-  const holidaysSet = new Set<string>();
-  for (const spec of target.target_specs || []) {
-    if (spec.exclude_holidays && spec.state_code) {
-      const holidays = holidaysStore.getHolidaysForMonth(
-        spec.state_code,
-        year,
-        month
-      );
-      holidays.forEach(h => holidaysSet.add(h.date));
-    }
-  }
+  const holidaysSet = buildHolidaysSet(target, year, month);
 
   return {
     target,
@@ -261,7 +276,7 @@ function createBalancesStore() {
      * @returns Created or updated balance
      */
     async calculateAndUpsertDailyBalance(targetId: string, date: string): Promise<Balance | null> {
-      const dateObj = dayjs(date).tz(userTimezone);
+      const dateObj = dayjs.utc(date).tz(userTimezone);
       const year = dateObj.year();
       const month = dateObj.month() + 1;
 
@@ -430,7 +445,7 @@ function createBalancesStore() {
         const affectedStart = dayjs.utc(affectedTimelog.start_timestamp).tz(logTz).startOf('day');
         const affectedEnd = (affectedTimelog.end_timestamp
           ? dayjs.utc(affectedTimelog.end_timestamp).tz(logTz)
-          : dayjs().tz(logTz)
+          : dayjs.utc().tz(logTz)
         ).endOf('day');
 
         // Update earliest impacted for monthly/yearly rebuild

@@ -12,6 +12,7 @@ import { Settings } from '../entities/Settings.js';
 import { UserSettings } from '../entities/UserSettings.js';
 import { InitialSchema1699700000000 } from '../migrations/1699700000000-InitialSchema.js';
 import { AddUserSettingsColumns1741600000000 } from '../migrations/1741600000000-AddUserSettingsColumns.js';
+import { AddHolidayLocalName1748200000000 } from '../migrations/1748200000000-AddHolidayLocalName.js';
 
 const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
 const isProduction = process.env.NODE_ENV === 'production';
@@ -27,7 +28,7 @@ export const AppDataSource = new DataSource({
   logging: !isProduction && !isTest,
   entities: [User, Timer, TimeLog, Holiday, HolidayMetadata, Target, TargetSpec, Balance, State, Settings, UserSettings],
   subscribers: [],
-  migrations: [InitialSchema1699700000000, AddUserSettingsColumns1741600000000],
+  migrations: [InitialSchema1699700000000, AddUserSettingsColumns1741600000000, AddHolidayLocalName1748200000000],
   migrationsRun: isProduction, // Auto-run migrations in production
   // Ensure PostgreSQL uses UTC for all timestamps
   extra: {

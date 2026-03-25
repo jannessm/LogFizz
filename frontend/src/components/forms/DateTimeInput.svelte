@@ -205,7 +205,7 @@
             type="button"
             onclick={toggleAmPm}
             disabled={disabled || timeDisabled}
-            class="px-3 py-2 rounded-lg border text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-3 py-2 rounded-lg border text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary dark:text-gray-100 text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
             class:border-gray-300={!hasError}
             class:dark:border-gray-600={!hasError}
             class:border-red-500={hasError}

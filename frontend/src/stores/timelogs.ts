@@ -42,8 +42,8 @@ let previousTimelogForRecalc: TimeLog | undefined;
 const timeLogStoreConfig: BaseStoreConfig<TimeLog> = {
   db: {
     getAll: () => getTimeLogsByYearMonth(
-      dayjs().tz(userTimezone).year(),
-      dayjs().tz(userTimezone).month() + 1
+      dayjs.utc().tz(userTimezone).year(),
+      dayjs.utc().tz(userTimezone).month() + 1
     ), // Only load current month initially for performance
     save: saveTimeLogDB,
     delete: deleteTimeLogDB,
@@ -101,7 +101,7 @@ function createTimeLogsStore() {
   // Track which year-month combinations have been loaded
   const loadedMonths = new Set<string>();
   // initialize with current month as loaded by store (month() + 1 because dayjs months are 0-indexed)
-  loadedMonths.add(`${dayjs().tz(userTimezone).year()}-${dayjs().tz(userTimezone).month() + 1}`);
+  loadedMonths.add(`${dayjs.utc().tz(userTimezone).year()}-${dayjs.utc().tz(userTimezone).month() + 1}`);
 
   /**
    * Reload all previously loaded months (used after sync)
@@ -158,8 +158,8 @@ function createTimeLogsStore() {
 
       try {
         // Load current month from local DB
-        const currentYear = dayjs().tz(userTimezone).year();
-        const currentMonth = dayjs().tz(userTimezone).month() + 1;
+        const currentYear = dayjs.utc().tz(userTimezone).year();
+        const currentMonth = dayjs.utc().tz(userTimezone).month() + 1;
         const items = (await getTimeLogsByYearMonth(currentYear, currentMonth)).filter(tl => !tl.deleted_at);
 
         baseStore.updateWriteable(state => ({ ...state, items: arrayToMap(items), isLoading: false }));
@@ -196,10 +196,10 @@ function createTimeLogsStore() {
         timezone: timeLogData.timezone || userTimezone,
         apply_break_calculation: timeLogData.apply_break_calculation ?? false,
         notes: timeLogData.notes || '',
-        created_at: dayjs().toISOString(),
-        updated_at: dayjs().toISOString(),
-        year: (dayjs(timeLogData.start_timestamp || dayjs()).tz(timeLogData.timezone || userTimezone).year()),
-        month: (dayjs(timeLogData.start_timestamp || dayjs()).tz(timeLogData.timezone || userTimezone).month() + 1),
+        created_at: dayjs.utc().toISOString(),
+        updated_at: dayjs.utc().toISOString(),
+        year: (dayjs.utc(timeLogData.start_timestamp || dayjs.utc()).tz(timeLogData.timezone || userTimezone).year()),
+        month: (dayjs.utc(timeLogData.start_timestamp || dayjs.utc()).tz(timeLogData.timezone || userTimezone).month() + 1),
       });
     },
 
@@ -217,8 +217,8 @@ function createTimeLogsStore() {
         const existingLogs = mapToArray(baseStore.getState().items).filter((tl: TimeLog) => {
           // Use year/month properties if available, otherwise parse from start_timestamp
           const logTz = tl.timezone || userTimezone;
-          const logYear = tl.year ?? dayjs(tl.start_timestamp).tz(logTz).year();
-          const logMonth = tl.month ?? (dayjs(tl.start_timestamp).tz(logTz).month() + 1);
+          const logYear = tl.year ?? dayjs.utc(tl.start_timestamp).tz(logTz).year();
+          const logMonth = tl.month ?? (dayjs.utc(tl.start_timestamp).tz(logTz).month() + 1);
           return logYear === year && logMonth === month;
         });
         return existingLogs;
@@ -330,13 +330,13 @@ export function getTimeLogsForMonthRange(year: number, month: number, range: num
       const logs: TimeLog[] = [];
       for (let i = -range; i <= range; i++) {
         // Use the 1st of the month to avoid day-of-month overflow issues
-        const targetDate = dayjs().year(year).month(month - 1).date(1).add(i, 'month');
+        const targetDate = dayjs.utc().year(year).month(month - 1).date(1).add(i, 'month');
         const targetYear = targetDate.year();
         const targetMonth = targetDate.month() + 1;
         
         const monthLogs = mapToArray($timeLogsStore.items).filter((tl: TimeLog) => {
-          const logYear = tl.year ?? dayjs(tl.start_timestamp).tz(userTimezone).year();
-          const logMonth = tl.month ?? (dayjs(tl.start_timestamp).tz(userTimezone).month() + 1);
+          const logYear = tl.year ?? dayjs.utc(tl.start_timestamp).tz(userTimezone).year();
+          const logMonth = tl.month ?? (dayjs.utc(tl.start_timestamp).tz(userTimezone).month() + 1);
           return logYear === targetYear && logMonth === targetMonth;
         });
         logs.push(...monthLogs);

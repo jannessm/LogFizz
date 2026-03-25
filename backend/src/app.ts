@@ -88,8 +88,8 @@ export async function buildApp() {
   
   // Register session support with Redis store if available
   const isProduction = process.env.NODE_ENV === 'production';
-  const SESSION_MAX_AGE = 24 * 60 * 60;
-  const SESSION_MAX_AGE_MS = SESSION_MAX_AGE * 1000; // 24 hours in ms
+  const SESSION_MAX_AGE = 24 * 60 * 60 * 30;
+  const SESSION_MAX_AGE_MS = SESSION_MAX_AGE * 1000; // 30 days in ms
   const sessionConfig: any = {
     secret: process.env.SESSION_SECRET || 'a-very-secret-key-minimum-32-chars-change-in-production',
     cookieName: 'sessionId', // Explicit cookie name
@@ -97,7 +97,7 @@ export async function buildApp() {
       // Secure must be true in production so Safari treats the cookie as persistent.
       // Without Secure, Safari (especially on iOS via ITP) may treat the cookie as
       // a session cookie and drop it when the app is backgrounded or suspended.
-      secure: false,
+      secure: isProduction,
       // secure: isProduction,
       httpOnly: true,
       maxAge: SESSION_MAX_AGE_MS,

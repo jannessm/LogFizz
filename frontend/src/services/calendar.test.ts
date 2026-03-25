@@ -489,7 +489,8 @@ describe('Calendar Service', () => {
           global: false,
           counties: ['DE-BY'],
           date: '2026-01-01',
-          name: 'Neujahr',
+          name: "New Year's Day",
+          localName: 'Neujahr',
           year: 2026,
         },
         {
@@ -498,7 +499,8 @@ describe('Calendar Service', () => {
           global: false,
           counties: ['DE-BY'],
           date: '2026-01-06',
-          name: 'Heilige Drei Könige',
+          name: 'Epiphany',
+          localName: 'Heilige Drei Könige',
           year: 2026,
         },
         {
@@ -508,6 +510,7 @@ describe('Calendar Service', () => {
           counties: [],
           date: '2026-01-01',
           name: 'New Year',
+          localName: 'New Year',
           year: 2026,
         },
       ];
@@ -556,7 +559,8 @@ describe('Calendar Service', () => {
           global: false,
           counties: ['DE-BY'],
           date: '2026-01-01',
-          name: 'Neujahr',
+          name: "New Year's Day",
+          localName: 'Neujahr',
           year: 2026,
         },
       ];
@@ -598,7 +602,8 @@ describe('Calendar Service', () => {
           global: true, // Global holiday
           counties: [],
           date: '2026-01-01',
-          name: 'Neujahr',
+          name: "New Year's Day",
+          localName: 'Neujahr',
           year: 2026,
         },
       ];
@@ -644,7 +649,8 @@ describe('Calendar Service', () => {
           global: false,
           counties: ['DE-BY'],
           date: '2026-01-06', // Before spec range
-          name: 'Heilige Drei Könige',
+          name: 'Epiphany',
+          localName: 'Heilige Drei Könige',
           year: 2026,
         },
         {
@@ -654,6 +660,7 @@ describe('Calendar Service', () => {
           counties: ['DE-BY'],
           date: '2026-01-15', // Within spec range
           name: 'Test Holiday',
+          localName: 'Testfeiertag',
           year: 2026,
         },
       ];
