@@ -22,6 +22,7 @@
     type: true,
     start: true,
     end: true,
+    timezone: true,
     totalDuration: true,
     effectiveDuration: true,
     dueTime: true,
@@ -278,8 +279,9 @@
   // Check if any column is selected for export
   let hasSelectedColumns = $derived(
     visibleColumns.timer || visibleColumns.target || visibleColumns.type ||
-    visibleColumns.start || visibleColumns.end || visibleColumns.totalDuration ||
-    visibleColumns.effectiveDuration || visibleColumns.dueTime || visibleColumns.diff || visibleColumns.notes
+    visibleColumns.start || visibleColumns.end || visibleColumns.timezone ||
+    visibleColumns.totalDuration || visibleColumns.effectiveDuration ||
+    visibleColumns.dueTime || visibleColumns.diff || visibleColumns.notes
   );
 
   // Generate CSV content
@@ -294,6 +296,7 @@
     if (visibleColumns.type) headers.push($_('common.type'));
     if (visibleColumns.start) headers.push($_('common.start'), $_('table.startTime'));
     if (visibleColumns.end) headers.push($_('common.end'), $_('table.endTime'));
+    if (visibleColumns.timezone) headers.push($_('export.timezone'));
     if (visibleColumns.totalDuration) headers.push($_('table.totalDuration'));
     if (visibleColumns.effectiveDuration) headers.push($_('table.effectiveDuration'));
     if (visibleColumns.dueTime) headers.push($_('table.dueTime'));
@@ -319,6 +322,7 @@
         row.push(endDayjs ? endDayjs.format('L') : '');
         row.push(endDayjs ? endDayjs.format('LT') : '');
       }
+      if (visibleColumns.timezone) row.push(log.timezone || userTimezone);
       if (visibleColumns.totalDuration) row.push(formatMinutesHHMM(getTotalDuration(log)));
       if (visibleColumns.effectiveDuration) row.push(formatMinutesHHMM(log.duration_minutes));
       if (visibleColumns.dueTime) row.push(formatMinutesHHMM(getDueTime(log)));
@@ -403,6 +407,7 @@
       type: true,
       start: true,
       end: true,
+      timezone: true,
       totalDuration: true,
       effectiveDuration: true,
       dueTime: true,
@@ -418,6 +423,7 @@
       type: false,
       start: false,
       end: false,
+      timezone: false,
       totalDuration: false,
       effectiveDuration: false,
       dueTime: false,
@@ -524,6 +530,14 @@
               class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
             />
             <span class="text-sm text-gray-700 dark:text-gray-200">{$_('table.end')}</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              bind:checked={visibleColumns.timezone}
+              class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
+            />
+            <span class="text-sm text-gray-700 dark:text-gray-200">{$_('export.timezone')}</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input

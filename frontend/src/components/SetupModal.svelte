@@ -67,12 +67,13 @@
 
   function handleLanguageChange() {
     // When language changes, also update the default locale to match for better UX
-    // Note: We don't call setLocale here - the UI locale is only updated in handleSubmit
     if (language === 'de') {
       locale = 'de-DE';
     } else {
       locale = 'en-US';
     }
+    // Update i18n locale immediately so the modal re-renders in the selected language
+    setLocale(language);
   }
 </script>
 

@@ -3,6 +3,7 @@ import { User } from '../entities/User.js';
 import { Timer } from '../entities/Timer.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { IsNull, MoreThan, Not } from 'typeorm';
+import dayjs from '../../../lib/utils/dayjs.js';
 
 export interface SystemStatistics {
   users: {
@@ -48,8 +49,7 @@ export class StatisticsService {
    * or pagination.
    */
   async generateSystemStatistics(): Promise<SystemStatistics> {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgo = dayjs().subtract(30, 'day').toDate();
 
     // User statistics
     const totalUsers = await this.userRepository.count({

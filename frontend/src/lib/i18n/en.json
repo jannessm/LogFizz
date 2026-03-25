@@ -624,6 +624,41 @@
     "add": "Add",
     "edit": "Edit"
   },
+  "countries": {
+    "Germany": "Germany",
+    "Austria": "Austria",
+    "Switzerland": "Switzerland",
+    "France": "France",
+    "Netherlands": "Netherlands",
+    "Belgium": "Belgium",
+    "Poland": "Poland",
+    "Spain": "Spain",
+    "Italy": "Italy",
+    "United Kingdom": "United Kingdom",
+    "United States": "United States",
+    "Canada": "Canada",
+    "Australia": "Australia",
+    "New Zealand": "New Zealand",
+    "Japan": "Japan"
+  },
+  "states": {
+    "DE-BW": "Baden-Württemberg",
+    "DE-BY": "Bavaria",
+    "DE-BE": "Berlin",
+    "DE-BB": "Brandenburg",
+    "DE-HB": "Bremen",
+    "DE-HH": "Hamburg",
+    "DE-HE": "Hesse",
+    "DE-MV": "Mecklenburg-Vorpommern",
+    "DE-NI": "Lower Saxony",
+    "DE-NW": "North Rhine-Westphalia",
+    "DE-RP": "Rhineland-Palatinate",
+    "DE-SL": "Saarland",
+    "DE-SN": "Saxony",
+    "DE-ST": "Saxony-Anhalt",
+    "DE-SH": "Schleswig-Holstein",
+    "DE-TH": "Thuringia"
+  },
   "validation": {
     "validEmailRequired": "Please enter a valid email address"
   },

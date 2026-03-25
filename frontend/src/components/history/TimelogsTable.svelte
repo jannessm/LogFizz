@@ -20,6 +20,7 @@
     type: boolean;
     start: boolean;
     end: boolean;
+    timezone: boolean;
     totalDuration: boolean;
     effectiveDuration: boolean;
     dueTime: boolean;
@@ -41,6 +42,7 @@
       type: true,
       start: true,
       end: true,
+      timezone: true,
       totalDuration: true,
       effectiveDuration: true,
       dueTime: true,
@@ -66,6 +68,7 @@
     (visibleColumns.type ? 1 : 0) +
     (visibleColumns.start ? 1 : 0) +
     (visibleColumns.end ? 1 : 0) +
+    (visibleColumns.timezone ? 1 : 0) +
     (visibleColumns.totalDuration ? 1 : 0) +
     (visibleColumns.effectiveDuration ? 1 : 0) +
     (visibleColumns.dueTime ? 1 : 0) +
@@ -715,6 +718,11 @@
             </div>
           </th>
         {/if}
+        {#if visibleColumns.timezone}
+          <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            {$_('export.timezone')}
+          </th>
+        {/if}
         {#if visibleColumns.totalDuration}
           <th
             class="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 min-w-[93px]"
@@ -844,6 +852,10 @@
                 </div>
               </td>
             {/if}
+            {#if visibleColumns.timezone}
+              <td class="px-3 py-2 align-bottom text-sm text-gray-600 dark:text-gray-400">
+              </td>
+            {/if}
             {#if visibleColumns.totalDuration}
               <td class="px-3 py-2 align-bottom text-sm text-gray-600 dark:text-gray-400">
               </td>
@@ -928,6 +940,13 @@
                 {:else}
                   {formatDateTime(timelog.end_timestamp, timelog.timezone || userTimezone)}
                 {/if}
+              </td>
+            {/if}
+            
+            <!-- Timezone -->
+            {#if visibleColumns.timezone}
+              <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                {timelog.timezone || userTimezone}
               </td>
             {/if}
             

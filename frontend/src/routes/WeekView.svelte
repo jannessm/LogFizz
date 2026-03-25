@@ -10,7 +10,7 @@
   import { createCalendarStore, loadCalendarMonth } from '../services/calendar';
   import { navigate } from '../lib/navigation';
   import { onMount } from 'svelte';
-  import { _ } from '../lib/i18n';
+  import { _, locale } from '../lib/i18n';
   import { computeIndentation, type Session } from '../lib/utils/computeIndentation';
   import {
     getHourLabels, getSessionsForSelectedDate,
@@ -344,8 +344,9 @@
             {#each daysData as dayData}
               <div class="px-1 border-l border-gray-200 dark:border-gray-700 space-y-1">
                 {#each dayData.holidays as holiday}
-                  <div class="text-xs rounded px-1 py-0.5 truncate" style="background-color: #A855F710; color: #A855F7;" title={holiday.name}>
-                    🎉 {holiday.name}
+                  {@const holidayDisplayName = $locale === 'de' && holiday.localName ? holiday.localName : holiday.name}
+                  <div class="text-xs rounded px-1 py-0.5 truncate" style="background-color: #A855F710; color: #A855F7;" title={holidayDisplayName}>
+                    🎉 {holidayDisplayName}
                   </div>
                 {/each}
                 {#each dayData.multiDaySessions as session}

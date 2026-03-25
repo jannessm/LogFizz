@@ -11,7 +11,7 @@
     type SessionData, type TimelineProps
   } from '../../services/timeline';
     import { saveTimelog } from '../../services/formHandlers';
-  import { _ } from '../../lib/i18n';
+  import { _, locale } from '../../lib/i18n';
     import { formatMinutesCompact } from '../../../../lib/dist/utils/timeFormat';
   import { navigate } from '../../lib/navigation';
 
@@ -280,7 +280,7 @@
           ></div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
-              <span class="font-semibold text-gray-800">{holiday.name}</span>
+              <span class="font-semibold text-gray-800">{$locale === 'de' && holiday.localName ? holiday.localName : holiday.name}</span>
             </div>
             <p class="text-xs text-gray-600">
               🎉 {$_('common.publicHoliday')} • {holiday.country}

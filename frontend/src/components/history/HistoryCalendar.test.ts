@@ -137,7 +137,7 @@ describe('HistoryCalendar Component', () => {
   it('handles holidays display', () => {
     const holidayCalendarData = { ...mockCalendarData };
     holidayCalendarData.relevantHolidays = new Map([
-      ['2024-01-01', [{ id: 'h1', date: '2024-01-01', name: 'New Year', country: 'DE', global: true, counties: [], year: 2024 }]],
+      ['2024-01-01', [{ id: 'h1', date: '2024-01-01', name: 'New Year', localName: 'Neujahr', country: 'DE', global: true, counties: [], year: 2024 }]],
     ]);
 
     const { container } = render(HistoryCalendar, {

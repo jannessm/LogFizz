@@ -1,6 +1,7 @@
 import { AppDataSource } from '../config/database.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { MoreThan } from 'typeorm';
+import dayjs from '../../../lib/utils/dayjs.js';
 
 export class TimeLogService {
   private timeLogRepository = AppDataSource.getRepository(TimeLog);
@@ -50,8 +51,9 @@ export class TimeLogService {
         if (existing) {
           // Conflict detection: Check if server version is newer than client version
           if (change.updated_at) {
-            const clientTimestamp = new Date(change.updated_at);
-            if (existing.updated_at > clientTimestamp) {
+            const clientTimestamp = dayjs(change.updated_at);
+            const serverTimestamp = dayjs(existing.updated_at);
+            if (serverTimestamp.isAfter(clientTimestamp)) {
               // Server has newer data - conflict detected
               conflicts.push({
                 clientVersion: change,

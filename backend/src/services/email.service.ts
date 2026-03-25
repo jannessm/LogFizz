@@ -7,6 +7,7 @@ import { SystemStatistics } from './statistics.service.js';
 import type { TargetBalanceSummary } from './user-balance.service.js';
 import { t, getLanguageFromLocale, formatDateLocale } from '../i18n/index.js';
 import dotenv from 'dotenv';
+import dayjs from '../../../lib/utils/dayjs.js';
   // Load environment variables
   dotenv.config();
 
@@ -146,7 +147,7 @@ export class EmailService {
   }
 
   async sendStatisticsEmail(email: string, statistics: SystemStatistics, locale: string = 'en-US'): Promise<void> {
-    const reportDate = new Date();
+    const reportDate = dayjs().toDate();
     const lang = getLanguageFromLocale(locale);
     const formattedDate = formatDateLocale(reportDate, locale, 'fullDate');
 
@@ -179,7 +180,7 @@ export class EmailService {
     summaries: TargetBalanceSummary[],
     locale: string = 'en-US'
   ): Promise<void> {
-    const reportDate = new Date();
+    const reportDate = dayjs().toDate();
 
     const emailContent = generateUserBalanceEmail({
       userName,

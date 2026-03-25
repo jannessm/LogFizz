@@ -165,7 +165,7 @@
           {#if tempSpec.exclude_holidays}
             <div class="flex items-center gap-1 text-grey-400">
               <span class="icon-[si--sun-set-duotone] w-3 h-3"></span>
-              {$_('common.excludeHolidays')} {#if tempSpec.state_code && specState && specCountry} ({specState}, {specCountry}){/if}
+              {$_('common.excludeHolidays')} {#if tempSpec.state_code && specState && specCountry} ({$_(`states.${tempSpec.state_code}`, { default: specState })}, {$_(`countries.${specCountry}`, { default: specCountry })}){/if}
             </div>
           {/if}
         </div>
@@ -261,7 +261,7 @@
             >
               <option value="">{$_('target.selectCountry')}</option>
               {#each availableCountries as country}
-                <option value={country}>{country}</option>
+                <option value={country}>{$_(`countries.${country}`, { default: country })}</option>
               {/each}
             </select>
           </div>
@@ -274,7 +274,7 @@
             >
               <option value="">{$_('target.selectState')}</option>
               {#each filteredStates as state}
-                <option value={state.code}>{state.state}</option>
+                <option value={state.code}>{$_(`states.${state.code}`, { default: state.state })}</option>
               {/each}
             </select>
           </div>

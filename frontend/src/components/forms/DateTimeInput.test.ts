@@ -58,8 +58,9 @@ describe('DateTimeInput Component', () => {
       }
     });
 
+    // de-DE locale formats as DD.MM.YYYY (L token)
     const dateInput = screen.getByLabelText(/Date/) as HTMLInputElement;
-    expect(dateInput.value).toBe('2024-12-15');
+    expect(dateInput.value).toBe(testDate.format('L'));
   });
 
   it('displays correct time value', () => {
@@ -151,8 +152,10 @@ describe('DateTimeInput Component', () => {
       }
     });
 
+    // Type in locale format (de-DE → DD.MM.YYYY) and commit on blur
     const dateInput = screen.getByLabelText(/Date/) as HTMLInputElement;
-    await fireEvent.input(dateInput, { target: { value: '2024-12-20' } });
+    await fireEvent.input(dateInput, { target: { value: '20.12.2024' } });
+    await fireEvent.blur(dateInput);
 
     expect(capturedValue.format('YYYY-MM-DD')).toBe('2024-12-20');
   });
@@ -207,8 +210,9 @@ describe('DateTimeInput Component', () => {
         }
       });
 
+      // String value '2024-12-15' is displayed in locale format (de-DE → 15.12.2024)
       const dateInput = screen.getByLabelText(/Start Date/) as HTMLInputElement;
-      expect(dateInput.value).toBe('2024-12-15');
+      expect(dateInput.value).toBe(dayjs('2024-12-15').format('L'));
     });
 
     it('handles null string value', () => {
@@ -238,8 +242,10 @@ describe('DateTimeInput Component', () => {
         }
       });
 
+      // Type in locale format (de-DE → DD.MM.YYYY) and commit on blur
       const dateInput = screen.getByLabelText(/Date/) as HTMLInputElement;
-      await fireEvent.input(dateInput, { target: { value: '2024-12-20' } });
+      await fireEvent.input(dateInput, { target: { value: '20.12.2024' } });
+      await fireEvent.blur(dateInput);
 
       expect(capturedValue).toBe('2024-12-20');
     });
@@ -259,6 +265,7 @@ describe('DateTimeInput Component', () => {
 
       const dateInput = screen.getByLabelText(/Date/) as HTMLInputElement;
       await fireEvent.input(dateInput, { target: { value: '' } });
+      await fireEvent.blur(dateInput);
 
       expect(capturedValue).toBe(null);
     });

@@ -163,7 +163,7 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
     // to ensure balances are calculated correctly in offline-first scenarios
     
     // Cursor represents the current server state after this operation
-    const cursor = new Date().toISOString();
+    const cursor = dayjs().toISOString();
     
     // If conflicts exist, only return conflicts (client needs to resolve)
     // Otherwise return saved time logs

@@ -157,8 +157,8 @@ export async function saveTimeLog(timelog: TimeLog): Promise<void> {
   // set month and year for indexing
   finalTimelog = {
     ...timelog,
-    month: dayjs(timelog.start_timestamp).tz(userTimezone).month() + 1,
-    year: dayjs(timelog.start_timestamp).tz(userTimezone).year(),
+    month: dayjs.utc(timelog.start_timestamp).tz(userTimezone).month() + 1,
+    year: dayjs.utc(timelog.start_timestamp).tz(userTimezone).year(),
   };
 
   // Determine whether to apply break calculation
