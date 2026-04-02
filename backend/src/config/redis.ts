@@ -25,9 +25,11 @@ export function createRedisClient(): Redis | null {
   }
 
   try {
+    const redisPassword = process.env.REDIS_PASSWORD;
     redisClient = new Redis({
       host: redisHost,
       port: redisPort,
+      ...(redisPassword ? { password: redisPassword } : {}),
       retryStrategy: (times) => {
         const delay = Math.min(times * 50, 2000);
         return delay;
