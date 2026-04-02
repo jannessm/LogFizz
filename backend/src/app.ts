@@ -147,10 +147,6 @@ export async function buildApp() {
   // patch any Set-Cookie headers to add the Secure flag. This ensures the session
   // cookie is marked Secure in production without relying on NODE_ENV or cookie.secure.
   fastify.addHook('onSend', async (request, reply) => {
-    const proto = request.headers['x-forwarded-proto'];
-    const isHttps = proto === 'https' || (Array.isArray(proto) && proto[0] === 'https');
-    if (!isHttps) return;
-
     const setCookie = reply.getHeader('set-cookie');
     if (!setCookie) return;
 
