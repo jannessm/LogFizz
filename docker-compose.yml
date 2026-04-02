@@ -21,13 +21,13 @@ services:
   redis:
     image: redis:7-alpine
     container_name: clock-redis
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass clock_redis_password
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "clock_redis_password", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -45,6 +45,7 @@ services:
       DB_DATABASE: clock_db
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: clock_redis_password
       PORT: 3000
       HOST: 0.0.0.0
       SESSION_SECRET: change-this-secret-in-production-min-32-chars-required-for-security
