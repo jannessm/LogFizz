@@ -86,8 +86,6 @@ describe('i18n translations', () => {
       'table',
       'target',
       'nav',
-      'forgotPassword',
-      'resetPassword',
       'import',
       'export',
     ];

@@ -4,6 +4,7 @@ import { FastifyInstance } from 'fastify';
 import { AppDataSource } from '../config/database.js';
 import { BalanceService } from '../services/balance.service.js';
 import { Balance } from '../entities/Balance.js';
+import { registerAndAuthenticate } from './testHelpers.js';
 
 /**
  * Monthly Balance Service Tests
@@ -38,28 +39,14 @@ describe('Monthly Balance Service - Sync Only', () => {
     await AppDataSource.getRepository('Target').createQueryBuilder().delete().execute();
     await AppDataSource.getRepository('User').createQueryBuilder().delete().execute();
 
-    // Register and login
-    const registerResponse = await app.inject({
-      method: 'POST',
-      url: '/api/auth/register',
-      payload: {
-        email: 'balance@test.com',
-        password: 'password123',
-        name: 'Balance Test',
-      },
+    // Register and authenticate via magic link
+    const result = await registerAndAuthenticate(app, {
+      email: 'balance@test.com',
+      name: 'Balance Test',
     });
 
-    const loginResponse = await app.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      payload: {
-        email: 'balance@test.com',
-        password: 'password123',
-      },
-    });
-
-    sessionCookie = loginResponse.headers['set-cookie'] as string;
-    userId = JSON.parse(registerResponse.payload).id;
+    sessionCookie = result.authCookie;
+    userId = result.userId;
 
     // Create a target for tests that need it
     await app.inject({

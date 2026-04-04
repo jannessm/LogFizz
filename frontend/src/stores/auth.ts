@@ -86,15 +86,10 @@ function createAuthStore() {
     async login(email: string, password: string, hcaptchaToken?: string) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        const user = await authApi.login(email, password, hcaptchaToken);
-        await saveUser(user);
-        update(state => ({ 
-          ...state, 
-          user, 
-          isAuthenticated: true,
-          isLoading: false 
-        }));
-        return user;
+        // With magic links, login just sends the link
+        const response = await authApi.requestMagicLink(email);
+        update(state => ({ ...state, isLoading: false }));
+        return response;
       } catch (error: any) {
         const errorMessage = error.response?.data?.message || 'Login failed';
         update(state => ({ 
@@ -106,18 +101,53 @@ function createAuthStore() {
       }
     },
 
-    async register(email: string, password: string, name: string, hcaptchaToken?: string) {
-      update(storeState => ({ ...storeState, isLoading: true, error: null }));
+    async requestMagicLink(email: string) {
+      update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        const user = await authApi.register(email, password, name, hcaptchaToken);
+        const response = await authApi.requestMagicLink(email);
+        update(state => ({ ...state, isLoading: false }));
+        return response;
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.message || 'Failed to send magic link';
+        update(state => ({ 
+          ...state, 
+          error: errorMessage,
+          isLoading: false 
+        }));
+        throw new Error(errorMessage);
+      }
+    },
+
+    async verifyMagicLink(token: string) {
+      update(state => ({ ...state, isLoading: true, error: null }));
+      try {
+        const user = await authApi.verifyMagicLink(token);
         await saveUser(user);
-        update(storeState => ({ 
-          ...storeState, 
+        update(state => ({ 
+          ...state, 
           user, 
           isAuthenticated: true,
           isLoading: false 
         }));
         return user;
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.error || 'Magic link verification failed';
+        update(state => ({ 
+          ...state, 
+          error: errorMessage,
+          isLoading: false 
+        }));
+        throw new Error(errorMessage);
+      }
+    },
+
+    async register(email: string, name: string, hcaptchaToken?: string) {
+      update(storeState => ({ ...storeState, isLoading: true, error: null }));
+      try {
+        await authApi.register(email, name, hcaptchaToken);
+        // Do NOT authenticate the user here — they must first verify their
+        // email by clicking the magic link sent to their inbox.
+        update(storeState => ({ ...storeState, isLoading: false }));
       } catch (error: any) {
         const errorMessage = error.response?.data?.message || 'Registration failed';
         update(storeState => ({ 
@@ -146,7 +176,7 @@ function createAuthStore() {
       }
     },
 
-    async updateProfile(data: { name?: string; email?: string }) {
+    async updateProfile(data: { name?: string }) {
       update(storeState => ({ ...storeState, isLoading: true, error: null }));
       try {
         const user = await authApi.updateProfile(data);
@@ -168,13 +198,34 @@ function createAuthStore() {
       }
     },
 
-    async changePassword(currentPassword: string, newPassword: string) {
+    async requestEmailChange(newEmail: string) {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        await authApi.changePassword(currentPassword, newPassword);
+        const response = await authApi.requestEmailChange(newEmail);
         update(state => ({ ...state, isLoading: false }));
+        return response;
       } catch (error: any) {
-        const errorMessage = error.response?.data?.message || 'Password change failed';
+        const errorMessage = error.response?.data?.error || 'Failed to request email change';
+        update(state => ({ 
+          ...state, 
+          error: errorMessage,
+          isLoading: false 
+        }));
+        throw new Error(errorMessage);
+      }
+    },
+
+    async verifyEmailChange(token: string) {
+      update(state => ({ ...state, isLoading: true, error: null }));
+      try {
+        const response = await authApi.verifyEmailChange(token);
+        await saveUser(response);
+        // Refresh user data
+        await this.init();
+        update(state => ({ ...state, isLoading: false }));
+        return response;
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.error || 'Email change verification failed';
         update(state => ({ 
           ...state, 
           error: errorMessage,
@@ -220,10 +271,10 @@ function createAuthStore() {
       }
     },
 
-    async deleteAccount(password: string): Promise<{ message: string }> {
+    async deleteAccount(): Promise<{ message: string }> {
       update(state => ({ ...state, isLoading: true, error: null }));
       try {
-        const response = await authApi.deleteAccount(password);
+        const response = await authApi.deleteAccount();
         // Clear all local data after account deletion
         await clearAllData();
         set({

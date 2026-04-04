@@ -11,8 +11,8 @@
   import Table from './routes/Table.svelte';
   import WeekView from './routes/WeekView.svelte';
   import Settings from './routes/Settings.svelte';
-  import ForgotPassword from './routes/ForgotPassword.svelte';
-  import ResetPassword from './routes/ResetPassword.svelte';
+  import VerifyMagicLink from './routes/VerifyMagicLink.svelte';
+  import VerifyEmailChange from './routes/VerifyEmailChange.svelte';
   import VerifyEmail from './routes/VerifyEmail.svelte';
   import VerifyEmailRequired from './routes/VerifyEmailRequired.svelte';
   import { ImportPage } from './routes/import';
@@ -24,7 +24,7 @@
   import { syncService } from './services/sync';
   import { currentPath, navigate } from './lib/navigation';
   import { loadData } from './services/data';
-  import { getDB, getSetting } from './lib/db';
+  import { getDB } from './lib/db';
   import { snackbar } from './stores/snackbar';
 
   let isLoading = $state(true);
@@ -38,14 +38,17 @@
   let path = $derived($currentPath);
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/login', '/forgot-password', '/reset-password', '/verify-email'];
-  const isPublicRoute = (path: string) => publicRoutes.includes(path);
+  const publicRoutes = ['/login', '/verify-magic-link', '/verify-email'];
+  const isPublicRoute = (path: string) => publicRoutes.some(r => path.startsWith(r));
   
   // Routes that are allowed even without email verification (need auth but no verification)
-  const verificationExemptRoutes = ['/verify-email-required', '/verify-email'];
+  const verificationExemptRoutes = ['/verify-email-required', '/verify-email', '/verify-email-change'];
   const isVerificationExempt = (path: string) => verificationExemptRoutes.some(r => path.startsWith(r));
 
   async function checkAndShowSetupModal() {
+    // Ensure user settings are loaded before checking
+    await userSettingsStore.init();
+    
     const settings = $userSettingsStore.settings;
     if (settings?.language) {
       setLocale(settings.language);
@@ -54,7 +57,7 @@
       setDayjsLocale(settings.locale);
     }
 
-    // Check if setup has been completed on this device
+    // Check if setup has been completed (persisted server-side)
     if (!userSettingsStore.setupDone()) {
       showSetupModal = true;
     }
@@ -117,9 +120,6 @@
   // Redirect to dashboard if authenticated and on a public route (but not verification routes)
   $effect(() => {
     if (!isLoading && authenticated && isPublicRoute(path) && !isVerificationExempt(path)) {
-      if (path.startsWith('/reset-password')) {
-        snackbar.info('To reset your password, logout first.', 6000);
-      }
       navigate('/', { replace: true });
     }
   });
@@ -153,10 +153,10 @@
 {:else}
   {#if path.startsWith('/login')}
     <Login />
-  {:else if path.startsWith('/forgot-password')}
-    <ForgotPassword />
-  {:else if path.startsWith('/reset-password')}
-    <ResetPassword />
+  {:else if path.startsWith('/verify-magic-link')}
+    <VerifyMagicLink />
+  {:else if path.startsWith('/verify-email-change')}
+    <VerifyEmailChange />
   {:else if path.startsWith('/verify-email-required')}
     <VerifyEmailRequired />
   {:else if path.startsWith('/verify-email')}

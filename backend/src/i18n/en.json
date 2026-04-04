@@ -7,13 +7,19 @@
     "invalidPassword": "Invalid password",
     "invalidResetToken": "Invalid or expired reset token",
     "invalidVerificationToken": "Invalid or expired verification token",
+    "invalidMagicLinkToken": "Invalid or expired magic link. Please request a new one.",
     "loggedOutSuccess": "Logged out successfully",
+    "magicLinkSent": "If an account with that email exists, a login link has been sent.",
     "passwordChangedSuccess": "Password changed successfully",
     "passwordResetSent": "If an account with that email exists, a password reset link has been sent.",
     "passwordResetSuccess": "Password has been reset successfully",
     "userNotFound": "User not found",
     "verificationSent": "If an account with that email exists and is not verified, a verification link has been sent.",
-    "verificationWrongAccount": "This verification link is for a different account. A new verification email has been sent to the correct email address."
+    "verificationWrongAccount": "This verification link is for a different account. A new verification email has been sent to the correct email address.",
+    "emailChangeSent": "A verification email has been sent to your new email address.",
+    "emailChangeSuccess": "Email address changed successfully.",
+    "invalidEmailChangeToken": "Invalid or expired email change token.",
+    "emailAlreadyInUse": "This email address is already in use."
   },
   "common": {
     "error": "Error",
@@ -83,7 +89,21 @@
     "welcomeThankYou": "Thank you for signing up!",
     "welcomeTitle": "Welcome to TapShift!",
     "welcomeVerifyButton": "Verify My Email",
-    "welcomeVerifyPrompt": "Please verify your email address to get started:"
+    "welcomeVerifyPrompt": "Please verify your email address to get started:",
+    "magicLinkTitle": "Sign In to TapShift",
+    "magicLinkSubject": "TapShift - Your Login Link",
+    "magicLinkIntro": "We received a request to sign in to your TapShift account.",
+    "magicLinkPrompt": "Click the button below to sign in:",
+    "magicLinkButton": "Sign In to TapShift",
+    "magicLinkExpiry": "This login link will expire in 15 minutes.",
+    "magicLinkIgnore": "If you didn't request this link, please ignore this email. No one can access your account without this link.",
+    "emailChangeTitle": "Verify Your New Email Address",
+    "emailChangeSubject": "TapShift - Verify Email Change",
+    "emailChangeIntro": "You requested to change your email address to:",
+    "emailChangePrompt": "Click the button below to verify your new email address:",
+    "emailChangeButton": "Verify New Email",
+    "emailChangeExpiry": "This verification link will expire in 24 hours.",
+    "emailChangeIgnore": "If you didn't request this change, please ignore this email. Your email address will remain unchanged."
   },
   "payment": {
     "adminPasswordNotConfigured": "Admin password not configured",

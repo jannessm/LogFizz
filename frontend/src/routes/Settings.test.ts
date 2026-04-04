@@ -13,7 +13,6 @@ vi.mock('../stores/auth', () => ({
       return () => {};
     }),
     updateProfile: vi.fn().mockResolvedValue({ id: '1', name: 'Updated User', email: 'test@example.com' }),
-    changePassword: vi.fn().mockResolvedValue(undefined),
     logout: vi.fn().mockResolvedValue(undefined),
   },
 }));
@@ -107,12 +106,6 @@ vi.mock('../components/settings/AlertMessage.svelte', () => {
 });
 
 vi.mock('../components/settings/ProfileSection.svelte', () => {
-  return {
-    default: Object,
-  };
-});
-
-vi.mock('../components/settings/PasswordSection.svelte', () => {
   return {
     default: Object,
   };

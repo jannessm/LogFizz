@@ -4,6 +4,7 @@ import { FastifyInstance } from 'fastify';
 import { AppDataSource } from '../config/database.js';
 import { UserSettingsService } from '../services/user-settings.service.js';
 import { generateUserBalanceEmail } from '../templates/emails/user-balance.template.js';
+import { registerAndAuthenticate } from './testHelpers.js';
 
 describe('User Statistics Email', () => {
   let app: FastifyInstance;
@@ -29,28 +30,14 @@ describe('User Statistics Email', () => {
     await AppDataSource.getRepository('Target').createQueryBuilder().delete().execute();
     await AppDataSource.getRepository('User').createQueryBuilder().delete().execute();
 
-    // Register and login
-    const registerResponse = await app.inject({
-      method: 'POST',
-      url: '/api/auth/register',
-      payload: {
-        email: 'stats@test.com',
-        password: 'password123',
-        name: 'Stats Test',
-      },
+    // Register and authenticate via magic link
+    const result = await registerAndAuthenticate(app, {
+      email: 'stats@test.com',
+      name: 'Stats Test',
     });
 
-    const loginResponse = await app.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      payload: {
-        email: 'stats@test.com',
-        password: 'password123',
-      },
-    });
-
-    sessionCookie = loginResponse.headers['set-cookie'] as string;
-    userId = JSON.parse(registerResponse.payload).id;
+    sessionCookie = result.authCookie;
+    userId = result.userId;
   });
 
   describe('Settings - statistics_email_frequency', () => {

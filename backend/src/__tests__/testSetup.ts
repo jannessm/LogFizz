@@ -15,7 +15,10 @@ vi.mock('../services/email.service.js', () => {
     async sendWelcomeEmail() {
       return Promise.resolve();
     }
-    async sendPasswordResetEmail() {
+    async sendMagicLinkEmail() {
+      return Promise.resolve();
+    }
+    async sendEmailChangeVerification() {
       return Promise.resolve();
     }
     async sendStatisticsEmail() {

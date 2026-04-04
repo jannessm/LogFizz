@@ -8,14 +8,13 @@ import { t } from '../i18n/index.js';
 const authService = new AuthService();
 
 export async function authRoutes(fastify: FastifyInstance) {
-  // Register endpoint
+  // Register endpoint (hCaptcha required)
   fastify.post('/register', {
     ...authRateLimit,
     schema: {
       tags: ['Authentication'],
       body: Type.Object({
         email: Type.String({ format: 'email' }),
-        password: Type.String({ minLength: 8 }),
         name: Type.String(),
         hcaptchaToken: Type.Optional(Type.String()),
       }),
@@ -32,16 +31,14 @@ export async function authRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const { email, password, name, hcaptchaToken } = request.body as any;
-      
-      // Verify hCaptcha if configured
+      const { email, name, hcaptchaToken } = request.body as any;
+
+      // Verify hCaptcha if configured (only for registration)
       await requireHCaptcha(hcaptchaToken, request.ip);
-      
-      const user = await authService.register(email, password, name);
 
-      // Set session data
-      request.session.userId = user.id;
+      const user = await authService.register(email, name);
 
+      // Do NOT set session - user must verify email via magic link first
       return reply.code(201).send({
         id: user.id,
         email: user.email,
@@ -52,15 +49,37 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Login endpoint
-  fastify.post('/login', {
-    ...authRateLimit,
+  // Request magic link for login (no password needed, no hCaptcha)
+  fastify.post('/request-magic-link', {
+    ...passwordResetRateLimit,
     schema: {
       tags: ['Authentication'],
       body: Type.Object({
         email: Type.String({ format: 'email' }),
-        password: Type.String(),
-        hcaptchaToken: Type.Optional(Type.String()),
+      }),
+      response: {
+        200: Type.Object({
+          message: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const { email } = request.body as any;
+    await authService.requestMagicLink(email);
+
+    // Always return success to prevent email enumeration
+    return reply.send({
+      message: t('auth.magicLinkSent'),
+    });
+  });
+
+  // Verify magic link and log in
+  fastify.post('/verify-magic-link', {
+    ...generalAuthRateLimit,
+    schema: {
+      tags: ['Authentication'],
+      body: Type.Object({
+        token: Type.String(),
       }),
       response: {
         200: Type.Object({
@@ -69,44 +88,38 @@ export async function authRoutes(fastify: FastifyInstance) {
           name: Type.String(),
           email_verified_at: Type.Optional(Type.String()),
         }),
-        401: Type.Object({
+        400: Type.Object({
           error: Type.String(),
         }),
       },
     },
   }, async (request, reply) => {
     try {
-      const { email, password, hcaptchaToken } = request.body as any;
-      
-      // Verify hCaptcha if configured
-      await requireHCaptcha(hcaptchaToken, request.ip);
-      
-      const user = await authService.login(email, password);
+      const { token } = request.body as any;
+      const user = await authService.verifyMagicLink(token);
 
       if (!user) {
-        return reply.code(401).send({ error: t('auth.invalidCredentials') });
+        return reply.code(400).send({ error: t('auth.invalidMagicLinkToken') });
       }
 
       // Set session data
       request.session.userId = user.id;
-      
-      // Session is automatically saved by @fastify/session after the response
-      // But we can log for debugging
+
       const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
       if (!isTest) {
-        console.log('Session saved successfully');
+        console.log('Magic link login - Session saved successfully');
         console.log('Session ID:', request.session.sessionId);
         console.log('User ID in session:', request.session.userId);
       }
-      
+
       return reply.send({
         id: user.id,
         email: user.email,
         name: user.name,
-        email_verified_at: user.email_verified_at || null,
+        email_verified_at: user.email_verified_at?.toISOString() || null,
       });
     } catch (error: any) {
-      return reply.code(401).send({ error: error.message });
+      return reply.code(400).send({ error: error.message });
     }
   });
 
@@ -143,7 +156,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const userId = request.session.userId;
-    
+
     if (!userId) {
       return reply.code(401).send({ error: t('common.notAuthenticated') });
     }
@@ -161,48 +174,12 @@ export async function authRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // Change password endpoint
-  fastify.put('/change-password', {
-    ...generalAuthRateLimit,
-    schema: {
-      tags: ['Authentication'],
-      body: Type.Object({
-        oldPassword: Type.String(),
-        newPassword: Type.String({ minLength: 8 }),
-      }),
-      response: {
-        200: Type.Object({
-          message: Type.String(),
-        }),
-        401: Type.Object({
-          error: Type.String(),
-        }),
-      },
-    },
-  }, async (request, reply) => {
-    const userId = request.session.userId;
-    
-    if (!userId) {
-      return reply.code(401).send({ error: t('common.notAuthenticated') });
-    }
-
-    const { oldPassword, newPassword } = request.body as any;
-    const success = await authService.changePassword(userId, oldPassword, newPassword);
-
-    if (!success) {
-      return reply.code(401).send({ error: t('auth.invalidOldPassword') });
-    }
-
-    return reply.send({ message: t('auth.passwordChangedSuccess') });
-  });
-
-  // Update user profile endpoint
+  // Update user profile endpoint (name only - email change uses verification)
   fastify.put('/profile', {
     schema: {
       tags: ['Authentication'],
       body: Type.Object({
         name: Type.Optional(Type.String()),
-        email: Type.Optional(Type.String({ format: 'email' })),
       }),
       response: {
         200: Type.Object({
@@ -217,7 +194,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const userId = request.session.userId;
-    
+
     if (!userId) {
       return reply.code(401).send({ error: t('common.notAuthenticated') });
     }
@@ -236,38 +213,13 @@ export async function authRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // Request password reset endpoint
-  fastify.post('/forgot-password', {
-    ...passwordResetRateLimit,
+  // Request email change (sends verification to new email)
+  fastify.post('/request-email-change', {
+    ...generalAuthRateLimit,
     schema: {
       tags: ['Authentication'],
       body: Type.Object({
-        email: Type.String({ format: 'email' }),
-      }),
-      response: {
-        200: Type.Object({
-          message: Type.String(),
-        }),
-      },
-    },
-  }, async (request, reply) => {
-    const { email } = request.body as any;
-    await authService.requestPasswordReset(email);
-
-    // Always return success to prevent email enumeration
-    return reply.send({ 
-      message: t('auth.passwordResetSent')
-    });
-  });
-
-  // Reset password endpoint
-  fastify.post('/reset-password', {
-    ...passwordResetRateLimit,
-    schema: {
-      tags: ['Authentication'],
-      body: Type.Object({
-        token: Type.String(),
-        newPassword: Type.String({ minLength: 8 }),
+        newEmail: Type.String({ format: 'email' }),
       }),
       response: {
         200: Type.Object({
@@ -276,20 +228,72 @@ export async function authRoutes(fastify: FastifyInstance) {
         400: Type.Object({
           error: Type.String(),
         }),
+        401: Type.Object({
+          error: Type.String(),
+        }),
       },
     },
   }, async (request, reply) => {
-    const { token, newPassword, email } = request.body as any;
-    const success = await authService.resetPassword(token, newPassword, email);
+    const userId = request.session.userId;
 
-    if (!success) {
-      return reply.code(400).send({ 
-        error: t('auth.invalidResetToken')
-      });
+    if (!userId) {
+      return reply.code(401).send({ error: t('common.notAuthenticated') });
     }
 
-    return reply.send({ 
-      message: t('auth.passwordResetSuccess')
+    try {
+      const { newEmail } = request.body as any;
+      await authService.requestEmailChange(userId, newEmail);
+      return reply.send({ message: t('auth.emailChangeSent') });
+    } catch (error: any) {
+      if (error.message === 'EMAIL_ALREADY_IN_USE') {
+        return reply.code(400).send({ error: t('auth.emailAlreadyInUse') });
+      }
+      return reply.code(400).send({ error: error.message });
+    }
+  });
+
+  // Verify email change
+  fastify.post('/verify-email-change', {
+    ...generalAuthRateLimit,
+    schema: {
+      tags: ['Authentication'],
+      body: Type.Object({
+        token: Type.String(),
+      }),
+      response: {
+        200: Type.Object({
+          id: Type.String(),
+          email: Type.String(),
+          name: Type.String(),
+          message: Type.String(),
+        }),
+        400: Type.Object({
+          error: Type.String(),
+        }),
+        401: Type.Object({
+          error: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.session.userId;
+
+    if (!userId) {
+      return reply.code(401).send({ error: t('common.notAuthenticatedLogin') });
+    }
+
+    const { token } = request.body as any;
+    const user = await authService.verifyEmailChange(token, userId);
+
+    if (!user) {
+      return reply.code(400).send({ error: t('auth.invalidEmailChangeToken') });
+    }
+
+    return reply.send({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      message: t('auth.emailChangeSuccess'),
     });
   });
 
@@ -319,7 +323,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const userId = request.session.userId;
-    
+
     if (!userId) {
       return reply.code(401).send({ error: t('common.notAuthenticatedLogin') });
     }
@@ -328,20 +332,20 @@ export async function authRoutes(fastify: FastifyInstance) {
     const result = await authService.verifyEmail(token, userId);
 
     if (typeof result === 'object' && result.error === 'wrong_user') {
-      return reply.code(403).send({ 
+      return reply.code(403).send({
         error: t('auth.verificationWrongAccount'),
         code: 'WRONG_USER',
       });
     }
 
     if (!result) {
-      return reply.code(400).send({ 
-        error: t('auth.invalidVerificationToken')
+      return reply.code(400).send({
+        error: t('auth.invalidVerificationToken'),
       });
     }
 
-    return reply.send({ 
-      message: t('auth.emailVerifiedSuccess')
+    return reply.send({
+      message: t('auth.emailVerifiedSuccess'),
     });
   });
 
@@ -364,19 +368,16 @@ export async function authRoutes(fastify: FastifyInstance) {
     await authService.resendVerificationEmail(email);
 
     // Always return success to prevent email enumeration
-    return reply.send({ 
-      message: t('auth.verificationSent')
+    return reply.send({
+      message: t('auth.verificationSent'),
     });
   });
 
-  // Delete account endpoint (GDPR right to erasure)
+  // Delete account endpoint (GDPR right to erasure - no password needed with magic link auth)
   fastify.delete('/account', {
     ...generalAuthRateLimit,
     schema: {
       tags: ['Authentication'],
-      body: Type.Object({
-        password: Type.String(),
-      }),
       response: {
         200: Type.Object({
           message: Type.String(),
@@ -388,23 +389,21 @@ export async function authRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const userId = request.session.userId;
-    
+
     if (!userId) {
       return reply.code(401).send({ error: t('common.notAuthenticated') });
     }
 
-    const { password } = request.body as any;
-    const success = await authService.deleteAccount(userId, password);
+    const success = await authService.deleteAccount(userId);
 
     if (!success) {
-      return reply.code(401).send({ error: t('auth.invalidPassword') });
+      return reply.code(401).send({ error: t('auth.userNotFound') });
     }
 
     // Destroy the session after successful deletion
     return new Promise((resolve, reject) => {
       request.session.destroy((err) => {
         if (err) {
-          // Account is already deleted, so we still return success
           console.error('Failed to destroy session after account deletion:', err);
         }
         reply.send({ message: t('auth.accountDeleted') });
@@ -434,7 +433,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     const userId = request.session.userId;
-    
+
     if (!userId) {
       return reply.code(401).send({ error: t('common.notAuthenticated') });
     }
