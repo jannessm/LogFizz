@@ -13,6 +13,7 @@
     project: string;
     type: TimeLogType;
     timerId: string;
+    applyBreakCalculation: boolean;
     isValid: boolean;
     isSkipped: boolean;
     errorMsg?: string;
@@ -69,6 +70,11 @@
 
   function handleTimerChange(newTimerId: string) {
     onUpdate({ timerId: newTimerId });
+  }
+
+  function handleBreakCalculationChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    onUpdate({ applyBreakCalculation: target.checked });
   }
 
   // Format date for input (YYYY-MM-DD)
@@ -159,6 +165,16 @@
       value={row.timerId}
       onchange={handleTimerChange}
       placeholder={$_('import.select')}
+    />
+  </td>
+  <td class="px-2 py-2 text-center">
+    <input
+      type="checkbox"
+      checked={row.applyBreakCalculation}
+      onchange={handleBreakCalculationChange}
+      disabled={row.isSkipped}
+      title={$_('import.applyBreakCalculationTooltip')}
+      class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500 disabled:opacity-50"
     />
   </td>
   <td class="px-2 py-2">

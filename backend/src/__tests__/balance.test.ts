@@ -194,7 +194,7 @@ describe('Monthly Balance Service - Sync Only', () => {
       expect(data.conflicts).toBeUndefined();
     });
 
-    it('should detect conflicts when server has newer data', async () => {
+    it('should always accept client data even when server has a newer timestamp', async () => {
       const balanceDate = '2025-03';
       const expectedId = `${targetId}_${balanceDate}`;
       
@@ -225,8 +225,8 @@ describe('Monthly Balance Service - Sync Only', () => {
       // Wait a bit
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Try to update with old timestamp (simulating stale client data)
-      const conflictResponse = await app.inject({
+      // Push with an older timestamp — should still be saved (client wins, no conflict)
+      const updateResponse = await app.inject({
         method: 'POST',
         url: '/api/balances/sync',
         headers: { cookie: sessionCookie },
@@ -236,7 +236,7 @@ describe('Monthly Balance Service - Sync Only', () => {
             target_id: targetId,
             date: balanceDate,
             due_minutes: 9600,
-            worked_minutes: 7000, // Different value
+            worked_minutes: 7000, // Recalculated value
             cumulative_minutes: -2600,
             sick_days: 0,
             holidays: 0,
@@ -249,13 +249,15 @@ describe('Monthly Balance Service - Sync Only', () => {
         },
       });
 
-      expect(conflictResponse.statusCode).toBe(200);
-      const data = JSON.parse(conflictResponse.payload);
-      
-      expect(data.conflicts).toHaveLength(1);
-      expect(data.conflicts[0].clientVersion.worked_minutes).toBe(7000);
-      expect(data.conflicts[0].serverVersion.worked_minutes).toBe(8000);
-      expect(data.saved).toBeUndefined();
+      expect(updateResponse.statusCode).toBe(200);
+      const data = JSON.parse(updateResponse.payload);
+
+      // Client data must be saved — no conflicts returned
+      expect(data.conflicts).toBeUndefined();
+      expect(data.saved).toHaveLength(1);
+      expect(data.saved[0].id).toBe(expectedId);
+      expect(data.saved[0].worked_minutes).toBe(7000);
+      expect(data.saved[0].cumulative_minutes).toBe(-2600);
     });
   });
 });

@@ -186,12 +186,6 @@ export const balanceApi = {
   },
   async pushSyncChanges(balances: Partial<Balance>[]): Promise<{
     saved?: Balance[];
-    conflicts?: Array<{
-      id: string;
-      field: string;
-      clientVersion: Partial<Balance>;
-      serverVersion: Balance;
-    }>;
     cursor: string;
   }> {
     return api.post('api/balances/sync', { json: { balances } }).json();

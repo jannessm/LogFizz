@@ -7,11 +7,15 @@
   } from '../components/history';
   import { timers } from '../stores/timers';
   import { targets } from '../stores/targets';
+  import { activeTimeLogs } from '../stores/timelogs';
   import { dayjs } from '../types'; // ensure consistent dayjs instance
   import { createCalendarStore, loadCalendarMonth } from '../services/calendar';
   import { navigate } from '../lib/navigation';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { _ } from '../lib/i18n';
+  import { startBalanceUpdates, stopBalanceUpdates } from '../stores/live-balance';
+
+  const HISTORY_COMPONENT_ID = 'history-page';
 
   
   // Initialize from URL query parameters if available
@@ -62,6 +66,22 @@
     const year = selectedDate.month.year();
     const month = selectedDate.month.month() + 1;
     loadCalendarMonth(year, month);
+  });
+
+  // Start/stop live balance updates when today is selected and there are active timers
+  $effect(() => {
+    const todaySelected = selectedDate.date.isSame(dayjs(), 'day');
+    const hasActive = $activeTimeLogs.length > 0;
+
+    if (todaySelected && hasActive) {
+      startBalanceUpdates(HISTORY_COMPONENT_ID);
+    } else {
+      stopBalanceUpdates(HISTORY_COMPONENT_ID);
+    }
+  });
+
+  onDestroy(() => {
+    stopBalanceUpdates(HISTORY_COMPONENT_ID);
   });
 
   function handleImportClick() {

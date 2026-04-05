@@ -52,14 +52,29 @@ export class AuthService {
     if (!newUser) throw new Error('Failed to create user');
 
     // Send welcome email with magic link (serves as verification + first login)
-    this.emailService.sendWelcomeEmail(newUser.email, magicLinkToken, newUser.name)
-      .catch(error => console.error('Failed to send welcome email:', error));
+    if (process.env.MAGIC_LINK_DISABLED !== 'true') {
+      this.emailService.sendWelcomeEmail(newUser.email, magicLinkToken, newUser.name)
+        .catch(error => console.error('Failed to send welcome email:', error));
+    } else {
+      console.log(`[DEV] Magic link disabled – registration token for ${newUser.email}: ${magicLinkToken}`);
+    }
 
     // Create example target and timer so the user has something to start with
     this.createExampleData(newUser.id)
       .catch(error => console.error('Failed to create example data for new user:', error));
 
     return newUser;
+  }
+
+  /**
+   * When MAGIC_LINK_DISABLED=true, returns the registration magic link token
+   * for use in development without email sending.
+   */
+  getDevRegistrationToken(user: User): string | undefined {
+    if (process.env.MAGIC_LINK_DISABLED === 'true') {
+      return user.magic_link_token ?? undefined;
+    }
+    return undefined;
   }
 
   /**
@@ -104,12 +119,12 @@ export class AuthService {
     await timerRepo().save(timer);
   }
 
-  async requestMagicLink(email: string): Promise<boolean> {
+  async requestMagicLink(email: string): Promise<{ token?: string }> {
     const user = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
     
     // Don't reveal if user exists or not for security reasons
     if (!user) {
-      return true;
+      return {};
     }
 
     // Generate a secure magic link token
@@ -124,6 +139,11 @@ export class AuthService {
     await this.userRepository.save(user);
 
     // Send magic link email
+    if (process.env.MAGIC_LINK_DISABLED === 'true') {
+      console.log(`[DEV] Magic link disabled – token for ${email}: ${magicLinkToken}`);
+      return { token: magicLinkToken };
+    }
+
     try {
       await this.emailService.sendMagicLinkEmail(user.email, magicLinkToken, user.name);
     } catch (error) {
@@ -131,7 +151,7 @@ export class AuthService {
       // Don't throw error to not reveal if user exists
     }
 
-    return true;
+    return {};
   }
 
   async verifyMagicLink(token: string): Promise<User | null> {

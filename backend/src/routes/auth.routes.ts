@@ -23,6 +23,8 @@ export async function authRoutes(fastify: FastifyInstance) {
           id: Type.String(),
           email: Type.String(),
           name: Type.String(),
+          // Only present when MAGIC_LINK_DISABLED=true (development)
+          dev_token: Type.Optional(Type.String()),
         }),
         400: Type.Object({
           error: Type.String(),
@@ -43,6 +45,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         id: user.id,
         email: user.email,
         name: user.name,
+        ...(authService.getDevRegistrationToken(user) ? { dev_token: authService.getDevRegistrationToken(user) } : {}),
       });
     } catch (error: any) {
       return reply.code(400).send({ error: error.message });
@@ -60,16 +63,19 @@ export async function authRoutes(fastify: FastifyInstance) {
       response: {
         200: Type.Object({
           message: Type.String(),
+          // Only present when MAGIC_LINK_DISABLED=true (development)
+          dev_token: Type.Optional(Type.String()),
         }),
       },
     },
   }, async (request, reply) => {
     const { email } = request.body as any;
-    await authService.requestMagicLink(email);
+    const result = await authService.requestMagicLink(email);
 
     // Always return success to prevent email enumeration
     return reply.send({
       message: t('auth.magicLinkSent'),
+      ...(result.token ? { dev_token: result.token } : {}),
     });
   });
 

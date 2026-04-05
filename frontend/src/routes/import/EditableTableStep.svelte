@@ -44,6 +44,7 @@
       type: string;
       start_timestamp: string;
       end_timestamp: string;
+      apply_break_calculation: boolean;
       notes?: string;
     }>) => void;
     onBack: () => void;
@@ -60,6 +61,7 @@
     project: string;
     type: TimeLogType;
     timerId: string;
+    applyBreakCalculation: boolean;
     isValid: boolean;
     isSkipped: boolean;
     errorMsg?: string;
@@ -67,6 +69,7 @@
 
   let rows = $state<EditableRow[]>([]);
   let globalTimerId = $state('');
+  let globalBreakCalculation = $state<boolean | null>(null); // null = mixed/unset
   let currentPage = $state(0);
   const PAGE_SIZE = 20;
   
@@ -182,6 +185,9 @@
       const endStr = endDate ? `${endDate} ${endTime}` : endTime;
       const isValid = isValidDateTime(startStr, customDateFormats) && isValidDateTime(endStr, customDateFormats);
 
+      // Active (running) timelogs have no end date/time — skip them silently
+      const isActiveTimelog = !!startStr && !endStr;
+
       return {
         id: index,
         startDate,
@@ -192,9 +198,10 @@
         project,
         type,
         timerId: '',
+        applyBreakCalculation: false,
         isValid,
-        isSkipped: false,
-        errorMsg: !isValid ? $_('import.invalidDateFormat') : undefined,
+        isSkipped: isActiveTimelog,
+        errorMsg: !isValid && !isActiveTimelog ? $_('import.invalidDateFormat') : undefined,
       };
     });
   });
@@ -202,7 +209,16 @@
   // Apply global timer to all rows
   function applyGlobalTimer() {
     if (!globalTimerId) return;
-    rows = rows.map(row => ({ ...row, timerId: globalTimerId }));
+    const timer = $timers.find(t => t.id === globalTimerId);
+    const applyBreaks = timer?.auto_subtract_breaks ?? false;
+    globalBreakCalculation = applyBreaks;
+    rows = rows.map(row => ({ ...row, timerId: globalTimerId, applyBreakCalculation: applyBreaks }));
+  }
+
+  // Apply global break calculation to all rows
+  function applyGlobalBreakCalculation(value: boolean) {
+    globalBreakCalculation = value;
+    rows = rows.map(row => ({ ...row, applyBreakCalculation: value }));
   }
 
   // Computed values
@@ -277,6 +293,7 @@
         type: row.type,
         start_timestamp: startParsed?.toISOString() || '',
         end_timestamp: endParsed?.toISOString() || '',
+        apply_break_calculation: row.applyBreakCalculation,
         notes: row.notes || undefined,
       };
     }).filter(log => log.start_timestamp && log.end_timestamp);
@@ -317,6 +334,20 @@
       >
         {$_('import.applyToAll')}
       </button>
+    </div>
+    <!-- Global break calculation toggle -->
+    <div class="mt-3 flex items-center gap-3">
+      <label class="flex items-center gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={globalBreakCalculation === true}
+          indeterminate={globalBreakCalculation === null}
+          onchange={(e) => applyGlobalBreakCalculation((e.target as HTMLInputElement).checked)}
+          class="w-4 h-4 text-blue-600 dark:text-orange-500 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-orange-500"
+        />
+        <span class="text-sm text-gray-700 dark:text-gray-200">{$_('import.applyBreakCalculation')}</span>
+      </label>
+      <span class="text-xs text-gray-500 dark:text-gray-400" title={$_('import.applyBreakCalculationTooltip')}>ⓘ</span>
     </div>
   </div>
 
@@ -363,6 +394,7 @@
           <th class="px-2 py-2 text-left min-w-[100px]">{$_('export.endTime')}</th>
           <th class="px-2 py-2 text-left min-w-[120px]">{$_('timelog.type')}</th>
           <th class="px-2 py-2 text-left min-w-[180px]">{$_('table.timer')}</th>
+          <th class="px-2 py-2 text-left w-20" title={$_('import.applyBreakCalculationTooltip')}>{$_('import.applyBreakCalculation')}</th>
           <th class="px-2 py-2 text-left min-w-[150px]">{$_('timelog.notes')}</th>
           <th class="px-2 py-2 text-left w-16">{$_('import.status')}</th>
         </tr>

@@ -107,6 +107,14 @@ Jane,25,LA`;
       expect(result.endTimeColumn).toBe('Ende');
     });
 
+    it('handles German date+time split columns (Start/Startzeit/Ende/Endzeit)', () => {
+      const result = autoDetectColumns(['Projekt', 'Start', 'Startzeit', 'Ende', 'Endzeit', 'Notizen']);
+      expect(result.startDateColumn).toBe('Start');
+      expect(result.startTimeColumn).toBe('Startzeit');
+      expect(result.endDateColumn).toBe('Ende');
+      expect(result.endTimeColumn).toBe('Endzeit');
+    });
+
     it('returns empty object when no columns match', () => {
       const result = autoDetectColumns(['Foo', 'Bar', 'Baz']);
       expect(result).toEqual({});

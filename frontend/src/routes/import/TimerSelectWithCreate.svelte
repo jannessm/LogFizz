@@ -15,6 +15,15 @@
 
   let showTimerForm = $state(false);
 
+  // Auto-select timer if only one is available
+  $effect(() => {
+    const activeTimers = $timers.filter(t => !t.archived);
+    if (!value && activeTimers.length === 1) {
+      value = activeTimers[0].id;
+      onchange?.(activeTimers[0].id);
+    }
+  });
+
   function handleChange(event: Event) {
     const target = event.target as HTMLSelectElement;
     if (target.value === '__create_new__') {

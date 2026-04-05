@@ -30,6 +30,13 @@
   let errorMessage = $state('');
   let showDeleteConfirm = $state(false);
 
+  // Auto-select target if only one is available and no target is pre-set
+  $effect(() => {
+    if (!targetId && $targets.length === 1) {
+      targetId = $targets[0].id;
+    }
+  });
+
   const colorPresets = [
     '#3B82F6', '#EF4444', '#10B981', '#F59E0B', 
     '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'
