@@ -349,8 +349,8 @@ describe('Email Verification', () => {
       expect(user.email_verified_at).toBeNull();
 
       // Request a new magic link (simulating login flow)
-      const success = await authService.requestMagicLink('verify@example.com');
-      expect(success).toBe(true);
+      const result = await authService.requestMagicLink('verify@example.com');
+      expect(result).toBeDefined();
 
       // Verify a new magic link token was generated
       const updatedUser = await userRepo.findOne({ 

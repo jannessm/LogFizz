@@ -133,16 +133,11 @@ async function testMigrations() {
     console.log('\n🌱 Testing seeding capability...');
     
     const userRepo = testConnection.getRepository(User);
-    const { hashPassword } = await import('../utils/password.js');
-    const { hashPasswordForTransport } = await import('../../../lib/utils/passwordHash.js');
     
     const testEmail = 'migration-test@example.com';
-    const testPassword = 'test123';
-    const hashedForTransport = await hashPasswordForTransport(testPassword, testEmail);
     
     const testUser = userRepo.create({
       email: testEmail,
-      password_hash: await hashPassword(hashedForTransport),
       name: 'Migration Test User',
     });
     
