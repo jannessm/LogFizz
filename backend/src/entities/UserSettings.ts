@@ -27,6 +27,9 @@ export class UserSettings {
   @Column('varchar', { name: 'statistics_email_frequency', default: 'none' })
   statistics_email_frequency!: StatisticsEmailFrequency; // 'none' | 'weekly' | 'monthly'
 
+  @Column('boolean', { name: 'setup_completed', default: false })
+  setup_completed!: boolean; // Whether the user has completed the initial setup wizard
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at!: Date;
 

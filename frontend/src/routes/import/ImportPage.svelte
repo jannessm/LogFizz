@@ -164,6 +164,7 @@
     type: string;
     start_timestamp: string;
     end_timestamp: string;
+    apply_break_calculation: boolean;
     notes?: string;
   }>) {
     try {
@@ -181,6 +182,7 @@
             type: log.type as any,
             start_timestamp: log.start_timestamp,
             end_timestamp: log.end_timestamp,
+            apply_break_calculation: log.apply_break_calculation,
             notes: log.notes,
           });
           console.log('Successfully created timelog:', result.id);

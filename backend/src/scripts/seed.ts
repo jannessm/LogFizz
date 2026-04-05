@@ -6,8 +6,6 @@ import { Target } from '../entities/Target.js';
 import { TargetSpec } from '../entities/TargetSpec.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
-import { hashPassword } from '../utils/password.js';
-import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.js';
 import { HolidayCrawlerService } from '../services/holiday-crawler.service.js';
 
 /**
@@ -59,30 +57,24 @@ async function seed() {
     // Hash passwords as if they came from the client (SHA-256 with email)
     // Then bcrypt hash them for storage
     const demoEmail = 'demo@example.com';
-    const demoPassword = 'demo123';
-    const demoHashedForTransport = await hashPasswordForTransport(demoPassword, demoEmail);
     
     const demoUser = userRepo.create({
       email: demoEmail,
-      password_hash: await hashPassword(demoHashedForTransport),
       name: 'Demo User',
     });
     await userRepo.save(demoUser);
     
     const testEmail = 'test@example.com';
-    const testPassword = 'test123';
-    const testHashedForTransport = await hashPasswordForTransport(testPassword, testEmail);
     
     const testUser = userRepo.create({
       email: testEmail,
-      password_hash: await hashPassword(testHashedForTransport),
       name: 'Test User',
     });
     await userRepo.save(testUser);
     
     console.log('✅ Created 2 sample users');
-    console.log('   - demo@example.com (password: demo123)');
-    console.log('   - test@example.com (password: test123)');
+    console.log('   - demo@example.com');
+    console.log('   - test@example.com');
 
     // Create sample targets and target specs for demo user
     console.log('🎯 Creating sample targets...');

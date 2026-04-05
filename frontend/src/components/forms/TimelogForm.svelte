@@ -148,6 +148,14 @@
   });
 
   onMount(() => {
+    // Auto-select timer if only one is available and no existing log
+    if (!existingLog && !newLog.timer_id) {
+      const activeTimers = $timers.filter(t => !t.archived);
+      if (activeTimers.length === 1) {
+        newLog.timer_id = activeTimers[0].id;
+      }
+    }
+
     if (existingLog) {
       newLog = { ...existingLog };
       newLog.timezone = existingLog.timezone || userTimezone;

@@ -6,10 +6,14 @@ import { Target } from '../entities/Target.js';
 import { TargetSpec } from '../entities/TargetSpec.js';
 import { Balance } from '../entities/Balance.js';
 import { UserSettings } from '../entities/UserSettings.js';
-import { hashPassword, verifyPassword } from '../utils/password.js';
 import { IsNull, MoreThan } from 'typeorm';
 import { EmailService } from './email.service.js';
 import crypto from 'crypto';
+
+// Repositories used only for example-data creation (lazily accessed)
+const targetRepo = () => AppDataSource.getRepository(Target);
+const targetSpecRepo = () => AppDataSource.getRepository(TargetSpec);
+const timerRepo = () => AppDataSource.getRepository(Timer);
 
 export class AuthService {
   private userRepository = AppDataSource.getRepository(User);
@@ -17,7 +21,6 @@ export class AuthService {
 
   async register(
     email: string, 
-    password: string, 
     name: string,
   ): Promise<User> {
     const existingUser = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
@@ -25,12 +28,10 @@ export class AuthService {
       throw new Error('User already exists');
     }
 
-    const password_hash = await hashPassword(password);
-
-    // Generate email verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpiresAt = new Date();
-    verificationExpiresAt.setHours(verificationExpiresAt.getHours() + 24); // 24 hours expiry
+    // Generate magic link token - serves as email verification on first login
+    const magicLinkToken = crypto.randomBytes(32).toString('hex');
+    const magicLinkExpiresAt = new Date();
+    magicLinkExpiresAt.setHours(magicLinkExpiresAt.getHours() + 24); // 24 hours for registration link
 
     // Set trial end date to 2 months from now
     const trialEndDate = new Date();
@@ -38,10 +39,9 @@ export class AuthService {
 
     const user = this.userRepository.create({
       email,
-      password_hash,
       name,
-      email_verification_token: verificationToken,
-      email_verification_expires_at: verificationExpiresAt,
+      magic_link_token: magicLinkToken,
+      magic_link_token_expires_at: magicLinkExpiresAt,
       subscription_status: 'trial',
       trial_end_date: trialEndDate,
     });
@@ -51,23 +51,134 @@ export class AuthService {
     const newUser = await this.userRepository.findOne({ where: { id: user.id } });
     if (!newUser) throw new Error('Failed to create user');
 
-    // Send welcome email with verification link (async, don't wait)
-    this.emailService.sendWelcomeEmail(newUser.email, verificationToken, newUser.name)
-      .catch(error => console.error('Failed to send welcome email:', error));
+    // Send welcome email with magic link (serves as verification + first login)
+    if (process.env.MAGIC_LINK_DISABLED !== 'true') {
+      this.emailService.sendWelcomeEmail(newUser.email, magicLinkToken, newUser.name)
+        .catch(error => console.error('Failed to send welcome email:', error));
+    } else {
+      console.log(`[DEV] Magic link disabled – registration token for ${newUser.email}: ${magicLinkToken}`);
+    }
+
+    // Create example target and timer so the user has something to start with
+    this.createExampleData(newUser.id)
+      .catch(error => console.error('Failed to create example data for new user:', error));
 
     return newUser;
   }
 
-  async login(email: string, password: string): Promise<User | null> {
+  /**
+   * When MAGIC_LINK_DISABLED=true, returns the registration magic link token
+   * for use in development without email sending.
+   */
+  getDevRegistrationToken(user: User): string | undefined {
+    if (process.env.MAGIC_LINK_DISABLED === 'true') {
+      return user.magic_link_token ?? undefined;
+    }
+    return undefined;
+  }
+
+  /**
+   * Creates an example "Work" target with a standard Mon–Fri 8 h/day spec
+   * and a linked "Work" timer button for a newly registered user.
+   */
+  private async createExampleData(userId: string): Promise<void> {
+    // Target
+    const target = targetRepo().create({
+      user_id: userId,
+      name: 'Work',
+      target_spec_ids: [],
+    });
+    await targetRepo().save(target);
+
+    // TargetSpec: Mon–Fri 8 h (480 min), no holidays exclusion, starting from today
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const spec = targetSpecRepo().create({
+      user_id: userId,
+      target_id: target.id,
+      // Sun=0, Mon=480, Tue=480, Wed=480, Thu=480, Fri=480, Sat=0
+      duration_minutes: [0, 480, 480, 480, 480, 480, 0],
+      starting_from: today,
+      exclude_holidays: false,
+    });
+    await targetSpecRepo().save(spec);
+
+    target.target_spec_ids = [spec.id];
+    await targetRepo().save(target);
+
+    // Timer (button)
+    const timer = timerRepo().create({
+      user_id: userId,
+      name: 'Work',
+      emoji: '💼',
+      color: '#3B82F6',
+      target_id: target.id,
+      auto_subtract_breaks: true,
+      archived: false,
+    });
+    await timerRepo().save(timer);
+  }
+
+  async requestMagicLink(email: string): Promise<{ token?: string }> {
     const user = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
+    
+    // Don't reveal if user exists or not for security reasons
+    if (!user) {
+      return {};
+    }
+
+    // Generate a secure magic link token
+    const magicLinkToken = crypto.randomBytes(32).toString('hex');
+    
+    // Token expires in 15 minutes
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+
+    user.magic_link_token = magicLinkToken;
+    user.magic_link_token_expires_at = expiresAt;
+    await this.userRepository.save(user);
+
+    // Send magic link email
+    if (process.env.MAGIC_LINK_DISABLED === 'true') {
+      console.log(`[DEV] Magic link disabled – token for ${email}: ${magicLinkToken}`);
+      return { token: magicLinkToken };
+    }
+
+    try {
+      await this.emailService.sendMagicLinkEmail(user.email, magicLinkToken, user.name);
+    } catch (error) {
+      console.error('Failed to send magic link email:', error);
+      // Don't throw error to not reveal if user exists
+    }
+
+    return {};
+  }
+
+  async verifyMagicLink(token: string): Promise<User | null> {
+    const user = await this.userRepository.findOne({
+      where: {
+        magic_link_token: token,
+        magic_link_token_expires_at: MoreThan(new Date()),
+        deleted_at: IsNull(),
+      },
+    });
+
     if (!user) {
       return null;
     }
 
-    const isValid = await verifyPassword(password, user.password_hash);
-    if (!isValid) {
-      return null;
+    // Mark email as verified if not already (magic link serves as email verification)
+    if (!user.email_verified_at) {
+      user.email_verified_at = new Date();
     }
+
+    // Clear magic link token
+    user.magic_link_token = null as any;
+    user.magic_link_token_expires_at = null as any;
+    // Also clear any old verification tokens
+    user.email_verification_token = null as any;
+    user.email_verification_expires_at = null as any;
+    await this.userRepository.save(user);
 
     return user;
   }
@@ -93,81 +204,67 @@ export class AuthService {
     return updatedUser;
   }
 
-  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<boolean> {
+  async requestEmailChange(userId: string, newEmail: string): Promise<boolean> {
     const user = await this.getUserById(userId);
     if (!user) {
       return false;
     }
 
-    const isValid = await verifyPassword(oldPassword, user.password_hash);
-    if (!isValid) {
-      return false;
+    // Check if the new email is already in use
+    const existingUser = await this.userRepository.findOne({ where: { email: newEmail, deleted_at: IsNull() } });
+    if (existingUser) {
+      throw new Error('EMAIL_ALREADY_IN_USE');
     }
 
-    user.password_hash = await hashPassword(newPassword);
-    await this.userRepository.save(user);
-    return true;
-  }
-
-  async requestPasswordReset(email: string): Promise<boolean> {
-    const user = await this.userRepository.findOne({ where: { email, deleted_at: IsNull() } });
-    
-    // Don't reveal if user exists or not for security reasons
-    if (!user) {
-      return true;
-    }
-
-    // Generate a secure random token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    
-    // Token expires in 1 hour
+    // Generate email change verification token
+    const changeToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 1);
+    expiresAt.setHours(expiresAt.getHours() + 24);
 
-    user.reset_token = resetToken;
-    user.reset_token_expires_at = expiresAt;
+    user.pending_email = newEmail;
+    user.email_change_token = changeToken;
+    user.email_change_token_expires_at = expiresAt;
     await this.userRepository.save(user);
 
-    // Send password reset email
+    // Send verification email to the NEW email address
     try {
-      await this.emailService.sendPasswordResetEmail(user.email, resetToken, user.name);
+      await this.emailService.sendEmailChangeVerification(newEmail, changeToken, user.name);
     } catch (error) {
-      console.error('Failed to send password reset email:', error);
-      // Don't throw error to not reveal if user exists
+      console.error('Failed to send email change verification:', error);
+      throw new Error('Failed to send verification email');
     }
 
     return true;
   }
 
-  async resetPassword(token: string, newPassword: string, email?: string): Promise<boolean> {
-    const whereCondition: any = {
-      reset_token: token,
-      reset_token_expires_at: MoreThan(new Date()),
-      deleted_at: IsNull(),
-    };
-
-    // If email is provided, verify it matches (for additional security)
-    if (email) {
-      whereCondition.email = email.toLowerCase().trim();
-    }
-
-    console.log('Reset password where condition:', whereCondition);
-
+  async verifyEmailChange(token: string, userId: string): Promise<User | null> {
     const user = await this.userRepository.findOne({
-      where: whereCondition,
+      where: {
+        id: userId,
+        email_change_token: token,
+        email_change_token_expires_at: MoreThan(new Date()),
+        deleted_at: IsNull(),
+      },
     });
 
-    if (!user) {
-      return false;
+    if (!user || !user.pending_email) {
+      return null;
     }
 
-    // Update password and clear reset token
-    user.password_hash = await hashPassword(newPassword);
-    user.reset_token = null as any;
-    user.reset_token_expires_at = null as any;
+    // Check if the pending email is still available
+    const existingUser = await this.userRepository.findOne({ where: { email: user.pending_email, deleted_at: IsNull() } });
+    if (existingUser) {
+      return null;
+    }
+
+    // Apply the email change
+    user.email = user.pending_email;
+    user.pending_email = null as any;
+    user.email_change_token = null as any;
+    user.email_change_token_expires_at = null as any;
     await this.userRepository.save(user);
 
-    return true;
+    return user;
   }
 
   async verifyEmail(token: string, userId: string): Promise<boolean | { error: 'wrong_user' }> {
@@ -185,7 +282,8 @@ export class AuthService {
 
     // Check if the token belongs to the authenticated user
     if (user.id !== userId) {
-      // Generate a new verification token for the correct user
+      // The wrong user is logged in and clicked this link.
+      // Resend a fresh verification email to the token's owner so they can verify later.
       const newVerificationToken = crypto.randomBytes(32).toString('hex');
       const verificationExpiresAt = new Date();
       verificationExpiresAt.setHours(verificationExpiresAt.getHours() + 24);
@@ -194,11 +292,11 @@ export class AuthService {
       user.email_verification_expires_at = verificationExpiresAt;
       await this.userRepository.save(user);
 
-      // Get the authenticated user who tried to verify
+      // Get the currently-logged-in (wrong) user's email for the security notice
       const authenticatedUser = await this.getUserById(userId);
       const attemptedByEmail = authenticatedUser?.email || 'another account';
 
-      // Send new verification email with security notice
+      // Notify the token's real owner with a new link and a security notice
       try {
         await this.emailService.sendVerificationWithSecurityNotice(
           user.email,
@@ -272,15 +370,9 @@ export class AuthService {
    * Delete a user account and all associated data permanently.
    * This is a GDPR-compliant hard delete that removes all user data from the database.
    */
-  async deleteAccount(userId: string, password: string): Promise<boolean> {
+  async deleteAccount(userId: string): Promise<boolean> {
     const user = await this.getUserById(userId);
     if (!user) {
-      return false;
-    }
-
-    // Verify password before deletion
-    const isValid = await verifyPassword(password, user.password_hash);
-    if (!isValid) {
       return false;
     }
 
@@ -351,7 +443,7 @@ export class AuthService {
     const userSettings = await userSettingsRepository.findOne({ where: { user_id: userId } });
 
     // Return user data without sensitive fields
-    const { password_hash, reset_token, email_verification_token, ...safeUserData } = user;
+    const { reset_token, email_verification_token, magic_link_token, magic_link_token_expires_at, email_change_token, email_change_token_expires_at, ...safeUserData } = user;
 
     return {
       user: safeUserData,

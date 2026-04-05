@@ -264,9 +264,10 @@ export class SyncService {
         await save(item);
       }
     }
-    
-    // Handle conflicts
-    if (result.conflicts && result.conflicts.length > 0) {
+
+    // Handle conflicts — balances are always authoritative from the client
+    // (recalculated locally), so conflicts are not applicable for them.
+    if (cursor !== 'balances' && result.conflicts && result.conflicts.length > 0) {
       console.warn(cursor, 'sync conflicts detected:', result.conflicts);
       // In a real app, you'd want to show these to the user
       // For now, we'll use server version (last-write-wins)

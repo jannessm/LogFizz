@@ -2,7 +2,6 @@
   import { onMount, onDestroy } from 'svelte';
   import BottomNav from '../components/BottomNav.svelte';
   import ProfileSection from '../components/settings/ProfileSection.svelte';
-  import PasswordSection from '../components/settings/PasswordSection.svelte';
   import SyncStatusSection from '../components/settings/SyncStatusSection.svelte';
   import { authStore } from '../stores/auth';
   import { themeStore, type ThemeMode } from '../stores/theme';
@@ -34,7 +33,6 @@
   // Data & Privacy section
   let isDownloading = $state(false);
   let showDeleteConfirmation = $state(false);
-  let deletePassword = $state('');
   let isDeleting = $state(false);
 
   let user = $derived($authStore.user);
@@ -110,15 +108,6 @@
       // Update local state with the server response
       name = updatedUser.name;
       originalName = updatedUser.name;
-    } catch (error: any) {
-      snackbar.error(error.message);
-    }
-  }
-
-  async function handlePasswordChange(currentPassword: string, newPassword: string) {
-    try {
-      await authStore.changePassword(currentPassword, newPassword);
-      snackbar.success($_('settings.passwordChanged'));
     } catch (error: any) {
       snackbar.error(error.message);
     }
@@ -250,20 +239,18 @@
 
   function openDeleteConfirmation() {
     showDeleteConfirmation = true;
-    deletePassword = '';
   }
 
   function closeDeleteConfirmation() {
     showDeleteConfirmation = false;
-    deletePassword = '';
   }
 
   async function handleDeleteAccount() {
-    if (isDeleting || !deletePassword) return;
+    if (isDeleting) return;
     
     try {
       isDeleting = true;
-      await authStore.deleteAccount(deletePassword);
+      await authStore.deleteAccount();
       snackbar.success($_('settings.deleteAccountSuccess'));
       navigate('/login');
     } catch (error: any) {
@@ -289,12 +276,6 @@
         {isOnline}
         onsubmit={handleProfileUpdate}
         onerror={handleError}
-      />
-
-      <PasswordSection
-        onsubmit={handlePasswordChange}
-        onerror={handleError}
-        {isOnline}
       />
 
       <SyncStatusSection
@@ -561,18 +542,6 @@
         <p class="text-gray-700 dark:text-gray-300 mb-4">
           {$_('settings.deleteAccountConfirmation')}
         </p>
-        <div class="mb-4">
-          <label for="delete-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {$_('settings.deleteAccountPasswordLabel')}
-          </label>
-          <input
-            type="password"
-            id="delete-password"
-            bind:value={deletePassword}
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-red-500 focus:border-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            placeholder={$_('auth.password')}
-          />
-        </div>
         <div class="flex gap-3">
           <button
             onclick={closeDeleteConfirmation}
@@ -582,7 +551,7 @@
           </button>
           <button
             onclick={handleDeleteAccount}
-            disabled={isDeleting || !deletePassword}
+            disabled={isDeleting}
             class="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {#if isDeleting}

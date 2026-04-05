@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { buildApp } from '../app.js';
 import { FastifyInstance } from 'fastify';
+import { registerAndAuthenticate } from './testHelpers.js';
 
 describe('Timer Sync Routes', () => {
   let app: FastifyInstance;
@@ -10,29 +11,13 @@ describe('Timer Sync Routes', () => {
   beforeAll(async () => {
     app = await buildApp();
 
-    // Register and login a test user
-    const email = `timertest${Date.now()}@example.com`;
-    await app.inject({
-      method: 'POST',
-      url: '/api/auth/register',
-      payload: {
-        email,
-        password: 'testpassword123',
-        name: 'Timer Test User',
-      },
+    // Register and authenticate a test user via magic link
+    const result = await registerAndAuthenticate(app, {
+      email: `timertest${Date.now()}@example.com`,
+      name: 'Timer Test User',
     });
-
-    const loginResponse = await app.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      payload: {
-        email,
-        password: 'testpassword123',
-      },
-    });
-
-    authCookie = loginResponse.headers['set-cookie'] as string;
-    userId = JSON.parse(loginResponse.body).id;
+    authCookie = result.authCookie;
+    userId = result.userId;
   });
 
   afterAll(async () => {

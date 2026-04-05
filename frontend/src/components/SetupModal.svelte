@@ -3,7 +3,6 @@
   import { _, setLocale } from '../lib/i18n';
   import { setDayjsLocale } from '../lib/dateFormatting';
   import { userSettingsStore } from '../stores/userSettings';
-  import { saveSetting } from '../lib/db';
   import { dayjs } from '../types';
   import type { StatisticsEmailFrequency } from '../../../lib/types/index.js';
 
@@ -39,12 +38,13 @@
     
     isSubmitting = true;
     try {
-      // Update user settings
+      // Update user settings and mark setup as complete
       await userSettingsStore.updateSettings({
         language,
         locale,
         first_day_of_week: firstDayOfWeek,
         statistics_email_frequency: statisticsEmailFrequency,
+        setup_completed: true,
       });
       
       // Update i18n locale
@@ -52,9 +52,6 @@
       
       // Update dayjs locale for date formatting
       setDayjsLocale(locale);
-      
-      // Mark setup as complete
-      await saveSetting('setupComplete', true);
       
       // Call the oncomplete callback
       oncomplete();

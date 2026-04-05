@@ -19,6 +19,7 @@ const settingsResponseSchema = Type.Object({
   locale: Type.String(),
   first_day_of_week: Type.String(),
   statistics_email_frequency: Type.String(),
+  setup_completed: Type.Boolean(),
   created_at: Type.String(),
   updated_at: Type.String(),
 });
@@ -32,6 +33,7 @@ function toResponse(settings: any) {
     locale: settings.locale,
     first_day_of_week: settings.first_day_of_week,
     statistics_email_frequency: settings.statistics_email_frequency,
+    setup_completed: settings.setup_completed,
     created_at: settings.created_at.toISOString(),
     updated_at: settings.updated_at.toISOString(),
   };
@@ -77,6 +79,7 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
           Type.Literal('weekly'),
           Type.Literal('monthly'),
         ])),
+        setup_completed: Type.Optional(Type.Boolean()),
       }),
       response: {
         200: settingsResponseSchema,
@@ -87,12 +90,13 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
     const userId = request.session.userId;
     if (!userId) return reply.code(401).send({ error: 'Not authenticated' });
 
-    const { language, locale, first_day_of_week, statistics_email_frequency } = request.body as any;
+    const { language, locale, first_day_of_week, statistics_email_frequency, setup_completed } = request.body as any;
     const settings = await userSettingsService.updateSettings(userId, {
       language,
       locale,
       first_day_of_week,
       statistics_email_frequency,
+      setup_completed,
     });
     return reply.send(toResponse(settings));
   });
@@ -148,6 +152,7 @@ export async function userSettingsRoutes(fastify: FastifyInstance) {
             Type.Literal('weekly'),
             Type.Literal('monthly'),
           ])),
+          setup_completed: Type.Optional(Type.Boolean()),
           updated_at: Type.Optional(Type.String()),
         }),
       }),

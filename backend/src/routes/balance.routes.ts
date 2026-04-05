@@ -105,10 +105,6 @@ export async function balanceRoutes(fastify: FastifyInstance) {
       response: {
         200: Type.Object({
           saved: Type.Optional(Type.Array(BalanceSchema)),
-          conflicts: Type.Optional(Type.Array(Type.Object({
-            clientVersion: BalanceInputSchema,
-            serverVersion: BalanceSchema,
-          }))),
           cursor: Type.String(),
         }),
         500: Type.Object({
@@ -137,34 +133,6 @@ export async function balanceRoutes(fastify: FastifyInstance) {
       const response: any = {
         cursor,
       };
-
-      if (result.conflicts.length > 0) {
-        response.conflicts = result.conflicts.map(c => ({
-          clientVersion: {
-            ...c.clientVersion,
-            updated_at: c.clientVersion.updated_at instanceof Date 
-              ? c.clientVersion.updated_at.toISOString() 
-              : c.clientVersion.updated_at,
-          },
-          serverVersion: {
-            id: c.serverVersion.id,
-            user_id: c.serverVersion.user_id,
-            target_id: c.serverVersion.target_id,
-            date: c.serverVersion.date,
-            due_minutes: c.serverVersion.due_minutes,
-            worked_minutes: c.serverVersion.worked_minutes,
-            cumulative_minutes: c.serverVersion.cumulative_minutes,
-            sick_days: c.serverVersion.sick_days,
-            holidays: c.serverVersion.holidays,
-            business_trip: c.serverVersion.business_trip,
-            child_sick: c.serverVersion.child_sick,
-            homeoffice: c.serverVersion.homeoffice,
-            worked_days: c.serverVersion.worked_days,
-            created_at: c.serverVersion.created_at.toISOString(),
-            updated_at: c.serverVersion.updated_at.toISOString(),
-          },
-        }));
-      }
 
       if (result.saved.length > 0) {
         response.saved = result.saved;
