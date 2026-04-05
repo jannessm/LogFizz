@@ -6,7 +6,7 @@ import Login from './Login.svelte';
 vi.mock('../stores/auth', () => ({
   authStore: {
     subscribe: vi.fn(),
-    login: vi.fn().mockResolvedValue({ id: '1', email: 'test@example.com', name: 'Test' }),
+    requestMagicLink: vi.fn().mockResolvedValue({ message: 'Magic link sent' }),
     register: vi.fn().mockResolvedValue({ id: '1', email: 'test@example.com', name: 'Test' }),
   },
 }));
@@ -26,11 +26,12 @@ describe('Login Component', () => {
     vi.clearAllMocks();
   });
 
-  it('renders login form by default', () => {
+  it('renders login form by default with email only', () => {
     render(Login);
     expect(screen.getByText(/Login to TapShift/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
+    // No password field in login mode
+    expect(screen.queryByLabelText(/Password/i)).not.toBeInTheDocument();
   });
 
   it('shows register form when toggle is clicked', async () => {
@@ -39,6 +40,8 @@ describe('Login Component', () => {
     await fireEvent.click(toggleButton);
     expect(screen.getByText(/Register to TapShift/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Name/i)).toBeInTheDocument();
+    // No password field - registration uses magic link, not a password
+    expect(screen.queryByLabelText(/Password/i)).not.toBeInTheDocument();
   });
 
   it('validates email input', () => {
@@ -48,20 +51,30 @@ describe('Login Component', () => {
     expect(emailInput.required).toBe(true);
   });
 
-  it('does not validate password length in login mode', () => {
+  it('shows a plain Login button without magic link terminology', () => {
     render(Login);
-    const passwordInput = screen.getByLabelText(/Password/i) as HTMLInputElement;
-    expect(passwordInput.type).toBe('password');
-    expect(passwordInput.hasAttribute('minlength')).toBe(false);
+    expect(screen.getByRole('button', { name: /^Login$/i })).toBeInTheDocument();
+    expect(screen.queryByText(/magic link/i)).not.toBeInTheDocument();
   });
 
-  it('validates password length in register mode', async () => {
+  it('shows check-email page after registration instead of staying on the form', async () => {
     render(Login);
-    const toggleButton = screen.getByText(/Don't have an account\? Register/i);
-    await fireEvent.click(toggleButton);
-    const passwordInput = screen.getByLabelText(/Password/i) as HTMLInputElement;
-    expect(passwordInput.type).toBe('password');
-    expect(passwordInput.getAttribute('minlength')).toBe('8');
+    // Switch to register mode
+    await fireEvent.click(screen.getByText(/Don't have an account\? Register/i));
+
+    // Fill in the form
+    await fireEvent.input(screen.getByLabelText(/Name/i), { target: { value: 'Test User' } });
+    await fireEvent.input(screen.getByLabelText(/Email/i), { target: { value: 'test@example.com' } });
+
+    // Submit
+    await fireEvent.submit(document.querySelector('form')!);
+
+    // The form should be replaced by the envelope "check your email" page
+    await waitFor(() => {
+      expect(screen.getByText(/back to login/i)).toBeInTheDocument();
+      expect(screen.queryByLabelText(/Name/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/Email/i)).not.toBeInTheDocument();
+    });
   });
 
   it('has max width of 500px on form container', () => {

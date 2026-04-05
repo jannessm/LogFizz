@@ -1,6 +1,5 @@
 import ky from 'ky';
 import type { User, Timer, TimeLog, Holiday, State, Balance } from '../types';
-import { hashPasswordForTransport } from '../../../lib/utils/passwordHash';
 
 // In development, use proxy (relative path). In production, use env variable or default to same origin
 const API_BASE_URL = import.meta.env.PROD 
@@ -20,38 +19,23 @@ const api = ky.create({
 
 // Auth API
 export const authApi = {
-  async register(email: string, password: string, name: string, hcaptchaToken?: string): Promise<User> {
-    const hashedPassword = await hashPasswordForTransport(password, email);
+  async register(email: string, name: string, hcaptchaToken?: string): Promise<User> {
     return api.post('api/auth/register', { 
       json: { 
         email, 
-        password: hashedPassword, 
         name,
         ...(hcaptchaToken && { hcaptchaToken })
       } 
     }).json();
   },
 
-  async login(email: string, password: string, hcaptchaToken?: string): Promise<User> {
-    const hashedPassword = await hashPasswordForTransport(password, email);
-    const response = await api.post('api/auth/login', { 
-      json: { 
-        email, 
-        password: hashedPassword,
-        ...(hcaptchaToken && { hcaptchaToken })
-      } 
-    });
-    
+  async requestMagicLink(email: string): Promise<{ message: string }> {
+    return api.post('api/auth/request-magic-link', { json: { email } }).json();
+  },
+
+  async verifyMagicLink(token: string): Promise<User> {
+    const response = await api.post('api/auth/verify-magic-link', { json: { token } });
     const userData = await response.json() as User;
-    
-    // Try to make a test request to /me to check if session works
-    try {
-      const meResponse = await api.get('api/auth/me');
-      const meData = await meResponse.json();
-    } catch (error) {
-      console.error('✗ Test /me request failed - session not working:', error);
-    }
-    
     return userData;
   },
 
@@ -65,31 +49,16 @@ export const authApi = {
     return api.get('api/auth/me').json();
   },
 
-  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    // Get current user email for hashing
-    const currentUser = await this.getCurrentUser();
-    const hashedOldPassword = await hashPasswordForTransport(currentPassword, currentUser.email);
-    const hashedNewPassword = await hashPasswordForTransport(newPassword, currentUser.email);
-    
-    await api.put('api/auth/change-password', { 
-      json: { oldPassword: hashedOldPassword, newPassword: hashedNewPassword } 
-    });
-  },
-
-  async updateProfile(data: { name?: string; email?: string }): Promise<User> {
+  async updateProfile(data: { name?: string }): Promise<User> {
     return api.put('api/auth/profile', { json: data }).json();
   },
 
-  async forgotPassword(email: string): Promise<{ message: string }> {
-    return api.post('api/auth/forgot-password', { json: { email } }).json();
+  async requestEmailChange(newEmail: string): Promise<{ message: string }> {
+    return api.post('api/auth/request-email-change', { json: { newEmail } }).json();
   },
 
-  async resetPassword(token: string, newPassword: string, email: string): Promise<{ message: string }> {
-    const hashedPassword = await hashPasswordForTransport(newPassword, email);
-    return api.post('api/auth/reset-password', { json: {
-      token,
-      newPassword: hashedPassword,
-    } }).json();
+  async verifyEmailChange(token: string): Promise<User & { message: string }> {
+    return api.post('api/auth/verify-email-change', { json: { token } }).json();
   },
 
   async verifyEmail(token: string): Promise<{ message: string }> {
@@ -100,11 +69,8 @@ export const authApi = {
     return api.post('api/auth/resend-verification', { json: { email } }).json();
   },
 
-  async deleteAccount(password: string): Promise<{ message: string }> {
-    // Get current user email for hashing
-    const currentUser = await this.getCurrentUser();
-    const hashedPassword = await hashPasswordForTransport(password, currentUser.email);
-    return api.delete('api/auth/account', { json: { password: hashedPassword } }).json();
+  async deleteAccount(): Promise<{ message: string }> {
+    return api.delete('api/auth/account').json();
   },
 
   async exportUserData(): Promise<any> {
@@ -220,12 +186,6 @@ export const balanceApi = {
   },
   async pushSyncChanges(balances: Partial<Balance>[]): Promise<{
     saved?: Balance[];
-    conflicts?: Array<{
-      id: string;
-      field: string;
-      clientVersion: Partial<Balance>;
-      serverVersion: Balance;
-    }>;
     cursor: string;
   }> {
     return api.post('api/balances/sync', { json: { balances } }).json();
@@ -238,7 +198,7 @@ export const userSettingsApi = {
     return api.get('api/user-settings').json();
   },
 
-  async updateSettings(updates: { language?: string; locale?: string; first_day_of_week?: 'sunday' | 'monday'; statistics_email_frequency?: 'none' | 'weekly' | 'monthly' }): Promise<import('../types').UserSettings> {
+  async updateSettings(updates: { language?: string; locale?: string; first_day_of_week?: 'sunday' | 'monday'; statistics_email_frequency?: 'none' | 'weekly' | 'monthly'; setup_completed?: boolean }): Promise<import('../types').UserSettings> {
     return api.put('api/user-settings', { json: updates }).json();
   },
 

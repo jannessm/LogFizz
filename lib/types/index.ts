@@ -29,6 +29,7 @@ export interface UserSettings {
   locale: string; // Locale for date/time formatting e.g., 'en-US', 'de-DE'
   first_day_of_week: 'sunday' | 'monday'; // Starting day of the week in calendar views
   statistics_email_frequency: StatisticsEmailFrequency; // How often to send statistics emails
+  setup_completed: boolean; // Whether the user has completed the initial setup wizard
   created_at: string;
   updated_at: string;
 }
@@ -252,7 +253,6 @@ export interface BalanceEntity extends Omit<Balance, 'created_at' | 'updated_at'
 }
 
 export interface UserEntity extends Omit<User, 'created_at' | 'updated_at' | 'deleted_at' | 'email_verified_at' | 'subscription_end_date' | 'trial_end_date'> {
-  password_hash: string;
   created_at: Date;
   updated_at: Date;
   deleted_at?: Date;
@@ -261,6 +261,11 @@ export interface UserEntity extends Omit<User, 'created_at' | 'updated_at' | 'de
   email_verification_expires_at?: Date;
   reset_token?: string;
   reset_token_expires_at?: Date;
+  magic_link_token?: string;
+  magic_link_token_expires_at?: Date;
+  pending_email?: string;
+  email_change_token?: string;
+  email_change_token_expires_at?: Date;
   subscription_end_date?: Date;
   trial_end_date?: Date;
 }

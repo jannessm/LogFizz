@@ -114,6 +114,7 @@
       const end = combineDateAndTime(endDateValue, endTime);
       
       if (start) allDateTimes.push(start);
+      // Skip empty end — active timelog
       if (end) allDateTimes.push(end);
     });
 
@@ -154,7 +155,10 @@
       
       const start = combineDateAndTime(startDateValue, startTime);
       const end = combineDateAndTime(endDateValue, endTime);
-      
+
+      // Active (running) timelog — no end value, skip silently
+      if (start && !end) return;
+
       const isValidStart = isValidDateTime(start, customDateFormats);
       const isValidEnd = isValidDateTime(end, customDateFormats);
       
@@ -260,8 +264,11 @@
       
       const start = combineDateAndTime(startDateValue, startTime);
       const end = combineDateAndTime(endDateValue, endTime);
-      const isValidStart = isValidDateTime(start, customDateFormats);
-      const isValidEnd = isValidDateTime(end, customDateFormats);
+
+      // Active (running) timelog — will be skipped on import
+      const isActiveTimelog = !!start && !end;
+      const isValidStart = isActiveTimelog || isValidDateTime(start, customDateFormats);
+      const isValidEnd = isActiveTimelog || isValidDateTime(end, customDateFormats);
       const isValid = isValidStart && isValidEnd;
       
       // Detect format for debugging
@@ -272,6 +279,7 @@
         start, 
         end, 
         isValid,
+        isActiveTimelog,
         startFormat,
         endFormat,
         startDateValue,
@@ -455,15 +463,18 @@
         <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-2 max-h-40 overflow-y-auto">
           {#each previewLogs as log, index}
             <div 
-              class="flex items-start gap-2 text-sm p-2 rounded {log.isValid ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'}"
+              class="flex items-start gap-2 text-sm p-2 rounded {log.isActiveTimelog ? 'bg-gray-100 dark:bg-gray-600/50 text-gray-500 dark:text-gray-400' : log.isValid ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'}"
             >
               <span class="w-4 h-4 mt-0.5 flex-shrink-0" 
-                class:icon-[si--check-circle-line]={log.isValid}
-                class:icon-[si--close-circle-line]={!log.isValid}
+                class:icon-[si--check-circle-line]={log.isValid && !log.isActiveTimelog}
+                class:icon-[si--close-circle-line]={!log.isValid && !log.isActiveTimelog}
+                class:icon-[si--skip-forward-line]={log.isActiveTimelog}
               ></span>
               <div class="flex-1 min-w-0">
-                <div class="font-medium truncate">Row {index + 2}: {log.start} → {log.end}</div>
-                {#if log.isValid}
+                <div class="font-medium truncate">Row {index + 2}: {log.start} → {log.end || '—'}</div>
+                {#if log.isActiveTimelog}
+                  <div class="text-xs mt-0.5 opacity-80">{$_('import.skipped')} ({$_('import.activeTimelog')})</div>
+                {:else if log.isValid}
                   <div class="text-xs mt-0.5 opacity-80">
                     Format: {log.startFormat || 'Unknown'}
                   </div>

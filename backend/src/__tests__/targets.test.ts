@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { buildApp } from '../app.js';
 import { FastifyInstance } from 'fastify';
 import dayjs from '../../../lib/utils/dayjs.js';
+import { registerAndAuthenticate } from './testHelpers.js';
 
 describe('Target Sync Routes with Nested Specs', () => {
   let app: FastifyInstance;
@@ -11,29 +12,13 @@ describe('Target Sync Routes with Nested Specs', () => {
   beforeAll(async () => {
     app = await buildApp();
 
-    // Register and login a test user
-    const email = `targettest${Date.now()}@example.com`;
-    await app.inject({
-      method: 'POST',
-      url: '/api/auth/register',
-      payload: {
-        email,
-        password: 'testpassword123',
-        name: 'Target Test User',
-      },
+    // Register and authenticate a test user via magic link
+    const result = await registerAndAuthenticate(app, {
+      email: `targettest${Date.now()}@example.com`,
+      name: 'Target Test User',
     });
-
-    const loginResponse = await app.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      payload: {
-        email,
-        password: 'testpassword123',
-      },
-    });
-
-    authCookie = loginResponse.headers['set-cookie'] as string;
-    userId = JSON.parse(loginResponse.body).id;
+    authCookie = result.authCookie;
+    userId = result.userId;
   });
 
   afterAll(async () => {

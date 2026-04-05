@@ -17,14 +17,44 @@ export const DATE_TIME_FORMATS = [
 ];
 
 /**
- * Column detection patterns
+ * Column detection patterns.
+ *
+ * Each column type has two lists:
+ *   exact    – header must equal the pattern (case-insensitive); checked first
+ *   contains – header must contain the pattern as a substring; checked second
+ *
+ * Detection order within each round: startTime → endTime → startDate → endDate → notes.
+ * Time slots are filled before date slots so that:
+ *   - In a simple layout [Begin, End]:  End → endTimeColumn
+ *   - In a split layout [Start, Startzeit, Ende, Endzeit]:
+ *       Startzeit → startTimeColumn (exact), Endzeit → endTimeColumn (exact),
+ *       then Start → startDateColumn, Ende → endDateColumn (next header iteration)
  */
 export const COLUMN_PATTERNS = {
-  startDate: ['startdate', 'start date', 'start_date', 'date', 'datum', 'day', 'tag'],
-  endDate: ['enddate', 'end date', 'end_date'],
-  startTime: ['start', 'begin', 'from', 'anfang'],
-  endTime: ['end', 'stop', 'to', 'ende', 'bis'],
-  notes: ['note', 'notes', 'notiz', 'notizen', 'description', 'beschreibung', 'comment', 'kommentar'],
+  startDate: {
+    exact: ['startdate', 'start date', 'start_date', 'date', 'datum', 'day', 'tag'],
+    // 'start' and 'beginn' are intentionally not in `exact` here —
+    // they live in startTime.exact and are promoted to startDate only
+    // in round 2 (contains) when the startTime slot is already taken.
+    contains: ['startdate', 'start date', 'start_date', 'datum', 'start', 'beginn'],
+  },
+  endDate: {
+    exact: ['enddate', 'end date', 'end_date'],
+    // 'ende' and 'end' are promoted to endDate in round 2 when endTime is taken.
+    contains: ['enddate', 'end date', 'end_date', 'ende', 'end'],
+  },
+  startTime: {
+    exact: ['startzeit', 'start time', 'start_time', 'start', 'beginn', 'begin', 'from', 'anfang'],
+    contains: ['startzeit', 'start time', 'start_time', 'start', 'beginn', 'begin', 'anfang'],
+  },
+  endTime: {
+    exact: ['endzeit', 'end time', 'end_time', 'ende', 'end', 'stop', 'to', 'bis'],
+    contains: ['endzeit', 'end time', 'end_time', 'ende', 'end', 'stop', 'bis'],
+  },
+  notes: {
+    exact: ['note', 'notes', 'notiz', 'notizen', 'description', 'beschreibung', 'comment', 'kommentar'],
+    contains: ['note', 'notiz', 'description', 'beschreibung', 'comment', 'kommentar'],
+  },
 } as const;
 
 /**
@@ -98,40 +128,66 @@ export function parseCSV(text: string): ParsedCSV {
 }
 
 /**
- * Auto-detects date and time columns based on header names
+ * Auto-detects date and time columns based on header names.
+ *
+ * Each pattern set has two lists:
+ *   exact    – header must equal the pattern (case-insensitive); checked first
+ *   contains – header must contain the pattern as a substring; checked second
+ *
+ * Within the exact round, headers are sorted by length (longest first) so
+ * that more-specific names like "Startzeit" are assigned before shorter
+ * names like "Start" that match the same slot.
+ *
+ * Detection order within each round: startTime → endTime → startDate → endDate → notes.
+ * Time slots are filled before date slots so that bare words like "Start"/"Ende"
+ * fall through to date slots when a *Zeit column already claimed the time slot.
+ *
+ * This handles both layouts correctly:
+ *   Simple:  [Begin, End]              → startTime=Begin, endTime=End
+ *   German:  [Start, Startzeit, Ende, Endzeit]
+ *              → startTime=Startzeit, startDate=Start,
+ *                 endTime=Endzeit,    endDate=Ende
  */
 export function autoDetectColumns(headers: string[]): AutoDetectedColumns {
   const result: AutoDetectedColumns = {};
+  const assignedHeaders = new Set<string>();
 
-  for (const header of headers) {
-    const lowerHeader = header.toLowerCase();
-    
-    // Check date columns first (more specific patterns)
-    if (!result.startDateColumn && COLUMN_PATTERNS.startDate.some(p => lowerHeader.includes(p))) {
-      result.startDateColumn = header;
-    }
-    if (!result.endDateColumn && COLUMN_PATTERNS.endDate.some(p => lowerHeader.includes(p))) {
-      result.endDateColumn = header;
+  type ColKey = 'startDate' | 'endDate' | 'startTime' | 'endTime' | 'notes';
+  const resultKey: Record<ColKey, keyof AutoDetectedColumns> = {
+    startDate: 'startDateColumn',
+    endDate: 'endDateColumn',
+    startTime: 'startTimeColumn',
+    endTime: 'endTimeColumn',
+    notes: 'notesColumn',
+  };
+  const order: ColKey[] = ['startTime', 'endTime', 'startDate', 'endDate', 'notes'];
+
+  // Round 1: exact match — sort headers longest-first so "Startzeit" (9 chars)
+  // is assigned before "Start" (5 chars) when both are present in the same CSV.
+  const byLengthDesc = [...headers].sort((a, b) => b.length - a.length);
+  for (const header of byLengthDesc) {
+    const lower = header.toLowerCase();
+    for (const col of order) {
+      if (result[resultKey[col]]) continue;
+      if (COLUMN_PATTERNS[col].exact.some((p: string) => lower === p)) {
+        result[resultKey[col]] = header;
+        assignedHeaders.add(header);
+        break;
+      }
     }
   }
 
-  // Then check time columns (avoid matching date columns)
+  // Round 2: substring match — original header order, skip already-assigned
   for (const header of headers) {
-    const lowerHeader = header.toLowerCase();
-    
-    // Skip if already identified as a date column
-    if (header === result.startDateColumn || header === result.endDateColumn) {
-      continue;
-    }
-    
-    if (!result.startTimeColumn && COLUMN_PATTERNS.startTime.some(p => lowerHeader.includes(p))) {
-      result.startTimeColumn = header;
-    }
-    if (!result.endTimeColumn && COLUMN_PATTERNS.endTime.some(p => lowerHeader.includes(p))) {
-      result.endTimeColumn = header;
-    }
-    if (!result.notesColumn && COLUMN_PATTERNS.notes.some(p => lowerHeader.includes(p))) {
-      result.notesColumn = header;
+    if (assignedHeaders.has(header)) continue;
+    const lower = header.toLowerCase();
+    for (const col of order) {
+      if (result[resultKey[col]]) continue;
+      if (COLUMN_PATTERNS[col].contains.some((p: string) => lower.includes(p))) {
+        result[resultKey[col]] = header;
+        assignedHeaders.add(header);
+        break;
+      }
     }
   }
 
@@ -306,6 +362,9 @@ export function validateAndConvertTimelogs(rows: TimelogRow[], options?: Validat
         errors.push(`Row ${row.rowIndex + 2}: End time is before start time`);
       }
     } else {
+      // Row has no end time — it is an active (running) timelog; skip silently
+      if (!endDate && !row.endValue && startDate) continue;
+
       if (!startDate) {
         errors.push(`Row ${row.rowIndex + 2}: Invalid start time "${row.startValue}"`);
       }

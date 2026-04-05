@@ -7,13 +7,19 @@
     "invalidPassword": "Ungültiges Passwort",
     "invalidResetToken": "Ungültiger oder abgelaufener Reset-Token",
     "invalidVerificationToken": "Ungültiger oder abgelaufener Bestätigungstoken",
+    "invalidMagicLinkToken": "Ungültiger oder abgelaufener Anmeldelink. Bitte fordern Sie einen neuen an.",
     "loggedOutSuccess": "Erfolgreich abgemeldet",
+    "magicLinkSent": "Falls ein Konto mit dieser E-Mail existiert, wurde ein Anmeldelink gesendet.",
     "passwordChangedSuccess": "Passwort erfolgreich geändert",
     "passwordResetSent": "Falls ein Konto mit dieser E-Mail existiert, wurde ein Link zum Zurücksetzen des Passworts gesendet.",
     "passwordResetSuccess": "Passwort wurde erfolgreich zurückgesetzt",
     "userNotFound": "Benutzer nicht gefunden",
     "verificationSent": "Falls ein Konto mit dieser E-Mail existiert und nicht verifiziert ist, wurde ein Bestätigungslink gesendet.",
-    "verificationWrongAccount": "Dieser Bestätigungslink ist für ein anderes Konto. Eine neue Bestätigungs-E-Mail wurde an die richtige E-Mail-Adresse gesendet."
+    "verificationWrongAccount": "Dieser Bestätigungslink ist für ein anderes Konto. Eine neue Bestätigungs-E-Mail wurde an die richtige E-Mail-Adresse gesendet.",
+    "emailChangeSent": "Eine Bestätigungs-E-Mail wurde an Ihre neue E-Mail-Adresse gesendet.",
+    "emailChangeSuccess": "E-Mail-Adresse erfolgreich geändert.",
+    "invalidEmailChangeToken": "Ungültiger oder abgelaufener E-Mail-Änderungstoken.",
+    "emailAlreadyInUse": "Diese E-Mail-Adresse wird bereits verwendet."
   },
   "common": {
     "error": "Fehler",
@@ -83,7 +89,21 @@
     "welcomeThankYou": "Vielen Dank für Ihre Registrierung!",
     "welcomeTitle": "Willkommen bei TapShift!",
     "welcomeVerifyButton": "Meine E-Mail bestätigen",
-    "welcomeVerifyPrompt": "Bitte bestätigen Sie Ihre E-Mail-Adresse, um zu beginnen:"
+    "welcomeVerifyPrompt": "Bitte bestätigen Sie Ihre E-Mail-Adresse, um zu beginnen:",
+    "magicLinkTitle": "Bei TapShift anmelden",
+    "magicLinkSubject": "TapShift - Ihr Anmeldelink",
+    "magicLinkIntro": "Wir haben eine Anfrage erhalten, sich bei Ihrem TapShift-Konto anzumelden.",
+    "magicLinkPrompt": "Klicken Sie auf die Schaltfläche unten, um sich anzumelden:",
+    "magicLinkButton": "Bei TapShift anmelden",
+    "magicLinkExpiry": "Dieser Anmeldelink läuft in 15 Minuten ab.",
+    "magicLinkIgnore": "Wenn Sie diesen Link nicht angefordert haben, ignorieren Sie bitte diese E-Mail. Niemand kann ohne diesen Link auf Ihr Konto zugreifen.",
+    "emailChangeTitle": "Neue E-Mail-Adresse bestätigen",
+    "emailChangeSubject": "TapShift - E-Mail-Änderung bestätigen",
+    "emailChangeIntro": "Sie haben eine Änderung Ihrer E-Mail-Adresse angefordert zu:",
+    "emailChangePrompt": "Klicken Sie auf die Schaltfläche unten, um Ihre neue E-Mail-Adresse zu bestätigen:",
+    "emailChangeButton": "Neue E-Mail bestätigen",
+    "emailChangeExpiry": "Dieser Bestätigungslink läuft in 24 Stunden ab.",
+    "emailChangeIgnore": "Wenn Sie diese Änderung nicht angefordert haben, ignorieren Sie bitte diese E-Mail. Ihre E-Mail-Adresse bleibt unverändert."
   },
   "payment": {
     "adminPasswordNotConfigured": "Admin-Passwort nicht konfiguriert",

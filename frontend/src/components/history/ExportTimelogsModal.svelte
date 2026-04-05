@@ -64,7 +64,8 @@
   let timelogsToExport = $derived(() => {
     if (selectedTimerIds.size === 0) return [];
     
-    let logs = $timerlogs.filter(log => selectedTimerIds.has(log.timer_id));
+    // Exclude active (running) timelogs — they have no end_timestamp
+    let logs = $timerlogs.filter(log => selectedTimerIds.has(log.timer_id) && !!log.end_timestamp);
     
     // Apply date range filter if set
     if (startDate) {

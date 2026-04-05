@@ -1,6 +1,8 @@
 import nodemailer from 'nodemailer';
 import { generateWelcomeEmail } from '../templates/emails/welcome.template.js';
 import { generatePasswordResetEmail } from '../templates/emails/password-reset.template.js';
+import { generateMagicLinkEmail } from '../templates/emails/magic-link.template.js';
+import { generateEmailChangeVerificationEmail } from '../templates/emails/email-change.template.js';
 import { generateStatisticsEmail } from '../templates/emails/statistics.template.js';
 import { generateUserBalanceEmail } from '../templates/emails/user-balance.template.js';
 import { SystemStatistics } from './statistics.service.js';
@@ -60,7 +62,7 @@ export class EmailService {
   }
 
   async sendWelcomeEmail(email: string, verificationToken: string, userName: string, locale: string = 'en-US'): Promise<void> {
-    const verificationUrl = `${this.appUrl}/verify-email?token=${verificationToken}`;
+    const verificationUrl = `${this.appUrl}/verify-magic-link?token=${verificationToken}`;
 
     const emailContent = generateWelcomeEmail({
       userName,
@@ -92,7 +94,7 @@ export class EmailService {
     attemptedByEmail: string,
     locale: string = 'en-US'
   ): Promise<void> {
-    const verificationUrl = `${this.appUrl}/verify-email?token=${verificationToken}`;
+    const verificationUrl = `${this.appUrl}/verify-magic-link?token=${verificationToken}`;
     const lang = getLanguageFromLocale(locale);
 
     const emailContent = generateWelcomeEmail({
@@ -203,6 +205,68 @@ export class EmailService {
     } catch (error) {
       console.error('Failed to send user balance email:', error);
       throw new Error('Failed to send user balance email');
+    }
+  }
+
+  async sendMagicLinkEmail(email: string, magicLinkToken: string, userName: string, locale: string = 'en-US'): Promise<void> {
+    const magicLinkUrl = `${this.appUrl}/verify-magic-link?token=${magicLinkToken}`;
+
+    const emailContent = generateMagicLinkEmail({
+      userName,
+      magicLinkUrl,
+      appUrl: this.appUrl,
+      locale,
+    });
+
+    if (process.env.NODE_ENV === 'development') {
+      email = process.env.ADMIN_EMAIL || email; // Override email in development to avoid sending to real users
+    }
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: email,
+      subject: emailContent.subject,
+      html: emailContent.html,
+      text: emailContent.text,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send magic link email:', error);
+      throw new Error('Failed to send magic link email');
+    }
+  }
+
+  async sendEmailChangeVerification(
+    newEmail: string,
+    verificationToken: string,
+    userName: string,
+    locale: string = 'en-US'
+  ): Promise<void> {
+    const verificationUrl = `${this.appUrl}/verify-email-change?token=${verificationToken}`;
+
+    const emailContent = generateEmailChangeVerificationEmail({
+      userName,
+      verificationUrl,
+      newEmail,
+      appUrl: this.appUrl,
+      locale,
+    });
+
+    const mailOptions = {
+      from: this.fromEmail,
+      to: newEmail,
+      subject: emailContent.subject,
+      html: emailContent.html,
+      text: emailContent.text,
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Failed to send email change verification:', error);
+      throw new Error('Failed to send email change verification');
     }
   }
 

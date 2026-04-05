@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { buildApp } from '../app.js';
 import { FastifyInstance } from 'fastify';
 import { AppDataSource } from '../config/database.js';
+import { registerAndAuthenticate } from './testHelpers.js';
 
 describe('Sync API - Offline-First', () => {
   let app: FastifyInstance;
@@ -25,28 +26,14 @@ describe('Sync API - Offline-First', () => {
     await AppDataSource.getRepository('Timer').deleteAll();
     await AppDataSource.getRepository('User').deleteAll();
 
-    // Register and login
-    const registerResponse = await app.inject({
-      method: 'POST',
-      url: '/api/auth/register',
-      payload: {
-        email: 'sync@test.com',
-        password: 'password123',
-        name: 'Sync Test',
-      },
+    // Register and authenticate via magic link
+    const result = await registerAndAuthenticate(app, {
+      email: 'sync@test.com',
+      name: 'Sync Test',
     });
 
-    const loginResponse = await app.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      payload: {
-        email: 'sync@test.com',
-        password: 'password123',
-      },
-    });
-
-    sessionCookie = loginResponse.headers['set-cookie'] as string;
-    userId = JSON.parse(registerResponse.payload).id;
+    sessionCookie = result.authCookie;
+    userId = result.userId;
   });
 
   describe('Timer Sync - Client-Side UUID Generation', () => {

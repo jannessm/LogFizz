@@ -10,9 +10,6 @@ export class User implements UserEntity {
   email!: string;
 
   @Column('varchar')
-  password_hash!: string;
-
-  @Column('varchar')
   name!: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
@@ -38,6 +35,21 @@ export class User implements UserEntity {
 
   @Column('timestamptz', { nullable: true })
   reset_token_expires_at?: Date;
+
+  @Column('varchar', { nullable: true })
+  magic_link_token?: string;
+
+  @Column('timestamptz', { nullable: true })
+  magic_link_token_expires_at?: Date;
+
+  @Column('varchar', { nullable: true })
+  pending_email?: string;
+
+  @Column('varchar', { nullable: true })
+  email_change_token?: string;
+
+  @Column('timestamptz', { nullable: true })
+  email_change_token_expires_at?: Date;
 
   @OneToMany('Timer', 'user')
   timers?: any[];

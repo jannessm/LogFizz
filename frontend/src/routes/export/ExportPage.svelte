@@ -124,6 +124,9 @@
   let filteredTimelogs = $derived.by(() => {
     let logs = $timerlogs;
 
+    // Exclude active (running) timelogs — they have no end_timestamp
+    logs = logs.filter(log => !!log.end_timestamp);
+
     // Date filter
     if (filters.dateFrom) {
       const fromDate = filters.dateFrom.startOf('day');

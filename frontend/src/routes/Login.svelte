@@ -7,10 +7,10 @@
   import { get } from 'svelte/store';
 
   let email = '';
-  let password = '';
   let name = '';
   let isRegisterMode = false;
   let errorMessage = '';
+  let successMessage = '';
   let isLoading = false;
   let hcaptchaToken = '';
   let hcaptchaComponent: { reset: () => void } | undefined = undefined;
@@ -52,28 +52,27 @@
 
   async function handleSubmit() {
     errorMessage = '';
-    
-    if (!hcaptchaToken) {
-      errorMessage = $_('auth.completeHCaptcha');
-      return;
+    successMessage = '';
+
+    if (isRegisterMode) {
+      // Registration requires hCaptcha
+      if (!hcaptchaToken && HCAPTCHA_SITE_KEY) {
+        errorMessage = $_('auth.completeHCaptcha');
+        return;
+      }
     }
 
     isLoading = true;
 
     try {
       if (isRegisterMode) {
-        await authStore.register(email, password, name, hcaptchaToken);
+        await authStore.register(email, name, hcaptchaToken);
+        // After registration, show success message (user must check email for magic link)
+        successMessage = $_('auth.registrationSuccess');
       } else {
-        await authStore.login(email, password, hcaptchaToken);
-      }
-      
-      // Check if there's a saved redirect path (e.g., from verify-email)
-      const savedRedirect = sessionStorage.getItem('redirectAfterLogin');
-      if (savedRedirect) {
-        sessionStorage.removeItem('redirectAfterLogin');
-        navigate(savedRedirect);
-      } else {
-        navigate('/');
+        // Login: request magic link
+        await authStore.requestMagicLink(email);
+        successMessage = $_('auth.magicLinkSent');
       }
     } catch (error: any) {
       // Check for rate limiting (429 Too Many Requests)
@@ -83,7 +82,7 @@
         errorMessage = error.message || $_('auth.authFailed');
       }
       // Reset hCaptcha on error
-      if (hcaptchaComponent?.reset) {
+      if (isRegisterMode && hcaptchaComponent?.reset) {
         hcaptchaComponent.reset();
       }
       hcaptchaToken = '';
@@ -95,6 +94,7 @@
   function toggleMode() {
     isRegisterMode = !isRegisterMode;
     errorMessage = '';
+    successMessage = '';
     hcaptchaToken = '';
     // Reset hCaptcha when switching modes
     if (hcaptchaComponent?.reset) {
@@ -115,99 +115,93 @@
       </div>
     {/if}
 
-    <form on:submit|preventDefault={handleSubmit} class="space-y-4">
-      {#if isRegisterMode}
-        <div>
-          <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {$_('auth.name')}
-          </label>
-          <input
-            id="name"
-            type="text"
-            bind:value={name}
-            required
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
-            placeholder={$_('auth.name')}
-          />
+    {#if successMessage}
+      <!-- Intermediate "check your email" page (login and register) -->
+      <div class="text-center space-y-4">
+        <div class="flex justify-center">
+          <svg class="w-16 h-16 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
         </div>
-      {/if}
-
-      <div>
-        <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {$_('auth.email')}
-        </label>
-        <input
-          id="email"
-          type="email"
-          bind:value={email}
-          required
-          pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]&#123;2,&#125;"
-          title={$_('validation.validEmailRequired')}
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
-          placeholder="your@email.com"
-        />
+        <p class="text-gray-700 dark:text-gray-300 text-base">
+          {successMessage}
+        </p>
+        <button
+          on:click={() => { successMessage = ''; email = ''; isRegisterMode = false; }}
+          class="text-primary hover:underline text-sm"
+        >
+          {$_('auth.backToLogin')}
+        </button>
       </div>
-
-      <div>
-        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {$_('auth.password')}
-        </label>
-        <input
-          id="password"
-          type="password"
-          bind:value={password}
-          required
-          minlength={isRegisterMode ? 8 : undefined}
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
-          placeholder="••••••••"
-        />
-        {#if !isRegisterMode}
-          <div class="mt-1 text-right">
-            <button
-              type="button"
-              on:click={() => navigate('/forgot-password')}
-              disabled={!isOnline}
-              class="text-xs text-primary hover:underline disabled:text-gray-400 disabled:cursor-not-allowed disabled:no-underline"
-            >
-              {$_('auth.forgotPassword')}
-            </button>
+    {:else}
+      <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+        {#if isRegisterMode}
+          <div>
+            <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {$_('auth.name')}
+            </label>
+            <input
+              id="name"
+              type="text"
+              bind:value={name}
+              required
+              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder={$_('auth.name')}
+            />
           </div>
         {/if}
-      </div>
 
-      {#if HCAPTCHA_SITE_KEY}
-        <HCaptcha 
-          bind:this={hcaptchaComponent}
-          sitekey={HCAPTCHA_SITE_KEY}
-          onVerify={handleHCaptchaVerify}
-          onError={handleHCaptchaError}
-          onExpire={handleHCaptchaExpire}
-        />
-      {/if}
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {$_('auth.email')}
+          </label>
+          <input
+            id="email"
+            type="email"
+            bind:value={email}
+            required
+            pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]&#123;2,&#125;"
+            title={$_('validation.validEmailRequired')}
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
+            placeholder="your@email.com"
+          />
+        </div>
 
-      <button
-        type="submit"
-        disabled={isLoading || !isOnline || (!hcaptchaToken && !!HCAPTCHA_SITE_KEY)}
-        class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-hover disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
-      >
-        {#if !isOnline}
-          {$_('common.offline')}
-        {:else}
-          {isLoading ? $_('auth.pleaseWait') : isRegisterMode ? $_('auth.register') : $_('auth.login')}
+        {#if isRegisterMode && HCAPTCHA_SITE_KEY}
+          <HCaptcha 
+            bind:this={hcaptchaComponent}
+            sitekey={HCAPTCHA_SITE_KEY}
+            onVerify={handleHCaptchaVerify}
+            onError={handleHCaptchaError}
+            onExpire={handleHCaptchaExpire}
+          />
         {/if}
-      </button>
-    </form>
 
-    <div class="mt-6 text-center">
-      <button
-        on:click={toggleMode}
-        disabled={!isOnline}
-        class="text-primary hover:underline text-sm disabled:text-gray-400 disabled:cursor-not-allowed disabled:no-underline"
-      >
-        {isRegisterMode 
-          ? $_('auth.hasAccount')
-          : $_('auth.noAccount')}
-      </button>
-    </div>
+        <button
+          type="submit"
+          disabled={isLoading || !isOnline || (isRegisterMode && !hcaptchaToken && !!HCAPTCHA_SITE_KEY)}
+          class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-hover disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+        >
+          {#if !isOnline}
+            {$_('common.offline')}
+          {:else}
+            {isLoading ? $_('auth.pleaseWait') : isRegisterMode ? $_('auth.register') : $_('auth.login')}
+          {/if}
+        </button>
+      </form>
+
+      <div class="mt-6 text-center">
+        <button
+          on:click={toggleMode}
+          disabled={!isOnline}
+          class="text-primary hover:underline text-sm disabled:text-gray-400 disabled:cursor-not-allowed disabled:no-underline"
+        >
+          {isRegisterMode 
+            ? $_('auth.hasAccount')
+            : $_('auth.noAccount')}
+        </button>
+      </div>
+    {/if}
   </div>
 </div>

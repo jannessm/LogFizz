@@ -9,6 +9,8 @@ import crypto from 'crypto';
 class MockEmailService extends EmailService {
   public lastWelcomeEmail: { email: string; token: string; name: string } | null = null;
   public lastSecurityNoticeEmail: { email: string; token: string; name: string; attemptedBy: string } | null = null;
+  public lastMagicLinkEmail: { email: string; token: string; name: string } | null = null;
+  public lastEmailChangeEmail: { email: string; token: string; name: string } | null = null;
 
   async sendWelcomeEmail(email: string, token: string, name: string): Promise<void> {
     this.lastWelcomeEmail = { email, token, name };
@@ -22,7 +24,14 @@ class MockEmailService extends EmailService {
     attemptedByEmail: string
   ): Promise<void> {
     this.lastSecurityNoticeEmail = { email, token, name, attemptedBy: attemptedByEmail };
-    // Don't actually send email in tests
+  }
+
+  async sendMagicLinkEmail(email: string, token: string, name: string): Promise<void> {
+    this.lastMagicLinkEmail = { email, token, name };
+  }
+
+  async sendEmailChangeVerification(email: string, verificationToken: string, name: string): Promise<void> {
+    this.lastEmailChangeEmail = { email, token: verificationToken, name };
   }
 }
 
@@ -56,33 +65,33 @@ describe('Email Verification', () => {
     await userRepo.delete({ email: 'verify2@example.com' });
     mockEmailService.lastWelcomeEmail = null;
     mockEmailService.lastSecurityNoticeEmail = null;
+    mockEmailService.lastMagicLinkEmail = null;
+    mockEmailService.lastEmailChangeEmail = null;
   });
 
   describe('User Registration', () => {
-    it('should generate verification token on registration', async () => {
+    it('should generate magic link token on registration', async () => {
       const user = await authService.register(
         'verify@example.com',
-        'password123',
         'Test User'
       );
 
       expect(user).toBeDefined();
-      expect(user.email_verification_token).toBeDefined();
-      expect(user.email_verification_token).toHaveLength(64); // 32 bytes hex = 64 chars
-      expect(user.email_verification_expires_at).toBeDefined();
+      expect(user.magic_link_token).toBeDefined();
+      expect(user.magic_link_token).toHaveLength(64); // 32 bytes hex = 64 chars
+      expect(user.magic_link_token_expires_at).toBeDefined();
       expect(user.email_verified_at).toBeNull();
 
       // Verify expiration is ~24 hours in the future
-      const expiresAt = user.email_verification_expires_at!;
+      const expiresAt = user.magic_link_token_expires_at!;
       const hoursUntilExpiry = (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60);
       expect(hoursUntilExpiry).toBeGreaterThan(23.9);
       expect(hoursUntilExpiry).toBeLessThan(24.1);
     });
 
-    it('should send welcome email with verification link', async () => {
+    it('should send welcome email with magic link', async () => {
       const user = await authService.register(
         'verify@example.com',
-        'password123',
         'Test User'
       );
 
@@ -92,47 +101,46 @@ describe('Email Verification', () => {
       expect(mockEmailService.lastWelcomeEmail).toBeDefined();
       expect(mockEmailService.lastWelcomeEmail?.email).toBe('verify@example.com');
       expect(mockEmailService.lastWelcomeEmail?.name).toBe('Test User');
-      expect(mockEmailService.lastWelcomeEmail?.token).toBe(user.email_verification_token);
+      expect(mockEmailService.lastWelcomeEmail?.token).toBe(user.magic_link_token);
     });
   });
 
-  describe('Email Verification', () => {
-    it('should verify email with valid token for authenticated user', async () => {
+  describe('Magic Link Verification', () => {
+    it('should verify magic link and mark email as verified', async () => {
       // Register user
       const user = await authService.register(
         'verify@example.com',
-        'password123',
         'Test User'
       );
 
-      const token = user.email_verification_token!;
+      const token = user.magic_link_token!;
       expect(token).toBeDefined();
 
-      // Verify email with correct user
-      const success = await authService.verifyEmail(token, user.id);
-      expect(success).toBe(true);
+      // Verify magic link
+      const verifiedUser = await authService.verifyMagicLink(token);
+      expect(verifiedUser).toBeDefined();
+      expect(verifiedUser!.email_verified_at).toBeDefined();
 
-      // Check user is now verified
-      const verifiedUser = await userRepo.findOne({ 
+      // Check user is now verified in DB
+      const dbUser = await userRepo.findOne({ 
         where: { email: 'verify@example.com' } 
       });
-      expect(verifiedUser.email_verified_at).toBeDefined();
-      expect(verifiedUser.email_verification_token).toBeNull();
-      expect(verifiedUser.email_verification_expires_at).toBeNull();
+      expect(dbUser.email_verified_at).toBeDefined();
+      expect(dbUser.magic_link_token).toBeNull();
+      expect(dbUser.magic_link_token_expires_at).toBeNull();
     });
 
     it('should fail with invalid token', async () => {
       // Register user
-      const user = await authService.register(
+      await authService.register(
         'verify@example.com',
-        'password123',
         'Test User'
       );
 
       // Try with wrong token
       const invalidToken = crypto.randomBytes(32).toString('hex');
-      const success = await authService.verifyEmail(invalidToken, user.id);
-      expect(success).toBe(false);
+      const result = await authService.verifyMagicLink(invalidToken);
+      expect(result).toBeNull();
 
       // User should still be unverified
       const unverifiedUser = await userRepo.findOne({ 
@@ -145,17 +153,16 @@ describe('Email Verification', () => {
       // Register user
       const user = await authService.register(
         'verify@example.com',
-        'password123',
         'Test User'
       );
 
       // Manually expire the token
-      user.email_verification_expires_at = new Date(Date.now() - 1000); // 1 second ago
+      user.magic_link_token_expires_at = new Date(Date.now() - 1000); // 1 second ago
       await userRepo.save(user);
 
-      const token = user.email_verification_token!;
-      const success = await authService.verifyEmail(token, user.id);
-      expect(success).toBe(false);
+      const token = user.magic_link_token!;
+      const result = await authService.verifyMagicLink(token);
+      expect(result).toBeNull();
 
       // User should still be unverified
       const unverifiedUser = await userRepo.findOne({ 
@@ -163,24 +170,53 @@ describe('Email Verification', () => {
       });
       expect(unverifiedUser.email_verified_at).toBeNull();
     });
+  });
+
+  describe('Email Verification (resend flow)', () => {
+    it('should verify email with valid token for authenticated user', async () => {
+      // Register user (not yet verified)
+      const user = await authService.register(
+        'verify@example.com',
+        'Test User'
+      );
+
+      // Resend verification to generate email_verification_token (user is not yet verified)
+      await authService.resendVerificationEmail('verify@example.com');
+
+      // Get the new verification token from DB
+      const dbUser = await userRepo.findOne({ where: { email: 'verify@example.com' } });
+      const verificationToken = dbUser.email_verification_token;
+
+      expect(verificationToken).toBeDefined();
+
+      // Verify with the email_verification_token
+      const success = await authService.verifyEmail(verificationToken, user.id);
+      expect(success).toBe(true);
+
+      // Check user is now verified
+      const verifiedUser = await userRepo.findOne({ 
+        where: { email: 'verify@example.com' } 
+      });
+      expect(verifiedUser.email_verified_at).toBeDefined();
+    });
 
     it('should fail when token belongs to different user', async () => {
       // Register first user
       const user1 = await authService.register(
         'verify@example.com',
-        'password123',
         'Test User 1'
       );
 
       // Register second user
       const user2 = await authService.register(
         'verify2@example.com',
-        'password456',
         'Test User 2'
       );
 
-      const token = user1.email_verification_token!;
-      const originalToken = token;
+      // Resend verification for user1 to generate email_verification_token
+      await authService.resendVerificationEmail('verify@example.com');
+      const dbUser1 = await userRepo.findOne({ where: { email: 'verify@example.com' } });
+      const token = dbUser1.email_verification_token!;
 
       // Clear the mock to track new emails
       mockEmailService.lastSecurityNoticeEmail = null;
@@ -188,7 +224,7 @@ describe('Email Verification', () => {
       // Try to verify user1's token while logged in as user2
       const result = await authService.verifyEmail(token, user2.id);
       
-      // Should return wrong_user with masked email
+      // Should return wrong_user
       expect(result).toHaveProperty('error', 'wrong_user');
       
       // User1 should still be unverified
@@ -199,10 +235,10 @@ describe('Email Verification', () => {
       
       // A new verification token should have been generated for user1
       expect(unverifiedUser1.email_verification_token).not.toBeNull();
-      expect(unverifiedUser1.email_verification_token).not.toBe(originalToken);
+      expect(unverifiedUser1.email_verification_token).not.toBe(token);
       
       // Security notice email should have been sent
-      const securityEmail = mockEmailService.lastSecurityNoticeEmail as { email: string; token: string; name: string; attemptedBy: string } | null;
+      const securityEmail = mockEmailService.lastSecurityNoticeEmail;
       expect(securityEmail).toBeDefined();
       expect(securityEmail!.email).toBe('verify@example.com');
       expect(securityEmail!.name).toBe('Test User 1');
@@ -219,11 +255,10 @@ describe('Email Verification', () => {
       // Register user
       const user = await authService.register(
         'verify@example.com',
-        'password123',
         'Test User'
       );
 
-      const originalToken = user.email_verification_token;
+      const originalMagicToken = user.magic_link_token;
       
       // Clear mock
       mockEmailService.lastWelcomeEmail = null;
@@ -240,7 +275,6 @@ describe('Email Verification', () => {
         where: { email: 'verify@example.com' } 
       });
       expect(updatedUser.email_verification_token).toBeDefined();
-      expect(updatedUser.email_verification_token).not.toBe(originalToken);
 
       // Check email was sent with new token
       expect(mockEmailService.lastWelcomeEmail).toBeDefined();
@@ -258,14 +292,13 @@ describe('Email Verification', () => {
     });
 
     it('should not resend if email already verified', async () => {
-      // Register and verify user
+      // Register and verify user via magic link
       const user = await authService.register(
         'verify@example.com',
-        'password123',
         'Test User'
       );
 
-      await authService.verifyEmail(user.email_verification_token!, user.id);
+      await authService.verifyMagicLink(user.magic_link_token!);
       
       // Clear mock
       mockEmailService.lastWelcomeEmail = null;
@@ -280,52 +313,54 @@ describe('Email Verification', () => {
   });
 
   describe('Complete Flow', () => {
-    it('should complete full registration and verification flow', async () => {
+    it('should complete full registration and magic link verification flow', async () => {
       // Step 1: Register
       const user = await authService.register(
         'verify@example.com',
-        'password123',
         'Test User'
       );
 
       expect(user.email_verified_at).toBeNull();
-      const verificationToken = user.email_verification_token!;
+      const magicLinkToken = user.magic_link_token!;
 
-      // Step 2: Verify email gets sent
+      // Step 2: Verify welcome email gets sent
       await new Promise(resolve => setTimeout(resolve, 100));
       expect(mockEmailService.lastWelcomeEmail).toBeDefined();
 
-      // Step 3: User clicks verification link (must be logged in as the same user)
-      const verificationSuccess = await authService.verifyEmail(verificationToken, user.id);
-      expect(verificationSuccess).toBe(true);
+      // Step 3: User clicks magic link to verify email and log in
+      const verifiedUser = await authService.verifyMagicLink(magicLinkToken);
+      expect(verifiedUser).toBeDefined();
 
-      // Step 4: User is now verified and can login
-      const verifiedUser = await userRepo.findOne({ 
+      // Step 4: User is now verified
+      const dbUser = await userRepo.findOne({ 
         where: { email: 'verify@example.com' } 
       });
-      expect(verifiedUser.email_verified_at).toBeDefined();
-      expect(verifiedUser.email_verification_token).toBeNull();
-
-      // Step 5: User can login normally
-      const loginUser = await authService.login('verify@example.com', 'password123');
-      expect(loginUser).toBeDefined();
-      expect(loginUser?.email).toBe('verify@example.com');
+      expect(dbUser.email_verified_at).toBeDefined();
+      expect(dbUser.magic_link_token).toBeNull();
     });
 
-    it('should allow login even without email verification', async () => {
+    it('should allow requesting a new magic link after registration', async () => {
       // Register user
       const user = await authService.register(
         'verify@example.com',
-        'password123',
         'Test User'
       );
 
       expect(user.email_verified_at).toBeNull();
 
-      // User can still login (email verification is optional for now)
-      const loginUser = await authService.login('verify@example.com', 'password123');
-      expect(loginUser).toBeDefined();
-      expect(loginUser?.email).toBe('verify@example.com');
+      // Request a new magic link (simulating login flow)
+      const success = await authService.requestMagicLink('verify@example.com');
+      expect(success).toBe(true);
+
+      // Verify a new magic link token was generated
+      const updatedUser = await userRepo.findOne({ 
+        where: { email: 'verify@example.com' } 
+      });
+      expect(updatedUser.magic_link_token).toBeDefined();
+      
+      // Magic link email should have been sent
+      expect(mockEmailService.lastMagicLinkEmail).toBeDefined();
+      expect(mockEmailService.lastMagicLinkEmail?.email).toBe('verify@example.com');
     });
   });
 });

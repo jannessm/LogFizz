@@ -10,12 +10,14 @@ describe('API Service', () => {
   describe('Module exports', () => {
     it('should export authApi', () => {
       expect(apiModule.authApi).toBeDefined();
-      expect(typeof apiModule.authApi.login).toBe('function');
+      expect(typeof apiModule.authApi.requestMagicLink).toBe('function');
+      expect(typeof apiModule.authApi.verifyMagicLink).toBe('function');
       expect(typeof apiModule.authApi.register).toBe('function');
       expect(typeof apiModule.authApi.logout).toBe('function');
       expect(typeof apiModule.authApi.getCurrentUser).toBe('function');
-      expect(typeof apiModule.authApi.changePassword).toBe('function');
       expect(typeof apiModule.authApi.updateProfile).toBe('function');
+      expect(typeof apiModule.authApi.requestEmailChange).toBe('function');
+      expect(typeof apiModule.authApi.verifyEmailChange).toBe('function');
     });
 
     it('should export timerApi', () => {

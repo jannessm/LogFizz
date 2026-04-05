@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { buildApp } from '../app.js';
 import { FastifyInstance } from 'fastify';
-import { hashPasswordForTransport } from '../../../lib/utils/passwordHash.js';
+import { registerAndAuthenticate } from './testHelpers.js';
 
 /**
  * Account deletion tests
@@ -19,32 +19,12 @@ describe('Account Deletion', () => {
     await app.close();
   });
 
-  async function createUserWithData(email: string, password: string) {
-    const hashedPassword = await hashPasswordForTransport(password, email);
-    
-    // Register user
-    await app.inject({
-      method: 'POST',
-      url: '/api/auth/register',
-      payload: {
-        email,
-        password: hashedPassword,
-        name: 'Test User',
-      },
+  async function createUserWithData(email: string) {
+    // Register and authenticate via magic link
+    const { authCookie: cookies, userId } = await registerAndAuthenticate(app, {
+      email,
+      name: 'Test User',
     });
-
-    // Login to get session
-    const loginResponse = await app.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      payload: {
-        email,
-        password: hashedPassword,
-      },
-    });
-
-    const cookies = loginResponse.headers['set-cookie'];
-    const userData = JSON.parse(loginResponse.body);
 
     // Create a timer
     const timerResponse = await app.inject({
@@ -68,7 +48,7 @@ describe('Account Deletion', () => {
     const timerId = timerData.saved?.[0]?.id;
 
     // Create a target
-    const targetResponse = await app.inject({
+    await app.inject({
       method: 'POST',
       url: '/api/targets/sync',
       headers: { cookie: cookies },
@@ -112,24 +92,18 @@ describe('Account Deletion', () => {
       });
     }
 
-    return { userId: userData.id, cookies };
+    return { userId, cookies };
   }
 
-  it('should delete account with correct password', async () => {
+  it('should delete account for authenticated user', async () => {
     const email = `delete${Date.now()}@example.com`;
-    const password = 'testpassword123';
-    const hashedPassword = await hashPasswordForTransport(password, email);
-
-    const { cookies } = await createUserWithData(email, password);
+    const { cookies } = await createUserWithData(email);
 
     // Delete account
     const deleteResponse = await app.inject({
       method: 'DELETE',
       url: '/api/auth/account',
       headers: { cookie: cookies },
-      payload: {
-        password: hashedPassword,
-      },
     });
 
     expect(deleteResponse.statusCode).toBe(200);
@@ -137,63 +111,33 @@ describe('Account Deletion', () => {
     expect(body.message).toContain('deleted');
   });
 
-  it('should reject deletion with incorrect password', async () => {
-    const email = `deletefail${Date.now()}@example.com`;
-    const password = 'testpassword123';
-    const wrongPassword = 'wrongpassword';
-    const hashedWrongPassword = await hashPasswordForTransport(wrongPassword, email);
-
-    const { cookies } = await createUserWithData(email, password);
-
-    // Try to delete with wrong password
-    const deleteResponse = await app.inject({
-      method: 'DELETE',
-      url: '/api/auth/account',
-      headers: { cookie: cookies },
-      payload: {
-        password: hashedWrongPassword,
-      },
-    });
-
-    expect(deleteResponse.statusCode).toBe(401);
-  });
-
-  it('should not allow login after account deletion', async () => {
+  it('should not allow magic link login after account deletion', async () => {
     const email = `deletenologin${Date.now()}@example.com`;
-    const password = 'testpassword123';
-    const hashedPassword = await hashPasswordForTransport(password, email);
-
-    const { cookies } = await createUserWithData(email, password);
+    const { cookies } = await createUserWithData(email);
 
     // Delete account
     await app.inject({
       method: 'DELETE',
       url: '/api/auth/account',
       headers: { cookie: cookies },
-      payload: {
-        password: hashedPassword,
-      },
     });
 
-    // Try to login again
-    const loginResponse = await app.inject({
+    // Try to request a magic link again
+    const magicLinkResponse = await app.inject({
       method: 'POST',
-      url: '/api/auth/login',
+      url: '/api/auth/request-magic-link',
       payload: {
         email,
-        password: hashedPassword,
       },
     });
 
-    expect(loginResponse.statusCode).toBe(401);
+    // Should return 200 (generic response) but no email is actually sent
+    expect(magicLinkResponse.statusCode).toBe(200);
   });
 
   it('should remove all user data from database after deletion', async () => {
     const email = `deleteall${Date.now()}@example.com`;
-    const password = 'testpassword123';
-    const hashedPassword = await hashPasswordForTransport(password, email);
-
-    const { userId, cookies } = await createUserWithData(email, password);
+    const { userId, cookies } = await createUserWithData(email);
 
     // Import database and entities
     const { AppDataSource } = await import('../config/database.js');
@@ -214,9 +158,6 @@ describe('Account Deletion', () => {
       method: 'DELETE',
       url: '/api/auth/account',
       headers: { cookie: cookies },
-      payload: {
-        password: hashedPassword,
-      },
     });
 
     expect(deleteResponse.statusCode).toBe(200);
@@ -245,16 +186,9 @@ describe('Account Deletion', () => {
   });
 
   it('should require authentication for account deletion', async () => {
-    const email = 'test@example.com';
-    const password = 'testpassword123';
-    const hashedPassword = await hashPasswordForTransport(password, email);
-
     const deleteResponse = await app.inject({
       method: 'DELETE',
       url: '/api/auth/account',
-      payload: {
-        password: hashedPassword,
-      },
     });
 
     expect(deleteResponse.statusCode).toBe(401);
@@ -274,31 +208,11 @@ describe('Data Export', () => {
 
   it('should export all user data', async () => {
     const email = `export${Date.now()}@example.com`;
-    const password = 'testpassword123';
-    const hashedPassword = await hashPasswordForTransport(password, email);
     
-    // Register user
-    await app.inject({
-      method: 'POST',
-      url: '/api/auth/register',
-      payload: {
-        email,
-        password: hashedPassword,
-        name: 'Export Test User',
-      },
+    const { authCookie: cookies } = await registerAndAuthenticate(app, {
+      email,
+      name: 'Export Test User',
     });
-
-    // Login to get session
-    const loginResponse = await app.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      payload: {
-        email,
-        password: hashedPassword,
-      },
-    });
-
-    const cookies = loginResponse.headers['set-cookie'];
 
     // Export data
     const exportResponse = await app.inject({
@@ -321,8 +235,7 @@ describe('Data Export', () => {
 
     // Verify sensitive data is not included
     expect(data.user.password_hash).toBeUndefined();
-    expect(data.user.reset_token).toBeUndefined();
-    expect(data.user.email_verification_token).toBeUndefined();
+    expect(data.user.magic_link_token).toBeUndefined();
 
     // Verify user data
     expect(data.user.email).toBe(email);

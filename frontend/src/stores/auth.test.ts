@@ -4,7 +4,8 @@ import { get } from 'svelte/store';
 // Mock the dependencies
 vi.mock('../services/api', () => ({
   authApi: {
-    login: vi.fn().mockResolvedValue({ 
+    requestMagicLink: vi.fn().mockResolvedValue({ message: 'Magic link sent' }),
+    verifyMagicLink: vi.fn().mockResolvedValue({ 
       id: '1', 
       email: 'test@example.com', 
       name: 'Test User',
@@ -26,13 +27,21 @@ vi.mock('../services/api', () => ({
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z',
     }),
-    changePassword: vi.fn().mockResolvedValue(undefined),
     updateProfile: vi.fn().mockResolvedValue({ 
       id: '1', 
       email: 'test@example.com', 
       name: 'Updated User',
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z',
+    }),
+    requestEmailChange: vi.fn().mockResolvedValue({ message: 'Verification sent' }),
+    verifyEmailChange: vi.fn().mockResolvedValue({
+      id: '1',
+      email: 'new@example.com',
+      name: 'Test User',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+      message: 'Email changed',
     }),
   },
   timerApi: {
@@ -86,9 +95,9 @@ describe('Auth Store', () => {
     expect(state.isAuthenticated).toBe(false);
   });
 
-  it('handles successful login', async () => {
+  it('handles successful magic link verification', async () => {
     const { authStore } = await import('./auth');
-    await authStore.login('test@example.com', 'password123');
+    await authStore.verifyMagicLink('test-token');
     const state = get(authStore);
     expect(state.user).toBeTruthy();
     expect(state.isAuthenticated).toBe(true);
@@ -96,7 +105,7 @@ describe('Auth Store', () => {
 
   it('handles logout', async () => {
     const { authStore } = await import('./auth');
-    await authStore.login('test@example.com', 'password123');
+    await authStore.verifyMagicLink('test-token');
     await authStore.logout();
     const state = get(authStore);
     expect(state.user).toBeNull();
