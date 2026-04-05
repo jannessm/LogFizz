@@ -119,6 +119,7 @@ describe('balancesStore', () => {
           holidays: 0,
           business_trip: 0,
           child_sick: 0,
+          homeoffice: 0,
           worked_days: 1,
           created_at: '2024-12-01T00:00:00Z',
           updated_at: '2024-12-01T00:00:00Z',
@@ -188,6 +189,7 @@ describe('balancesStore', () => {
         holidays: 0,
         business_trip: 0,
         child_sick: 0,
+        homeoffice: 0,
         worked_days: 1,
         created_at: '2024-12-01T00:00:00Z',
         updated_at: '2024-12-01T00:00:00Z',
@@ -229,6 +231,7 @@ describe('balancesStore', () => {
         holidays: 0,
         business_trip: 0,
         child_sick: 0,
+        homeoffice: 0,
         worked_days: 1,
         created_at: '2024-12-01T00:00:00Z',
         updated_at: '2024-12-01T00:00:00Z',
@@ -360,6 +363,7 @@ function createMockBalance(id: string, date: string): Balance {
     holidays: 0,
     business_trip: 0,
     child_sick: 0,
+    homeoffice: 0,
     worked_days: 1,
     created_at: '2024-12-01T00:00:00Z',
     updated_at: '2024-12-01T00:00:00Z',
@@ -734,10 +738,11 @@ describe('ensureBalancesUpToDate', () => {
     mockTimers = [{ id: 'timer-1', target_id: 'target-1' }];
 
     // Multi-day timelog spanning from startDate to yesterday
+    // Using T20:00:00Z = 22:00 Berlin time (UTC+2) so it spans two Berlin days
     const multiDayTimelog = createMockTimeLog(
       'timelog-1',
       'timer-1',
-      `${startDate}T22:00:00Z`,
+      `${startDate}T20:00:00Z`,
       `${yesterdayStr}T02:00:00Z`
     );
 
