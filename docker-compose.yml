@@ -72,6 +72,15 @@ services:
       - backend
     restart: unless-stopped
 
+  product:
+    build:
+      context: ./product
+      dockerfile: Dockerfile
+    container_name: clock-product
+    ports:
+      - "8090:80"
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TapShift vs. Toggl, Clockify &amp; Co – An Honest Comparison | TapShift Blog</title>
+  <meta name="description" content="An honest look at how TapShift compares to Toggl Track, Clockify, TimeClock, and ZEP — who benefits most from each app, and why a €5/year indie tool might be all you need." />
+  <meta name="keywords" content="TapShift vs Toggl, Clockify alternative, Zeiterfassung, time tracking comparison, German labor law, Arbeitszeitgesetz, ArbZG, break calculation" />
+  <link rel="canonical" href="https://tapshift.app/blog.html" />
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="article" />
+  <meta property="og:url"         content="https://tapshift.app/blog.html" />
+  <meta property="og:title"       content="TapShift vs. Toggl, Clockify &amp; Co – An Honest Comparison" />
+  <meta property="og:description" content="Who should use TapShift and when should you use something else? A transparent breakdown of features, prices, and German compliance." />
+
+  <!-- Article schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "TapShift vs. Toggl, Clockify & Co – An Honest Comparison",
+    "datePublished": "2025-04-06",
+    "dateModified": "2025-04-06",
+    "author": { "@type": "Person", "name": "TapShift Team" },
+    "publisher": {
+      "@type": "Organization",
+      "name": "TapShift",
+      "logo": { "@type": "ImageObject", "url": "https://tapshift.app/assets/icon.svg" }
+    },
+    "description": "An honest look at how TapShift compares to Toggl Track, Clockify, TimeClock and ZEP."
+  }
+  </script>
+
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+
+<div class="indie-banner">
+  Built by an <strong>independent developer</strong> — the €5/year subscription exists solely to cover server costs, not to make a profit. ♥
+</div>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-brand">
+      <img src="/assets/icon.svg" alt="TapShift logo" width="36" height="36" />
+      Tap<span>Shift</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu" onclick="this.nextElementSibling.classList.toggle('open')">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="/">Overview</a></li>
+      <li><a href="/blog.html" class="active">Blog</a></li>
+      <li><a href="/pricing.html">Pricing</a></li>
+      <li><a href="/guide.html">Guide</a></li>
+      <li><a href="/app.html" class="nav-cta">Open App →</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="blog-hero">
+  <div class="container">
+    <span class="badge badge-orange">Blog</span>
+    <h1 style="margin-top:.75rem">TapShift vs. Toggl, Clockify &amp; Co.<br/>An Honest Comparison.</h1>
+    <div class="blog-meta">
+      <span>📅 April 2025</span>
+      <span>·</span>
+      <span>🕐 8 min read</span>
+      <span>·</span>
+      <span>Written by the TapShift developer</span>
+    </div>
+  </div>
+</div>
+
+<!-- Article body -->
+<article class="blog-body">
+
+  <div class="callout orange">
+    <strong>Transparency first:</strong> I built TapShift. I'll try to be as honest as possible — including pointing out where the other tools are genuinely better. Take this with that grain of salt in mind.
+  </div>
+
+  <h2>Why does another time tracker exist?</h2>
+  <p>
+    When I looked for a time tracker that handled German break law automatically, excluded public holidays from my work targets, and ran on my phone without forcing me through a subscription funnel, I came up empty. The big tools are built for agencies billing clients by the hour. That's a completely different need. So I built TapShift.
+  </p>
+  <p>
+    TapShift is an <strong>independent, open-source project</strong>. It doesn't have investors, a growth team, or a paid marketing budget. The €5/year subscription covers the server bill — nothing more. This article is my honest attempt to help you figure out whether TapShift is right for you.
+  </p>
+
+  <h2>Who is TapShift built for?</h2>
+  <p>TapShift is a good fit if you:</p>
+  <ul>
+    <li>Are an <strong>employee in Germany</strong> (or any country with strict break and overtime rules) who needs to track actual work time against contractual targets</li>
+    <li>Want to know your <strong>overtime balance</strong> at any moment without calculating it yourself</li>
+    <li>Work on both a <strong>phone and a laptop</strong> and want one app across both</li>
+    <li>Track <strong>different activity types</strong> (sick days, child-sick leave, public holidays, business trips, home office) in one place</li>
+    <li>Prefer a tool that is <strong>offline-capable</strong> — your data stays on your device and syncs when a connection is available</li>
+    <li>Don't want to pay €8–30/month for features you'll never use</li>
+  </ul>
+
+  <h2>Who should look elsewhere?</h2>
+  <p>TapShift is probably <em>not</em> the right fit if you:</p>
+  <ul>
+    <li>Need to <strong>invoice clients</strong> by the hour — tools like Toggl or Harvest are purpose-built for this</li>
+    <li>Need <strong>team management</strong>: approving timesheets, managing schedules, or running payroll</li>
+    <li>Want an <strong>enterprise-grade audit trail</strong> with role-based access control</li>
+    <li>Need integrations with <strong>project management tools</strong> (Jira, Asana, Linear) out of the box</li>
+  </ul>
+
+  <h2>Feature-by-feature comparison</h2>
+  <p>The table below compares TapShift against the four most frequently mentioned alternatives in German-language forums. Prices are as of April 2025 and exclude VAT.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th class="highlight">TapShift</th>
+          <th>Toggl Track</th>
+          <th>Clockify</th>
+          <th>ZEP</th>
+          <th>TimeClock 365</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Price</td>
+          <td class="highlight"><strong>Free 2 mo, then €5/yr</strong></td>
+          <td>Free / €9/mo/user</td>
+          <td>Free / €3.99+/mo/user</td>
+          <td>€9–18/mo/user</td>
+          <td>€2.90+/mo/user</td>
+        </tr>
+        <tr>
+          <td>Mobile-first UI</td>
+          <td class="highlight"><span class="check">✔</span></td>
+          <td><span class="partial">Partial</span></td>
+          <td><span class="partial">Partial</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="partial">Partial</span></td>
+        </tr>
+        <tr>
+          <td>Works offline</td>
+          <td class="highlight"><span class="check">✔</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="cross">✘</span></td>
+        </tr>
+        <tr>
+          <td>German break rules (auto)</td>
+          <td class="highlight"><span class="check">✔</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="check">✔</span></td>
+          <td><span class="partial">Manual only</span></td>
+        </tr>
+        <tr>
+          <td>Public holiday awareness</td>
+          <td class="highlight"><span class="check">✔</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="check">✔</span></td>
+          <td><span class="check">✔</span></td>
+        </tr>
+        <tr>
+          <td>Overtime / balance tracking</td>
+          <td class="highlight"><span class="check">✔</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="partial">Limited</span></td>
+          <td><span class="check">✔</span></td>
+          <td><span class="check">✔</span></td>
+        </tr>
+        <tr>
+          <td>Sick / child-sick / holiday types</td>
+          <td class="highlight"><span class="check">✔</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="check">✔</span></td>
+          <td><span class="check">✔</span></td>
+        </tr>
+        <tr>
+          <td>Client billing / invoicing</td>
+          <td class="highlight"><span class="cross">✘</span></td>
+          <td><span class="check">✔</span></td>
+          <td><span class="check">✔</span></td>
+          <td><span class="check">✔</span></td>
+          <td><span class="partial">Limited</span></td>
+        </tr>
+        <tr>
+          <td>Team management</td>
+          <td class="highlight"><span class="cross">✘</span></td>
+          <td><span class="check">✔</span></td>
+          <td><span class="check">✔</span></td>
+          <td><span class="check">✔</span></td>
+          <td><span class="check">✔</span></td>
+        </tr>
+        <tr>
+          <td>Project / task tagging</td>
+          <td class="highlight"><span class="partial">Simple buttons</span></td>
+          <td><span class="check">✔</span></td>
+          <td><span class="check">✔</span></td>
+          <td><span class="check">✔</span></td>
+          <td><span class="check">✔</span></td>
+        </tr>
+        <tr>
+          <td>Open source</td>
+          <td class="highlight"><span class="check">✔</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="cross">✘</span></td>
+          <td><span class="cross">✘</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Toggl Track — the gold standard for freelancers</h2>
+  <p>
+    Toggl is excellent. The UX is polished, the integrations are vast, and the free tier is genuinely useful for individuals. If you bill clients by the hour, Toggl's project and client structure will save you hours every month.
+  </p>
+  <p>
+    <strong>Where Toggl falls short for German employees:</strong> There's no concept of a contractual work target, no German break law, no public holiday calendar, and no sick day tracking. It treats every minute the same — which is fine for freelancers but useless if you need to know whether you've accumulated 12 hours of overtime this month.
+  </p>
+
+  <h2>Clockify — free but limited</h2>
+  <p>
+    Clockify's free tier is hard to beat on price. It covers the basics: start/stop, projects, reports. The mobile app exists but feels secondary to the web experience.
+  </p>
+  <p>
+    Like Toggl, it's designed for project-based tracking rather than employee compliance. The overtime/balance features require a paid plan and still don't account for public holidays or German break rules.
+  </p>
+
+  <h2>ZEP — the German enterprise solution</h2>
+  <p>
+    ZEP is purpose-built for German businesses. It handles break rules, holiday calendars, overtime accounts, approvals, and project billing all in one. If you run a team and need a compliant, auditable system, ZEP is probably the right choice.
+  </p>
+  <p>
+    The catch: at €9–18/user/month it's expensive for individuals and very much built around a team workflow. The interface reflects its enterprise heritage — it's not something you'd reach for on your phone without thinking.
+  </p>
+
+  <h2>TimeClock 365 — a middle ground</h2>
+  <p>
+    TimeClock 365 sits between Clockify and ZEP. It includes public holidays and some overtime functionality, but the free tier is heavily restricted and the UI isn't particularly mobile-friendly. Worth evaluating if your company uses Microsoft 365.
+  </p>
+
+  <h2>Honest verdict</h2>
+  <div class="callout">
+    <strong>Use TapShift if</strong> you're an individual employee in Germany who wants to keep track of their own hours, overtime balance, and special days without paying enterprise prices or wrangling spreadsheets.
+  </div>
+  <div class="callout orange" style="margin-top:1rem">
+    <strong>Use something else if</strong> you need to invoice clients, manage a team, or integrate deeply with project management software. Toggl and ZEP are the right tools for those jobs.
+  </div>
+
+  <p>
+    TapShift's strength is its focus. It does one thing — help <em>you</em> stay on top of your own working hours — and it does it well. It runs on your phone, it works offline, and it costs about as much as a cup of coffee per year.
+  </p>
+  <p>
+    No upsells. No "contact sales for enterprise pricing". No trackers embedded in the app reporting your usage patterns to a marketing team. Just a tool built by someone who had the same problem and decided to fix it.
+  </p>
+
+  <div style="margin-top:3rem;padding-top:2rem;border-top:1px solid rgba(0,0,0,.08);display:flex;gap:1rem;flex-wrap:wrap">
+    <a href="/app.html" class="btn btn-primary">Start Your Free Trial →</a>
+    <a href="/pricing.html" class="btn btn-outline">See Pricing</a>
+  </div>
+</article>
+
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="/" class="footer-logo">
+          <img src="/assets/icon.svg" alt="TapShift" width="32" height="32" />
+          Tap<span>Shift</span>
+        </a>
+        <p>An independent working-hours tracker built for people who follow German labour law and don't want to pay enterprise prices to do it.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/">Overview</a></li>
+          <li><a href="/pricing.html">Pricing</a></li>
+          <li><a href="/guide.html">User Guide</a></li>
+          <li><a href="/app.html">Open App</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="/blog.html">Blog</a></li>
+          <li><a href="/guide.html#faq">FAQ</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Project</h4>
+        <ul>
+          <li><a href="https://github.com/jannessm/TapShift" rel="noopener">GitHub</a></li>
+          <li><a href="https://github.com/jannessm/TapShift/issues" rel="noopener">Report a Bug</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 TapShift — Independent open-source project.</span>
+      <span>Built with ♥, caffeine, and a healthy distrust of corporate timekeeping apps.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

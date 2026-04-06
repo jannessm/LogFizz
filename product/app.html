@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Open TapShift App – Login &amp; Register</title>
+  <meta name="description" content="Open the TapShift time tracking app — log in to your account or create a free account to start your 2-month trial." />
+  <meta name="robots" content="noindex" />
+  <link rel="canonical" href="https://tapshift.app/app.html" />
+
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/styles.css" />
+
+  <style>
+    .countdown { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+
+<div class="indie-banner">
+  Built by an <strong>independent developer</strong> — the €5/year subscription exists solely to cover server costs, not to make a profit. ♥
+</div>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-brand">
+      <img src="/assets/icon.svg" alt="TapShift logo" width="36" height="36" />
+      Tap<span>Shift</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu" onclick="this.nextElementSibling.classList.toggle('open')">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="/">Overview</a></li>
+      <li><a href="/blog.html">Blog</a></li>
+      <li><a href="/pricing.html">Pricing</a></li>
+      <li><a href="/guide.html">Guide</a></li>
+      <li><a href="/app.html" class="nav-cta active">Open App →</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- App launch section -->
+<div style="background:linear-gradient(135deg,var(--dark) 0%,#1d3a5a 100%);min-height:80vh;display:flex;align-items:center;justify-content:center;padding:3rem 1.5rem">
+  <div style="text-align:center;color:var(--white);max-width:480px">
+    <img src="/assets/icon.svg" alt="TapShift" width="80" height="80" style="margin-bottom:1.5rem" />
+    <h1 style="font-size:2.25rem;margin-bottom:.75rem">Launch TapShift</h1>
+    <p style="color:rgba(255,255,255,.7);margin-bottom:2.5rem;font-size:1.05rem">
+      You're about to open the TapShift app. Log in to your existing account or create a free account and start your 2-month trial.
+    </p>
+
+    <div style="display:flex;flex-direction:column;gap:1rem;align-items:center">
+      <a href="http://localhost:8080" id="app-link" class="btn btn-primary btn-lg" style="width:100%;max-width:320px;justify-content:center">
+        Open TapShift App →
+      </a>
+      <p style="font-size:.85rem;color:rgba(255,255,255,.45)">
+        Opens the TapShift web app in this window
+      </p>
+    </div>
+
+    <div style="margin-top:3rem;padding-top:2rem;border-top:1px solid rgba(255,255,255,.1)">
+      <p style="color:rgba(255,255,255,.5);font-size:.85rem;margin-bottom:1.25rem">New to TapShift?</p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+        <a href="/guide.html" class="btn btn-outline" style="border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.8)">Read the Guide</a>
+        <a href="/pricing.html" class="btn btn-outline" style="border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.8)">See Pricing</a>
+      </div>
+    </div>
+
+    <div style="margin-top:2.5rem;background:rgba(255,255,255,.05);border-radius:var(--radius);padding:1.25rem">
+      <p style="font-size:.85rem;color:rgba(255,255,255,.5);line-height:1.7">
+        TapShift is an <strong style="color:rgba(255,255,255,.75)">independent project</strong> — your data is stored on a privately operated server and is never shared with third parties. The €5/year subscription after the free trial covers server costs only.
+      </p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="/" class="footer-logo">
+          <img src="/assets/icon.svg" alt="TapShift" width="32" height="32" />
+          Tap<span>Shift</span>
+        </a>
+        <p>An independent working-hours tracker built for people who follow German labour law and don't want to pay enterprise prices to do it.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/">Overview</a></li>
+          <li><a href="/pricing.html">Pricing</a></li>
+          <li><a href="/guide.html">User Guide</a></li>
+          <li><a href="/app.html">Open App</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="/blog.html">Blog</a></li>
+          <li><a href="/guide.html#faq">FAQ</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Project</h4>
+        <ul>
+          <li><a href="https://github.com/jannessm/TapShift" rel="noopener">GitHub</a></li>
+          <li><a href="https://github.com/jannessm/TapShift/issues" rel="noopener">Report a Bug</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 TapShift — Independent open-source project.</span>
+      <span>Built with ♥, caffeine, and a healthy distrust of corporate timekeeping apps.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

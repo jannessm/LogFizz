@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TapShift – Track Your Working Hours. Effortlessly.</title>
+  <meta name="description" content="TapShift is an offline-first working-hours tracker for mobile and desktop. Automatic German break rules, public holidays, balance statistics. 2-month free trial, then €5/year." />
+  <meta name="keywords" content="time tracking, working hours, Arbeitszeiterfassung, German labor law, break calculation, public holidays, Zeiterfassung, TapShift" />
+  <link rel="canonical" href="https://tapshift.app/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="https://tapshift.app/" />
+  <meta property="og:title"       content="TapShift – Track Your Working Hours. Effortlessly." />
+  <meta property="og:description" content="Offline-first working-hours tracker with automatic German break rules, public holidays & balance stats. Free trial, then €5/year to cover running costs." />
+  <meta property="og:image"       content="https://tapshift.app/assets/og-image.png" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="TapShift – Track Your Working Hours. Effortlessly." />
+  <meta name="twitter:description" content="Offline-first working-hours tracker for mobile & desktop. Free trial, then €5/year." />
+
+  <!-- Schema.org -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "TapShift",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, iOS",
+    "offers": {
+      "@type": "Offer",
+      "price": "5.00",
+      "priceCurrency": "EUR",
+      "priceValidUntil": "2026-12-31",
+      "description": "Annual subscription after 2-month free trial"
+    },
+    "description": "TapShift is an offline-first working-hours tracker for mobile and desktop. Automatic German break rules, public holidays, balance statistics.",
+    "url": "https://tapshift.app/"
+  }
+  </script>
+
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+
+<!-- Indie developer banner -->
+<div class="indie-banner">
+  Built by an <strong>independent developer</strong> — the €5/year subscription exists solely to cover server costs, not to make a profit. ♥
+</div>
+
+<!-- Navigation -->
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="nav-brand">
+      <img src="/assets/icon.svg" alt="TapShift logo" width="36" height="36" />
+      Tap<span>Shift</span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle menu" onclick="this.nextElementSibling.classList.toggle('open')">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links">
+      <li><a href="/" class="active">Overview</a></li>
+      <li><a href="/blog.html">Blog</a></li>
+      <li><a href="/pricing.html">Pricing</a></li>
+      <li><a href="/guide.html">Guide</a></li>
+      <li><a href="/app.html" class="nav-cta">Open App →</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     HERO
+════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="hero-text">
+      <span class="badge badge-orange">Free 2-Month Trial</span>
+      <h1>Track Your Working Hours.<br /><span>Effortlessly.</span></h1>
+      <p>TapShift is an offline-first time tracker designed for <strong>mobile and desktop</strong>. One tap to start, one tap to stop. German break rules applied automatically.</p>
+      <div class="hero-actions">
+        <a href="/app.html" class="btn btn-primary btn-lg">Start Free Trial →</a>
+        <a href="/guide.html" class="btn btn-outline btn-lg" style="border-color:rgba(255,255,255,.4);color:#fff">View Guide</a>
+      </div>
+      <div class="hero-badges">
+        <span class="hero-badge">📱 Mobile-first</span>
+        <span class="hero-badge">🖥️ Works on desktop too</span>
+        <span class="hero-badge">📵 Works offline</span>
+        <span class="hero-badge">🇩🇪 German break rules</span>
+      </div>
+    </div>
+
+    <!-- Phone + Desktop mockup -->
+    <div class="phone-mockup-wrap" aria-hidden="true">
+      <!-- Phone -->
+      <div class="phone-mockup large">
+        <div class="phone-screen">
+          <div class="mock-header">
+            <div>
+              <div class="mock-header-title">TapShift</div>
+              <div class="mock-header-sub">Monday, 7 Apr</div>
+            </div>
+            <div style="font-size:9px;color:rgba(255,255,255,.5)">⚙</div>
+          </div>
+          <div class="mock-grid">
+            <div class="mock-btn active" style="background:rgba(251,176,59,.2)">
+              💼
+              <div class="mock-btn-ring"></div>
+              <span class="mock-btn-label">Work</span>
+              <span class="mock-btn-time">3h 42m</span>
+            </div>
+            <div class="mock-btn" style="background:rgba(41,171,226,.15)">
+              🏠
+              <span class="mock-btn-label">Home Office</span>
+              <span class="mock-btn-time">0h 00m</span>
+            </div>
+            <div class="mock-btn" style="background:rgba(255,255,255,.07)">
+              ✈️
+              <span class="mock-btn-label">Business Trip</span>
+              <span class="mock-btn-time">—</span>
+            </div>
+            <div class="mock-btn" style="background:rgba(255,255,255,.07)">
+              ➕
+              <span class="mock-btn-label">Add</span>
+            </div>
+          </div>
+          <div class="mock-balance">
+            <div class="mock-balance-row">
+              <span class="mock-balance-label">Balance this month</span>
+              <span class="mock-balance-val">+1h 12m</span>
+            </div>
+            <div class="mock-bar-bg"><div class="mock-bar-fill" style="width:65%"></div></div>
+            <div class="mock-balance-row" style="margin-top:6px">
+              <span class="mock-balance-label">Due today</span>
+              <span class="mock-balance-label">8h 00m</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Second (smaller) phone showing history -->
+      <div class="phone-mockup" style="width:170px;transform:translateY(20px)">
+        <div class="phone-screen">
+          <div class="mock-header">
+            <div>
+              <div class="mock-header-title">History</div>
+              <div class="mock-header-sub">April 2025</div>
+            </div>
+          </div>
+          <div style="padding:8px;display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
+            <!-- mini calendar dots -->
+            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">M</span>
+            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">T</span>
+            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">W</span>
+            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">T</span>
+            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">F</span>
+            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">S</span>
+            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">S</span>
+            <!-- days row 1 -->
+            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">1</div>
+            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">2</div>
+            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">3</div>
+            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">4</div>
+            <div style="aspect-ratio:1;border-radius:3px;background:rgba(251,176,59,.5);font-size:5.5px;color:#1a1a2e;display:flex;align-items:center;justify-content:center">5</div>
+            <div style="aspect-ratio:1;border-radius:3px;background:rgba(255,255,255,.05);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">6</div>
+            <div style="aspect-ratio:1;border-radius:3px;background:rgba(255,255,255,.05);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">7</div>
+            <!-- more days -->
+            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">8</div>
+            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">9</div>
+            <div style="aspect-ratio:1;border-radius:3px;background:rgba(34,197,94,.35);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">10</div>
+            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">11</div>
+            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">12</div>
+          </div>
+          <div class="mock-balance" style="margin-top:0">
+            <div class="mock-balance-row">
+              <span class="mock-balance-label">Yearly cumulation</span>
+              <span class="mock-balance-val">+3h 28m</span>
+            </div>
+            <div class="mock-balance-row">
+              <span class="mock-balance-label">Sick days</span>
+              <span class="mock-balance-label" style="color:rgba(255,255,255,.6)">1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     FEATURES
+════════════════════════════════════════════ -->
+<section style="background:var(--light)">
+  <div class="container">
+    <div class="section-header">
+      <span class="badge">Features</span>
+      <h2>Everything you need to stay on top of your hours</h2>
+      <p>Whether you're at your desk or on the go, TapShift keeps your working time accurate and effortless.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>One-Tap Tracking</h3>
+        <p>Tap a button to start a timer, tap again to stop. No forms, no friction. Your hours are logged instantly — even without an internet connection.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon blue">📱</div>
+        <h3>Mobile &amp; Desktop</h3>
+        <p>A polished mobile experience first — swipe, tap, done. But the full web app is equally at home on a 27" monitor. One account, all your devices.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">⚖️</div>
+        <h3>Automatic Break Deduction</h3>
+        <p>German law requires 30 min for shifts ≥ 6 h and 45 min for shifts ≥ 9 h. TapShift applies these rules automatically so you never have to think about them.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon blue">🗓️</div>
+        <h3>Public Holiday Awareness</h3>
+        <p>Set your state and TapShift knows which days are public holidays. Due hours are adjusted automatically — no manual corrections needed.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Real-Time Balance</h3>
+        <p>See your overtime or deficit at a glance — daily, monthly, and yearly. The running balance updates every minute while a timer is active.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon blue">🤒</div>
+        <h3>Special Day Types</h3>
+        <p>Log sick days, child-sick days, public holidays, business trips, or home office separately. Each type is tracked and shown in your history.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📵</div>
+        <h3>Offline-First</h3>
+        <p>Everything is stored locally first and synced to the backend when you're back online. No data loss, no waiting for a network connection.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon blue">🍎</div>
+        <h3>iOS Support (Coming Soon)</h3>
+        <p>A native iOS app with lock-screen Live Activities and Home Screen widgets is on the roadmap — start a timer without even opening your phone.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3>Custom Tracking Buttons</h3>
+        <p>Create buttons for each activity — Work, Home Office, Business Trip, Deep Work, or anything you need. Assign emojis, colours, and daily goals.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     MOBILE + DESKTOP HIGHLIGHT
+════════════════════════════════════════════ -->
+<section>
+  <div class="container" style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center">
+    <!-- Desktop mockup -->
+    <div class="desktop-mockup" aria-hidden="true">
+      <div class="desktop-bar">
+        <div class="desktop-dot" style="background:#ff5f57"></div>
+        <div class="desktop-dot" style="background:#febc2e"></div>
+        <div class="desktop-dot" style="background:#28c840"></div>
+        <span style="font-size:9px;color:rgba(255,255,255,.3);margin-left:8px">TapShift</span>
+      </div>
+      <div class="desktop-content">
+        <div>
+          <div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:8px">Your Trackers</div>
+          <div class="desktop-grid">
+            <div class="desktop-btn" style="background:rgba(251,176,59,.2)">💼</div>
+            <div class="desktop-btn" style="background:rgba(41,171,226,.15)">🏠</div>
+            <div class="desktop-btn" style="background:rgba(255,255,255,.07)">✈️</div>
+            <div class="desktop-btn" style="background:rgba(34,197,94,.15)">🧑‍⚕️</div>
+            <div class="desktop-btn" style="background:rgba(255,255,255,.07)">🧪</div>
+            <div class="desktop-btn" style="background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.15)">➕</div>
+          </div>
+        </div>
+        <div class="desktop-stats">
+          <div class="desktop-stat-card">
+            <div class="desktop-stat-label">Today</div>
+            <div class="desktop-stat-val">7h 18m <span>/ 8h</span></div>
+          </div>
+          <div class="desktop-stat-card">
+            <div class="desktop-stat-label">Monthly Balance</div>
+            <div class="desktop-stat-val" style="color:var(--primary)">+4h 32m</div>
+          </div>
+          <div class="desktop-stat-card">
+            <div class="desktop-stat-label">Sick Days</div>
+            <div class="desktop-stat-val">2 <span>this year</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <span class="badge">Desktop &amp; Mobile</span>
+      <h2 style="margin-top:.5rem">One app. Every screen.</h2>
+      <p style="color:var(--gray);margin-top:.75rem;margin-bottom:1.5rem">
+        TapShift was designed <strong>mobile-first</strong> — the large touch targets, swipe-friendly interface and minimal UI mean you can log hours with your thumb while walking to a meeting. But when you're at your desk, the full web app expands gracefully into a proper dashboard with a multi-column layout, detailed statistics and a calendar overview.
+      </p>
+      <p style="color:var(--gray);margin-bottom:2rem">
+        One account keeps everything in sync. Start a timer on your phone, see the running total on your laptop — all in real time.
+      </p>
+      <a href="/app.html" class="btn btn-secondary">Try It Free →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     INDIE SECTION
+════════════════════════════════════════════ -->
+<section class="section-dark">
+  <div class="container text-center">
+    <span class="badge badge-orange">Independent Project</span>
+    <h2 style="margin-top:.5rem">Made with ♥ by an independent developer</h2>
+    <p style="color:rgba(255,255,255,.7);margin-inline:auto;max-width:60ch;margin-top:.75rem;font-size:1.05rem">
+      TapShift is <strong style="color:var(--primary)">not backed by a VC, not owned by a corporation</strong>, and has no shareholders to satisfy. It was built because off-the-shelf time trackers either ignore German labour law or cost a fortune. The €5/year subscription exists exclusively to pay for the server — if costs drop, the price drops. That's the deal.
+    </p>
+    <div style="display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;margin-top:2.5rem">
+      <div style="text-align:center">
+        <div style="font-size:2rem;font-weight:800;color:var(--primary)">€5</div>
+        <div style="font-size:.85rem;color:rgba(255,255,255,.55)">per year after trial</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:2rem;font-weight:800;color:var(--primary)">2 mo</div>
+        <div style="font-size:.85rem;color:rgba(255,255,255,.55)">free trial, no card needed</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:2rem;font-weight:800;color:var(--primary)">0</div>
+        <div style="font-size:.85rem;color:rgba(255,255,255,.55)">ads, trackers, or upsells</div>
+      </div>
+    </div>
+    <div style="margin-top:2.5rem">
+      <a href="/pricing.html" class="btn btn-primary">See Pricing Details →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     CTA
+════════════════════════════════════════════ -->
+<section class="cta-section">
+  <div class="container">
+    <h2>Start tracking today — completely free.</h2>
+    <p>2 months, all features, no credit card. Just sign up and start.</p>
+    <a href="/app.html" class="btn btn-dark btn-lg">Open TapShift →</a>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="/" class="footer-logo">
+          <img src="/assets/icon.svg" alt="TapShift" width="32" height="32" />
+          Tap<span>Shift</span>
+        </a>
+        <p>An independent working-hours tracker built for people who follow German labour law and don't want to pay enterprise prices to do it.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/">Overview</a></li>
+          <li><a href="/pricing.html">Pricing</a></li>
+          <li><a href="/guide.html">User Guide</a></li>
+          <li><a href="/app.html">Open App</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="/blog.html">Blog</a></li>
+          <li><a href="/guide.html#faq">FAQ</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Project</h4>
+        <ul>
+          <li><a href="https://github.com/jannessm/TapShift" rel="noopener">GitHub</a></li>
+          <li><a href="https://github.com/jannessm/TapShift/issues" rel="noopener">Report a Bug</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 TapShift — Independent open-source project.</span>
+      <span>Built with ♥, caffeine, and a healthy distrust of corporate timekeeping apps.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
