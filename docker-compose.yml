@@ -79,6 +79,10 @@ services:
     container_name: clock-product
     ports:
       - "8090:80"
+    environment:
+      # Set APP_URL to the full URL of the deployed TapShift web application.
+      # Example: APP_URL=https://app.yourdomain.com
+      APP_URL: ""
     restart: unless-stopped
 
 volumes:

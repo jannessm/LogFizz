@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844">
+  <rect width="390" height="844" fill="#1a1a2e"/>
+
+  <!-- Status bar -->
+  <rect width="390" height="44" fill="#0f0f1a"/>
+  <text x="20" y="28" font-family="system-ui,sans-serif" font-size="13" fill="rgba(255,255,255,0.7)" font-weight="600">9:41</text>
+
+  <!-- Nav bar top -->
+  <rect y="44" width="390" height="52" fill="#111122"/>
+  <text x="195" y="75" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="white" text-anchor="middle">History</text>
+  <text x="195" y="92" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.4)" text-anchor="middle">April 2025</text>
+
+  <!-- Year / month balance card -->
+  <rect x="16" y="112" width="358" height="72" rx="14" fill="rgba(255,255,255,0.06)"/>
+  <text x="32" y="138" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.45)">Yearly cumulation</text>
+  <text x="358" y="138" font-family="system-ui,sans-serif" font-size="14" font-weight="700" fill="#fbb03b" text-anchor="end">+3h 28m</text>
+  <text x="32" y="164" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.45)">Sick days this year</text>
+  <text x="358" y="164" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.55)" text-anchor="end">1</text>
+
+  <!-- Day-of-week headers -->
+  <g font-family="system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,0.3)" text-anchor="middle">
+    <text x="37" y="210">Mo</text><text x="92" y="210">Tu</text><text x="147" y="210">We</text>
+    <text x="202" y="210">Th</text><text x="257" y="210">Fr</text><text x="312" y="210">Sa</text>
+    <text x="367" y="210">Su</text>
+  </g>
+
+  <!-- Calendar week 1 -->
+  <g font-family="system-ui,sans-serif" font-size="11" text-anchor="middle">
+    <rect x="16" y="220" width="42" height="42" rx="8" fill="rgba(41,171,226,0.35)"/><text x="37" y="246" fill="white">1</text>
+    <rect x="70" y="220" width="42" height="42" rx="8" fill="rgba(41,171,226,0.35)"/><text x="92" y="246" fill="white">2</text>
+    <rect x="124" y="220" width="42" height="42" rx="8" fill="rgba(41,171,226,0.35)"/><text x="147" y="246" fill="white">3</text>
+    <rect x="178" y="220" width="42" height="42" rx="8" fill="rgba(41,171,226,0.35)"/><text x="202" y="246" fill="white">4</text>
+    <rect x="232" y="220" width="42" height="42" rx="8" fill="rgba(251,176,59,0.5)"/><text x="257" y="246" fill="#1a1a2e" font-weight="700">5</text>
+    <rect x="286" y="220" width="42" height="42" rx="8" fill="rgba(255,255,255,0.05)"/><text x="312" y="246" fill="rgba(255,255,255,0.35)">6</text>
+    <rect x="340" y="220" width="42" height="42" rx="8" fill="rgba(255,255,255,0.05)"/><text x="367" y="246" fill="rgba(255,255,255,0.35)">7</text>
+  </g>
+
+  <!-- Calendar week 2 -->
+  <g font-family="system-ui,sans-serif" font-size="11" text-anchor="middle">
+    <rect x="16" y="272" width="42" height="42" rx="8" fill="rgba(41,171,226,0.35)"/><text x="37" y="298" fill="white">8</text>
+    <rect x="70" y="272" width="42" height="42" rx="8" fill="rgba(41,171,226,0.35)"/><text x="92" y="298" fill="white">9</text>
+    <rect x="124" y="272" width="42" height="42" rx="8" fill="rgba(34,197,94,0.35)"/><text x="147" y="298" fill="white">10</text>
+    <rect x="178" y="272" width="42" height="42" rx="8" fill="rgba(41,171,226,0.35)"/><text x="202" y="298" fill="white">11</text>
+    <rect x="232" y="272" width="42" height="42" rx="8" fill="rgba(41,171,226,0.35)"/><text x="257" y="298" fill="white">12</text>
+    <rect x="286" y="272" width="42" height="42" rx="8" fill="rgba(255,255,255,0.05)"/><text x="312" y="298" fill="rgba(255,255,255,0.35)">13</text>
+    <rect x="340" y="272" width="42" height="42" rx="8" fill="rgba(255,255,255,0.05)"/><text x="367" y="298" fill="rgba(255,255,255,0.35)">14</text>
+  </g>
+
+  <!-- Calendar week 3 -->
+  <g font-family="system-ui,sans-serif" font-size="11" text-anchor="middle">
+    <rect x="16" y="324" width="42" height="42" rx="8" fill="rgba(255,255,255,0.12)" stroke="rgba(251,176,59,0.8)" stroke-width="2"/><text x="37" y="350" fill="white" font-weight="700">15</text>
+    <rect x="70" y="324" width="42" height="42" rx="8" fill="rgba(255,255,255,0.06)"/><text x="92" y="350" fill="rgba(255,255,255,0.45)">16</text>
+    <rect x="124" y="324" width="42" height="42" rx="8" fill="rgba(255,255,255,0.06)"/><text x="147" y="350" fill="rgba(255,255,255,0.45)">17</text>
+    <rect x="178" y="324" width="42" height="42" rx="8" fill="rgba(255,255,255,0.06)"/><text x="202" y="350" fill="rgba(255,255,255,0.45)">18</text>
+    <rect x="232" y="324" width="42" height="42" rx="8" fill="rgba(255,255,255,0.06)"/><text x="257" y="350" fill="rgba(255,255,255,0.45)">19</text>
+    <rect x="286" y="324" width="42" height="42" rx="8" fill="rgba(255,255,255,0.03)"/><text x="312" y="350" fill="rgba(255,255,255,0.2)">20</text>
+    <rect x="340" y="324" width="42" height="42" rx="8" fill="rgba(255,255,255,0.03)"/><text x="367" y="350" fill="rgba(255,255,255,0.2)">21</text>
+  </g>
+
+  <!-- Detail card for selected day -->
+  <rect x="16" y="388" width="358" height="106" rx="14" fill="rgba(255,255,255,0.07)" stroke="rgba(251,176,59,0.3)" stroke-width="1"/>
+  <text x="32" y="414" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="rgba(255,255,255,0.9)">Monday, 15 April</text>
+  <rect x="32" y="424" width="294" height="1" fill="rgba(255,255,255,0.07)"/>
+  <text x="32" y="450" font-family="system-ui,sans-serif" font-size="12" fill="#fbb03b">💼 Work</text>
+  <text x="358" y="450" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.7)" text-anchor="end">08:00 – 16:42</text>
+  <text x="32" y="474" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.45)">Worked: 8h 12m · Due: 8h 00m</text>
+  <text x="358" y="474" font-family="system-ui,sans-serif" font-size="12" fill="#29abe2" text-anchor="end">+12m</text>
+
+  <!-- Monthly stats card -->
+  <rect x="16" y="510" width="358" height="80" rx="14" fill="rgba(255,255,255,0.06)"/>
+  <text x="32" y="536" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.45)">April – Worked</text>
+  <text x="358" y="536" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="white" text-anchor="end">58h 45m</text>
+  <text x="32" y="562" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.45)">April – Due</text>
+  <text x="358" y="562" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.55)" text-anchor="end">56h 00m</text>
+  <text x="32" y="576" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.3)">Balance</text>
+  <text x="358" y="576" font-family="system-ui,sans-serif" font-size="12" font-weight="700" fill="#fbb03b" text-anchor="end">+2h 45m</text>
+
+  <!-- Bottom nav -->
+  <rect y="756" width="390" height="88" fill="#0f0f1a"/>
+  <line x1="0" y1="756" x2="390" y2="756" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  <text x="65" y="790" font-family="system-ui,sans-serif" font-size="22" text-anchor="middle">⏱</text>
+  <text x="65" y="810" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.35)" text-anchor="middle">Timer</text>
+  <text x="195" y="790" font-family="system-ui,sans-serif" font-size="22" text-anchor="middle">📅</text>
+  <text x="195" y="810" font-family="system-ui,sans-serif" font-size="11" fill="#fbb03b" text-anchor="middle" font-weight="600">History</text>
+  <text x="325" y="790" font-family="system-ui,sans-serif" font-size="22" text-anchor="middle">⚙️</text>
+  <text x="325" y="810" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.35)" text-anchor="middle">Settings</text>
+</svg>

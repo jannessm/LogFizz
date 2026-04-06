@@ -3,403 +3,253 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>(function(){var l=localStorage.getItem('ts-lang')||((navigator.language||'').startsWith('de')?'de':'en');document.documentElement.classList.add('lang-'+l);document.documentElement.lang=l;})();</script>
   <title>TapShift – Track Your Working Hours. Effortlessly.</title>
-  <meta name="description" content="TapShift is an offline-first working-hours tracker for mobile and desktop. Automatic German break rules, public holidays, balance statistics. 2-month free trial, then €5/year." />
-  <meta name="keywords" content="time tracking, working hours, Arbeitszeiterfassung, German labor law, break calculation, public holidays, Zeiterfassung, TapShift" />
+  <meta name="description" content="TapShift is an offline-first working-hours tracker for mobile and desktop. Public holidays, balance statistics, data hosted in Germany. 2-month free trial, then €5/year." />
+  <meta name="keywords" content="time tracking, working hours, Arbeitszeiterfassung, public holidays, Zeiterfassung, TapShift, Überstunden, Zeitkonto" />
   <link rel="canonical" href="https://tapshift.app/" />
-
-  <!-- Open Graph -->
-  <meta property="og:type"        content="website" />
-  <meta property="og:url"         content="https://tapshift.app/" />
-  <meta property="og:title"       content="TapShift – Track Your Working Hours. Effortlessly." />
-  <meta property="og:description" content="Offline-first working-hours tracker with automatic German break rules, public holidays & balance stats. Free trial, then €5/year to cover running costs." />
-  <meta property="og:image"       content="https://tapshift.app/assets/og-image.png" />
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="TapShift – Track Your Working Hours. Effortlessly." />
-  <meta name="twitter:description" content="Offline-first working-hours tracker for mobile & desktop. Free trial, then €5/year." />
-
-  <!-- Schema.org -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "TapShift",
-    "applicationCategory": "BusinessApplication",
-    "operatingSystem": "Web, iOS",
-    "offers": {
-      "@type": "Offer",
-      "price": "5.00",
-      "priceCurrency": "EUR",
-      "priceValidUntil": "2029-12-31",
-      "description": "Annual subscription after 2-month free trial"
-    },
-    "description": "TapShift is an offline-first working-hours tracker for mobile and desktop. Automatic German break rules, public holidays, balance statistics.",
-    "url": "https://tapshift.app/"
-  }
-  </script>
-
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://tapshift.app/" />
+  <meta property="og:title" content="TapShift – Track Your Working Hours. Effortlessly." />
+  <meta property="og:description" content="Offline-first working-hours tracker. Data hosted in Germany. Free trial, then €5/year." />
+  <meta property="og:image" content="https://tapshift.app/assets/og-image.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"TapShift","applicationCategory":"BusinessApplication","operatingSystem":"Web, iOS","offers":{"@type":"Offer","price":"5.00","priceCurrency":"EUR","priceValidUntil":"2029-12-31"},"description":"Offline-first working-hours tracker. Data hosted and encrypted in Germany.","url":"https://tapshift.app/"}</script>
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+  <link rel="alternate" hreflang="en" href="https://tapshift.app/" />
+  <link rel="alternate" hreflang="de" href="https://tapshift.app/" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/styles.css" />
 </head>
 <body>
-
-<!-- Indie developer banner -->
 <div class="indie-banner">
-  Built by an <strong>independent developer</strong> — the €5/year subscription exists solely to cover server costs, not to make a profit. ♥
+  <span class="en">Built by an <strong>independent developer</strong> — the €5/year subscription exists solely to cover server costs, not to make a profit. ♥</span>
+  <span class="de">Von einem <strong>unabhängigen Entwickler</strong> gebaut — das €5/Jahr-Abo dient ausschließlich zur Deckung der Serverkosten. ♥</span>
 </div>
-
-<!-- Navigation -->
 <nav class="nav">
   <div class="container nav-inner">
-    <a href="/" class="nav-brand">
-      <img src="/assets/icon.svg" alt="TapShift logo" width="36" height="36" />
-      Tap<span>Shift</span>
-    </a>
-    <button class="nav-toggle" aria-label="Toggle menu" onclick="this.nextElementSibling.classList.toggle('open')">
-      <span></span><span></span><span></span>
-    </button>
+    <a href="/" class="nav-brand"><img src="/assets/icon.svg" alt="TapShift logo" width="36" height="36" />Tap<span>Shift</span></a>
+    <button class="nav-toggle" aria-label="Toggle menu" onclick="this.nextElementSibling.classList.toggle('open')"><span></span><span></span><span></span></button>
     <ul class="nav-links">
-      <li><a href="/" class="active">Overview</a></li>
-      <li><a href="/blog.html">Blog</a></li>
-      <li><a href="/pricing.html">Pricing</a></li>
-      <li><a href="/guide.html">Guide</a></li>
-      <li><a href="/app.html" class="nav-cta">Open App →</a></li>
+      <li><a href="/" class="active"><span class="en">Overview</span><span class="de">Übersicht</span></a></li>
+      <li><a href="/comparison.html"><span class="en">Comparison</span><span class="de">Vergleich</span></a></li>
+      <li><a href="/pricing.html"><span class="en">Pricing</span><span class="de">Preise</span></a></li>
+      <li><a href="/guide.html"><span class="en">Guide</span><span class="de">Anleitung</span></a></li>
+      <li><a href="/app.html" class="nav-cta"><span class="en">Open App →</span><span class="de">App öffnen →</span></a></li>
+      <li class="lang-switcher">
+        <button class="lang-btn lang-active" data-lang-btn="en" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" data-lang-btn="de" onclick="setLang('de')">DE</button>
+      </li>
     </ul>
   </div>
 </nav>
 
-<!-- ═══════════════════════════════════════════
-     HERO
-════════════════════════════════════════════ -->
 <section class="hero">
   <div class="container hero-inner">
     <div class="hero-text">
-      <span class="badge badge-orange">Free 2-Month Trial</span>
-      <h1>Track Your Working Hours.<br /><span>Effortlessly.</span></h1>
-      <p>TapShift is an offline-first time tracker designed for <strong>mobile and desktop</strong>. One tap to start, one tap to stop. German break rules applied automatically.</p>
+      <span class="badge badge-orange en">Free 2-Month Trial</span>
+      <span class="badge badge-orange de">2 Monate kostenlos</span>
+      <h1 class="en">Track Your Working Hours.<br /><span>Effortlessly.</span></h1>
+      <h1 class="de">Arbeitszeiten erfassen.<br /><span>Mühelos.</span></h1>
+      <p class="en">TapShift is an offline-first time tracker designed for <strong>mobile and desktop</strong>. One tap to start, one tap to stop — your balance calculated automatically.</p>
+      <p class="de">TapShift ist ein Offline-fähiger Zeiterfasser für <strong>Handy und Desktop</strong>. Einmal tippen zum Starten, einmal zum Stoppen — der Saldo wird automatisch berechnet.</p>
       <div class="hero-actions">
-        <a href="/app.html" class="btn btn-primary btn-lg">Start Free Trial →</a>
-        <a href="/guide.html" class="btn btn-outline btn-lg" style="border-color:rgba(255,255,255,.4);color:#fff">View Guide</a>
+        <a href="/app.html" class="btn btn-primary btn-lg en">Start Free Trial →</a>
+        <a href="/app.html" class="btn btn-primary btn-lg de">Kostenlos starten →</a>
+        <a href="/guide.html" class="btn btn-outline btn-lg" style="border-color:rgba(255,255,255,.4);color:#fff"><span class="en">View Guide</span><span class="de">Anleitung</span></a>
       </div>
       <div class="hero-badges">
-        <span class="hero-badge">📱 Mobile-first</span>
-        <span class="hero-badge">🖥️ Works on desktop too</span>
-        <span class="hero-badge">📵 Works offline</span>
-        <span class="hero-badge">🇩🇪 German break rules</span>
+        <span class="hero-badge"><span class="en">📱 Mobile-first</span><span class="de">📱 Mobile-First</span></span>
+        <span class="hero-badge"><span class="en">🖥️ Works on desktop</span><span class="de">🖥️ Auch am Desktop</span></span>
+        <span class="hero-badge"><span class="en">📵 Works offline</span><span class="de">📵 Offline-fähig</span></span>
+        <span class="hero-badge"><span class="en">🔐 Data hosted in Germany</span><span class="de">🔐 Server in Deutschland</span></span>
       </div>
     </div>
-
-    <!-- Phone + Desktop mockup -->
-    <div class="phone-mockup-wrap" aria-hidden="true">
-      <!-- Phone -->
-      <div class="phone-mockup large">
-        <div class="phone-screen">
-          <div class="mock-header">
-            <div>
-              <div class="mock-header-title">TapShift</div>
-              <div class="mock-header-sub">Monday, 7 Apr</div>
-            </div>
-            <div style="font-size:9px;color:rgba(255,255,255,.5)">⚙</div>
-          </div>
-          <div class="mock-grid">
-            <div class="mock-btn active" style="background:rgba(251,176,59,.2)">
-              💼
-              <div class="mock-btn-ring"></div>
-              <span class="mock-btn-label">Work</span>
-              <span class="mock-btn-time">3h 42m</span>
-            </div>
-            <div class="mock-btn" style="background:rgba(41,171,226,.15)">
-              🏠
-              <span class="mock-btn-label">Home Office</span>
-              <span class="mock-btn-time">0h 00m</span>
-            </div>
-            <div class="mock-btn" style="background:rgba(255,255,255,.07)">
-              ✈️
-              <span class="mock-btn-label">Business Trip</span>
-              <span class="mock-btn-time">—</span>
-            </div>
-            <div class="mock-btn" style="background:rgba(255,255,255,.07)">
-              ➕
-              <span class="mock-btn-label">Add</span>
-            </div>
-          </div>
-          <div class="mock-balance">
-            <div class="mock-balance-row">
-              <span class="mock-balance-label">Balance this month</span>
-              <span class="mock-balance-val">+1h 12m</span>
-            </div>
-            <div class="mock-bar-bg"><div class="mock-bar-fill" style="width:65%"></div></div>
-            <div class="mock-balance-row" style="margin-top:6px">
-              <span class="mock-balance-label">Due today</span>
-              <span class="mock-balance-label">8h 00m</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Second (smaller) phone showing history -->
-      <div class="phone-mockup" style="width:170px;transform:translateY(20px)">
-        <div class="phone-screen">
-          <div class="mock-header">
-            <div>
-              <div class="mock-header-title">History</div>
-              <div class="mock-header-sub">April 2025</div>
-            </div>
-          </div>
-          <div style="padding:8px;display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
-            <!-- mini calendar dots -->
-            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">M</span>
-            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">T</span>
-            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">W</span>
-            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">T</span>
-            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">F</span>
-            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">S</span>
-            <span style="font-size:6px;color:rgba(255,255,255,.3);text-align:center">S</span>
-            <!-- days row 1 -->
-            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">1</div>
-            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">2</div>
-            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">3</div>
-            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">4</div>
-            <div style="aspect-ratio:1;border-radius:3px;background:rgba(251,176,59,.5);font-size:5.5px;color:#1a1a2e;display:flex;align-items:center;justify-content:center">5</div>
-            <div style="aspect-ratio:1;border-radius:3px;background:rgba(255,255,255,.05);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">6</div>
-            <div style="aspect-ratio:1;border-radius:3px;background:rgba(255,255,255,.05);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">7</div>
-            <!-- more days -->
-            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">8</div>
-            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">9</div>
-            <div style="aspect-ratio:1;border-radius:3px;background:rgba(34,197,94,.35);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">10</div>
-            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">11</div>
-            <div style="aspect-ratio:1;border-radius:3px;background:rgba(41,171,226,.4);font-size:5.5px;color:#fff;display:flex;align-items:center;justify-content:center">12</div>
-          </div>
-          <div class="mock-balance" style="margin-top:0">
-            <div class="mock-balance-row">
-              <span class="mock-balance-label">Yearly cumulation</span>
-              <span class="mock-balance-val">+3h 28m</span>
-            </div>
-            <div class="mock-balance-row">
-              <span class="mock-balance-label">Sick days</span>
-              <span class="mock-balance-label" style="color:rgba(255,255,255,.6)">1</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="screenshot-wrap" aria-hidden="true">
+      <img src="/assets/screenshots/mobile-history.svg" alt="TapShift history screen" class="screenshot-phone" width="200" />
+      <img src="/assets/screenshots/mobile-timer.svg" alt="TapShift timer screen" class="screenshot-phone large" width="230" />
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════
-     FEATURES
-════════════════════════════════════════════ -->
 <section style="background:var(--light)">
   <div class="container">
     <div class="section-header">
       <span class="badge">Features</span>
-      <h2>Everything you need to stay on top of your hours</h2>
-      <p>Whether you're at your desk or on the go, TapShift keeps your working time accurate and effortless.</p>
+      <h2 class="en">Everything you need to stay on top of your hours</h2>
+      <h2 class="de">Alles, was du für deine Zeiterfassung brauchst</h2>
+      <p class="en">Whether at your desk or on the go — accurate, effortless time tracking.</p>
+      <p class="de">Ob am Schreibtisch oder unterwegs — präzise und mühelos.</p>
     </div>
-
     <div class="features-grid">
       <div class="feature-card">
         <div class="feature-icon">⚡</div>
-        <h3>One-Tap Tracking</h3>
-        <p>Tap a button to start a timer, tap again to stop. No forms, no friction. Your hours are logged instantly — even without an internet connection.</p>
+        <h3 class="en">One-Tap Tracking</h3><h3 class="de">Ein-Tipp-Erfassung</h3>
+        <p class="en">Tap to start, tap to stop. No forms, no friction. Logged instantly — even offline.</p>
+        <p class="de">Einmal tippen zum Starten, einmal zum Stoppen. Sofort gespeichert — auch offline.</p>
       </div>
-
       <div class="feature-card">
         <div class="feature-icon blue">📱</div>
-        <h3>Mobile &amp; Desktop</h3>
-        <p>A polished mobile experience first — swipe, tap, done. But the full web app is equally at home on a 27" monitor. One account, all your devices.</p>
+        <h3 class="en">Mobile &amp; Desktop</h3><h3 class="de">Handy &amp; Desktop</h3>
+        <p class="en">Designed mobile-first, equally at home on a large monitor. One account, all devices.</p>
+        <p class="de">Mobile-First entwickelt, läuft genauso auf dem Monitor. Ein Konto, alle Geräte.</p>
       </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">⚖️</div>
-        <h3>Automatic Break Deduction</h3>
-        <p>German law requires 30 min for shifts ≥ 6 h and 45 min for shifts ≥ 9 h. TapShift applies these rules automatically so you never have to think about them.</p>
-      </div>
-
       <div class="feature-card">
         <div class="feature-icon blue">🗓️</div>
-        <h3>Public Holiday Awareness</h3>
-        <p>Set your state and TapShift knows which days are public holidays. Due hours are adjusted automatically — no manual corrections needed.</p>
+        <h3 class="en">Public Holiday Awareness</h3><h3 class="de">Feiertag-Erkennung</h3>
+        <p class="en">Set your federal state and TapShift knows all public holidays. Due hours adjusted automatically.</p>
+        <p class="de">Bundesland einstellen — TapShift kennt alle Feiertage und passt die Sollzeit automatisch an.</p>
       </div>
-
       <div class="feature-card">
         <div class="feature-icon">📊</div>
-        <h3>Real-Time Balance</h3>
-        <p>See your overtime or deficit at a glance — daily, monthly, and yearly. The running balance updates every minute while a timer is active.</p>
+        <h3 class="en">Real-Time Balance</h3><h3 class="de">Echtzeit-Saldo</h3>
+        <p class="en">See your overtime or deficit daily, monthly, and yearly. Updates every minute while tracking.</p>
+        <p class="de">Über- oder Minusstunden täglich, monatlich und jährlich. Aktualisiert sich minütlich.</p>
       </div>
-
       <div class="feature-card">
         <div class="feature-icon blue">🤒</div>
-        <h3>Special Day Types</h3>
-        <p>Log sick days, child-sick days, public holidays, business trips, or home office separately. Each type is tracked and shown in your history.</p>
+        <h3 class="en">Special Day Types</h3><h3 class="de">Besondere Tagesarten</h3>
+        <p class="en">Sick days, child-sick, holiday, business trip, home office — tracked separately and shown in history.</p>
+        <p class="de">Krankheit, Kindkrank, Urlaub, Dienstreise, Homeoffice — separat erfasst und in der Historie sichtbar.</p>
       </div>
-
       <div class="feature-card">
         <div class="feature-icon">📵</div>
-        <h3>Offline-First</h3>
-        <p>Everything is stored locally first and synced to the backend when you're back online. No data loss, no waiting for a network connection.</p>
+        <h3 class="en">Offline-First</h3><h3 class="de">Offline-Fähig</h3>
+        <p class="en">Data is stored locally first, synced to the server when back online. No data loss.</p>
+        <p class="de">Zuerst lokal gespeichert, dann synchronisiert. Kein Datenverlust.</p>
       </div>
-
+      <div class="feature-card">
+        <div class="feature-icon">🔐</div>
+        <h3 class="en">Data Hosted in Germany, Encrypted</h3><h3 class="de">Daten in Deutschland, verschlüsselt</h3>
+        <p class="en">Your data is stored exclusively on servers in Germany, encrypted in transit and at rest. No third-party analytics.</p>
+        <p class="de">Deine Daten liegen ausschließlich auf deutschen Servern, verschlüsselt bei Übertragung und im Ruhezustand. Kein Drittparteien-Tracking.</p>
+      </div>
       <div class="feature-card">
         <div class="feature-icon blue">🍎</div>
-        <h3>iOS Support (Coming Soon)</h3>
-        <p>A native iOS app with lock-screen Live Activities and Home Screen widgets is on the roadmap — start a timer without even opening your phone.</p>
+        <h3 class="en">iOS App (Coming Soon)</h3><h3 class="de">iOS-App (in Kürze)</h3>
+        <p class="en">A native iOS app with lock-screen Live Activities and Home Screen widgets is on the roadmap.</p>
+        <p class="de">Eine native iOS-App mit Live Activities und Home-Screen-Widgets ist in Planung.</p>
       </div>
-
       <div class="feature-card">
         <div class="feature-icon">🎯</div>
-        <h3>Custom Tracking Buttons</h3>
-        <p>Create buttons for each activity — Work, Home Office, Business Trip, Deep Work, or anything you need. Assign emojis, colours, and daily goals.</p>
+        <h3 class="en">Custom Tracking Buttons</h3><h3 class="de">Individuelle Schaltflächen</h3>
+        <p class="en">Create buttons for each activity with emojis, colours, and daily goals.</p>
+        <p class="de">Schaltflächen für jede Aktivität mit Emojis, Farben und Tageszielen.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════
-     MOBILE + DESKTOP HIGHLIGHT
-════════════════════════════════════════════ -->
 <section>
   <div class="container" style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center">
-    <!-- Desktop mockup -->
-    <div class="desktop-mockup" aria-hidden="true">
-      <div class="desktop-bar">
-        <div class="desktop-dot" style="background:#ff5f57"></div>
-        <div class="desktop-dot" style="background:#febc2e"></div>
-        <div class="desktop-dot" style="background:#28c840"></div>
-        <span style="font-size:9px;color:rgba(255,255,255,.3);margin-left:8px">TapShift</span>
-      </div>
-      <div class="desktop-content">
-        <div>
-          <div style="font-size:10px;color:rgba(255,255,255,.5);margin-bottom:8px">Your Trackers</div>
-          <div class="desktop-grid">
-            <div class="desktop-btn" style="background:rgba(251,176,59,.2)">💼</div>
-            <div class="desktop-btn" style="background:rgba(41,171,226,.15)">🏠</div>
-            <div class="desktop-btn" style="background:rgba(255,255,255,.07)">✈️</div>
-            <div class="desktop-btn" style="background:rgba(34,197,94,.15)">🧑‍⚕️</div>
-            <div class="desktop-btn" style="background:rgba(255,255,255,.07)">🧪</div>
-            <div class="desktop-btn" style="background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.15)">➕</div>
-          </div>
-        </div>
-        <div class="desktop-stats">
-          <div class="desktop-stat-card">
-            <div class="desktop-stat-label">Today</div>
-            <div class="desktop-stat-val">7h 18m <span>/ 8h</span></div>
-          </div>
-          <div class="desktop-stat-card">
-            <div class="desktop-stat-label">Monthly Balance</div>
-            <div class="desktop-stat-val" style="color:var(--primary)">+4h 32m</div>
-          </div>
-          <div class="desktop-stat-card">
-            <div class="desktop-stat-label">Sick Days</div>
-            <div class="desktop-stat-val">2 <span>this year</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
+    <img src="/assets/screenshots/desktop.svg" alt="TapShift desktop view" class="screenshot-desktop" />
     <div>
-      <span class="badge">Desktop &amp; Mobile</span>
-      <h2 style="margin-top:.5rem">One app. Every screen.</h2>
-      <p style="color:var(--gray);margin-top:.75rem;margin-bottom:1.5rem">
-        TapShift was designed <strong>mobile-first</strong> — the large touch targets, swipe-friendly interface and minimal UI mean you can log hours with your thumb while walking to a meeting. But when you're at your desk, the full web app expands gracefully into a proper dashboard with a multi-column layout, detailed statistics and a calendar overview.
+      <span class="badge en">Desktop &amp; Mobile</span>
+      <span class="badge de">Desktop &amp; Handy</span>
+      <h2 style="margin-top:.5rem" class="en">One app. Every screen.</h2>
+      <h2 style="margin-top:.5rem" class="de">Eine App. Jeder Bildschirm.</h2>
+      <p style="color:var(--gray);margin-top:.75rem;margin-bottom:1.5rem" class="en">
+        TapShift was designed <strong>mobile-first</strong> — large touch targets and a minimal UI mean you can log hours with your thumb on the way to a meeting. On a desktop, the same app expands into a full dashboard with a multi-column layout, detailed statistics, and a calendar overview.
       </p>
-      <p style="color:var(--gray);margin-bottom:2rem">
-        One account keeps everything in sync. Start a timer on your phone, see the running total on your laptop — all in real time.
+      <p style="color:var(--gray);margin-top:.75rem;margin-bottom:1.5rem" class="de">
+        TapShift wurde <strong>Mobile-First</strong> entwickelt — große Touch-Ziele und eine minimalistische Oberfläche ermöglichen die Zeiterfassung mit dem Daumen unterwegs. Am Desktop entfaltet sich dieselbe App zu einem vollständigen Dashboard mit mehrspaltiger Ansicht, Statistiken und Kalenderübersicht.
       </p>
-      <a href="/app.html" class="btn btn-secondary">Try It Free →</a>
+      <p style="color:var(--gray);margin-bottom:2rem" class="en">One account keeps everything in sync across all your devices.</p>
+      <p style="color:var(--gray);margin-bottom:2rem" class="de">Ein Konto hält alles auf allen Geräten synchron.</p>
+      <a href="/app.html" class="btn btn-secondary en">Try It Free →</a>
+      <a href="/app.html" class="btn btn-secondary de">Kostenlos ausprobieren →</a>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════
-     INDIE SECTION
-════════════════════════════════════════════ -->
 <section class="section-dark">
   <div class="container text-center">
-    <span class="badge badge-orange">Independent Project</span>
-    <h2 style="margin-top:.5rem">Made with ♥ by an independent developer</h2>
-    <p style="color:rgba(255,255,255,.7);margin-inline:auto;max-width:60ch;margin-top:.75rem;font-size:1.05rem">
-      TapShift is <strong style="color:var(--primary)">not backed by a VC, not owned by a corporation</strong>, and has no shareholders to satisfy. It was built because off-the-shelf time trackers either ignore German labour law or cost a fortune. The €5/year subscription exists exclusively to pay for the server — if costs drop, the price drops. That's the deal.
+    <span class="badge badge-orange en">Independent Project</span>
+    <span class="badge badge-orange de">Unabhängiges Projekt</span>
+    <h2 style="margin-top:.5rem" class="en">Made with ♥ by an independent developer</h2>
+    <h2 style="margin-top:.5rem" class="de">Mit ♥ von einem unabhängigen Entwickler gebaut</h2>
+    <p style="color:rgba(255,255,255,.7);margin-inline:auto;max-width:60ch;margin-top:.75rem;font-size:1.05rem" class="en">
+      TapShift is <strong style="color:var(--primary)">not backed by a VC, not owned by a corporation</strong>, and has no shareholders to satisfy. The €5/year subscription exists exclusively to pay for the server — if costs drop, the price drops. Your data stays in Germany, encrypted.
+    </p>
+    <p style="color:rgba(255,255,255,.7);margin-inline:auto;max-width:60ch;margin-top:.75rem;font-size:1.05rem" class="de">
+      TapShift ist <strong style="color:var(--primary)">nicht VC-finanziert, nicht konzerngebunden</strong> und hat keine Aktionäre. Das €5/Jahr-Abo dient ausschließlich dazu, den Server zu bezahlen. Deine Daten bleiben in Deutschland, verschlüsselt.
     </p>
     <div style="display:flex;gap:2rem;justify-content:center;flex-wrap:wrap;margin-top:2.5rem">
       <div style="text-align:center">
         <div style="font-size:2rem;font-weight:800;color:var(--primary)">€5</div>
-        <div style="font-size:.85rem;color:rgba(255,255,255,.55)">per year after trial</div>
+        <div style="font-size:.85rem;color:rgba(255,255,255,.55)" class="en">per year after trial</div>
+        <div style="font-size:.85rem;color:rgba(255,255,255,.55)" class="de">pro Jahr nach Probezeit</div>
       </div>
       <div style="text-align:center">
         <div style="font-size:2rem;font-weight:800;color:var(--primary)">2 mo</div>
-        <div style="font-size:.85rem;color:rgba(255,255,255,.55)">free trial, no card needed</div>
+        <div style="font-size:.85rem;color:rgba(255,255,255,.55)" class="en">free trial, no card needed</div>
+        <div style="font-size:.85rem;color:rgba(255,255,255,.55)" class="de">Probezeit, keine Kreditkarte</div>
       </div>
       <div style="text-align:center">
-        <div style="font-size:2rem;font-weight:800;color:var(--primary)">0</div>
-        <div style="font-size:.85rem;color:rgba(255,255,255,.55)">ads, trackers, or upsells</div>
+        <div style="font-size:2rem;font-weight:800;color:var(--primary)">🇩🇪</div>
+        <div style="font-size:.85rem;color:rgba(255,255,255,.55)" class="en">data hosted in Germany</div>
+        <div style="font-size:.85rem;color:rgba(255,255,255,.55)" class="de">Daten in Deutschland</div>
       </div>
     </div>
     <div style="margin-top:2.5rem">
-      <a href="/pricing.html" class="btn btn-primary">See Pricing Details →</a>
+      <a href="/pricing.html" class="btn btn-primary en">See Pricing Details →</a>
+      <a href="/pricing.html" class="btn btn-primary de">Preise ansehen →</a>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════
-     CTA
-════════════════════════════════════════════ -->
 <section class="cta-section">
   <div class="container">
-    <h2>Start tracking today — completely free.</h2>
-    <p>2 months, all features, no credit card. Just sign up and start.</p>
-    <a href="/app.html" class="btn btn-dark btn-lg">Open TapShift →</a>
+    <h2 class="en">Start tracking today — completely free.</h2>
+    <h2 class="de">Noch heute starten — völlig kostenlos.</h2>
+    <p class="en">2 months, all features, no credit card. Just sign up and start.</p>
+    <p class="de">2 Monate, alle Funktionen, keine Kreditkarte. Einfach registrieren und loslegen.</p>
+    <a href="/app.html" class="btn btn-dark btn-lg en">Open TapShift →</a>
+    <a href="/app.html" class="btn btn-dark btn-lg de">TapShift öffnen →</a>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════
-     FOOTER
-════════════════════════════════════════════ -->
 <footer>
   <div class="container">
     <div class="footer-inner">
       <div class="footer-brand">
-        <a href="/" class="footer-logo">
-          <img src="/assets/icon.svg" alt="TapShift" width="32" height="32" />
-          Tap<span>Shift</span>
-        </a>
-        <p>An independent working-hours tracker built for people who follow German labour law and don't want to pay enterprise prices to do it.</p>
+        <a href="/" class="footer-logo"><img src="/assets/icon.svg" alt="TapShift" width="32" height="32" />Tap<span>Shift</span></a>
+        <p class="en">An independent working-hours tracker. Data hosted and encrypted in Germany. No ads, no tracking.</p>
+        <p class="de">Ein unabhängiger Zeiterfasser. Daten verschlüsselt in Deutschland. Keine Werbung, kein Tracking.</p>
       </div>
       <div class="footer-col">
-        <h4>Product</h4>
+        <h4 class="en">Product</h4><h4 class="de">Produkt</h4>
         <ul>
-          <li><a href="/">Overview</a></li>
-          <li><a href="/pricing.html">Pricing</a></li>
-          <li><a href="/guide.html">User Guide</a></li>
-          <li><a href="/app.html">Open App</a></li>
+          <li><a href="/"><span class="en">Overview</span><span class="de">Übersicht</span></a></li>
+          <li><a href="/pricing.html"><span class="en">Pricing</span><span class="de">Preise</span></a></li>
+          <li><a href="/guide.html"><span class="en">User Guide</span><span class="de">Anleitung</span></a></li>
+          <li><a href="/app.html"><span class="en">Open App</span><span class="de">App öffnen</span></a></li>
         </ul>
       </div>
       <div class="footer-col">
-        <h4>Learn</h4>
+        <h4 class="en">Learn</h4><h4 class="de">Mehr erfahren</h4>
         <ul>
-          <li><a href="/blog.html">Blog</a></li>
+          <li><a href="/comparison.html"><span class="en">Comparison</span><span class="de">Vergleich</span></a></li>
           <li><a href="/guide.html#faq">FAQ</a></li>
         </ul>
       </div>
       <div class="footer-col">
-        <h4>Project</h4>
+        <h4 class="en">Legal</h4><h4 class="de">Rechtliches</h4>
         <ul>
+          <li><a href="/impressum.html">Impressum</a></li>
+          <li><a href="/privacy.html"><span class="en">Privacy Policy</span><span class="de">Datenschutz</span></a></li>
           <li><a href="https://github.com/jannessm/TapShift" rel="noopener">GitHub</a></li>
-          <li><a href="https://github.com/jannessm/TapShift/issues" rel="noopener">Report a Bug</a></li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© 2025 TapShift — Independent open-source project.</span>
-      <span>Built with ♥, caffeine, and a healthy distrust of corporate timekeeping apps.</span>
+      <span class="en">© 2025 TapShift — Independent open-source project.</span>
+      <span class="de">© 2025 TapShift — Unabhängiges Open-Source-Projekt.</span>
     </div>
   </div>
 </footer>
-
+<script src="/assets/lang.js"></script>
 </body>
 </html>

@@ -1,515 +1,403 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>User Guide – TapShift</title>
-  <meta name="description" content="Learn how to use TapShift: set up tracking buttons, record work time, understand your balance, manage public holidays and special days, and read your history." />
-  <meta name="keywords" content="TapShift guide, time tracking tutorial, Zeiterfassung anleitung, how to track working hours, balance calculation, German break rules guide" />
-  <link rel="canonical" href="https://tapshift.app/guide.html" />
-
-  <!-- Open Graph -->
-  <meta property="og:type"        content="article" />
-  <meta property="og:url"         content="https://tapshift.app/guide.html" />
-  <meta property="og:title"       content="User Guide – TapShift" />
-  <meta property="og:description" content="Step-by-step guide to getting the most out of TapShift — from first login to reading your yearly balance." />
-
-  <!-- How-To schema -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    "name": "How to use TapShift to track your working hours",
-    "description": "Step-by-step guide to setting up TapShift, creating tracking buttons, recording time, and reading your balance.",
-    "step": [
-      { "@type": "HowToStep", "name": "Create your account", "text": "Sign up at the app URL and complete your profile." },
-      { "@type": "HowToStep", "name": "Set a work target", "text": "Define your contracted weekly hours so TapShift can calculate your balance." },
-      { "@type": "HowToStep", "name": "Create tracking buttons", "text": "Add a button for each activity type (Work, Home Office, Business Trip, etc.)." },
-      { "@type": "HowToStep", "name": "Start tracking", "text": "Tap a button to start the timer. Tap again to stop. Breaks are deducted automatically." },
-      { "@type": "HowToStep", "name": "Review your balance", "text": "Check the History tab for daily, monthly, and yearly balances." }
-    ]
-  }
-  </script>
-
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>(function(){var l=localStorage.getItem('ts-lang')||((navigator.language||'').startsWith('de')?'de':'en');document.documentElement.classList.add('lang-'+l);document.documentElement.lang=l;})();</script>
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/styles.css" />
+  <title>User Guide &ndash; TapShift</title>
+  <meta name="description" content="Learn how to use TapShift: create tracking buttons, record work time, understand your balance, manage public holidays and special days." />
+  <meta name="keywords" content="TapShift guide, Zeiterfassung Anleitung, how to track working hours, balance, Feiertage, Ueberstunden" />
+  <link rel="canonical" href="https://tapshift.app/guide.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://tapshift.app/guide.html" />
+  <meta property="og:title" content="User Guide &ndash; TapShift" />
+  <meta property="og:description" content="Step-by-step guide to TapShift &mdash; from first login to reading your yearly balance." />
 </head>
 <body>
-
 <div class="indie-banner">
-  Built by an <strong>independent developer</strong> — the €5/year subscription exists solely to cover server costs, not to make a profit. ♥
+  <span class="en">Built by an <strong>independent developer</strong> &mdash; the &euro;5/year subscription exists solely to cover server costs. &hearts;</span>
+  <span class="de">Von einem <strong>unabh&auml;ngigen Entwickler</strong> gebaut &mdash; das &euro;5/Jahr-Abo deckt nur Serverkosten. &hearts;</span>
 </div>
-
-<nav class="nav">
-  <div class="container nav-inner">
-    <a href="/" class="nav-brand">
-      <img src="/assets/icon.svg" alt="TapShift logo" width="36" height="36" />
-      Tap<span>Shift</span>
-    </a>
-    <button class="nav-toggle" aria-label="Toggle menu" onclick="this.nextElementSibling.classList.toggle('open')">
-      <span></span><span></span><span></span>
-    </button>
+<nav class="nav"><div class="container nav-inner">
+    <a href="/" class="nav-brand"><img src="/assets/icon.svg" alt="TapShift logo" width="36" height="36" />Tap<span>Shift</span></a>
+    <button class="nav-toggle" aria-label="Toggle menu" onclick="this.nextElementSibling.classList.toggle('open')"><span></span><span></span><span></span></button>
     <ul class="nav-links">
-      <li><a href="/">Overview</a></li>
-      <li><a href="/blog.html">Blog</a></li>
-      <li><a href="/pricing.html">Pricing</a></li>
-      <li><a href="/guide.html" class="active">Guide</a></li>
-      <li><a href="/app.html" class="nav-cta">Open App →</a></li>
+      <li><a href="/"><span class="en">Overview</span><span class="de">&Uuml;bersicht</span></a></li>
+      <li><a href="/comparison.html"><span class="en">Comparison</span><span class="de">Vergleich</span></a></li>
+      <li><a href="/pricing.html"><span class="en">Pricing</span><span class="de">Preise</span></a></li>
+      <li><a href="/guide.html" class="active"><span class="en">Guide</span><span class="de">Anleitung</span></a></li>
+      <li><a href="/app.html" class="nav-cta"><span class="en">Open App &rarr;</span><span class="de">App &ouml;ffnen &rarr;</span></a></li>
+      <li class="lang-switcher"><button class="lang-btn lang-active" data-lang-btn="en" onclick="setLang('en')">EN</button><button class="lang-btn" data-lang-btn="de" onclick="setLang('de')">DE</button></li>
     </ul>
-  </div>
-</nav>
+  </div></nav>
 
-<!-- Hero -->
 <section style="background:linear-gradient(135deg,var(--dark) 0%,#1d3a5a 100%);color:var(--white);padding-block:4rem;text-align:center">
   <div class="container">
-    <span class="badge badge-orange">User Guide</span>
-    <h1 style="margin-top:.75rem">How to Use TapShift</h1>
-    <p style="color:rgba(255,255,255,.7);max-width:55ch;margin-inline:auto;margin-top:.75rem;font-size:1.1rem">
-      Everything from first login to reading your yearly overtime balance — explained step by step.
-    </p>
+    <span class="badge badge-orange en">User Guide</span>
+    <span class="badge badge-orange de">Benutzerhandbuch</span>
+    <h1 style="margin-top:.75rem" class="en">How to Use TapShift</h1>
+    <h1 style="margin-top:.75rem" class="de">Wie du TapShift verwendest</h1>
+    <p style="color:rgba(255,255,255,.7);max-width:55ch;margin-inline:auto;margin-top:.75rem;font-size:1.1rem" class="en">From first login to reading your yearly overtime balance &mdash; step by step.</p>
+    <p style="color:rgba(255,255,255,.7);max-width:55ch;margin-inline:auto;margin-top:.75rem;font-size:1.1rem" class="de">Vom ersten Login bis zum j&auml;hrlichen &Uuml;berstundensaldo &mdash; Schritt f&uuml;r Schritt.</p>
     <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:2rem">
-      <a href="#getting-started" class="btn btn-primary">Getting Started</a>
-      <a href="#faq"             class="btn btn-outline" style="border-color:rgba(255,255,255,.35);color:#fff">FAQ</a>
+      <a href="#getting-started" class="btn btn-primary"><span class="en">Getting Started</span><span class="de">Erste Schritte</span></a>
+      <a href="#faq" class="btn btn-outline" style="border-color:rgba(255,255,255,.35);color:#fff">FAQ</a>
     </div>
   </div>
 </section>
 
-<!-- Table of contents -->
 <section style="background:var(--light);padding-block:2.5rem">
   <div class="container" style="max-width:760px">
-    <h2 style="margin-bottom:1.25rem">Contents</h2>
+    <h2 style="margin-bottom:1.25rem" class="en">Contents</h2>
+    <h2 style="margin-bottom:1.25rem" class="de">Inhalt</h2>
     <ol style="padding-left:1.25rem;line-height:2.2;color:var(--secondary)">
-      <li><a href="#getting-started">Getting started</a></li>
-      <li><a href="#targets">Setting your work target</a></li>
-      <li><a href="#buttons">Creating tracking buttons</a></li>
-      <li><a href="#tracking">Recording time</a></li>
-      <li><a href="#breaks">How break deduction works</a></li>
-      <li><a href="#special-days">Special day types</a></li>
-      <li><a href="#holidays">Public holidays</a></li>
-      <li><a href="#history">History and statistics</a></li>
-      <li><a href="#balance">Understanding your balance</a></li>
-      <li><a href="#offline">Offline mode and sync</a></li>
+      <li><a href="#getting-started"><span class="en">Getting started</span><span class="de">Erste Schritte</span></a></li>
+      <li><a href="#targets"><span class="en">Setting your work target</span><span class="de">Arbeitsziel festlegen</span></a></li>
+      <li><a href="#buttons"><span class="en">Creating tracking buttons</span><span class="de">Schaltfl&auml;chen erstellen</span></a></li>
+      <li><a href="#tracking"><span class="en">Recording time</span><span class="de">Zeit erfassen</span></a></li>
+      <li><a href="#special-days"><span class="en">Special day types</span><span class="de">Besondere Tagestypen</span></a></li>
+      <li><a href="#holidays"><span class="en">Public holidays</span><span class="de">Gesetzliche Feiertage</span></a></li>
+      <li><a href="#history"><span class="en">History and statistics</span><span class="de">Historie und Statistiken</span></a></li>
+      <li><a href="#balance"><span class="en">Understanding your balance</span><span class="de">Den Saldo verstehen</span></a></li>
+      <li><a href="#data"><span class="en">Your data &amp; security</span><span class="de">Deine Daten &amp; Sicherheit</span></a></li>
       <li><a href="#faq">FAQ</a></li>
     </ol>
   </div>
 </section>
 
-<!-- ═══ Getting Started ═══ -->
 <section id="getting-started">
   <div class="container" style="max-width:760px">
-    <span class="badge">Step 1</span>
-    <h2 style="margin-top:.5rem">Getting Started</h2>
-    <p>Open <a href="/app.html">TapShift</a>, click <strong>Register</strong>, and enter your name, email, and a password. You'll be logged in immediately with a 2-month free trial — no credit card required.</p>
-
+    <span class="badge en">Step 1</span><span class="badge de">Schritt 1</span>
+    <h2 style="margin-top:.5rem" class="en">Getting Started</h2>
+    <h2 style="margin-top:.5rem" class="de">Erste Schritte</h2>
+    <p class="en">Open <a href="/app.html">TapShift</a>, click <strong>Register</strong>, and enter your name, email, and a password. You will be logged in immediately with a 2-month free trial &mdash; no credit card required.</p>
+    <p class="de">&Ouml;ffne <a href="/app.html">TapShift</a>, klicke auf <strong>Registrieren</strong> und gib Name, E-Mail und Passwort ein. Du bist sofort eingeloggt mit einer 2-monatigen Probezeit &mdash; keine Kreditkarte n&ouml;tig.</p>
     <div class="steps" style="margin-top:2rem">
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Register an account</h3>
-          <p>Go to the app, click <em>Register</em>, and fill in your name, email address, and a password. hCaptcha is used to prevent bots — just complete the quick challenge.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Explore the three tabs</h3>
-          <p>The app has three main tabs at the bottom: <strong>Timer</strong> (your tracking buttons), <strong>History</strong> (calendar and statistics), and <strong>Settings</strong> (account and preferences).</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Set your country in Settings</h3>
-          <p>Head to <em>Settings → Country</em> and choose your federal state (Bundesland). This activates the correct public holiday calendar for your balance calculations.</p>
-        </div>
-      </div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Create an account</h3><h3 class="de">Konto erstellen</h3>
+        <p class="en">Go to the app, click <em>Register</em>, fill in your name, email, and a password.</p>
+        <p class="de">App &ouml;ffnen, auf <em>Registrieren</em> klicken, Name, E-Mail und Passwort eingeben.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Explore the three tabs</h3><h3 class="de">Die drei Tabs erkunden</h3>
+        <p class="en">The app has three main tabs: <strong>Timer</strong> (tracking buttons), <strong>History</strong> (calendar and statistics), and <strong>Settings</strong>.</p>
+        <p class="de">Die App hat drei Tabs: <strong>Timer</strong> (Schaltfl&auml;chen), <strong>Historie</strong> (Kalender und Statistiken) und <strong>Einstellungen</strong>.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Set your country in Settings</h3><h3 class="de">Land / Bundesland einstellen</h3>
+        <p class="en">Go to <em>Settings &rarr; Country</em> and choose your federal state to activate the correct public holiday calendar.</p>
+        <p class="de">Gehe zu <em>Einstellungen &rarr; Land</em> und w&auml;hle dein Bundesland, um den richtigen Feiertagskalender zu aktivieren.</p>
+      </div></div>
     </div>
   </div>
 </section>
 
-<!-- ═══ Targets ═══ -->
 <section id="targets" style="background:var(--light)">
   <div class="container" style="max-width:760px">
-    <span class="badge">Step 2</span>
-    <h2 style="margin-top:.5rem">Setting Your Work Target</h2>
-    <p>A <strong>target</strong> defines how many hours you are contracted to work per day and which days are working days. TapShift uses this to compute your running balance.</p>
-
+    <span class="badge en">Step 2</span><span class="badge de">Schritt 2</span>
+    <h2 style="margin-top:.5rem" class="en">Setting Your Work Target</h2>
+    <h2 style="margin-top:.5rem" class="de">Arbeitsziel festlegen</h2>
+    <p class="en">A <strong>target</strong> defines how many hours you are contracted to work per day. TapShift uses this to compute your running balance.</p>
+    <p class="de">Ein <strong>Arbeitsziel</strong> legt fest, wie viele Stunden du vertraglich pro Tag arbeiten musst. TapShift nutzt dies f&uuml;r den laufenden Saldo.</p>
     <div class="steps" style="margin-top:2rem">
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Create a target</h3>
-          <p>In <em>Settings → Targets</em>, tap <em>Add Target</em> and give it a name (e.g. "Full-time contract"). Enter the contracted minutes per day for each weekday. For a standard 8 h/day Mon–Fri contract, enter 480 for Monday–Friday and 0 for Saturday and Sunday.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Set a start date</h3>
-          <p>Enter the date your contract started. TapShift will calculate your cumulative balance from that date forward, including any public holidays that reduce your due hours.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Toggle "Exclude public holidays"</h3>
-          <p>If your contract counts public holidays as paid days off (the standard for German employees), enable this option. Due hours for public holidays will be set to zero automatically.</p>
-        </div>
-      </div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Create a target</h3><h3 class="de">Ziel erstellen</h3>
+        <p class="en">In <em>Settings &rarr; Targets</em>, tap <em>Add Target</em>, give it a name and enter your contracted hours per weekday.</p>
+        <p class="de">In <em>Einstellungen &rarr; Ziele</em> auf <em>Ziel hinzuf&uuml;gen</em> tippen und vertragliche Stunden pro Wochentag eingeben.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Set a start date</h3><h3 class="de">Startdatum festlegen</h3>
+        <p class="en">Enter the date your contract started. TapShift calculates your cumulative balance from that date, including public holidays.</p>
+        <p class="de">Gib das Datum ein, an dem dein Vertrag begann. TapShift berechnet den kumulierten Saldo ab diesem Datum inklusive Feiertagen.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Toggle "Exclude public holidays"</h3><h3 class="de">"Feiertage ausschlie&szlig;en" aktivieren</h3>
+        <p class="en">Enable this if your contract counts public holidays as paid days off (standard for German employment). Due hours for those days are set to zero automatically.</p>
+        <p class="de">Aktiviere dies, wenn dein Vertrag Feiertage als bezahlte freie Tage z&auml;hlt (Standard f&uuml;r deutsche Anstellungsverh&auml;ltnisse).</p>
+      </div></div>
     </div>
   </div>
 </section>
 
-<!-- ═══ Buttons ═══ -->
 <section id="buttons">
   <div class="container" style="max-width:760px">
-    <span class="badge">Step 3</span>
-    <h2 style="margin-top:.5rem">Creating Tracking Buttons</h2>
-    <p>Each activity you want to track needs a button. Buttons live on the <strong>Timer</strong> tab and are the primary way you interact with the app.</p>
-
+    <span class="badge en">Step 3</span><span class="badge de">Schritt 3</span>
+    <h2 style="margin-top:.5rem" class="en">Creating Tracking Buttons</h2>
+    <h2 style="margin-top:.5rem" class="de">Schaltfl&auml;chen erstellen</h2>
+    <p class="en">Each activity you want to track needs a button on the <strong>Timer</strong> tab.</p>
+    <p class="de">Jede Aktivit&auml;t braucht eine Schaltfl&auml;che im <strong>Timer</strong>-Tab.</p>
     <div class="steps" style="margin-top:2rem">
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Tap "+" to add a button</h3>
-          <p>On the Timer tab, tap the <em>+</em> button. A configuration screen will open.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Choose a name and emoji</h3>
-          <p>Give your button a short label (e.g. "Work") and pick an emoji to make it recognisable at a glance. Good examples: 💼 Work, 🏠 Home Office, ✈️ Business Trip, 🧑‍⚕️ Doctor.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Pick a colour</h3>
-          <p>Assign a colour to each button. Colours appear in the calendar history view, making it easy to see which activity you did on which day.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Enable "Apply break calculation" (recommended)</h3>
-          <p>For any button that represents actual work time, enable this toggle. German law requires a 30-minute break for shifts of 6 h or more and 45 minutes for 9 h or more. TapShift will subtract the correct amount automatically when you stop the timer.</p>
-        </div>
-      </div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Tap &ldquo;+&rdquo; to add a button</h3><h3 class="de">Auf &ldquo;+&rdquo; tippen</h3>
+        <p class="en">On the Timer tab, tap <em>+</em>. A configuration screen opens.</p>
+        <p class="de">Im Timer-Tab auf <em>+</em> tippen. Ein Konfigurationsbildschirm &ouml;ffnet sich.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Choose a name and emoji</h3><h3 class="de">Name und Emoji w&auml;hlen</h3>
+        <p class="en">Give your button a short label and pick an emoji. Examples: &#x1F4BC; Work, &#x1F3E0; Home Office, &#x2708; Business Trip.</p>
+        <p class="de">Kurze Bezeichnung und Emoji vergeben. Beispiele: &#x1F4BC; Arbeit, &#x1F3E0; Homeoffice, &#x2708; Dienstreise.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Pick a colour</h3><h3 class="de">Farbe w&auml;hlen</h3>
+        <p class="en">Colours appear in the calendar history so you can see which activity happened on which day at a glance.</p>
+        <p class="de">Farben erscheinen im Kalender, damit du auf einen Blick siehst, welche Aktivit&auml;t wann stattgefunden hat.</p>
+      </div></div>
     </div>
   </div>
 </section>
 
-<!-- ═══ Tracking ═══ -->
 <section id="tracking" style="background:var(--light)">
   <div class="container" style="max-width:760px">
-    <span class="badge">Step 4</span>
-    <h2 style="margin-top:.5rem">Recording Time</h2>
-
+    <span class="badge en">Step 4</span><span class="badge de">Schritt 4</span>
+    <h2 style="margin-top:.5rem" class="en">Recording Time</h2>
+    <h2 style="margin-top:.5rem" class="de">Zeit erfassen</h2>
     <div class="steps" style="margin-top:2rem">
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Tap a button to start</h3>
-          <p>Tapping a tracking button starts the timer. The button grows slightly and pulses to indicate it's active. The elapsed time is displayed and updates every minute.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Tap again to stop</h3>
-          <p>Tap the active button a second time to stop the timer. The time log is saved locally and synced to the server. If break calculation is enabled, the automatic deduction is applied at this point.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Add entries manually</h3>
-          <p>Forgot to start the timer? Go to <em>History → Add Manual Entry</em>, pick the date and time range, select the button type, and save. Manual entries work exactly the same as timer-based ones.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Edit or delete entries</h3>
-          <p>Tap any day in the calendar view to see its entries. Long-press (or swipe) any entry to edit or delete it. The balance recalculates immediately.</p>
-        </div>
-      </div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Tap a button to start</h3><h3 class="de">Schaltfl&auml;che antippen zum Starten</h3>
+        <p class="en">Tapping a button starts the timer. It pulses to show it is active and updates the elapsed time every minute.</p>
+        <p class="de">Antippen startet den Timer. Er pulsiert und aktualisiert die vergangene Zeit minüt&uuml;lich.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Tap again to stop</h3><h3 class="de">Nochmal tippen zum Stoppen</h3>
+        <p class="en">Tap the active button a second time. The time log is saved locally and synced to the server.</p>
+        <p class="de">Noch einmal antippen. Das Zeitprotokoll wird lokal gespeichert und mit dem Server synchronisiert.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Add entries manually</h3><h3 class="de">Eintr&auml;ge manuell hinzuf&uuml;gen</h3>
+        <p class="en">Forgot to start the timer? Use <em>History &rarr; Add Manual Entry</em>, pick the date and time range, select the type, and save.</p>
+        <p class="de">Timer vergessen? &Uuml;ber <em>Historie &rarr; Manuellen Eintrag hinzuf&uuml;gen</em>, Datum und Zeitraum w&auml;hlen, Typ ausw&auml;hlen und speichern.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Edit or delete entries</h3><h3 class="de">Eintr&auml;ge bearbeiten oder l&ouml;schen</h3>
+        <p class="en">Tap any day in the calendar to see its entries. Tap any entry to edit or delete. The balance recalculates immediately.</p>
+        <p class="de">Tag im Kalender antippen, um Eintr&auml;ge zu sehen. Eintrag antippen zum Bearbeiten oder L&ouml;schen. Der Saldo wird sofort neu berechnet.</p>
+      </div></div>
     </div>
   </div>
 </section>
 
-<!-- ═══ Breaks ═══ -->
-<section id="breaks">
+<section id="special-days">
   <div class="container" style="max-width:760px">
-    <span class="badge badge-orange">Important</span>
-    <h2 style="margin-top:.5rem">How Break Deduction Works</h2>
-    <p>German law (§ 4 ArbZG) mandates rest breaks. TapShift automates this entirely when <em>Apply break calculation</em> is enabled on a button:</p>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:1.75rem">
-      <div class="feature-card" style="background:rgba(251,176,59,.08);border-color:rgba(251,176,59,.25)">
-        <div style="font-size:2rem;margin-bottom:.75rem">⏰</div>
-        <h3>Shifts of 6 h or more</h3>
-        <p style="color:var(--text)"><strong>30 minutes</strong> are subtracted from the recorded duration.</p>
-      </div>
-      <div class="feature-card" style="background:rgba(41,171,226,.08);border-color:rgba(41,171,226,.25)">
-        <div style="font-size:2rem;margin-bottom:.75rem">⏰⏰</div>
-        <h3>Shifts of 9 h or more</h3>
-        <p style="color:var(--text)"><strong>45 minutes</strong> are subtracted from the recorded duration.</p>
-      </div>
-    </div>
-
-    <div class="callout" style="margin-top:1.75rem">
-      <strong>Example:</strong> You start at 08:00 and stop at 17:30 — a raw duration of 9.5 hours. Because it exceeds 9 hours, TapShift records <strong>8 hours 45 minutes</strong> (9.5 h − 45 min) as your worked time. No manual entry needed.
-    </div>
-
-    <p style="margin-top:1.25rem;color:var(--gray)">
-      Break deduction is applied <em>once per time log</em> based on the total duration, and only on the last day if a shift spans midnight.
-    </p>
-  </div>
-</section>
-
-<!-- ═══ Special days ═══ -->
-<section id="special-days" style="background:var(--light)">
-  <div class="container" style="max-width:760px">
-    <span class="badge">Special Days</span>
-    <h2 style="margin-top:.5rem">Logging Special Day Types</h2>
-    <p>Not every day is a normal working day. TapShift tracks the following types, all of which contribute to your balance correctly:</p>
-
+    <span class="badge en">Special Days</span><span class="badge de">Besondere Tage</span>
+    <h2 style="margin-top:.5rem" class="en">Special Day Types</h2>
+    <h2 style="margin-top:.5rem" class="de">Besondere Tagestypen</h2>
+    <p class="en">TapShift tracks these types, each contributing to your balance correctly:</p>
+    <p class="de">TapShift erfasst diese Typen, die alle korrekt in den Saldo einflie&szlig;en:</p>
     <div class="features-grid" style="margin-top:1.75rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
       <div class="feature-card">
-        <div style="font-size:1.75rem;margin-bottom:.5rem">🤒</div>
-        <h3>Sick Day</h3>
-        <p>Logged as a whole-day entry. Due minutes for that day are added to worked minutes — your balance is unaffected.</p>
+        <div class="feature-icon">&#x1F912;</div>
+        <h3 class="en">Sick Day</h3><h3 class="de">Krankheitstag</h3>
+        <p class="en">Counts as a worked day for balance purposes, tracked separately in statistics.</p>
+        <p class="de">Z&auml;hlt f&uuml;r den Saldo als gearbeiteter Tag, separat in der Statistik erfasst.</p>
       </div>
       <div class="feature-card">
-        <div style="font-size:1.75rem;margin-bottom:.5rem">👶</div>
-        <h3>Child-Sick Day</h3>
-        <p>Same treatment as sick days. Tracked separately so you can see the count in your yearly statistics.</p>
+        <div class="feature-icon blue">&#x1F476;</div>
+        <h3 class="en">Child-Sick Day</h3><h3 class="de">Kindkranktag</h3>
+        <p class="en">Same treatment as sick days, tracked separately for yearly statistics.</p>
+        <p class="de">Gleiche Behandlung wie Krankheitstage, f&uuml;r die j&auml;hrliche Statistik separat erfasst.</p>
       </div>
       <div class="feature-card">
-        <div style="font-size:1.75rem;margin-bottom:.5rem">🏖️</div>
-        <h3>Holiday (Urlaub)</h3>
-        <p>Whole-day entry. Counts as worked for balance purposes. Tracked separately from public holidays.</p>
+        <div class="feature-icon">&#x1F3D6;</div>
+        <h3 class="en">Holiday (Urlaub)</h3><h3 class="de">Urlaub</h3>
+        <p class="en">Counts as worked for balance, tracked separately from public holidays.</p>
+        <p class="de">Z&auml;hlt f&uuml;r den Saldo, separat von gesetzlichen Feiertagen erfasst.</p>
       </div>
       <div class="feature-card">
-        <div style="font-size:1.75rem;margin-bottom:.5rem">✈️</div>
-        <h3>Business Trip</h3>
-        <p>Logged as a timed entry. Break deduction applies as normal. Counted as a worked day in statistics.</p>
+        <div class="feature-icon blue">&#x2708;</div>
+        <h3 class="en">Business Trip</h3><h3 class="de">Dienstreise</h3>
+        <p class="en">Logged as a timed entry, counted as a worked day in statistics.</p>
+        <p class="de">Als zeitgesteuerter Eintrag protokolliert, z&auml;hlt als gearbeiteter Tag.</p>
       </div>
     </div>
-
-    <p style="margin-top:1.5rem;color:var(--gray)">
-      To log a special day, go to the Timer tab, tap <em>Add Entry</em> (or use the manual entry form in History), and select the appropriate type from the dropdown.
-    </p>
   </div>
 </section>
 
-<!-- ═══ Holidays ═══ -->
-<section id="holidays">
+<section id="holidays" style="background:var(--light)">
   <div class="container" style="max-width:760px">
-    <span class="badge">Public Holidays</span>
-    <h2 style="margin-top:.5rem">Public Holidays</h2>
-    <p>
-      TapShift fetches the official public holiday calendar for your federal state automatically. Holidays are stored locally and refreshed when they're more than 3 months old.
-    </p>
-    <p style="color:var(--gray);margin-top:.75rem">
-      When a target is configured with <em>Exclude public holidays</em> enabled (recommended for standard German employment contracts), the due hours for those days are automatically set to zero. You'll see the day marked in your calendar but it won't count against you in the balance.
-    </p>
+    <span class="badge en">Public Holidays</span><span class="badge de">Gesetzliche Feiertage</span>
+    <h2 style="margin-top:.5rem" class="en">Public Holidays</h2>
+    <h2 style="margin-top:.5rem" class="de">Gesetzliche Feiertage</h2>
+    <p class="en">TapShift fetches the official public holiday calendar for your federal state automatically. When a target is configured with <em>Exclude public holidays</em> enabled, due hours for those days are set to zero automatically.</p>
+    <p class="de">TapShift l&auml;dt automatisch den offiziellen Feiertagskalender f&uuml;r dein Bundesland. Wenn ein Ziel mit <em>Feiertage ausschlie&szlig;en</em> konfiguriert ist, werden die Sollstunden f&uuml;r diese Tage automatisch auf null gesetzt.</p>
     <div class="callout orange" style="margin-top:1.5rem">
-      <strong>Tip:</strong> Different federal states have different public holiday counts. Bavaria (Bayern) has the most; Berlin has fewer. Make sure your state is set correctly in <em>Settings → Country</em> to get an accurate balance.
+      <strong class="en">Tip:</strong><strong class="de">Tipp:</strong>
+      <span class="en"> Different federal states have different public holiday counts. Make sure your state is set correctly under <em>Settings &rarr; Country</em>.</span>
+      <span class="de"> Verschiedene Bundesl&auml;nder haben unterschiedlich viele Feiertage. Stelle sicher, dass dein Bundesland korrekt unter <em>Einstellungen &rarr; Land</em> eingestellt ist.</span>
     </div>
   </div>
 </section>
 
-<!-- ═══ History ═══ -->
-<section id="history" style="background:var(--light)">
+<section id="history">
   <div class="container" style="max-width:760px">
-    <span class="badge">History</span>
-    <h2 style="margin-top:.5rem">History and Statistics</h2>
-    <p>The <strong>History</strong> tab gives you a full picture of your working time across different time scales.</p>
-
+    <span class="badge en">History</span><span class="badge de">Historie</span>
+    <h2 style="margin-top:.5rem" class="en">History and Statistics</h2>
+    <h2 style="margin-top:.5rem" class="de">Historie und Statistiken</h2>
     <div class="steps" style="margin-top:1.75rem">
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Calendar view</h3>
-          <p>A colour-coded calendar shows which days had activity. Tap any day to see a detailed breakdown of all time logs for that day.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Monthly summary</h3>
-          <p>See your total worked hours, due hours, overtime or deficit, and counts of sick days, child-sick days, and holidays for the month.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Yearly statistics</h3>
-          <p>Zoom out to see the full year. The yearly cumulative balance shows whether you've worked more or less than contracted over the entire year to date.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num"></div>
-        <div>
-          <h3>Year selector</h3>
-          <p>Use the year selector at the top of the History tab to look at previous years. Your full history is stored as long as your account is active.</p>
-        </div>
-      </div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Calendar view</h3><h3 class="de">Kalenderansicht</h3>
+        <p class="en">A colour-coded calendar shows which days had activity. Tap any day to see a detailed breakdown.</p>
+        <p class="de">Ein farbkodierter Kalender zeigt aktive Tage. Tippe auf einen Tag f&uuml;r Details.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Monthly summary</h3><h3 class="de">Monats&uuml;bersicht</h3>
+        <p class="en">Total worked hours, due hours, overtime or deficit, and counts of sick days for the month.</p>
+        <p class="de">Gesamte Arbeitsstunden, Sollstunden, &Uuml;ber- oder Minusstunden sowie Krank- und Urlaubstage f&uuml;r den Monat.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Yearly statistics</h3><h3 class="de">Jahresstatistiken</h3>
+        <p class="en">The yearly cumulative balance shows whether you&rsquo;ve worked more or less than contracted over the entire year to date.</p>
+        <p class="de">Der j&auml;hrliche kumulative Saldo zeigt, ob du mehr oder weniger als vertraglich vereinbart gearbeitet hast.</p>
+      </div></div>
     </div>
   </div>
 </section>
 
-<!-- ═══ Balance ═══ -->
-<section id="balance">
+<section id="balance" style="background:var(--light)">
   <div class="container" style="max-width:760px">
-    <span class="badge badge-orange">Key Concept</span>
-    <h2 style="margin-top:.5rem">Understanding Your Balance</h2>
-    <p>
-      The balance is the difference between what you <em>worked</em> and what you <em>owe</em>. A positive balance means overtime; a negative balance means you still owe hours.
-    </p>
-
-    <div style="background:var(--light);border-radius:var(--radius-lg);padding:1.75rem;margin-top:1.75rem">
-      <h3 style="margin-bottom:1rem;color:var(--secondary-dark)">How the balance is calculated</h3>
-      <ol style="padding-left:1.25rem;line-height:2;color:var(--text)">
+    <span class="badge badge-orange en">Key Concept</span><span class="badge badge-orange de">Schl&uuml;sselkonzept</span>
+    <h2 style="margin-top:.5rem" class="en">Understanding Your Balance</h2>
+    <h2 style="margin-top:.5rem" class="de">Den Saldo verstehen</h2>
+    <p class="en">The balance is the difference between what you <em>worked</em> and what you <em>owe</em>. Positive = overtime; negative = deficit.</p>
+    <p class="de">Der Saldo ist die Differenz zwischen dem, was du <em>gearbeitet</em> hast, und dem, was du <em>solltest</em>. Positiv = &Uuml;berstunden; negativ = Fehlzeit.</p>
+    <div style="background:rgba(41,171,226,.06);border-radius:var(--radius-lg);padding:1.75rem;margin-top:1.75rem;border:1px solid rgba(41,171,226,.15)">
+      <ol style="padding-left:1.25rem;line-height:2;color:var(--text)" class="en">
         <li>For each day, TapShift sums all worked minutes from your time logs.</li>
-        <li>It fetches the <em>due</em> minutes for that day from your target (accounting for weekends and public holidays).</li>
-        <li>The daily balance is <code>worked − due</code>.</li>
-        <li>Monthly and yearly balances sum all daily balances and add a <em>cumulative</em> carry-forward from previous periods.</li>
-        <li>The running total you see is your cumulative balance from the start of your earliest target to today.</li>
+        <li>It fetches the <em>due</em> minutes from your target (weekends and public holidays already excluded).</li>
+        <li>Daily balance = <code>worked &minus; due</code>.</li>
+        <li>Monthly and yearly balances sum all daily balances with a cumulative carry-forward.</li>
+      </ol>
+      <ol style="padding-left:1.25rem;line-height:2;color:var(--text)" class="de">
+        <li>F&uuml;r jeden Tag summiert TapShift alle gearbeiteten Minuten aus deinen Zeitprotokollen.</li>
+        <li>Es holt die <em>Soll</em>-Minuten aus deinem Ziel (Wochenenden und Feiertage bereits ausgeschlossen).</li>
+        <li>Tagessaldo = <code>Gearbeitet &minus; Soll</code>.</li>
+        <li>Monats- und Jahressalden summieren alle Tagessalden mit kumulativem &Uuml;bertrag.</li>
       </ol>
     </div>
-
     <div class="callout" style="margin-top:1.5rem">
-      <strong>Live updates:</strong> While a timer is running, the balance updates every minute. You can see your overtime or deficit grow in real time on the Timer tab.
+      <strong class="en">Live updates:</strong><strong class="de">Live-Updates:</strong>
+      <span class="en"> While a timer is running, the balance updates every minute.</span>
+      <span class="de"> W&auml;hrend ein Timer l&auml;uft, aktualisiert sich der Saldo jede Minute.</span>
     </div>
   </div>
 </section>
 
-<!-- ═══ Offline ═══ -->
-<section id="offline" style="background:var(--light)">
+<section id="data">
   <div class="container" style="max-width:760px">
-    <span class="badge">Offline Mode</span>
-    <h2 style="margin-top:.5rem">Offline Mode and Sync</h2>
-    <p>
-      TapShift stores all your data locally in your browser first. You can start and stop timers, add entries, and view your balance without any internet connection. When the app detects a connection, it syncs with the server automatically.
-    </p>
-    <p style="color:var(--gray);margin-top:.75rem">
-      Sync uses a conflict resolution system based on the <em>updated_at</em> timestamp. The most recently modified version of any record wins. You'll be notified if a conflict occurs (rare) and can choose which version to keep.
-    </p>
-    <div class="callout orange" style="margin-top:1.5rem">
-      <strong>Note:</strong> If you use TapShift on multiple devices, make sure to sync (open the app and wait for the loading indicator to clear) on the first device before switching to another to avoid conflicts.
+    <span class="badge en">Privacy &amp; Security</span><span class="badge de">Datenschutz &amp; Sicherheit</span>
+    <h2 style="margin-top:.5rem" class="en">Your Data &amp; Security</h2>
+    <h2 style="margin-top:.5rem" class="de">Deine Daten &amp; Sicherheit</h2>
+    <div class="features-grid" style="margin-top:1.75rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <div class="feature-card" style="background:rgba(251,176,59,.06);border-color:rgba(251,176,59,.2)">
+        <div class="feature-icon">&#x1F1E9;&#x1F1EA;</div>
+        <h3 class="en">Hosted in Germany</h3><h3 class="de">Hosting in Deutschland</h3>
+        <p class="en">All data is stored exclusively on servers in Germany, subject to German and EU data protection law (DSGVO/GDPR).</p>
+        <p class="de">Alle Daten werden ausschlie&szlig;lich auf Servern in Deutschland gespeichert, die dem deutschen und europ&auml;ischen Datenschutzrecht unterliegen.</p>
+      </div>
+      <div class="feature-card" style="background:rgba(41,171,226,.06);border-color:rgba(41,171,226,.2)">
+        <div class="feature-icon blue">&#x1F510;</div>
+        <h3 class="en">Encrypted</h3><h3 class="de">Verschl&uuml;sselt</h3>
+        <p class="en">All communication uses TLS. Data at rest is encrypted in the database. Passwords are never stored in plain text.</p>
+        <p class="de">Alle Kommunikation ist TLS-verschl&uuml;sselt. Ruhende Daten sind in der Datenbank verschl&uuml;sselt. Passw&ouml;rter werden nie im Klartext gespeichert.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F645;</div>
+        <h3 class="en">No Third-Party Tracking</h3><h3 class="de">Kein Drittparteien-Tracking</h3>
+        <p class="en">No analytics, no ad networks, no data brokers. Your time logs are yours alone.</p>
+        <p class="de">Keine Analytics, keine Werbenetzwerke, keine Datenmakler. Deine Zeitprotokolle geh&ouml;ren nur dir.</p>
+      </div>
     </div>
+    <p style="margin-top:1.5rem;color:var(--gray)" class="en">For full details, see our <a href="/privacy.html">Privacy Policy</a>.</p>
+    <p style="margin-top:1.5rem;color:var(--gray)" class="de">Alle Details in der <a href="/privacy.html">Datenschutzerkl&auml;rung</a>.</p>
   </div>
 </section>
 
-<!-- ═══ FAQ ═══ -->
-<section id="faq">
+<section id="faq" style="background:var(--light)">
   <div class="container" style="max-width:760px">
     <div class="section-header">
       <span class="badge">FAQ</span>
-      <h2>Frequently Asked Questions</h2>
+      <h2 class="en">Frequently Asked Questions</h2>
+      <h2 class="de">H&auml;ufig gestellte Fragen</h2>
     </div>
-
     <details open>
-      <summary>Can I use TapShift on multiple devices?</summary>
-      <div class="details-body">Yes. Log in with the same account on your phone and laptop. Data syncs automatically whenever both devices have an internet connection.</div>
-    </details>
-
-    <details>
-      <summary>My balance looks wrong — what should I do?</summary>
+      <summary><span class="en">Can I use TapShift on multiple devices?</span><span class="de">Kann ich TapShift auf mehreren Ger&auml;ten nutzen?</span></summary>
       <div class="details-body">
-        Check the following:
-        <ul>
-          <li>Is your target start date correct? Balances are calculated from that date.</li>
-          <li>Is the correct state/country set in Settings?</li>
-          <li>Are public holidays excluded in your target settings?</li>
-          <li>Try the <em>Recalculate</em> button in Settings if balances seem stale.</li>
-        </ul>
+        <p class="en">Yes. Log in with the same account on any device. Data syncs automatically when online.</p>
+        <p class="de">Ja. Mit demselben Konto auf jedem Ger&auml;t einloggen. Daten synchronisieren sich automatisch online.</p>
       </div>
     </details>
-
     <details>
-      <summary>What happens if a timer runs past midnight?</summary>
-      <div class="details-body">TapShift handles cross-midnight shifts correctly. The effective worked time is split between the two days, and break deduction is applied only once (at the end of the shift, on the last day).</div>
+      <summary><span class="en">My balance looks wrong &mdash; what should I check?</span><span class="de">Mein Saldo stimmt nicht &mdash; was soll ich pr&uuml;fen?</span></summary>
+      <div class="details-body">
+        <ul class="en"><li>Is your target start date correct?</li><li>Is the correct state set in Settings?</li><li>Are public holidays excluded in your target?</li></ul>
+        <ul class="de"><li>Ist das Startdatum des Ziels korrekt?</li><li>Ist das richtige Bundesland in den Einstellungen gew&auml;hlt?</li><li>Sind Feiertage im Ziel ausgeschlossen?</li></ul>
+      </div>
     </details>
-
     <details>
-      <summary>Can I export my data?</summary>
-      <div class="details-body">Data export is on the roadmap. For now, your data is stored in your account and synced to the server. You can also self-host the app from the GitHub repository and access the database directly.</div>
+      <summary><span class="en">What happens if a timer runs past midnight?</span><span class="de">Was passiert, wenn ein Timer &uuml;ber Mitternacht l&auml;uft?</span></summary>
+      <div class="details-body">
+        <p class="en">TapShift handles cross-midnight shifts correctly. Time is split between the two days.</p>
+        <p class="de">TapShift behandelt &Uuml;ber-Mitternacht-Schichten korrekt. Die Zeit wird auf die beiden Tage aufgeteilt.</p>
+      </div>
     </details>
-
     <details>
-      <summary>Is my data private?</summary>
-      <div class="details-body">Your time logs are stored on the TapShift server (a VPS operated by the independent developer). There is no analytics, no third-party tracking, and no data sharing. The source code is open — you can verify this on GitHub.</div>
-    </details>
-
-    <details>
-      <summary>Do I need to configure anything for German break law?</summary>
-      <div class="details-body">Just enable <em>Apply break calculation</em> on your work buttons. TapShift takes care of the rest automatically.</div>
-    </details>
-
-    <details>
-      <summary>Where can I report a bug or request a feature?</summary>
-      <div class="details-body">Open an issue on <a href="https://github.com/jannessm/TapShift/issues" rel="noopener">GitHub</a>. The developer reads and responds to all issues.</div>
+      <summary><span class="en">Where can I report a bug?</span><span class="de">Wo kann ich einen Fehler melden?</span></summary>
+      <div class="details-body">
+        <p class="en">Open an issue on <a href="https://github.com/jannessm/TapShift/issues" rel="noopener">GitHub</a>.</p>
+        <p class="de">Ein Issue auf <a href="https://github.com/jannessm/TapShift/issues" rel="noopener">GitHub</a> &ouml;ffnen.</p>
+      </div>
     </details>
   </div>
 </section>
 
-<!-- CTA -->
 <section class="cta-section">
   <div class="container">
-    <h2>Ready to take control of your hours?</h2>
-    <p>Start your free 2-month trial — no credit card, no commitment.</p>
-    <a href="/app.html" class="btn btn-dark btn-lg">Open TapShift →</a>
+    <h2 class="en">Ready to take control of your hours?</h2>
+    <h2 class="de">Bereit, deine Stunden im Griff zu haben?</h2>
+    <p class="en">Start your free 2-month trial &mdash; no credit card, no commitment.</p>
+    <p class="de">Starte die kostenlose 2-monatige Probezeit &mdash; keine Kreditkarte, keine Bindung.</p>
+    <a href="/app.html" class="btn btn-dark btn-lg en">Open TapShift &rarr;</a>
+    <a href="/app.html" class="btn btn-dark btn-lg de">TapShift &ouml;ffnen &rarr;</a>
   </div>
 </section>
 
-<footer>
-  <div class="container">
-    <div class="footer-inner">
-      <div class="footer-brand">
-        <a href="/" class="footer-logo">
-          <img src="/assets/icon.svg" alt="TapShift" width="32" height="32" />
-          Tap<span>Shift</span>
-        </a>
-        <p>An independent working-hours tracker built for people who follow German labour law and don't want to pay enterprise prices to do it.</p>
-      </div>
-      <div class="footer-col">
-        <h4>Product</h4>
-        <ul>
-          <li><a href="/">Overview</a></li>
-          <li><a href="/pricing.html">Pricing</a></li>
-          <li><a href="/guide.html">User Guide</a></li>
-          <li><a href="/app.html">Open App</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Learn</h4>
-        <ul>
-          <li><a href="/blog.html">Blog</a></li>
-          <li><a href="/guide.html#faq">FAQ</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Project</h4>
-        <ul>
-          <li><a href="https://github.com/jannessm/TapShift" rel="noopener">GitHub</a></li>
-          <li><a href="https://github.com/jannessm/TapShift/issues" rel="noopener">Report a Bug</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2025 TapShift — Independent open-source project.</span>
-      <span>Built with ♥, caffeine, and a healthy distrust of corporate timekeeping apps.</span>
-    </div>
+<footer><div class="container"><div class="footer-inner">
+  <div class="footer-brand">
+    <a href="/" class="footer-logo"><img src="/assets/icon.svg" alt="TapShift" width="32" height="32" />Tap<span>Shift</span></a>
+    <p class="en">An independent working-hours tracker. Data hosted and encrypted in Germany.</p>
+    <p class="de">Ein unabh&auml;ngiger Zeiterfasser. Daten verschl&uuml;sselt in Deutschland.</p>
   </div>
-</footer>
-
+  <div class="footer-col">
+    <h4 class="en">Product</h4><h4 class="de">Produkt</h4>
+    <ul>
+      <li><a href="/"><span class="en">Overview</span><span class="de">&Uuml;bersicht</span></a></li>
+      <li><a href="/pricing.html"><span class="en">Pricing</span><span class="de">Preise</span></a></li>
+      <li><a href="/guide.html"><span class="en">User Guide</span><span class="de">Anleitung</span></a></li>
+      <li><a href="/app.html"><span class="en">Open App</span><span class="de">App &ouml;ffnen</span></a></li>
+    </ul>
+  </div>
+  <div class="footer-col">
+    <h4 class="en">Learn</h4><h4 class="de">Mehr erfahren</h4>
+    <ul>
+      <li><a href="/comparison.html"><span class="en">Comparison</span><span class="de">Vergleich</span></a></li>
+      <li><a href="/guide.html#faq">FAQ</a></li>
+    </ul>
+  </div>
+  <div class="footer-col">
+    <h4 class="en">Legal</h4><h4 class="de">Rechtliches</h4>
+    <ul>
+      <li><a href="/impressum.html">Impressum</a></li>
+      <li><a href="/privacy.html"><span class="en">Privacy Policy</span><span class="de">Datenschutz</span></a></li>
+      <li><a href="https://github.com/jannessm/TapShift" rel="noopener">GitHub</a></li>
+    </ul>
+  </div>
+</div>
+<div class="footer-bottom">
+  <span class="en">&copy; 2025 TapShift &mdash; Independent open-source project.</span>
+  <span class="de">&copy; 2025 TapShift &mdash; Unabh&auml;ngiges Open-Source-Projekt.</span>
+</div></div></footer>
+<script src="/assets/lang.js"></script>
 </body>
 </html>

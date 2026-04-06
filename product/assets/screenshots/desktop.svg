@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="1200" height="750">
+  <!-- Browser chrome -->
+  <rect width="1200" height="750" fill="#0f0f1a" rx="10"/>
+  <!-- Title bar -->
+  <rect width="1200" height="38" fill="#111122" rx="10"/>
+  <rect y="20" width="1200" height="18" fill="#111122"/>
+  <!-- Traffic lights -->
+  <circle cx="20" cy="19" r="6" fill="#ff5f57"/>
+  <circle cx="38" cy="19" r="6" fill="#febc2e"/>
+  <circle cx="56" cy="19" r="6" fill="#28c840"/>
+  <!-- URL bar -->
+  <rect x="80" y="9" width="500" height="20" rx="4" fill="rgba(255,255,255,0.08)"/>
+  <text x="330" y="23" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.35)" text-anchor="middle">app.tapshift.app</text>
+
+  <!-- Left sidebar / nav -->
+  <rect x="0" y="38" width="220" height="712" fill="#111122"/>
+  <line x1="220" y1="38" x2="220" y2="750" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+
+  <!-- Logo in sidebar -->
+  <text x="24" y="74" font-family="system-ui,sans-serif" font-size="18" font-weight="800" fill="white">Tap<tspan fill="#fbb03b">Shift</tspan></text>
+
+  <!-- Sidebar nav items -->
+  <rect x="12" y="90" width="196" height="40" rx="8" fill="rgba(251,176,59,0.15)"/>
+  <text x="40" y="115" font-family="system-ui,sans-serif" font-size="14" fill="#fbb03b" font-weight="600">⏱ Timer</text>
+  <text x="40" y="148" font-family="system-ui,sans-serif" font-size="14" fill="rgba(255,255,255,0.45)">📅 History</text>
+  <text x="40" y="178" font-family="system-ui,sans-serif" font-size="14" fill="rgba(255,255,255,0.45)">⚙️ Settings</text>
+
+  <!-- Sidebar balance summary -->
+  <rect x="12" y="206" width="196" height="100" rx="10" fill="rgba(255,255,255,0.06)"/>
+  <text x="24" y="230" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.4)">Today</text>
+  <text x="24" y="250" font-family="system-ui,sans-serif" font-size="17" font-weight="700" fill="white">7h 18m <tspan font-size="12" font-weight="400" fill="rgba(255,255,255,0.4)">/ 8h</tspan></text>
+  <text x="24" y="272" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.4)">Monthly balance</text>
+  <text x="24" y="292" font-family="system-ui,sans-serif" font-size="15" font-weight="700" fill="#fbb03b">+4h 32m</text>
+
+  <!-- Main area header -->
+  <rect x="220" y="38" width="980" height="56" fill="#16162a"/>
+  <line x1="220" y1="94" x2="1200" y2="94" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="248" y="72" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="white">Your Trackers</text>
+  <text x="1160" y="66" font-family="system-ui,sans-serif" font-size="13" fill="rgba(255,255,255,0.4)" text-anchor="end">Edit  +  Add</text>
+
+  <!-- Button grid (3 × 2) in main area -->
+  <!-- Row 1 -->
+  <!-- Work (active) -->
+  <rect x="248" y="116" width="190" height="190" rx="20" fill="rgba(251,176,59,0.2)" stroke="rgba(251,176,59,0.5)" stroke-width="2"/>
+  <circle cx="343" cy="185" r="32" fill="rgba(251,176,59,0.25)"/>
+  <text x="343" y="193" font-family="system-ui,sans-serif" font-size="30" text-anchor="middle">💼</text>
+  <text x="343" y="232" font-family="system-ui,sans-serif" font-size="15" font-weight="600" fill="rgba(255,255,255,0.9)" text-anchor="middle">Work</text>
+  <text x="343" y="254" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.4)" text-anchor="middle">3h 42m today</text>
+
+  <!-- Home Office -->
+  <rect x="454" y="116" width="190" height="190" rx="20" fill="rgba(41,171,226,0.15)"/>
+  <text x="549" y="197" font-family="system-ui,sans-serif" font-size="30" text-anchor="middle">🏠</text>
+  <text x="549" y="232" font-family="system-ui,sans-serif" font-size="15" font-weight="600" fill="rgba(255,255,255,0.9)" text-anchor="middle">Home Office</text>
+  <text x="549" y="254" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.4)" text-anchor="middle">—</text>
+
+  <!-- Business Trip -->
+  <rect x="660" y="116" width="190" height="190" rx="20" fill="rgba(255,255,255,0.06)"/>
+  <text x="755" y="197" font-family="system-ui,sans-serif" font-size="30" text-anchor="middle">✈️</text>
+  <text x="755" y="232" font-family="system-ui,sans-serif" font-size="15" font-weight="600" fill="rgba(255,255,255,0.9)" text-anchor="middle">Business Trip</text>
+  <text x="755" y="254" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.4)" text-anchor="middle">—</text>
+
+  <!-- Row 2 -->
+  <!-- Sick Day -->
+  <rect x="248" y="322" width="190" height="190" rx="20" fill="rgba(34,197,94,0.12)"/>
+  <text x="343" y="403" font-family="system-ui,sans-serif" font-size="30" text-anchor="middle">🧑‍⚕️</text>
+  <text x="343" y="438" font-family="system-ui,sans-serif" font-size="15" font-weight="600" fill="rgba(255,255,255,0.9)" text-anchor="middle">Sick Day</text>
+  <text x="343" y="460" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.4)" text-anchor="middle">whole day</text>
+
+  <!-- Deep Work -->
+  <rect x="454" y="322" width="190" height="190" rx="20" fill="rgba(255,255,255,0.06)"/>
+  <text x="549" y="403" font-family="system-ui,sans-serif" font-size="30" text-anchor="middle">🧪</text>
+  <text x="549" y="438" font-family="system-ui,sans-serif" font-size="15" font-weight="600" fill="rgba(255,255,255,0.9)" text-anchor="middle">Deep Work</text>
+  <text x="549" y="460" font-family="system-ui,sans-serif" font-size="12" fill="rgba(255,255,255,0.4)" text-anchor="middle">—</text>
+
+  <!-- Add button -->
+  <rect x="660" y="322" width="190" height="190" rx="20" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" stroke-dasharray="8,5"/>
+  <text x="755" y="413" font-family="system-ui,sans-serif" font-size="32" fill="rgba(255,255,255,0.25)" text-anchor="middle">＋</text>
+  <text x="755" y="445" font-family="system-ui,sans-serif" font-size="13" fill="rgba(255,255,255,0.2)" text-anchor="middle">Add</text>
+
+  <!-- Right stats panel -->
+  <rect x="866" y="116" width="314" height="396" rx="16" fill="rgba(255,255,255,0.04)"/>
+  <line x1="866" y1="116" x2="1180" y2="116" stroke="rgba(255,255,255,0)" stroke-width="0"/>
+
+  <text x="890" y="150" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="rgba(255,255,255,0.6)" text-transform="uppercase" letter-spacing="1">Statistics</text>
+
+  <!-- Stat cards -->
+  <rect x="882" y="164" width="270" height="70" rx="10" fill="rgba(255,255,255,0.07)"/>
+  <text x="900" y="188" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.4)">Today</text>
+  <text x="900" y="212" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="white">7h 18m <tspan font-size="13" font-weight="400" fill="rgba(255,255,255,0.35)">/ 8h</tspan></text>
+
+  <rect x="882" y="246" width="270" height="70" rx="10" fill="rgba(255,255,255,0.07)"/>
+  <text x="900" y="270" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.4)">Monthly Balance</text>
+  <text x="900" y="294" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="#fbb03b">+4h 32m</text>
+
+  <rect x="882" y="328" width="270" height="70" rx="10" fill="rgba(255,255,255,0.07)"/>
+  <text x="900" y="352" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.4)">Sick Days this year</text>
+  <text x="900" y="376" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="white">2</text>
+
+  <rect x="882" y="410" width="270" height="70" rx="10" fill="rgba(255,255,255,0.07)"/>
+  <text x="900" y="434" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.4)">Yearly cumulation</text>
+  <text x="900" y="458" font-family="system-ui,sans-serif" font-size="20" font-weight="700" fill="#29abe2">+12h 05m</text>
+
+  <!-- Progress bar for today -->
+  <rect x="882" y="494" width="270" height="8" rx="4" fill="rgba(255,255,255,0.08)"/>
+  <rect x="882" y="494" width="219" height="8" rx="4" fill="url(#deskGrad)"/>
+  <defs>
+    <linearGradient id="deskGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#29abe2"/>
+      <stop offset="100%" stop-color="#fbb03b"/>
+    </linearGradient>
+  </defs>
+  <text x="882" y="520" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.3)">91 % of today's target reached</text>
+</svg>
