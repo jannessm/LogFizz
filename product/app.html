@@ -53,7 +53,11 @@
     </p>
 
     <div style="display:flex;flex-direction:column;gap:1rem;align-items:center">
-      <a href="http://localhost:8080" id="app-link" class="btn btn-primary btn-lg" style="width:100%;max-width:320px;justify-content:center">
+      <!--
+        APP_URL: Replace the href below with the deployed app URL, e.g. https://app.tapshift.app
+        This can also be injected at build time via an environment variable or nginx sub_filter.
+      -->
+      <a href="/app/" id="app-link" class="btn btn-primary btn-lg" style="width:100%;max-width:320px;justify-content:center">
         Open TapShift App →
       </a>
       <p style="font-size:.85rem;color:rgba(255,255,255,.45)">
