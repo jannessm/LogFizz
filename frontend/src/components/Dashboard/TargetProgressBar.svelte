@@ -179,7 +179,7 @@
 </script>
 
 {#if progressList.length > 0}
-  <div class="flex flex-col gap-1.5 px-4 pt-2 pb-1">
+  <div class="flex flex-col gap-1.5 px-4 pt-2 pb-1 max-w-7xl mx-auto w-full">
     {#each progressList as progress (progress.targetId)}
       <div class="flex flex-col gap-0.5">
 
@@ -189,15 +189,13 @@
           <div class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
               class="h-full rounded-full transition-all duration-500"
-              class:bg-primary={!progress.done}
-              class:bg-green-500={progress.done}
-              style="width: {progress.percentage}%"
+              class:bg-brand-gradient={!progress.done}
+              style="width: {progress.percentage}%; {progress.done ? 'background: #fbb03b;' : ''}"
             ></div>
           </div>
           <span
             class="tabular-nums shrink-0 w-9 text-right"
-            class:text-green-600={progress.done}
-            class:dark:text-green-400={progress.done}
+            class:text-balance-positive={progress.done}
           >
             {Math.round(progress.percentage)}%
           </span>

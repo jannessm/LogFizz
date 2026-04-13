@@ -202,13 +202,13 @@
 
 <div class="h-full flex flex-col">
   {#if title}
-    <h4 class="text-xs font-medium text-gray-600 mb-2">{title}</h4>
+    <h4 class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">{title}</h4>
   {/if}
   <div class="flex-1">
     {#if timeLogs.length > 0}
       <canvas bind:this={canvas}></canvas>
     {:else}
-      <p class="text-gray-400 text-sm text-center py-8">{$_('common.noDataAvailable')}</p>
+      <p class="text-gray-400 dark:text-gray-500 text-sm text-center py-8">{$_('common.noDataAvailable')}</p>
     {/if}
   </div>
 </div>

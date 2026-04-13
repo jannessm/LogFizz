@@ -867,21 +867,21 @@ html.lang-de .de { display: revert; }
   background: transparent;
   border: 1px solid rgba(0,0,0,.18);
   border-radius: 5px;
-  padding: .2rem .55rem;
-  font-size: .78rem;
-  font-weight: 700;
+  padding: .2rem .4rem;
+  font-size: 1.1rem;
+  line-height: 1.4;
   cursor: pointer;
   color: var(--gray);
   font-family: inherit;
   transition: background var(--transition), color var(--transition), border-color var(--transition);
-  line-height: 1.6;
+  opacity: .55;
 }
 
 .lang-btn.lang-active,
 .lang-btn:hover {
-  background: var(--primary);
+  background: transparent;
   border-color: var(--primary);
-  color: var(--dark);
+  opacity: 1;
 }
 
 /* ── Screenshot images ── */

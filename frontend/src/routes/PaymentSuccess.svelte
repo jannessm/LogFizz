@@ -21,8 +21,8 @@
       </div>
     </div>
 
-    <h1 class="text-2xl font-bold text-gray-900 mb-2">{$_('subscription.paymentSuccessful')}</h1>
-    <p class="text-gray-600 mb-6">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{$_('subscription.paymentSuccessful')}</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-6">
       {$_('subscription.thankYouSubscribing')}
     </p>
 
@@ -36,13 +36,13 @@
       
       <button
         on:click={() => navigate('/payment')}
-        class="w-full bg-gray-100 text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 transition"
+        class="w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition"
       >
         {$_('common.viewSubscriptionDetails')}
       </button>
     </div>
 
-    <p class="text-sm text-gray-500 mt-6">
+    <p class="text-sm text-gray-500 dark:text-gray-400 mt-6">
       {$_('subscription.redirectingDashboard')}
     </p>
   </div>

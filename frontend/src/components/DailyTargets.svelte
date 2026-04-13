@@ -153,11 +153,7 @@
           class:opacity-40={!isActive}
         >
           <p 
-            class="shrink-0 transition-colors duration-300"
-            class:text-gray-800={isActive}
-            class:dark:text-gray-200={isActive}
-            class:text-gray-500={!isActive}
-            class:dark:text-gray-500={!isActive}
+            class="shrink-0 transition-colors duration-300 {isActive ? 'text-gray-800 dark:text-gray-200' : 'text-gray-500 dark:text-gray-500'}"
           >
             {target.name}
           </p>

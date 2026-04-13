@@ -199,7 +199,7 @@
 <div class="h-screen flex flex-col">
   <!-- Header -->
    <div class="flex flex-col">
-    <div class="flex mx-auto px-4 pt-4 gap-2 w-full z-20 justify-end grow-0">
+    <div class="flex mx-auto px-4 pt-4 gap-2 w-full max-w-7xl z-20 justify-end grow-0">
       <button
         onclick={toggleFormOnStop}
         class="flex gap-2 text-gray-500 dark:text-gray-400 transition-colors"
@@ -229,7 +229,7 @@
 
   <!-- Scrollable Button Area -->
   <div class="flex grow-1 overflow-y-auto">
-    <div class="mx-auto px-4 py-2 min-w-full w-full h-full">
+    <div class="mx-auto px-4 py-2 min-w-full w-full h-full max-w-7xl">
       <!-- Daily Targets Overview -->
       <TargetProgressBar />
 

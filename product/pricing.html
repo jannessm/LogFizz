@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script>(function(){var l=localStorage.getItem('ts-lang')||((navigator.language||'').startsWith('de')?'de':'en');document.documentElement.classList.add('lang-'+l);document.documentElement.lang=l;})();</script>
+  <script>(function(){var l=location.pathname.startsWith('/de')?'de':(localStorage.getItem('ts-lang')||((navigator.language||'').startsWith('de')?'de':'en'));document.documentElement.classList.add('lang-'+l);document.documentElement.lang=l;})();</script>
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/assets/styles.css" />
+  <link rel="stylesheet" href="/assets/styles.css?v=2" />
   <title>Pricing – TapShift</title>
   <meta name="description" content="TapShift is free for 2 months, then €5/year. No hidden fees. The subscription covers server costs only — built by an independent developer." />
   <meta name="keywords" content="TapShift pricing, time tracker cost, Zeiterfassung Preis, €5 per year, affordable time tracking" />
@@ -35,8 +35,8 @@
       <li><a href="/guide.html"><span class="en">Guide</span><span class="de">Anleitung</span></a></li>
       <li><a href="/app.html" class="nav-cta"><span class="en">Open App →</span><span class="de">App öffnen →</span></a></li>
       <li class="lang-switcher">
-        <button class="lang-btn lang-active" data-lang-btn="en" onclick="setLang('en')">EN</button>
-        <button class="lang-btn" data-lang-btn="de" onclick="setLang('de')">DE</button>
+        <button class="lang-btn lang-active" data-lang-btn="en" onclick="setLang('en')" title="English">🇬🇧</button>
+        <button class="lang-btn" data-lang-btn="de" onclick="setLang('de')" title="Deutsch">🇩🇪</button>
       </li>
     </ul>
   </div>
@@ -206,6 +206,6 @@
     </div>
   </div>
 </footer>
-<script src="/assets/lang.js"></script>
+<script src="/assets/lang.js?v=2"></script>
 </body>
 </html>

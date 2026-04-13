@@ -85,7 +85,7 @@
 
 <div class="min-h-screen bg-gray-50 py-12 px-4">
   <div class="max-w-3xl mx-auto">
-    <h1 class="text-3xl font-bold text-gray-900 mb-8">{$_('subscription.subscription')}</h1>
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">{$_('subscription.subscription')}</h1>
 
     {#if !paywallEnabled}
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
@@ -121,7 +121,7 @@
         
         <div class="space-y-4">
           <div class="flex items-center justify-between py-3 border-b">
-            <span class="text-gray-600">{$_('subscription.status')}</span>
+            <span class="text-gray-600 dark:text-gray-400">{$_('subscription.status')}</span>
             <span class="font-medium">
               {#if subscriptionStatus.status === 'trial'}
                 <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">{$_('subscription.freeTrial')}</span>
@@ -130,31 +130,31 @@
               {:else if subscriptionStatus.status === 'expired'}
                 <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">{$_('subscription.expired')}</span>
               {:else if subscriptionStatus.status === 'canceled'}
-                <span class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">{$_('subscription.canceled')}</span>
+                <span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-sm">{$_('subscription.canceled')}</span>
               {/if}
             </span>
           </div>
 
           {#if subscriptionStatus.status === 'trial' && subscriptionStatus.trialEndDate}
             <div class="flex items-center justify-between py-3 border-b">
-              <span class="text-gray-600">{$_('subscription.trialEnds')}</span>
+              <span class="text-gray-600 dark:text-gray-400">{$_('subscription.trialEnds')}</span>
               <span class="font-medium">{formatDate(subscriptionStatus.trialEndDate)}</span>
             </div>
             <div class="flex items-center justify-between py-3 border-b">
-              <span class="text-gray-600">{$_('subscription.daysRemaining')}</span>
+              <span class="text-gray-600 dark:text-gray-400">{$_('subscription.daysRemaining')}</span>
               <span class="font-medium text-blue-600">{getDaysRemaining(subscriptionStatus.trialEndDate)} {$_('common.days')}</span>
             </div>
           {/if}
 
           {#if subscriptionStatus.status === 'active' && subscriptionStatus.subscriptionEndDate}
             <div class="flex items-center justify-between py-3 border-b">
-              <span class="text-gray-600">{$_('subscription.nextBillingDate')}</span>
+              <span class="text-gray-600 dark:text-gray-400">{$_('subscription.nextBillingDate')}</span>
               <span class="font-medium">{formatDate(subscriptionStatus.subscriptionEndDate)}</span>
             </div>
           {/if}
 
           <div class="flex items-center justify-between py-3">
-            <span class="text-gray-600">{$_('subscription.access')}</span>
+            <span class="text-gray-600 dark:text-gray-400">{$_('subscription.access')}</span>
             <span class="font-medium">
               {#if subscriptionStatus.hasAccess}
                 <span class="text-green-600">{$_('subscription.fullAccess')}</span>
@@ -172,8 +172,8 @@
           
           <div class="border-2 border-blue-200 rounded-lg p-6 mb-6">
             <div class="flex items-baseline mb-4">
-              <span class="text-5xl font-bold text-gray-900">€5</span>
-              <span class="text-xl text-gray-500 ml-2">{$_('subscription.perYear')}</span>
+              <span class="text-5xl font-bold text-gray-900 dark:text-gray-100">€5</span>
+              <span class="text-xl text-gray-500 dark:text-gray-400 ml-2">{$_('subscription.perYear')}</span>
             </div>
             
             <ul class="space-y-3 mb-6">
@@ -181,25 +181,25 @@
                 <svg class="h-6 w-6 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-gray-700">{$_('subscription.unlimitedTimeTracking')}</span>
+                <span class="text-gray-700 dark:text-gray-300">{$_('subscription.unlimitedTimeTracking')}</span>
               </li>
               <li class="flex items-start">
                 <svg class="h-6 w-6 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-gray-700">{$_('subscription.advancedStats')}</span>
+                <span class="text-gray-700 dark:text-gray-300">{$_('subscription.advancedStats')}</span>
               </li>
               <li class="flex items-start">
                 <svg class="h-6 w-6 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-gray-700">{$_('subscription.prioritySupport')}</span>
+                <span class="text-gray-700 dark:text-gray-300">{$_('subscription.prioritySupport')}</span>
               </li>
               <li class="flex items-start">
                 <svg class="h-6 w-6 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-gray-700">{$_('subscription.cancelAnytime')}</span>
+                <span class="text-gray-700 dark:text-gray-300">{$_('subscription.cancelAnytime')}</span>
               </li>
             </ul>
 
@@ -212,7 +212,7 @@
             </button>
           </div>
 
-          <p class="text-sm text-gray-500 text-center">
+          <p class="text-sm text-gray-500 dark:text-gray-400 text-center">
             {$_('subscription.securePayment')}
           </p>
         </div>
@@ -229,7 +229,7 @@
             {$_('subscription.cancelSubscription')}
           </button>
           
-          <p class="text-sm text-gray-500 mt-4 text-center">
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-4 text-center">
             {$_('subscription.accessUntilEnd')}
           </p>
         </div>

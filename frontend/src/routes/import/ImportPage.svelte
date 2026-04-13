@@ -228,39 +228,24 @@
       <div class="flex items-center justify-center gap-2">
         <div class="flex items-center gap-2">
           <span 
-            class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white"
-            class:bg-blue-500={step === 'upload'}
-            class:dark:bg-orange-500={step === 'upload'}
-            class:bg-green-500={step !== 'upload'}
+            class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white
+              {step === 'upload' ? 'bg-blue-500 dark:bg-orange-500' : 'bg-green-500'}"
           >1</span>
           <span class="text-sm dark:text-gray-200" class:font-medium={step === 'upload'}>{$_('import.upload')}</span>
         </div>
         <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
         <div class="flex items-center gap-2">
           <span 
-            class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
-            class:bg-blue-500={step === 'mapping'}
-            class:dark:bg-orange-500={step === 'mapping'}
-            class:bg-green-500={step === 'edit'}
-            class:bg-gray-300={step === 'upload'}
-            class:dark:bg-gray-600={step === 'upload'}
-            class:text-white={step !== 'upload'}
-            class:text-gray-600={step === 'upload'}
-            class:dark:text-gray-300={step === 'upload'}
+            class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+              {step === 'mapping' ? 'bg-blue-500 dark:bg-orange-500 text-white' : step === 'edit' ? 'bg-green-500 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'}"
           >2</span>
           <span class="text-sm dark:text-gray-200" class:font-medium={step === 'mapping'}>{$_('import.mapColumns')}</span>
         </div>
         <div class="w-8 h-0.5 bg-gray-300 dark:bg-gray-600"></div>
         <div class="flex items-center gap-2">
           <span 
-            class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
-            class:bg-blue-500={step === 'edit'}
-            class:dark:bg-orange-500={step === 'edit'}
-            class:bg-gray-300={step !== 'edit'}
-            class:dark:bg-gray-600={step !== 'edit'}
-            class:text-white={step === 'edit'}
-            class:text-gray-600={step !== 'edit'}
-            class:dark:text-gray-300={step !== 'edit'}
+            class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+              {step === 'edit' ? 'bg-blue-500 dark:bg-orange-500 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300'}"
           >3</span>
           <span class="text-sm dark:text-gray-200" class:font-medium={step === 'edit'}>{$_('import.editAndImport')}</span>
         </div>
