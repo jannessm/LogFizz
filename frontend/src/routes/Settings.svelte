@@ -14,6 +14,7 @@
   import { setLocale, _ } from '../lib/i18n';
   import { setDayjsLocale } from '../lib/dateFormatting';
   import { dayjs } from '../types';
+  import { paymentApi, type SubscriptionStatus } from '../services/payment';
   // Import version from frontend package.json
   // Vite allows importing JSON files directly
   import pkg from '../../package.json';
@@ -34,6 +35,9 @@
   let isDownloading = $state(false);
   let showDeleteConfirmation = $state(false);
   let isDeleting = $state(false);
+
+  // Subscription
+  let subscriptionStatus = $state<SubscriptionStatus | null>(null);
 
   let user = $derived($authStore.user);
   let isOnline = $state(typeof navigator !== 'undefined' ? navigator.onLine : true);
@@ -88,6 +92,12 @@
       firstDayOfWeek = (userSettings.first_day_of_week as 'sunday' | 'monday') || 'sunday';
       statisticsEmailFrequency = (userSettings.statistics_email_frequency as 'none' | 'weekly' | 'monthly') || 'none';
     }
+
+    try {
+      subscriptionStatus = await paymentApi.getSubscriptionStatus();
+    } catch {
+      // Non-critical, silently ignore
+    }
   });
 
   onDestroy(() => {
@@ -111,6 +121,11 @@
     } catch (error: any) {
       snackbar.error(error.message);
     }
+  }
+
+  function formatDate(dateStr: string | undefined): string {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString();
   }
 
   async function handleSync() {
@@ -401,18 +416,52 @@
       </div>
 
       <!-- Subscription -->
-      <!-- <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">{$_('subscription.subscription')}</h3>
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{$_('subscription.subscription')}</h3>
+
+        {#if subscriptionStatus}
+          <div class="mb-4 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600 dark:text-gray-400">{$_('subscription.status')}</span>
+              <span>
+                {#if subscriptionStatus.status === 'trial'}
+                  <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-sm">{$_('subscription.freeTrial')}</span>
+                {:else if subscriptionStatus.status === 'active'}
+                  <span class="px-2 py-0.5 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 rounded-full text-sm">{$_('subscription.active')}</span>
+                {:else if subscriptionStatus.status === 'expired'}
+                  <span class="px-2 py-0.5 bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 rounded-full text-sm">{$_('subscription.expired')}</span>
+                {:else if subscriptionStatus.status === 'canceled'}
+                  <span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-sm">{$_('subscription.canceled')}</span>
+                {/if}
+              </span>
+            </div>
+
+            {#if subscriptionStatus.status === 'trial' && subscriptionStatus.trialEndDate}
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">{$_('subscription.trialEnds')}</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {formatDate(subscriptionStatus.trialEndDate)}
+                  <span class="text-blue-600 dark:text-blue-400 ml-1">({subscriptionStatus.trialDaysRemaining ?? 0} {$_('common.days')})</span>
+                </span>
+              </div>
+            {/if}
+
+            {#if subscriptionStatus.status === 'active' && subscriptionStatus.subscriptionEndDate}
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600 dark:text-gray-400">{$_('subscription.nextBillingDate')}</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{formatDate(subscriptionStatus.subscriptionEndDate)}</span>
+              </div>
+            {/if}
+          </div>
+        {/if}
+
         <button
           onclick={() => navigate('/payment')}
           class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
         >
           <span>{$_('subscription.manageSubscription')}</span>
         </button>
-        <p class="text-sm text-gray-500 mt-2">
-          {$_('subscription.viewSubscriptionStatus')}
-        </p>
-      </div> -->
+      </div>
 
       <!-- Timer Behavior -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">

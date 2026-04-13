@@ -176,6 +176,7 @@ export class PaymentService {
   async getSubscriptionStatus(userId: string): Promise<{
     status: string;
     trialEndDate?: Date;
+    trialDaysRemaining?: number;
     subscriptionEndDate?: Date;
     hasAccess: boolean;
   }> {
@@ -186,12 +187,18 @@ export class PaymentService {
 
     const now = new Date();
     let hasAccess = true;
+    let trialDaysRemaining: number | undefined;
 
     // Check if in trial period
-    if (user.subscription_status === 'trial' && user.trial_end_date) {
-      hasAccess = now < user.trial_end_date;
-    } else if (user.subscription_status === 'active' && user.subscription_end_date) {
-      hasAccess = now < user.subscription_end_date;
+    if (user.subscription_status === 'trial') {
+      hasAccess = !!user.trial_end_date && now < user.trial_end_date;
+      if (user.trial_end_date) {
+        const diffMs = user.trial_end_date.getTime() - now.getTime();
+        trialDaysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      }
+    } else if (user.subscription_status === 'active') {
+      // Active subscribers always have access; Stripe handles expiry via webhooks
+      hasAccess = true;
     } else if (user.subscription_status === 'expired' || user.subscription_status === 'canceled') {
       hasAccess = false;
     }
@@ -199,6 +206,7 @@ export class PaymentService {
     return {
       status: user.subscription_status || 'trial',
       trialEndDate: user.trial_end_date,
+      trialDaysRemaining,
       subscriptionEndDate: user.subscription_end_date,
       hasAccess,
     };

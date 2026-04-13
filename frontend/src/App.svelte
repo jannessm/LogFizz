@@ -161,10 +161,10 @@
     <VerifyEmailRequired />
   {:else if path.startsWith('/verify-email')}
     <VerifyEmail />
-  {:else if path.startsWith('/payment')}
-    <Payment />
   {:else if path.startsWith('/payment/success')}
     <PaymentSuccess />
+  {:else if path.startsWith('/payment')}
+    <Payment />
   {:else if path.startsWith('/history')}
     <History />
   {:else if path.startsWith('/week')}

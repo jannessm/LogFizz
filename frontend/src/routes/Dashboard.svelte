@@ -50,8 +50,8 @@
         subscriptionStatus = await paymentApi.getSubscriptionStatus();
         
         // Show warning if access will expire soon (within 7 days)
-        if (subscriptionStatus.status === 'trial' && subscriptionStatus.trialEndDate) {
-          const daysRemaining = Math.ceil((new Date(subscriptionStatus.trialEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        if (subscriptionStatus.status === 'trial' && subscriptionStatus.trialDaysRemaining !== undefined) {
+          const daysRemaining = subscriptionStatus.trialDaysRemaining;
           if (daysRemaining <= 7 && daysRemaining > 0) {
             snackbar.withAction(
               $_('dashboard.trialExpiresIn', { values: { days: daysRemaining } }),

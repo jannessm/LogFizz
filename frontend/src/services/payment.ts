@@ -18,6 +18,7 @@ const api = ky.create({
 export interface SubscriptionStatus {
   status: string;
   trialEndDate?: string;
+  trialDaysRemaining?: number;
   subscriptionEndDate?: string;
   hasAccess: boolean;
 }
@@ -51,14 +52,5 @@ export const paymentApi = {
    */
   async getPaywallStatus(): Promise<{ enabled: boolean }> {
     return api.get('api/payment/paywall-status').json();
-  },
-
-  /**
-   * Admin: Toggle paywall
-   */
-  async togglePaywall(enabled: boolean): Promise<{ message: string; enabled: boolean }> {
-    return api.post('api/payment/admin/toggle-paywall', {
-      json: { enabled }
-    }).json();
   },
 };

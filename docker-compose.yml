@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -82,7 +80,7 @@ services:
     environment:
       # Set APP_URL to the full URL of the deployed TapShift web application.
       # Example: APP_URL=https://app.yourdomain.com
-      APP_URL: ""
+      APP_URL: "https://mytapshift.magnusso.nz"
     restart: unless-stopped
 
 volumes:

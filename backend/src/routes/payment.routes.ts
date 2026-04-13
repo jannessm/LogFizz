@@ -54,6 +54,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         200: Type.Object({
           status: Type.String(),
           trialEndDate: Type.Optional(Type.String()),
+          trialDaysRemaining: Type.Optional(Type.Number()),
           subscriptionEndDate: Type.Optional(Type.String()),
           hasAccess: Type.Boolean(),
         }),
@@ -75,6 +76,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       return {
         status: status.status,
         trialEndDate: status.trialEndDate?.toISOString(),
+        trialDaysRemaining: status.trialDaysRemaining,
         subscriptionEndDate: status.subscriptionEndDate?.toISOString(),
         hasAccess: status.hasAccess,
       };
@@ -152,61 +154,8 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         }),
       },
     },
-  }, async (request, reply) => {
-    const enabled = await settingsService.isPaywallEnabled();
+  }, async (_request, _reply) => {
+    const enabled = settingsService.isPaywallEnabled();
     return { enabled };
-  });
-
-  // Admin: Toggle paywall (requires admin password)
-  fastify.post('/admin/toggle-paywall', {
-    schema: {
-      tags: ['Payment'],
-      body: Type.Object({
-        enabled: Type.Boolean(),
-        password: Type.String(),
-      }),
-      response: {
-        200: Type.Object({
-          message: Type.String(),
-          enabled: Type.Boolean(),
-        }),
-        400: Type.Object({
-          error: Type.String(),
-        }),
-        401: Type.Object({
-          error: Type.String(),
-        }),
-        403: Type.Object({
-          error: Type.String(),
-        }),
-        500: Type.Object({
-          error: Type.String(),
-        }),
-      },
-    },
-  }, async (request, reply) => {
-    const adminPassword = process.env.ADMIN_PASSWORD;
-
-    if (!adminPassword) {
-      console.error('ADMIN_PASSWORD not configured');
-      return reply.code(500).send({ error: 'Admin password not configured' });
-    }
-
-    try {
-      const { enabled, password } = request.body as any;
-
-      // Verify admin password
-      if (password !== adminPassword) {
-        return reply.code(403).send({ error: 'Invalid admin password' });
-      }
-
-      await settingsService.setPaywallEnabled(enabled);
-      return { 
-        message: `Paywall ${enabled ? 'enabled' : 'disabled'} successfully`,
-        enabled 
-      };
-    } catch (error: any) {
-      return reply.code(400).send({ error: error.message });
-    }
   });
 }

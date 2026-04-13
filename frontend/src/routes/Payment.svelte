@@ -72,23 +72,14 @@
     if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleDateString();
   }
-
-  function getDaysRemaining(dateStr: string | undefined): number {
-    if (!dateStr) return 0;
-    const endDate = new Date(dateStr);
-    const now = new Date();
-    const diffTime = endDate.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, diffDays);
-  }
 </script>
 
-<div class="min-h-screen bg-gray-50 py-12 px-4">
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4">
   <div class="max-w-3xl mx-auto">
     <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-8">{$_('subscription.subscription')}</h1>
 
     {#if !paywallEnabled}
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+      <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-6 mb-6">
         <div class="flex items-start">
           <div class="flex-shrink-0">
             <svg class="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -96,8 +87,8 @@
             </svg>
           </div>
           <div class="ml-3">
-            <h3 class="text-sm font-medium text-blue-800">{$_('subscription.paywallDisabled')}</h3>
-            <p class="mt-2 text-sm text-blue-700">
+            <h3 class="text-sm font-medium text-blue-800 dark:text-blue-300">{$_('subscription.paywallDisabled')}</h3>
+            <p class="mt-2 text-sm text-blue-700 dark:text-blue-400">
               {$_('subscription.paywallNotActive')}
             </p>
           </div>
@@ -106,8 +97,8 @@
     {/if}
 
     {#if error}
-      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-        <p class="text-red-800">{error}</p>
+      <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-6">
+        <p class="text-red-800 dark:text-red-300">{error}</p>
       </div>
     {/if}
 
@@ -116,19 +107,19 @@
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     {:else if subscriptionStatus}
-      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 class="text-xl font-semibold mb-4">{$_('subscription.currentStatus')}</h2>
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">{$_('subscription.currentStatus')}</h2>
         
         <div class="space-y-4">
-          <div class="flex items-center justify-between py-3 border-b">
+          <div class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
             <span class="text-gray-600 dark:text-gray-400">{$_('subscription.status')}</span>
             <span class="font-medium">
               {#if subscriptionStatus.status === 'trial'}
-                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">{$_('subscription.freeTrial')}</span>
+                <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 rounded-full text-sm">{$_('subscription.freeTrial')}</span>
               {:else if subscriptionStatus.status === 'active'}
-                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">{$_('subscription.active')}</span>
+                <span class="px-3 py-1 bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 rounded-full text-sm">{$_('subscription.active')}</span>
               {:else if subscriptionStatus.status === 'expired'}
-                <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">{$_('subscription.expired')}</span>
+                <span class="px-3 py-1 bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 rounded-full text-sm">{$_('subscription.expired')}</span>
               {:else if subscriptionStatus.status === 'canceled'}
                 <span class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full text-sm">{$_('subscription.canceled')}</span>
               {/if}
@@ -136,20 +127,20 @@
           </div>
 
           {#if subscriptionStatus.status === 'trial' && subscriptionStatus.trialEndDate}
-            <div class="flex items-center justify-between py-3 border-b">
+            <div class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
               <span class="text-gray-600 dark:text-gray-400">{$_('subscription.trialEnds')}</span>
-              <span class="font-medium">{formatDate(subscriptionStatus.trialEndDate)}</span>
+              <span class="font-medium text-gray-900 dark:text-gray-100">{formatDate(subscriptionStatus.trialEndDate)}</span>
             </div>
-            <div class="flex items-center justify-between py-3 border-b">
+            <div class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
               <span class="text-gray-600 dark:text-gray-400">{$_('subscription.daysRemaining')}</span>
-              <span class="font-medium text-blue-600">{getDaysRemaining(subscriptionStatus.trialEndDate)} {$_('common.days')}</span>
+              <span class="font-medium text-blue-600 dark:text-blue-400">{subscriptionStatus.trialDaysRemaining ?? 0} {$_('common.days')}</span>
             </div>
           {/if}
 
           {#if subscriptionStatus.status === 'active' && subscriptionStatus.subscriptionEndDate}
-            <div class="flex items-center justify-between py-3 border-b">
+            <div class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
               <span class="text-gray-600 dark:text-gray-400">{$_('subscription.nextBillingDate')}</span>
-              <span class="font-medium">{formatDate(subscriptionStatus.subscriptionEndDate)}</span>
+              <span class="font-medium text-gray-900 dark:text-gray-100">{formatDate(subscriptionStatus.subscriptionEndDate)}</span>
             </div>
           {/if}
 
@@ -157,9 +148,9 @@
             <span class="text-gray-600 dark:text-gray-400">{$_('subscription.access')}</span>
             <span class="font-medium">
               {#if subscriptionStatus.hasAccess}
-                <span class="text-green-600">{$_('subscription.fullAccess')}</span>
+                <span class="text-green-600 dark:text-green-400">{$_('subscription.fullAccess')}</span>
               {:else}
-                <span class="text-red-600">{$_('subscription.limitedAccess')}</span>
+                <span class="text-red-600 dark:text-red-400">{$_('subscription.limitedAccess')}</span>
               {/if}
             </span>
           </div>
@@ -167,10 +158,10 @@
       </div>
 
       {#if subscriptionStatus.status === 'trial' || subscriptionStatus.status === 'expired' || subscriptionStatus.status === 'canceled'}
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 class="text-xl font-semibold mb-4">{$_('subscription.subscribeToTapShift')}</h2>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">{$_('subscription.subscribeToTapShift')}</h2>
           
-          <div class="border-2 border-blue-200 rounded-lg p-6 mb-6">
+          <div class="border-2 border-blue-200 dark:border-blue-700 rounded-lg p-6 mb-6">
             <div class="flex items-baseline mb-4">
               <span class="text-5xl font-bold text-gray-900 dark:text-gray-100">€5</span>
               <span class="text-xl text-gray-500 dark:text-gray-400 ml-2">{$_('subscription.perYear')}</span>
@@ -219,8 +210,8 @@
       {/if}
 
       {#if subscriptionStatus.status === 'active'}
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-semibold mb-4">{$_('subscription.manageSubscription')}</h2>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">{$_('subscription.manageSubscription')}</h2>
           
           <button
             on:click={handleCancelSubscription}
@@ -239,7 +230,7 @@
     <div class="mt-6 text-center">
       <button
         on:click={() => navigate('/settings')}
-        class="text-blue-600 hover:text-blue-800 font-medium"
+        class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
       >
         ← {$_('common.backToSettings')}
       </button>

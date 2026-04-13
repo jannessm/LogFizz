@@ -11,10 +11,10 @@
   });
 </script>
 
-<div class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-  <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+  <div class="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
     <div class="mb-6">
-      <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100">
+      <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/50">
         <svg class="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
         </svg>
