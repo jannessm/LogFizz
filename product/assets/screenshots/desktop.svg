@@ -10,7 +10,7 @@
   <circle cx="56" cy="19" r="6" fill="#28c840"/>
   <!-- URL bar -->
   <rect x="80" y="9" width="500" height="20" rx="4" fill="rgba(255,255,255,0.08)"/>
-  <text x="330" y="23" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.35)" text-anchor="middle">app.tapshift.app</text>
+  <text x="330" y="23" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.35)" text-anchor="middle">app.tapshift.magnusso.nz</text>
 
   <!-- Left sidebar / nav -->
   <rect x="0" y="38" width="220" height="712" fill="#111122"/>

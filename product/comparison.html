@@ -5,28 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script>(function(){var l=location.pathname.startsWith('/de')?'de':(localStorage.getItem('ts-lang')||((navigator.language||'').startsWith('de')?'de':'en'));document.documentElement.classList.add('lang-'+l);document.documentElement.lang=l;})();</script>
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/styles.css?v=2" />
   <title>TapShift vs. Toggl, Clockify &amp; Co – An Honest Comparison</title>
-  <meta name="description" content="An honest look at how TapShift compares to Toggl Track, Clockify, and ZEP — who benefits most from each app, and why a €5/year indie tool might be all you need." />
+  <meta name="description" content="An honest look at how TapShift compares to Toggl Track, Clockify, and ZEP — who benefits most from each app, and why a €10/year indie tool might be all you need." />
   <meta name="keywords" content="TapShift vs Toggl, Clockify alternative, Zeiterfassung Vergleich, time tracking comparison, German labor law, ZEP Alternative" />
-  <link rel="canonical" href="https://tapshift.app/comparison.html" />
+  <link rel="canonical" href="https://tapshift.magnusso.nz/comparison.html" />
   <meta property="og:type" content="article" />
-  <meta property="og:url" content="https://tapshift.app/comparison.html" />
+  <meta property="og:url" content="https://tapshift.magnusso.nz/comparison.html" />
   <meta property="og:title" content="TapShift vs. Toggl, Clockify &amp; Co – An Honest Comparison" />
   <meta property="og:description" content="Who should use TapShift and when should you use something else? A transparent breakdown of features and prices." />
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"TapShift vs. Toggl, Clockify & Co – An Honest Comparison","datePublished":"2025-04-06","dateModified":"2026-04-06","author":{"@type":"Person","name":"TapShift Developer"},"description":"Honest comparison of TapShift with alternatives for German employees."}</script>
 </head>
 <body>
 <div class="indie-banner">
-  <span class="en">Built by an <strong>independent developer</strong> — the €5/year subscription exists solely to cover server costs, not to make a profit. ♥</span>
-  <span class="de">Von einem <strong>unabhängigen Entwickler</strong> gebaut — das €5/Jahr-Abo dient ausschließlich zur Deckung der Serverkosten. ♥</span>
+  <span class="en">Built by an <strong>independent developer</strong> — the €10/year subscription exists solely to cover server costs, not to make a profit. ♥</span>
+  <span class="de">Von einem <strong>unabhängigen Entwickler</strong> gebaut — das 10€/Jahr-Abo dient ausschließlich zur Deckung der Serverkosten. ♥</span>
 </div>
 <nav class="nav">
   <div class="container nav-inner">
-    <a href="/" class="nav-brand"><img src="/assets/icon.svg" alt="TapShift logo" width="36" height="36" />Tap<span>Shift</span></a>
+    <a href="/" class="nav-brand"><img src="/assets/icon.svg" alt="TapShift logo" width="36" height="36" />Tap<span style="margin-left: -10px">Shift</span></a>
     <button class="nav-toggle" aria-label="Toggle menu" onclick="this.nextElementSibling.classList.toggle('open')"><span></span><span></span><span></span></button>
     <ul class="nav-links">
       <li><a href="/"><span class="en">Overview</span><span class="de">Übersicht</span></a></li>
@@ -49,7 +46,7 @@
     <h1 style="margin-top:.75rem" class="en">TapShift vs. Toggl, Clockify &amp; Co.<br/>An Honest Comparison.</h1>
     <h1 style="margin-top:.75rem" class="de">TapShift vs. Toggl, Clockify &amp; Co.<br/>Ein ehrlicher Vergleich.</h1>
     <div class="blog-meta">
-      <span>&#128197; April 2025</span>
+      <span>&#128197; April 2026</span>
       <span>·</span>
       <span>&#128336; <span class="en">8 min read</span><span class="de">8 Min. Lesezeit</span></span>
       <span>·</span>
@@ -63,16 +60,16 @@
 
   <div class="callout orange">
     <strong class="en">Transparency first:</strong><strong class="de">Vorab zur Transparenz:</strong>
-    <span class="en"> I built TapShift. I’ll try to be as honest as possible — including pointing out where the other tools are genuinely better.</span>
-    <span class="de"> Ich habe TapShift gebaut. Ich versuche so ehrlich wie möglich zu sein — auch wenn andere Tools besser sind.</span>
+    <span class="en"> I built TapShift. I’ll be as honest as possible — including pointing out where the other tools are genuinely better.</span>
+    <span class="de"> Ich habe TapShift gebaut. Ich werde so ehrlich wie möglich zu sein — auch wenn andere Tools besser sind.</span>
   </div>
 
   <h2 class="en">Why does another time tracker exist?</h2>
-  <h2 class="de">Warum noch ein Zeiterfasser?</h2>
+  <h2 class="de">Warum noch eine Zeiterfassung?</h2>
   <p class="en">When I looked for a time tracker that excluded public holidays from my work targets and ran on my phone without forcing me through a subscription funnel, I came up empty. The big tools are built for agencies billing clients by the hour — a completely different need. So I built TapShift.</p>
-  <p class="de">Als ich einen Zeiterfasser suchte, der Feiertage aus meinem Sollzeitkonto herausrechnet und auf dem Handy läuft, ohne mich in einen teuren Abo-Trichter zu zwingen, wurde ich nicht fündig. Die großen Tools sind für Agenturen gebaut, die nach Stunden abrechnen — ein völlig anderer Bedarf. Also habe ich TapShift gebaut.</p>
-  <p class="en">TapShift is an <strong>independent, open-source project</strong>. The €5/year subscription covers the server bill — nothing more. This article is my honest attempt to help you decide whether TapShift is right for you.</p>
-  <p class="de">TapShift ist ein <strong>unabhängiges Open-Source-Projekt</strong>. Das €5/Jahr-Abo deckt die Serverkosten — nicht mehr. Dieser Artikel ist mein ehrlicher Versuch, dir zu helfen, ob TapShift das Richtige für dich ist.</p>
+  <p class="de">Als ich einen Zeiterfasser suchte, der Feiertage aus meinem Sollzeitkonto herausrechnet und auf dem Handy läuft, ohne mich in ein teures Abo zu zwingen, wurde ich nicht fündig. Die großen Tools sind für Agenturen gebaut, die nach Stunden abrechnen — ein völlig anderer Bedarf. Also habe ich TapShift gebaut.</p>
+  <p class="en">TapShift is an <strong>independent, open-source project</strong>. The €10/year subscription covers the server bill — nothing more. This article is my honest attempt to help you decide whether TapShift is right for you.</p>
+  <p class="de">TapShift ist ein <strong>unabhängiges Open-Source-Projekt</strong>. Das 10€/Jahr-Abo deckt die Serverkosten — nicht mehr. Dieser Artikel ist mein ehrlicher Versuch, dir zu helfen, ob TapShift das Richtige für dich ist.</p>
 
   <h2 class="en">Who is TapShift built for?</h2>
   <h2 class="de">Für wen ist TapShift gemacht?</h2>
@@ -83,7 +80,7 @@
     <li>Want to know your <strong>overtime balance</strong> at any moment without calculating it yourself</li>
     <li>Work on both a <strong>phone and a laptop</strong> and want one app across both</li>
     <li>Track <strong>different activity types</strong> (sick days, child-sick, public holidays, business trips, home office) in one place</li>
-    <li>Prefer a tool that works <strong>offline</strong> and keeps data in Germany, encrypted</li>
+    <li>Prefer a tool that works <strong>offline</strong> and keeps data in Germany</li>
     <li>Don’t want to pay €8–30/month for features you’ll never use</li>
   </ul>
   <ul class="de">
@@ -114,8 +111,8 @@
 
   <h2 class="en">Feature-by-feature comparison</h2>
   <h2 class="de">Funktionsvergleich im Überblick</h2>
-  <p class="en">Prices as of April 2025, excluding VAT.</p>
-  <p class="de">Preise Stand April 2025, exkl. MwSt.</p>
+  <p class="en">Prices as of April 2026, excluding VAT.</p>
+  <p class="de">Preise Stand April 2026, exkl. MwSt.</p>
 
   <div class="table-wrap">
     <table>
@@ -132,7 +129,7 @@
       <tbody>
         <tr>
           <td><span class="en">Price</span><span class="de">Preis</span></td>
-          <td class="highlight"><strong><span class="en">Free 2 mo, then €5/yr</span><span class="de">2 Mo. gratis, dann €5/Jahr</span></strong></td>
+          <td class="highlight"><strong><span class="en">Free 2 mo, then €10/yr</span><span class="de">2 Mo. gratis, dann 10€/Jahr</span></strong></td>
           <td><span class="en">Free / €9/mo/user</span><span class="de">Gratis / €9/Mo./Nutzer</span></td>
           <td><span class="en">Free / €3.99+/mo/user</span><span class="de">Gratis / €3,99+/Mo./Nutzer</span></td>
           <td>€9–18/mo/user</td>
@@ -154,7 +151,7 @@
         <tr>
           <td><span class="en">German compliance (ArbZG)</span><span class="de">ArbZG-konform</span></td>
           <td class="highlight"><span class="check">✔</span></td>
-          <td><span class="cross">✘</span></td><td><span class="cross">✘</span></td>
+          <td><span class="cross">Teilweise</span></td><td><span class="cross">✘</span></td>
           <td><span class="check">✔</span></td>
           <td><span class="partial"><span class="en">Partial</span><span class="de">Teilweise</span></span></td>
         </tr>
@@ -246,9 +243,9 @@
   <div class="container">
     <div class="footer-inner">
       <div class="footer-brand">
-        <a href="/" class="footer-logo"><img src="/assets/icon.svg" alt="TapShift" width="32" height="32" />Tap<span>Shift</span></a>
-        <p class="en">An independent working-hours tracker. Data hosted and encrypted in Germany. No ads, no tracking.</p>
-        <p class="de">Ein unabhängiger Zeiterfasser. Daten verschlüsselt in Deutschland. Keine Werbung, kein Tracking.</p>
+        <a href="/" class="footer-logo"><img src="/assets/icon.svg" alt="TapShift" width="32" height="32" />Tap<span style="margin-left: -10px;">Shift</span></a>
+        <p class="en">An independent working-hours tracker. Data hosted in Germany. No ads, no tracking.</p>
+        <p class="de">Ein unabhängiger Zeiterfasser. Daten in Deutschland. Keine Werbung, kein Tracking.</p>
       </div>
       <div class="footer-col">
         <h4 class="en">Product</h4><h4 class="de">Produkt</h4>
@@ -276,8 +273,8 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <span class="en">© 2025 TapShift — Independent open-source project.</span>
-      <span class="de">© 2025 TapShift — Unabhängiges Open-Source-Projekt.</span>
+      <span class="en">© 2026 TapShift — Independent open-source project.</span>
+      <span class="de">© 2026 TapShift — Unabhängiges Open-Source-Projekt.</span>
     </div>
   </div>
 </footer>
