@@ -21,8 +21,7 @@
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
     <script type="module">
-      // if ('serviceWorker' in navigator && import.meta.env.PROD) {
-      if ('serviceWorker' in navigator) {
+      if ('serviceWorker' in navigator && import.meta.env.PROD) {
         window.addEventListener('load', async () => {
           try {
             const registration = await navigator.serviceWorker.register('/sw.js');
