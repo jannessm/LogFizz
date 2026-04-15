@@ -886,11 +886,11 @@ html.lang-de .de { display: revert; }
 
 /* ── Screenshot images ── */
 .screenshot-wrap {
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  gap: 1.5rem;
   position: relative;
+  width: 320px;
+  height: 500px;
+  flex-shrink: 0;
+  align-self: flex-end;
 }
 
 .screenshot-phone {
@@ -900,11 +900,18 @@ html.lang-de .de { display: revert; }
   box-shadow: 0 24px 60px rgba(0,0,0,.5);
   overflow: hidden;
   display: block;
+  position: absolute;
+  bottom: 0;
+  left: 0;
 }
 
 .screenshot-phone.large {
-  width: 230px;
-  transform: translateY(-14px);
+  width: 220px;
+  position: absolute;
+  bottom: 14px;
+  left: 100px;
+  z-index: 1;
+  box-shadow: -8px 24px 60px rgba(0,0,0,.6);
 }
 
 .screenshot-desktop {
