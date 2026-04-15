@@ -1,6 +1,6 @@
 {
   "setup": {
-    "title": "Willkommen bei TapShift",
+    "title": "Willkommen bei LogFizz",
     "description": "Bitte wählen Sie Ihre bevorzugte Sprache und Ihr Datumsformat, um zu beginnen.",
     "language": "Sprache",
     "dateFormat": "Datum & Zeitformat",
@@ -23,7 +23,7 @@
     "invalidCredentials": "Ungültige Anmeldedaten",
     "invalidMagicLinkToken": "Ungültiger oder abgelaufener Magic Link. Bitte fordern Sie einen neuen an.",
     "login": "Anmelden",
-    "loginToTapShift": "Bei TapShift anmelden",
+    "loginToLogFizz": "Bei LogFizz anmelden",
     "logout": "Abmelden",
     "alreadyLoggedIn": "Sie sind bereits angemeldet",
     "alreadyLoggedInHint": "Dieser Anmeldelink ist für eine andere Sitzung bestimmt. Bitte melden Sie sich zuerst ab und klicken Sie dann erneut auf den Link.",
@@ -37,7 +37,7 @@
     "passwordMinLength": "Passwort muss mindestens 8 Zeichen lang sein",
     "pleaseWait": "Bitte warten...",
     "register": "Registrieren",
-    "registerToTapShift": "Bei TapShift registrieren",
+    "registerToLogFizz": "Bei LogFizz registrieren",
     "registrationSuccess": "Ihr Konto wurde erstellt. Wir haben einen Anmeldelink an Ihre E-Mail-Adresse gesendet — bitte prüfen Sie Ihren Posteingang, um fortzufahren.",
     "sendMagicLink": "Magic Link senden",
     "tooManyAttempts": "Zu viele Versuche. Bitte warten Sie 1 Minute.",
@@ -138,7 +138,7 @@
     "timersLinkedToEndedTargets": "Timer verknüpft mit beendeten Zielen",
     "title": "Dashboard",
     "today": "Heute",
-    "trialExpiresIn": "Ihre Testversion läuft in {days} Tagen ab. Abonnieren Sie, um TapShift weiterhin zu nutzen."
+    "trialExpiresIn": "Ihre Testversion läuft in {days} Tagen ab. Abonnieren Sie, um LogFizz weiterhin zu nutzen."
   },
   "export": {
     "dateRangeOptional": "Datumsbereich (Optional)",
@@ -445,9 +445,9 @@
     "securePayment": "Sichere Zahlungsabwicklung durch Stripe",
     "status": "Status",
     "subscribeNow": "Jetzt abonnieren",
-    "subscribeToTapShift": "TapShift abonnieren",
+    "subscribeToLogFizz": "LogFizz abonnieren",
     "subscription": "Abonnement",
-    "thankYouSubscribing": "Vielen Dank für Ihr TapShift-Abonnement. Ihr Abonnement ist jetzt aktiv.",
+    "thankYouSubscribing": "Vielen Dank für Ihr LogFizz-Abonnement. Ihr Abonnement ist jetzt aktiv.",
     "trialEnds": "Testversion endet",
     "unlimitedTimeTracking": "Unbegrenzte Zeiterfassung",
     "viewSubscriptionStatus": "Sehen Sie Ihren Abonnementstatus und verwalten Sie Ihre Rechnungen."
@@ -669,7 +669,7 @@
   "verifyEmail": {
     "checkSpam": "Keine E-Mail erhalten? Überprüfen Sie Ihren Spam-Ordner.",
     "currentlyLoggedAs": "Sie sind derzeit angemeldet als",
-    "description": "Bitte verifizieren Sie Ihre E-Mail-Adresse, um TapShift weiter zu nutzen.",
+    "description": "Bitte verifizieren Sie Ihre E-Mail-Adresse, um LogFizz weiter zu nutzen.",
     "emailSent": "Bestätigungs-E-Mail gesendet! Bitte überprüfen Sie Ihren Posteingang.",
     "goToDashboard": "Zum Dashboard",
     "invalidOrExpired": "Der Bestätigungslink ist ungültig oder abgelaufen.",

@@ -5,14 +5,14 @@
   <script>(function(){var l=location.pathname.startsWith('/de')?'de':(localStorage.getItem('ts-lang')||((navigator.language||'').startsWith('de')?'de':'en'));document.documentElement.classList.add('lang-'+l);document.documentElement.lang=l;})();</script>
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/assets/styles.css?v=2" />
-  <title>User Guide &ndash; TapShift</title>
-  <meta name="description" content="Learn how to use TapShift: create tracking buttons, record work time, understand your balance, manage public holidays and special days." />
-  <meta name="keywords" content="TapShift guide, Zeiterfassung Anleitung, how to track working hours, balance, Feiertage, Ueberstunden" />
-  <link rel="canonical" href="https://tapshift.magnusso.nz/guide.html" />
+  <title>User Guide &ndash; LogFizz</title>
+  <meta name="description" content="Learn how to use LogFizz: create tracking buttons, record work time, understand your balance, manage public holidays and special days." />
+  <meta name="keywords" content="LogFizz guide, Zeiterfassung Anleitung, how to track working hours, balance, Feiertage, Ueberstunden" />
+  <link rel="canonical" href="https://logfizz.magnusso.nz/guide.html" />
   <meta property="og:type" content="article" />
-  <meta property="og:url" content="https://tapshift.magnusso.nz/guide.html" />
-  <meta property="og:title" content="User Guide &ndash; TapShift" />
-  <meta property="og:description" content="Step-by-step guide to TapShift &mdash; from first login to reading your yearly balance." />
+  <meta property="og:url" content="https://logfizz.magnusso.nz/guide.html" />
+  <meta property="og:title" content="User Guide &ndash; LogFizz" />
+  <meta property="og:description" content="Step-by-step guide to LogFizz &mdash; from first login to reading your yearly balance." />
 </head>
 <body>
 <div class="indie-banner">
@@ -20,7 +20,7 @@
   <span class="de">Von einem <strong>unabhängigen Entwickler</strong> gebaut — das 10€/Jahr-Abo dient ausschließlich zur Deckung der Serverkosten. ♥</span>
 </div>
 <nav class="nav"><div class="container nav-inner">
-    <a href="/" class="nav-brand"><img src="/assets/icon.svg" alt="TapShift logo" width="36" height="36" />Tap<span style="margin-left: -10px">Shift</span></a>
+    <a href="/" class="nav-brand"><img src="/assets/icon.svg" alt="LogFizz logo" width="36" height="36" />Log<span style="margin-left: -10px">Fizz</span></a>
     <button class="nav-toggle" aria-label="Toggle menu" onclick="this.nextElementSibling.classList.toggle('open')"><span></span><span></span><span></span></button>
     <ul class="nav-links">
       <li><a href="/"><span class="en">Overview</span><span class="de">&Uuml;bersicht</span></a></li>
@@ -36,10 +36,10 @@
   <div class="container">
     <span class="badge badge-orange en">User Guide</span>
     <span class="badge badge-orange de">Benutzerhandbuch</span>
-    <h1 style="margin-top:.75rem" class="en">How to Use TapShift</h1>
-    <h1 style="margin-top:.75rem" class="de">Wie du TapShift verwendest</h1>
-    <p style="color:rgba(255,255,255,.7);max-width:55ch;margin-inline:auto;margin-top:.75rem;font-size:1.1rem" class="en">From first login to reading your yearly overtime balance &mdash; step by step.</p>
-    <p style="color:rgba(255,255,255,.7);max-width:55ch;margin-inline:auto;margin-top:.75rem;font-size:1.1rem" class="de">Vom ersten Login bis zum j&auml;hrlichen &Uuml;berstundensaldo &mdash; Schritt f&uuml;r Schritt.</p>
+    <h1 style="margin-top:.75rem" class="en">How to Use LogFizz</h1>
+    <h1 style="margin-top:.75rem" class="de">Wie du LogFizz verwendest</h1>
+    <p style="color:rgba(255,255,255,.7);max-width:55ch;margin-inline:auto;margin-top:.75rem;font-size:1.1rem" class="en">From first login to importing and exporting your logs &mdash; step by step.</p>
+    <p style="color:rgba(255,255,255,.7);max-width:55ch;margin-inline:auto;margin-top:.75rem;font-size:1.1rem" class="de">Vom ersten Login bis zum Importieren und Exportieren deiner Protokolle &mdash; Schritt für Schritt.</p>
     <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:2rem">
       <a href="#getting-started" class="btn btn-primary"><span class="en">Getting Started</span><span class="de">Erste Schritte</span></a>
       <a href="#faq" class="btn btn-outline" style="border-color:rgba(255,255,255,.35);color:#fff">FAQ</a>
@@ -56,7 +56,7 @@
       <li><a href="#targets"><span class="en">Setting your work target</span><span class="de">Arbeitsziel festlegen</span></a></li>
       <li><a href="#buttons"><span class="en">Creating tracking buttons</span><span class="de">Schaltfl&auml;chen erstellen</span></a></li>
       <li><a href="#tracking"><span class="en">Recording time</span><span class="de">Zeit erfassen</span></a></li>
-      <li><a href="#special-days"><span class="en">Special day types</span><span class="de">Besondere Tagestypen</span></a></li>
+      <li><a href="#special-days"><span class="en">Special log types</span><span class="de">Besondere Logtypen</span></a></li>
       <li><a href="#holidays"><span class="en">Public holidays</span><span class="de">Gesetzliche Feiertage</span></a></li>
       <li><a href="#history"><span class="en">History and statistics</span><span class="de">Historie und Statistiken</span></a></li>
       <li><a href="#balance"><span class="en">Understanding your balance</span><span class="de">Den Saldo verstehen</span></a></li>
@@ -71,23 +71,28 @@
     <span class="badge en">Step 1</span><span class="badge de">Schritt 1</span>
     <h2 style="margin-top:.5rem" class="en">Getting Started</h2>
     <h2 style="margin-top:.5rem" class="de">Erste Schritte</h2>
-    <p class="en">Open <a href="/app.html">TapShift</a>, click <strong>Register</strong>, and enter your name, email, and a password. You will be logged in immediately with a 2-month free trial &mdash; no credit card required.</p>
-    <p class="de">&Ouml;ffne <a href="/app.html">TapShift</a>, klicke auf <strong>Registrieren</strong> und gib Name, E-Mail und Passwort ein. Du bist sofort eingeloggt mit einer 2-monatigen Probezeit &mdash; keine Kreditkarte n&ouml;tig.</p>
+    <p class="en">Open <a href="/app.html">LogFizz</a>, click <strong>Register</strong>, and enter your name and email. After clicking on your login link in your mail, you will be logged in immediately with a 2-month free trial &mdash; no password and no credit card required.</p>
+    <p class="de">&Ouml;ffne <a href="/app.html">LogFizz</a>, klicke auf <strong>Registrieren</strong> und gib Name und E-Mail ein. Nach dem Klicken auf den Login-Link in deiner E-Mail bist du sofort eingeloggt mit einer 2-monatigen Probezeit &mdash; kein Passwort und keine Kreditkarte n&ouml;tig.</p>
     <div class="steps" style="margin-top:2rem">
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Create an account</h3><h3 class="de">Konto erstellen</h3>
-        <p class="en">Go to the app, click <em>Register</em>, fill in your name, email, and a password.</p>
-        <p class="de">App &ouml;ffnen, auf <em>Registrieren</em> klicken, Name, E-Mail und Passwort eingeben.</p>
+        <p class="en">Go to the app, click <em>Register</em>, fill in your name and email.</p>
+        <p class="de">App &ouml;ffnen, auf <em>Registrieren</em> klicken, Name und E-Mail eingeben.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Verify your email</h3><h3 class="de">E-Mail verifizieren</h3>
+        <p class="en">Check your email inbox for a login email and click the link to verify your account and login.</p>
+        <p class="de">Überprüfe deinen E-Mail-Posteingang auf eine Login-E-Mail und klicke auf den Link, um dein Konto zu verifizieren und dich einzuloggen.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Complete the initial setup</h3><h3 class="de">Ersteinrichtung abschließen</h3>
+        <p class="en">An initial setup wizard will guide you through the basic configuration steps, like language, and notifications.</p>
+        <p class="de">Ein Einrichtungsassistent führt dich durch die grundlegenden Konfigurationsschritte, wie Sprache und Benachrichtigungen.</p>
       </div></div>
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Explore the three tabs</h3><h3 class="de">Die drei Tabs erkunden</h3>
         <p class="en">The app has three main tabs: <strong>Timer</strong> (tracking buttons), <strong>History</strong> (calendar and statistics), and <strong>Settings</strong>.</p>
         <p class="de">Die App hat drei Tabs: <strong>Timer</strong> (Schaltfl&auml;chen), <strong>Historie</strong> (Kalender und Statistiken) und <strong>Einstellungen</strong>.</p>
-      </div></div>
-      <div class="step"><div class="step-num"></div><div>
-        <h3 class="en">Set your country in Settings</h3><h3 class="de">Land / Bundesland einstellen</h3>
-        <p class="en">Go to <em>Settings &rarr; Country</em> and choose your federal state to activate the correct public holiday calendar.</p>
-        <p class="de">Gehe zu <em>Einstellungen &rarr; Land</em> und w&auml;hle dein Bundesland, um den richtigen Feiertagskalender zu aktivieren.</p>
       </div></div>
     </div>
   </div>
@@ -98,23 +103,23 @@
     <span class="badge en">Step 2</span><span class="badge de">Schritt 2</span>
     <h2 style="margin-top:.5rem" class="en">Setting Your Work Target</h2>
     <h2 style="margin-top:.5rem" class="de">Arbeitsziel festlegen</h2>
-    <p class="en">A <strong>target</strong> defines how many hours you are contracted to work per day. TapShift uses this to compute your running balance.</p>
-    <p class="de">Ein <strong>Arbeitsziel</strong> legt fest, wie viele Stunden du vertraglich pro Tag arbeiten musst. TapShift nutzt dies f&uuml;r den laufenden Saldo.</p>
+    <p class="en">A <strong>target</strong> defines how many hours you are contracted to work per day. LogFizz uses this to compute your running balance.</p>
+    <p class="de">Ein <strong>Arbeitsziel</strong> legt fest, wie viele Stunden du pro Tag arbeiten willst. LogFizz nutzt dies f&uuml;r den laufenden Saldo.</p>
     <div class="steps" style="margin-top:2rem">
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Create a target</h3><h3 class="de">Ziel erstellen</h3>
-        <p class="en">In <em>Settings &rarr; Targets</em>, tap <em>Add Target</em>, give it a name and enter your contracted hours per weekday.</p>
-        <p class="de">In <em>Einstellungen &rarr; Ziele</em> auf <em>Ziel hinzuf&uuml;gen</em> tippen und vertragliche Stunden pro Wochentag eingeben.</p>
+        <p class="en">In <em>Dashboard &rarr; Edit</em>, tap <em>+</em>, give it a name and enter your hours per weekday.</p>
+        <p class="de">In <em>Dashboard &rarr; Bearbeiten</em> auf <em>+</em> tippen und Stunden pro Wochentag eingeben.</p>
       </div></div>
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Set a start date</h3><h3 class="de">Startdatum festlegen</h3>
-        <p class="en">Enter the date your contract started. TapShift calculates your cumulative balance from that date, including public holidays.</p>
-        <p class="de">Gib das Datum ein, an dem dein Vertrag begann. TapShift berechnet den kumulierten Saldo ab diesem Datum inklusive Feiertagen.</p>
+        <p class="en">Enter the date your employment started. LogFizz calculates your running balance from that date, including public holidays.</p>
+        <p class="de">Gib das Datum ein, an dem dein Arbeitsverhältnis begann. LogFizz berechnet den laufenden Saldo ab diesem Datum inklusive der Feiertage.</p>
       </div></div>
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Toggle "Exclude public holidays"</h3><h3 class="de">"Feiertage ausschlie&szlig;en" aktivieren</h3>
-        <p class="en">Enable this if your contract counts public holidays as paid days off (standard for German employment). Due hours for those days are set to zero automatically.</p>
-        <p class="de">Aktiviere dies, wenn dein Vertrag Feiertage als bezahlte freie Tage z&auml;hlt (Standard f&uuml;r deutsche Anstellungsverh&auml;ltnisse).</p>
+        <p class="en">Enable this if LogFizz should exclude public holidays (standard for German employment). Due hours for those days are set to zero automatically. Don't forget to set the correct state.</p>
+        <p class="de">Aktiviere dies, wenn LogFizz Feiertage ausschließen soll (Standard für deutsche Anstellungsverhältnisse). Die fälligen Stunden für diese Tage werden automatisch auf null gesetzt. Vergiss nicht, das richtige Bundesland festzulegen.</p>
       </div></div>
     </div>
   </div>
@@ -130,17 +135,17 @@
     <div class="steps" style="margin-top:2rem">
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Tap &ldquo;+&rdquo; to add a button</h3><h3 class="de">Auf &ldquo;+&rdquo; tippen</h3>
-        <p class="en">On the Timer tab, tap <em>+</em>. A configuration screen opens.</p>
-        <p class="de">Im Timer-Tab auf <em>+</em> tippen. Ein Konfigurationsbildschirm &ouml;ffnet sich.</p>
+        <p class="en">On the Timer tab, tap <em>edit &rarr; +</em>. A configuration screen opens.</p>
+        <p class="de">Im Timer-Tab auf <em>Bearbeiten &rarr; +</em> tippen. Ein Konfigurationsbildschirm &ouml;ffnet sich.</p>
       </div></div>
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Choose a name and emoji</h3><h3 class="de">Name und Emoji w&auml;hlen</h3>
-        <p class="en">Give your button a short label and pick an emoji. Examples: &#x1F4BC; Work, &#x1F3E0; Home Office, &#x2708; Business Trip.</p>
-        <p class="de">Kurze Bezeichnung und Emoji vergeben. Beispiele: &#x1F4BC; Arbeit, &#x1F3E0; Homeoffice, &#x2708; Dienstreise.</p>
+        <p class="en">Give your button a short label and pick an emoji. Examples: &#x1F4BC; Work, &#x2615; Break, &#x1F4DE; Meetings.</p>
+        <p class="de">Kurze Bezeichnung und Emoji vergeben. Beispiele: &#x1F4BC; Arbeit, &#x2615; Pause, &#x1F4DE; Besprechungen.</p>
       </div></div>
       <div class="step"><div class="step-num"></div><div>
-        <h3 class="en">Pick a colour</h3><h3 class="de">Farbe w&auml;hlen</h3>
-        <p class="en">Colours appear in the calendar history so you can see which activity happened on which day at a glance.</p>
+        <h3 class="en">Pick a color</h3><h3 class="de">Farbe w&auml;hlen</h3>
+        <p class="en">Colors appear in the calendar history so you can see which activity happened on which day at a glance.</p>
         <p class="de">Farben erscheinen im Kalender, damit du auf einen Blick siehst, welche Aktivit&auml;t wann stattgefunden hat.</p>
       </div></div>
     </div>
@@ -156,7 +161,12 @@
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Tap a button to start</h3><h3 class="de">Schaltfl&auml;che antippen zum Starten</h3>
         <p class="en">Tapping a button starts the timer. It pulses to show it is active and updates the elapsed time every minute.</p>
-        <p class="de">Antippen startet den Timer. Er pulsiert und aktualisiert die vergangene Zeit minüt&uuml;lich.</p>
+        <p class="de">Antippen startet den Timer. Er pulsiert und aktualisiert die vergangene Zeit min&uuml;tlich.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Long Tap a button to edit (optional)</h3><h3 class="de">Schaltfl&auml;che lange antippen zum Bearbeiten (optional)</h3>
+        <p class="en">Long tapping a button opens the edit menu. You can change the log type, the start time, and more.</p>
+        <p class="de">Langes Antippen öffnet das Bearbeitungsmenü. Du kannst den Typ, die Startzeit und mehr ändern.</p>
       </div></div>
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Tap again to stop</h3><h3 class="de">Nochmal tippen zum Stoppen</h3>
@@ -165,8 +175,8 @@
       </div></div>
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Add entries manually</h3><h3 class="de">Eintr&auml;ge manuell hinzuf&uuml;gen</h3>
-        <p class="en">Forgot to start the timer? Use <em>History &rarr; Add Manual Entry</em>, pick the date and time range, select the type, and save.</p>
-        <p class="de">Timer vergessen? &Uuml;ber <em>Historie &rarr; Manuellen Eintrag hinzuf&uuml;gen</em>, Datum und Zeitraum w&auml;hlen, Typ ausw&auml;hlen und speichern.</p>
+        <p class="en">Forgot to start the timer? Use <em>History &rarr; +</em>, pick the target, date and time range, select the type, and save.</p>
+        <p class="de">Zeiterfassung vergessen? &Uuml;ber <em>Historie &rarr; +</em>, Arbeitsziel, Datum und Zeitraum w&auml;hlen, Typ ausw&auml;hlen und speichern.</p>
       </div></div>
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Edit or delete entries</h3><h3 class="de">Eintr&auml;ge bearbeiten oder l&ouml;schen</h3>
@@ -179,12 +189,17 @@
 
 <section id="special-days">
   <div class="container" style="max-width:760px">
-    <span class="badge en">Special Days</span><span class="badge de">Besondere Tage</span>
-    <h2 style="margin-top:.5rem" class="en">Special Day Types</h2>
-    <h2 style="margin-top:.5rem" class="de">Besondere Tagestypen</h2>
-    <p class="en">TapShift tracks these types, each contributing to your balance correctly:</p>
-    <p class="de">TapShift erfasst diese Typen, die alle korrekt in den Saldo einflie&szlig;en:</p>
+    <h2 style="margin-top:.5rem" class="en">Special Log Types</h2>
+    <h2 style="margin-top:.5rem" class="de">Besondere Logtypen</h2>
+    <p class="en">LogFizz tracks these types, each contributing to your balance correctly:</p>
+    <p class="de">LogFizz erfasst diese Typen, die alle korrekt in den Saldo einflie&szlig;en:</p>
     <div class="features-grid" style="margin-top:1.75rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F3E0;</div>
+        <h3 class="en">Homeoffice</h3><h3 class="de">Homeoffice</h3>
+        <p class="en">Logged as a timed entry, tracked separately in statistics.</p>
+        <p class="de">Als zeitgesteuerter Eintrag protokolliert, separat in der Statistik erfasst.</p>
+      </div>
       <div class="feature-card">
         <div class="feature-icon">&#x1F912;</div>
         <h3 class="en">Sick Day</h3><h3 class="de">Krankheitstag</h3>
@@ -218,12 +233,12 @@
     <span class="badge en">Public Holidays</span><span class="badge de">Gesetzliche Feiertage</span>
     <h2 style="margin-top:.5rem" class="en">Public Holidays</h2>
     <h2 style="margin-top:.5rem" class="de">Gesetzliche Feiertage</h2>
-    <p class="en">TapShift fetches the official public holiday calendar for your federal state automatically. When a target is configured with <em>Exclude public holidays</em> enabled, due hours for those days are set to zero automatically.</p>
-    <p class="de">TapShift l&auml;dt automatisch den offiziellen Feiertagskalender f&uuml;r dein Bundesland. Wenn ein Ziel mit <em>Feiertage ausschlie&szlig;en</em> konfiguriert ist, werden die Sollstunden f&uuml;r diese Tage automatisch auf null gesetzt.</p>
+    <p class="en">LogFizz fetches the official public holiday calendar for your federal state automatically. When a target is configured with <em>Exclude public holidays</em> enabled, due hours for those days are set to zero automatically.</p>
+    <p class="de">LogFizz l&auml;dt automatisch den offiziellen Feiertagskalender f&uuml;r dein Bundesland. Wenn ein Ziel mit <em>Feiertage ausschlie&szlig;en</em> konfiguriert ist, werden die Sollstunden f&uuml;r diese Tage automatisch auf null gesetzt.</p>
     <div class="callout orange" style="margin-top:1.5rem">
       <strong class="en">Tip:</strong><strong class="de">Tipp:</strong>
-      <span class="en"> Different federal states have different public holiday counts. Make sure your state is set correctly under <em>Settings &rarr; Country</em>.</span>
-      <span class="de"> Verschiedene Bundesl&auml;nder haben unterschiedlich viele Feiertage. Stelle sicher, dass dein Bundesland korrekt unter <em>Einstellungen &rarr; Land</em> eingestellt ist.</span>
+      <span class="en"> Different federal states have different public holiday counts. Make sure your state is set correctly under <em>Timer &rarr; Edit &rarr; Target</em>.</span>
+      <span class="de"> Verschiedene Bundesl&auml;nder haben unterschiedlich viele Feiertage. Stelle sicher, dass dein Bundesland korrekt unter <em>Timer &rarr; Bearbeiten &rarr; Ziel</em> eingestellt ist.</span>
     </div>
   </div>
 </section>
@@ -236,13 +251,13 @@
     <div class="steps" style="margin-top:1.75rem">
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Calendar view</h3><h3 class="de">Kalenderansicht</h3>
-        <p class="en">A colour-coded calendar shows which days had activity. Tap any day to see a detailed breakdown.</p>
-        <p class="de">Ein farbkodierter Kalender zeigt aktive Tage. Tippe auf einen Tag f&uuml;r Details.</p>
+        <p class="en">A color-coded calendar shows which days had activity. Tap any day to see a detailed breakdown. You can navigate with your arrow keys.</p>
+        <p class="de">Ein farbkodierter Kalender zeigt aktive Tage. Tippe auf einen Tag f&uuml;r Details. Du kannst mit den Pfeiltasten navigieren.</p>
       </div></div>
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Monthly summary</h3><h3 class="de">Monats&uuml;bersicht</h3>
-        <p class="en">Total worked hours, due hours, overtime or deficit, and counts of sick days for the month.</p>
-        <p class="de">Gesamte Arbeitsstunden, Sollstunden, &Uuml;ber- oder Minusstunden sowie Krank- und Urlaubstage f&uuml;r den Monat.</p>
+        <p class="en">Total worked hours, due hours, overtime or deficit, and counts of special types for the month.</p>
+        <p class="de">Gesamte Arbeitsstunden, Sollstunden, &Uuml;ber- oder Minusstunden sowie besondere Logtypen, wie Krank- und Urlaubstage, f&uuml;r den Monat.</p>
       </div></div>
       <div class="step"><div class="step-num"></div><div>
         <h3 class="en">Yearly statistics</h3><h3 class="de">Jahresstatistiken</h3>
@@ -258,17 +273,17 @@
     <span class="badge badge-orange en">Key Concept</span><span class="badge badge-orange de">Schl&uuml;sselkonzept</span>
     <h2 style="margin-top:.5rem" class="en">Understanding Your Balance</h2>
     <h2 style="margin-top:.5rem" class="de">Den Saldo verstehen</h2>
-    <p class="en">The balance is the difference between what you <em>worked</em> and what you <em>owe</em>. Positive = overtime; negative = deficit.</p>
-    <p class="de">Der Saldo ist die Differenz zwischen dem, was du <em>gearbeitet</em> hast, und dem, was du <em>solltest</em>. Positiv = &Uuml;berstunden; negativ = Fehlzeit.</p>
+    <p class="en">The balance is the difference between what you <em>worked</em> and what you <em>owe</em>. Positive = overtime; negative = deficit. When enabled, breaks are automatically deducted from your balance according to German labor law.</p>
+    <p class="de">Der Saldo ist die Differenz zwischen dem, was du <em>gearbeitet</em> hast, und dem, was du <em>solltest</em>. Positiv = &Uuml;berstunden; negativ = Fehlzeit. Wenn aktiviert, werden Pausen automatisch von deinem Saldo abgezogen, gemäß dem deutschen Arbeitsrecht.</p>
     <div style="background:rgba(41,171,226,.06);border-radius:var(--radius-lg);padding:1.75rem;margin-top:1.75rem;border:1px solid rgba(41,171,226,.15)">
       <ol style="padding-left:1.25rem;line-height:2;color:var(--text)" class="en">
-        <li>For each day, TapShift sums all worked minutes from your time logs.</li>
+        <li>For each day, LogFizz sums all worked minutes from your time logs.</li>
         <li>It fetches the <em>due</em> minutes from your target (weekends and public holidays already excluded).</li>
         <li>Daily balance = <code>worked &minus; due</code>.</li>
         <li>Monthly and yearly balances sum all daily balances with a cumulative carry-forward.</li>
       </ol>
       <ol style="padding-left:1.25rem;line-height:2;color:var(--text)" class="de">
-        <li>F&uuml;r jeden Tag summiert TapShift alle gearbeiteten Minuten aus deinen Zeitprotokollen.</li>
+        <li>F&uuml;r jeden Tag summiert LogFizz alle gearbeiteten Minuten aus deinen Zeitprotokollen.</li>
         <li>Es holt die <em>Soll</em>-Minuten aus deinem Ziel (Wochenenden und Feiertage bereits ausgeschlossen).</li>
         <li>Tagessaldo = <code>Gearbeitet &minus; Soll</code>.</li>
         <li>Monats- und Jahressalden summieren alle Tagessalden mit kumulativem &Uuml;bertrag.</li>
@@ -297,8 +312,8 @@
       <div class="feature-card" style="background:rgba(41,171,226,.06);border-color:rgba(41,171,226,.2)">
         <div class="feature-icon blue">&#x1F510;</div>
         <h3 class="en">Encrypted</h3><h3 class="de">Verschl&uuml;sselt</h3>
-        <p class="en">All communication uses TLS. Data at rest is encrypted in the database. Passwords are never stored in plain text.</p>
-        <p class="de">Alle Kommunikation ist TLS-verschl&uuml;sselt. Ruhende Daten sind in der Datenbank verschl&uuml;sselt. Passw&ouml;rter werden nie im Klartext gespeichert.</p>
+        <p class="en">All communication uses TLS. No password needed.</p>
+        <p class="de">Alle Kommunikation ist TLS-verschl&uuml;sselt. Passw&ouml;rter werden nicht ben&ouml;tigt.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">&#x1F645;</div>
@@ -320,7 +335,7 @@
       <h2 class="de">H&auml;ufig gestellte Fragen</h2>
     </div>
     <details open>
-      <summary><span class="en">Can I use TapShift on multiple devices?</span><span class="de">Kann ich TapShift auf mehreren Ger&auml;ten nutzen?</span></summary>
+      <summary><span class="en">Can I use LogFizz on multiple devices?</span><span class="de">Kann ich LogFizz auf mehreren Ger&auml;ten nutzen?</span></summary>
       <div class="details-body">
         <p class="en">Yes. Log in with the same account on any device. Data syncs automatically when online.</p>
         <p class="de">Ja. Mit demselben Konto auf jedem Ger&auml;t einloggen. Daten synchronisieren sich automatisch online.</p>
@@ -329,22 +344,24 @@
     <details>
       <summary><span class="en">My balance looks wrong &mdash; what should I check?</span><span class="de">Mein Saldo stimmt nicht &mdash; was soll ich pr&uuml;fen?</span></summary>
       <div class="details-body">
-        <ul class="en"><li>Is your target start date correct?</li><li>Is the correct state set in Settings?</li><li>Are public holidays excluded in your target?</li></ul>
+        <ul class="en"><li>Is your target start date correct?</li><li>Is the correct state set for this target?</li><li>Are public holidays excluded in your target?</li></ul>
         <ul class="de"><li>Ist das Startdatum des Ziels korrekt?</li><li>Ist das richtige Bundesland in den Einstellungen gew&auml;hlt?</li><li>Sind Feiertage im Ziel ausgeschlossen?</li></ul>
+        <p class="en">If everything looks correct, try recalculating your balance in <em>Settings &rarr; Recalculate Balance</em>.</p>
+        <p class="de">Wenn alles korrekt aussieht, versuche deinen Saldo unter <em>Einstellungen &rarr; Saldo neu berechnen</em> neu zu berechnen.</p>
       </div>
     </details>
     <details>
       <summary><span class="en">What happens if a timer runs past midnight?</span><span class="de">Was passiert, wenn ein Timer &uuml;ber Mitternacht l&auml;uft?</span></summary>
       <div class="details-body">
-        <p class="en">TapShift handles cross-midnight shifts correctly. Time is split between the two days.</p>
-        <p class="de">TapShift behandelt &Uuml;ber-Mitternacht-Schichten korrekt. Die Zeit wird auf die beiden Tage aufgeteilt.</p>
+        <p class="en">LogFizz handles cross-midnight shifts correctly. Time is split between the two days.</p>
+        <p class="de">LogFizz behandelt &Uuml;ber-Mitternacht-Schichten korrekt. Die Zeit wird auf die beiden Tage aufgeteilt.</p>
       </div>
     </details>
     <details>
       <summary><span class="en">Where can I report a bug?</span><span class="de">Wo kann ich einen Fehler melden?</span></summary>
       <div class="details-body">
-        <p class="en">Open an issue on <a href="https://github.com/jannessm/TapShift/issues" rel="noopener">GitHub</a>.</p>
-        <p class="de">Ein Issue auf <a href="https://github.com/jannessm/TapShift/issues" rel="noopener">GitHub</a> &ouml;ffnen.</p>
+        <p class="en">Open an issue on <a href="https://github.com/jannessm/LogFizz/issues" rel="noopener">GitHub</a>.</p>
+        <p class="de">Ein Issue auf <a href="https://github.com/jannessm/LogFizz/issues" rel="noopener">GitHub</a> &ouml;ffnen.</p>
       </div>
     </details>
   </div>
@@ -356,16 +373,16 @@
     <h2 class="de">Bereit, deine Stunden im Griff zu haben?</h2>
     <p class="en">Start your free 2-month trial &mdash; no credit card, no commitment.</p>
     <p class="de">Starte die kostenlose 2-monatige Probezeit &mdash; keine Kreditkarte, keine Bindung.</p>
-    <a href="/app.html" class="btn btn-dark btn-lg en">Open TapShift &rarr;</a>
-    <a href="/app.html" class="btn btn-dark btn-lg de">TapShift &ouml;ffnen &rarr;</a>
+    <a href="/app.html" class="btn btn-dark btn-lg en">Open LogFizz &rarr;</a>
+    <a href="/app.html" class="btn btn-dark btn-lg de">LogFizz &ouml;ffnen &rarr;</a>
   </div>
 </section>
 
 <footer><div class="container"><div class="footer-inner">
   <div class="footer-brand">
-    <a href="/" class="footer-logo"><img src="/assets/icon.svg" alt="TapShift" width="32" height="32" />Tap<span style="margin-left: -10px;">Shift</span></a>
-    <p class="en">An independent working-hours tracker. Data hosted and encrypted in Germany. No ads, no tracking.</p>
-    <p class="de">Ein unabhängiger Zeiterfasser. Daten verschlüsselt in Deutschland. Keine Werbung, kein Tracking.</p>
+    <a href="/" class="footer-logo"><img src="/assets/icon.svg" alt="LogFizz" width="32" height="32" />Log<span style="margin-left: -10px;">Fizz</span></a>
+    <p class="en">An independent working-hours tracker. Data hosted in Germany. No ads, no tracking.</p>
+    <p class="de">Ein unabhängiger Zeiterfasser. Daten in Deutschland. Keine Werbung, kein Tracking.</p>
   </div>
   <div class="footer-col">
     <h4 class="en">Product</h4><h4 class="de">Produkt</h4>
@@ -388,13 +405,13 @@
     <ul>
       <li><a href="/impressum.html">Impressum</a></li>
       <li><a href="/privacy.html"><span class="en">Privacy Policy</span><span class="de">Datenschutz</span></a></li>
-      <li><a href="https://github.com/jannessm/TapShift" rel="noopener">GitHub</a></li>
+      <li><a href="https://github.com/jannessm/LogFizz" rel="noopener">GitHub</a></li>
     </ul>
   </div>
 </div>
 <div class="footer-bottom">
-  <span class="en">© 2026 TapShift — Independent open-source project.</span>
-  <span class="de">© 2026 TapShift — Unabhängiges Open-Source-Projekt.</span>
+  <span class="en">© 2026 LogFizz — Independent open-source project.</span>
+  <span class="de">© 2026 LogFizz — Unabhängiges Open-Source-Projekt.</span>
 </div></div></footer>
 <script src="/assets/lang.js?v=2"></script>
 </body>

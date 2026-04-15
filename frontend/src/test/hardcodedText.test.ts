@@ -29,7 +29,7 @@ const ACCEPTABLE_PATTERNS = [
   /^\{.*\}$/,                        // Svelte expressions
   /^\$_\(/,                          // i18n calls
   /^#[a-fA-F0-9]{3,8}$/,            // Hex colors
-  /^TapShift$/i,                     // Brand name
+  /^LogFizz$/i,                     // Brand name
   /^[a-z_]+\([^)]*\)\s*[}>\n]/i,    // Function calls like handleSort('timer')}
   /^\w+\s*=\s*[^;]+[}>\n]/,         // Assignments like archiveDate = null}
   /^[a-z_.]+\s*[<>!=]+\s*\d+\s*[}&]/i, // Comparisons like length > 0}

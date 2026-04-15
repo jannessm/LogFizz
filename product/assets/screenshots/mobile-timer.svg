@@ -9,7 +9,7 @@
 
   <!-- Nav bar top -->
   <rect y="44" width="390" height="52" fill="#111122"/>
-  <text x="195" y="75" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="white" text-anchor="middle">TapShift</text>
+  <text x="195" y="75" font-family="system-ui,sans-serif" font-size="18" font-weight="700" fill="white" text-anchor="middle">LogFizz</text>
   <text x="195" y="92" font-family="system-ui,sans-serif" font-size="11" fill="rgba(255,255,255,0.4)" text-anchor="middle">Monday, 7 April</text>
 
   <!-- Button grid (2×2) -->

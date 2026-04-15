@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = 'tapshift-cache-v1';
+const CACHE_NAME = 'logfizz-cache-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

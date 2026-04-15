@@ -1,5 +1,5 @@
 /*!
- * TapShift language switcher
+ * LogFizz language switcher
  * Language is determined from the URL path: /de/... → German, everything else → English.
  * Switching language updates the URL via history.pushState (adds/removes the /de prefix)
  * and rewrites all same-site <a> links on the page to keep the current language.

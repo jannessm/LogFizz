@@ -159,7 +159,7 @@
 
       {#if subscriptionStatus.status === 'trial' || subscriptionStatus.status === 'expired' || subscriptionStatus.status === 'canceled'}
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">{$_('subscription.subscribeToTapShift')}</h2>
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">{$_('subscription.subscribeToLogFizz')}</h2>
           
           <div class="border-2 border-blue-200 dark:border-blue-700 rounded-lg p-6 mb-6">
             <div class="flex items-baseline mb-4">

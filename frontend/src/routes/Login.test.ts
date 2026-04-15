@@ -28,7 +28,7 @@ describe('Login Component', () => {
 
   it('renders login form by default with email only', () => {
     render(Login);
-    expect(screen.getByText(/Login to TapShift/i)).toBeInTheDocument();
+    expect(screen.getByText(/Login to LogFizz/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
     // No password field in login mode
     expect(screen.queryByLabelText(/Password/i)).not.toBeInTheDocument();
@@ -38,7 +38,7 @@ describe('Login Component', () => {
     render(Login);
     const toggleButton = screen.getByText(/Don't have an account\? Register/i);
     await fireEvent.click(toggleButton);
-    expect(screen.getByText(/Register to TapShift/i)).toBeInTheDocument();
+    expect(screen.getByText(/Register to LogFizz/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Name/i)).toBeInTheDocument();
     // No password field - registration uses magic link, not a password
     expect(screen.queryByLabelText(/Password/i)).not.toBeInTheDocument();

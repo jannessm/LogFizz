@@ -238,7 +238,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `tapshift-data-${dayjs().format('YYYY-MM-DD')}.json`;
+      a.download = `logfizz-data-${dayjs().format('YYYY-MM-DD')}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

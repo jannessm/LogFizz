@@ -6,15 +6,15 @@
   <script>(function(){var l=location.pathname.startsWith('/de')?'de':(localStorage.getItem('ts-lang')||((navigator.language||'').startsWith('de')?'de':'en'));document.documentElement.classList.add('lang-'+l);document.documentElement.lang=l;})();</script>
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/assets/styles.css?v=2" />
-  <title>TapShift vs. Toggl, Clockify &amp; Co – An Honest Comparison</title>
-  <meta name="description" content="An honest look at how TapShift compares to Toggl Track, Clockify, and ZEP — who benefits most from each app, and why a €10/year indie tool might be all you need." />
-  <meta name="keywords" content="TapShift vs Toggl, Clockify alternative, Zeiterfassung Vergleich, time tracking comparison, German labor law, ZEP Alternative" />
-  <link rel="canonical" href="https://tapshift.magnusso.nz/comparison.html" />
+  <title>LogFizz vs. Toggl, Clockify &amp; Co – An Honest Comparison</title>
+  <meta name="description" content="An honest look at how LogFizz compares to Toggl Track, Clockify, and ZEP — who benefits most from each app, and why a €10/year indie tool might be all you need." />
+  <meta name="keywords" content="LogFizz vs Toggl, Clockify alternative, Zeiterfassung Vergleich, time tracking comparison, German labor law, ZEP Alternative" />
+  <link rel="canonical" href="https://logfizz.magnusso.nz/comparison.html" />
   <meta property="og:type" content="article" />
-  <meta property="og:url" content="https://tapshift.magnusso.nz/comparison.html" />
-  <meta property="og:title" content="TapShift vs. Toggl, Clockify &amp; Co – An Honest Comparison" />
-  <meta property="og:description" content="Who should use TapShift and when should you use something else? A transparent breakdown of features and prices." />
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"TapShift vs. Toggl, Clockify & Co – An Honest Comparison","datePublished":"2025-04-06","dateModified":"2026-04-06","author":{"@type":"Person","name":"TapShift Developer"},"description":"Honest comparison of TapShift with alternatives for German employees."}</script>
+  <meta property="og:url" content="https://logfizz.magnusso.nz/comparison.html" />
+  <meta property="og:title" content="LogFizz vs. Toggl, Clockify &amp; Co – An Honest Comparison" />
+  <meta property="og:description" content="Who should use LogFizz and when should you use something else? A transparent breakdown of features and prices." />
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"LogFizz vs. Toggl, Clockify & Co – An Honest Comparison","datePublished":"2025-04-06","dateModified":"2026-04-06","author":{"@type":"Person","name":"LogFizz Developer"},"description":"Honest comparison of LogFizz with alternatives for German employees."}</script>
 </head>
 <body>
 <div class="indie-banner">
@@ -23,7 +23,7 @@
 </div>
 <nav class="nav">
   <div class="container nav-inner">
-    <a href="/" class="nav-brand"><img src="/assets/icon.svg" alt="TapShift logo" width="36" height="36" />Tap<span style="margin-left: -10px">Shift</span></a>
+    <a href="/" class="nav-brand"><img src="/assets/icon.svg" alt="LogFizz logo" width="36" height="36" />Log<span style="margin-left: -10px">Fizz</span></a>
     <button class="nav-toggle" aria-label="Toggle menu" onclick="this.nextElementSibling.classList.toggle('open')"><span></span><span></span><span></span></button>
     <ul class="nav-links">
       <li><a href="/"><span class="en">Overview</span><span class="de">Übersicht</span></a></li>
@@ -43,15 +43,15 @@
   <div class="container">
     <span class="badge badge-orange en">Comparison</span>
     <span class="badge badge-orange de">Vergleich</span>
-    <h1 style="margin-top:.75rem" class="en">TapShift vs. Toggl, Clockify &amp; Co.<br/>An Honest Comparison.</h1>
-    <h1 style="margin-top:.75rem" class="de">TapShift vs. Toggl, Clockify &amp; Co.<br/>Ein ehrlicher Vergleich.</h1>
+    <h1 style="margin-top:.75rem" class="en">LogFizz vs. Toggl, Clockify &amp; Co.<br/>An Honest Comparison.</h1>
+    <h1 style="margin-top:.75rem" class="de">LogFizz vs. Toggl, Clockify &amp; Co.<br/>Ein ehrlicher Vergleich.</h1>
     <div class="blog-meta">
       <span>&#128197; April 2026</span>
       <span>·</span>
       <span>&#128336; <span class="en">8 min read</span><span class="de">8 Min. Lesezeit</span></span>
       <span>·</span>
-      <span class="en">Written by the TapShift developer</span>
-      <span class="de">Vom TapShift-Entwickler</span>
+      <span class="en">Written by the LogFizz developer</span>
+      <span class="de">Vom LogFizz-Entwickler</span>
     </div>
   </div>
 </div>
@@ -60,21 +60,21 @@
 
   <div class="callout orange">
     <strong class="en">Transparency first:</strong><strong class="de">Vorab zur Transparenz:</strong>
-    <span class="en"> I built TapShift. I’ll be as honest as possible — including pointing out where the other tools are genuinely better.</span>
-    <span class="de"> Ich habe TapShift gebaut. Ich werde so ehrlich wie möglich zu sein — auch wenn andere Tools besser sind.</span>
+    <span class="en"> I built LogFizz. I’ll be as honest as possible — including pointing out where the other tools are genuinely better.</span>
+    <span class="de"> Ich habe LogFizz gebaut. Ich werde so ehrlich wie möglich zu sein — auch wenn andere Tools besser sind.</span>
   </div>
 
   <h2 class="en">Why does another time tracker exist?</h2>
   <h2 class="de">Warum noch eine Zeiterfassung?</h2>
-  <p class="en">When I looked for a time tracker that excluded public holidays from my work targets and ran on my phone without forcing me through a subscription funnel, I came up empty. The big tools are built for agencies billing clients by the hour — a completely different need. So I built TapShift.</p>
-  <p class="de">Als ich einen Zeiterfasser suchte, der Feiertage aus meinem Sollzeitkonto herausrechnet und auf dem Handy läuft, ohne mich in ein teures Abo zu zwingen, wurde ich nicht fündig. Die großen Tools sind für Agenturen gebaut, die nach Stunden abrechnen — ein völlig anderer Bedarf. Also habe ich TapShift gebaut.</p>
-  <p class="en">TapShift is an <strong>independent, open-source project</strong>. The €10/year subscription covers the server bill — nothing more. This article is my honest attempt to help you decide whether TapShift is right for you.</p>
-  <p class="de">TapShift ist ein <strong>unabhängiges Open-Source-Projekt</strong>. Das 10€/Jahr-Abo deckt die Serverkosten — nicht mehr. Dieser Artikel ist mein ehrlicher Versuch, dir zu helfen, ob TapShift das Richtige für dich ist.</p>
+  <p class="en">When I looked for a time tracker that excluded public holidays from my work targets and ran on my phone without forcing me through a subscription funnel, I came up empty. The big tools are built for agencies billing clients by the hour — a completely different need. So I built LogFizz.</p>
+  <p class="de">Als ich einen Zeiterfasser suchte, der Feiertage aus meinem Sollzeitkonto herausrechnet und auf dem Handy läuft, ohne mich in ein teures Abo zu zwingen, wurde ich nicht fündig. Die großen Tools sind für Agenturen gebaut, die nach Stunden abrechnen — ein völlig anderer Bedarf. Also habe ich LogFizz gebaut.</p>
+  <p class="en">LogFizz is an <strong>independent, open-source project</strong>. The €10/year subscription covers the server bill — nothing more. This article is my honest attempt to help you decide whether LogFizz is right for you.</p>
+  <p class="de">LogFizz ist ein <strong>unabhängiges Open-Source-Projekt</strong>. Das 10€/Jahr-Abo deckt die Serverkosten — nicht mehr. Dieser Artikel ist mein ehrlicher Versuch, dir zu helfen, ob LogFizz das Richtige für dich ist.</p>
 
-  <h2 class="en">Who is TapShift built for?</h2>
-  <h2 class="de">Für wen ist TapShift gemacht?</h2>
-  <p class="en">TapShift is a good fit if you:</p>
-  <p class="de">TapShift passt gut, wenn du:</p>
+  <h2 class="en">Who is LogFizz built for?</h2>
+  <h2 class="de">Für wen ist LogFizz gemacht?</h2>
+  <p class="en">LogFizz is a good fit if you:</p>
+  <p class="de">LogFizz passt gut, wenn du:</p>
   <ul class="en">
     <li>Are an <strong>employee in Germany</strong> who needs to track actual work time against contractual targets</li>
     <li>Want to know your <strong>overtime balance</strong> at any moment without calculating it yourself</li>
@@ -94,8 +94,8 @@
 
   <h2 class="en">Who should look elsewhere?</h2>
   <h2 class="de">Wer sollte woanders schauen?</h2>
-  <p class="en">TapShift is probably <em>not</em> the right fit if you:</p>
-  <p class="de">TapShift ist wahrscheinlich <em>nicht</em> das Richtige, wenn du:</p>
+  <p class="en">LogFizz is probably <em>not</em> the right fit if you:</p>
+  <p class="de">LogFizz ist wahrscheinlich <em>nicht</em> das Richtige, wenn du:</p>
   <ul class="en">
     <li>Need to <strong>invoice clients</strong> by the hour — Toggl or Harvest are purpose-built for this</li>
     <li>Need <strong>team management</strong>: approving timesheets, managing schedules, or payroll</li>
@@ -119,7 +119,7 @@
       <thead>
         <tr>
           <th><span class="en">Feature</span><span class="de">Funktion</span></th>
-          <th class="highlight">TapShift</th>
+          <th class="highlight">LogFizz</th>
           <th>Toggl Track</th>
           <th>Clockify</th>
           <th>ZEP</th>
@@ -218,7 +218,7 @@
   <h2 class="en">Honest verdict</h2>
   <h2 class="de">Ehrliches Fazit</h2>
   <div class="callout">
-    <strong class="en">Use TapShift if</strong><strong class="de">Nutze TapShift, wenn</strong>
+    <strong class="en">Use LogFizz if</strong><strong class="de">Nutze LogFizz, wenn</strong>
     <span class="en"> you’re an individual employee in Germany who wants to keep track of their own hours, overtime balance, and special days without paying enterprise prices.</span>
     <span class="de"> du als Arbeitnehmer in Deutschland deine eigenen Stunden, deinen Überstundensaldo und besondere Tage erfassen möchtest, ohne Enterprise-Preise zu zahlen.</span>
   </div>
@@ -228,8 +228,8 @@
     <span class="de"> du Kunden abrechnen, ein Team verwalten oder tief in Projektmanagement-Tools integrieren möchtest. Toggl und ZEP sind dort die richtigen Tools.</span>
   </div>
 
-  <p class="en">TapShift does one thing well: help <em>you</em> stay on top of your own working hours. It runs on your phone, it works offline, your data stays in Germany encrypted, and it costs about as much as a cup of coffee per year. No upsells, no tracking, no corporate agenda.</p>
-  <p class="de">TapShift macht eine Sache gut: dir helfen, deine eigenen Arbeitszeiten im Blick zu behalten. Es läuft auf deinem Handy, funktioniert offline, deine Daten bleiben verschlüsselt in Deutschland, und es kostet etwa so viel wie ein Kaffee im Jahr. Keine Upsells, kein Tracking, keine Konzernagenda.</p>
+  <p class="en">LogFizz does one thing well: help <em>you</em> stay on top of your own working hours. It runs on your phone, it works offline, your data stays in Germany encrypted, and it costs about as much as a cup of coffee per year. No upsells, no tracking, no corporate agenda.</p>
+  <p class="de">LogFizz macht eine Sache gut: dir helfen, deine eigenen Arbeitszeiten im Blick zu behalten. Es läuft auf deinem Handy, funktioniert offline, deine Daten bleiben verschlüsselt in Deutschland, und es kostet etwa so viel wie ein Kaffee im Jahr. Keine Upsells, kein Tracking, keine Konzernagenda.</p>
 
   <div style="margin-top:3rem;padding-top:2rem;border-top:1px solid rgba(0,0,0,.08);display:flex;gap:1rem;flex-wrap:wrap">
     <a href="/app.html" class="btn btn-primary en">Start Your Free Trial →</a>
@@ -243,7 +243,7 @@
   <div class="container">
     <div class="footer-inner">
       <div class="footer-brand">
-        <a href="/" class="footer-logo"><img src="/assets/icon.svg" alt="TapShift" width="32" height="32" />Tap<span style="margin-left: -10px;">Shift</span></a>
+        <a href="/" class="footer-logo"><img src="/assets/icon.svg" alt="LogFizz" width="32" height="32" />Log<span style="margin-left: -10px;">Fizz</span></a>
         <p class="en">An independent working-hours tracker. Data hosted in Germany. No ads, no tracking.</p>
         <p class="de">Ein unabhängiger Zeiterfasser. Daten in Deutschland. Keine Werbung, kein Tracking.</p>
       </div>
@@ -268,13 +268,13 @@
         <ul>
           <li><a href="/impressum.html">Impressum</a></li>
           <li><a href="/privacy.html"><span class="en">Privacy Policy</span><span class="de">Datenschutz</span></a></li>
-          <li><a href="https://github.com/jannessm/TapShift" rel="noopener">GitHub</a></li>
+          <li><a href="https://github.com/jannessm/LogFizz" rel="noopener">GitHub</a></li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
-      <span class="en">© 2026 TapShift — Independent open-source project.</span>
-      <span class="de">© 2026 TapShift — Unabhängiges Open-Source-Projekt.</span>
+      <span class="en">© 2026 LogFizz — Independent open-source project.</span>
+      <span class="de">© 2026 LogFizz — Unabhängiges Open-Source-Projekt.</span>
     </div>
   </div>
 </footer>

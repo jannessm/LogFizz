@@ -1,6 +1,6 @@
 {
   "setup": {
-    "title": "Welcome to TapShift",
+    "title": "Welcome to LogFizz",
     "description": "Please select your preferred language and date format to get started.",
     "language": "Language",
     "dateFormat": "Date & Time Format",
@@ -23,7 +23,7 @@
     "invalidCredentials": "Invalid credentials",
     "invalidMagicLinkToken": "Invalid or expired magic link. Please request a new one.",
     "login": "Login",
-    "loginToTapShift": "Login to TapShift",
+    "loginToLogFizz": "Login to LogFizz",
     "logout": "Sign Out",
     "alreadyLoggedIn": "You are already signed in",
     "alreadyLoggedInHint": "This sign-in link is intended for a different session. Please sign out first, then click the link again.",
@@ -37,7 +37,7 @@
     "passwordMinLength": "Password must be at least 8 characters",
     "pleaseWait": "Please wait...",
     "register": "Register",
-    "registerToTapShift": "Register to TapShift",
+    "registerToLogFizz": "Register to LogFizz",
     "registrationSuccess": "Your account has been created. We've sent a sign-in link to your email address — please check your inbox to continue.",
     "sendMagicLink": "Send Magic Link",
     "tooManyAttempts": "Too many attempts. Please wait 1 minute before trying again.",
@@ -138,7 +138,7 @@
     "timersLinkedToEndedTargets": "Timers Linked to Ended Targets",
     "title": "Dashboard",
     "today": "Today",
-    "trialExpiresIn": "Your trial expires in {days} days. Subscribe to continue using TapShift."
+    "trialExpiresIn": "Your trial expires in {days} days. Subscribe to continue using LogFizz."
   },
   "export": {
     "dateRangeOptional": "Date Range (Optional)",
@@ -445,9 +445,9 @@
     "securePayment": "Secure payment processing by Stripe",
     "status": "Status",
     "subscribeNow": "Subscribe Now",
-    "subscribeToTapShift": "Subscribe to TapShift",
+    "subscribeToLogFizz": "Subscribe to LogFizz",
     "subscription": "Subscription",
-    "thankYouSubscribing": "Thank you for subscribing to TapShift. Your subscription is now active.",
+    "thankYouSubscribing": "Thank you for subscribing to LogFizz. Your subscription is now active.",
     "trialEnds": "Trial Ends",
     "unlimitedTimeTracking": "Unlimited time tracking",
     "viewSubscriptionStatus": "View your subscription status and manage your billing."
@@ -669,7 +669,7 @@
   "verifyEmail": {
     "checkSpam": "Didn't receive the email? Check your spam folder.",
     "currentlyLoggedAs": "You're currently logged in as",
-    "description": "Please verify your email address to continue using TapShift.",
+    "description": "Please verify your email address to continue using LogFizz.",
     "emailSent": "Verification email sent! Please check your inbox.",
     "goToDashboard": "Go to Dashboard",
     "invalidOrExpired": "The verification link is invalid or has expired.",
