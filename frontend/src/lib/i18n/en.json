@@ -1,4 +1,8 @@
 {
+  "sw": {
+    "updateAvailable": "A new version is available.",
+    "reload": "Reload"
+  },
   "setup": {
     "title": "Welcome to LogFizz",
     "description": "Please select your preferred language and date format to get started.",

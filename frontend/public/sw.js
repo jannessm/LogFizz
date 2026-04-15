@@ -1,129 +1,134 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = 'logfizz-cache-v1';
-const STATIC_ASSETS = [
+// -------------------------------------------------------------------
+// Cache version – bump this string to force a new install event when
+// the service worker file itself hasn't changed but the app has.
+// Vite‑built assets contain content hashes, so a new deployment will
+// always produce a new sw.js if you import it through the build, but
+// since sw.js lives in /public and is served as‑is we keep a manual
+// version string as a safety net.
+// -------------------------------------------------------------------
+const CACHE_VERSION = 'v2';
+const CACHE_PREFIX = 'logfizz-cache';
+const CACHE_NAME = `${CACHE_PREFIX}-${CACHE_VERSION}`;
+
+// Core assets that are required for the app shell to work offline.
+// Vite‑hashed JS/CSS bundles will be cached at runtime on first load.
+const PRECACHE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/icon.svg'
 ];
 
-// Install event - cache static assets
+// --------------- INSTALL ---------------
+// Pre‑cache the app shell so the app can boot offline.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
+      return cache.addAll(PRECACHE_ASSETS);
     })
   );
-  // Activate immediately
+  // Activate the new SW immediately instead of waiting for all tabs to close.
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// --------------- ACTIVATE ---------------
+// Clean up caches from older versions so storage doesn't grow unbounded.
+// After activation, notify all clients that a new version is active so
+// they can prompt the user to reload.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((name) => name !== CACHE_NAME)
+          .filter((name) => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME)
           .map((name) => caches.delete(name))
       );
+    }).then(() => {
+      // Take control of all open clients immediately.
+      return self.clients.claim();
+    }).then(() => {
+      // Tell every controlled page that a new version just activated.
+      return self.clients.matchAll({ type: 'window' }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'SW_UPDATED' });
+        });
+      });
     })
   );
-  // Take control of all pages immediately
-  self.clients.claim();
 });
 
-// Fetch event - network first, fallback to cache
+// --------------- MESSAGE ---------------
+// Allow the page to tell us to skipWaiting (used when the user clicks
+// "Reload" in the update prompt).
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// --------------- FETCH ---------------
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
-    return;
-  }
+  // Only handle GET requests from our own origin.
+  if (request.method !== 'GET') return;
+  if (url.origin !== self.location.origin) return;
 
-  // Skip API requests - let them go through normally
-  if (url.pathname.startsWith('/api')) {
-    return;
-  }
+  // Never cache API calls – they carry user data and auth tokens.
+  if (url.pathname.startsWith('/api')) return;
 
-  // For navigation requests, use cache-first strategy
+  // --- Navigation requests (HTML pages) ---
+  // Strategy: Network‑first, fall back to cache, ultimate fallback to
+  // the cached root (SPA – any route can be served from /).
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        if (cachedResponse) {
-          // Return cached response and update cache in background
-          fetch(request)
-            .then((response) => {
-              const responseClone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, responseClone);
-              });
-            })
-            .catch(() => {
-              // Ignore network errors for background updates
-            });
-          return cachedResponse;
-        }
-
-        // Not in cache, fetch from network
-        return fetch(request)
-          .then((response) => {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
-            return response;
-          })
-          .catch(() => {
-            // Fallback to root
-            return caches.match('/');
+      fetch(request)
+        .then((response) => {
+          // Cache the fresh navigation response for offline use.
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          return response;
+        })
+        .catch(() => {
+          // Offline – serve from cache.
+          return caches.match(request).then((cached) => {
+            return cached || caches.match('/');
           });
-      })
+        })
     );
     return;
   }
 
-  // For static assets, use cache-first strategy
+  // --- Static assets (JS, CSS, images, fonts, …) ---
+  // Strategy: Cache‑first.  Vite‑hashed assets are immutable so once
+  // cached they never need to be re‑validated.  Un‑hashed assets
+  // (manifest, icons) are updated via the new SW install.
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Return cached response and update cache in background
-        fetch(request)
-          .then((response) => {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          })
-          .catch(() => {
-            // Ignore network errors for background updates
-          });
         return cachedResponse;
       }
 
-      // Not in cache, fetch from network
+      // Not in cache yet – fetch from network, cache, and return.
       return fetch(request)
         .then((response) => {
-          // Only cache successful responses
           if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }
           return response;
         })
         .catch(() => {
-          // Return a fallback for failed requests
+          // Last resort fallbacks for specific resource types.
           if (request.destination === 'image') {
             return caches.match('/icon.svg');
           }
           return new Response('Offline', {
             status: 503,
-            statusText: 'Service Unavailable'
+            statusText: 'Service Unavailable',
           });
         });
     })

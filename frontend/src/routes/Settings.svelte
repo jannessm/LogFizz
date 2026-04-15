@@ -515,12 +515,6 @@
       <!-- Data & Privacy -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{$_('settings.dataPrivacy')}</h3>
-        {#if !isOnline}
-          <p class="text-sm text-yellow-600 dark:text-yellow-400 mb-4 flex items-center gap-1">
-            <span class="icon-[si--alert-duotone]" style="width: 20px; height: 20px;"></span>
-            {$_('common.offlineUnavailable')}
-          </p>
-        {/if}
         <button
           onclick={handleDownloadData}
           disabled={isDownloading || !isOnline}
