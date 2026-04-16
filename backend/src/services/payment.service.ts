@@ -42,26 +42,26 @@ export class PaymentService {
     }
 
     // Create checkout session
+    const priceId = process.env.STRIPE_PRICE_ID;
+    if (!priceId) {
+      throw new Error('STRIPE_PRICE_ID is not configured.');
+    }
+
     const session = await this.stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [
         {
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: 'LogFizz Annual Subscription',
-              description: 'Full access to LogFizz time tracking application',
-            },
-            unit_amount: 500, // €5.00 in cents
-            recurring: {
-              interval: 'year',
-            },
-          },
+          price: priceId,
           quantity: 1,
         },
       ],
       mode: 'subscription',
+      billing_address_collection: 'required',
+      customer_update: {
+        name: 'auto',
+        address: 'auto',
+      },
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
