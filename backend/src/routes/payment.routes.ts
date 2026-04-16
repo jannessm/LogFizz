@@ -53,8 +53,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       response: {
         200: Type.Object({
           status: Type.String(),
-          trialEndDate: Type.String(),
-          trialDaysRemaining: Type.Optional(Type.Number()),
+          trialEndDate: Type.Optional(Type.String()),
           subscriptionEndDate: Type.Optional(Type.String()),
           hasAccess: Type.Boolean(),
         }),
@@ -75,8 +74,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       const status = await paymentService.getSubscriptionStatus(request.session.userId);
       return {
         status: status.status,
-        trialEndDate: status.trialEndDate.toISOString(),
-        trialDaysRemaining: status.trialDaysRemaining,
+        trialEndDate: status.trialEndDate?.toISOString(),
         subscriptionEndDate: status.subscriptionEndDate?.toISOString(),
         hasAccess: status.hasAccess,
       };
@@ -114,68 +112,8 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Resume subscription (undo cancel_at_period_end)
-  fastify.post('/resume-subscription', {
-    schema: {
-      tags: ['Payment'],
-      response: {
-        200: Type.Object({
-          message: Type.String(),
-        }),
-        400: Type.Object({
-          error: Type.String(),
-        }),
-        401: Type.Object({
-          error: Type.String(),
-        }),
-      },
-    },
-  }, async (request, reply) => {
-    if (!request.session?.userId) {
-      return reply.code(401).send({ error: 'Unauthorized' });
-    }
-
-    try {
-      await paymentService.resumeSubscription(request.session.userId);
-      return { message: 'Subscription resumed successfully' };
-    } catch (error: any) {
-      return reply.code(400).send({ error: error.message });
-    }
-  });
-
-  // Create Stripe Billing Portal session
-  fastify.post('/create-portal-session', {
-    schema: {
-      tags: ['Payment'],
-      body: Type.Object({
-        returnUrl: Type.String(),
-      }),
-      response: {
-        200: Type.Object({ url: Type.String() }),
-        400: Type.Object({ error: Type.String() }),
-        401: Type.Object({ error: Type.String() }),
-      },
-    },
-  }, async (request, reply) => {
-    if (!request.session?.userId) {
-      return reply.code(401).send({ error: 'Unauthorized' });
-    }
-    try {
-      const { returnUrl } = request.body as any;
-      const url = await paymentService.createBillingPortalSession(
-        request.session.userId,
-        returnUrl
-      );
-      return { url };
-    } catch (error: any) {
-      return reply.code(400).send({ error: error.message });
-    }
-  });
-
-  // Stripe webhook handler — must receive the raw (unparsed) request body
-  fastify.post('/webhook', {
-    config: { rawBody: true },
-  }, async (request, reply) => {
+  // Stripe webhook handler
+  fastify.post('/webhook', async (request, reply) => {
     const signature = request.headers['stripe-signature'] as string;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -186,15 +124,12 @@ export async function paymentRoutes(fastify: FastifyInstance) {
 
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2026-01-28.clover' });
-
-      // Use the raw body buffer so the signature matches exactly what Stripe signed
-      const rawBody = (request as any).rawBody as Buffer | string | undefined;
-      if (!rawBody) {
-        return reply.code(400).send({ error: 'Missing raw body' });
-      }
-
+      
+      // Get the raw body as string
+      const payload = JSON.stringify(request.body);
+      
       const event = stripe.webhooks.constructEvent(
-        rawBody,
+        payload,
         signature,
         webhookSecret
       );
@@ -217,8 +152,61 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         }),
       },
     },
-  }, async (_request, _reply) => {
-    const enabled = settingsService.isPaywallEnabled();
+  }, async (request, reply) => {
+    const enabled = await settingsService.isPaywallEnabled();
     return { enabled };
+  });
+
+  // Admin: Toggle paywall (requires admin password)
+  fastify.post('/admin/toggle-paywall', {
+    schema: {
+      tags: ['Payment'],
+      body: Type.Object({
+        enabled: Type.Boolean(),
+        password: Type.String(),
+      }),
+      response: {
+        200: Type.Object({
+          message: Type.String(),
+          enabled: Type.Boolean(),
+        }),
+        400: Type.Object({
+          error: Type.String(),
+        }),
+        401: Type.Object({
+          error: Type.String(),
+        }),
+        403: Type.Object({
+          error: Type.String(),
+        }),
+        500: Type.Object({
+          error: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminPassword) {
+      console.error('ADMIN_PASSWORD not configured');
+      return reply.code(500).send({ error: 'Admin password not configured' });
+    }
+
+    try {
+      const { enabled, password } = request.body as any;
+
+      // Verify admin password
+      if (password !== adminPassword) {
+        return reply.code(403).send({ error: 'Invalid admin password' });
+      }
+
+      await settingsService.setPaywallEnabled(enabled);
+      return { 
+        message: `Paywall ${enabled ? 'enabled' : 'disabled'} successfully`,
+        enabled 
+      };
+    } catch (error: any) {
+      return reply.code(400).send({ error: error.message });
+    }
   });
 }

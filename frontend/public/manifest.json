@@ -1,7 +1,6 @@
 {
-  "id": "logfizz-clock",
-  "name": "LogFizz",
-  "short_name": "LogFizz",
+  "name": "TapShift",
+  "short_name": "TapShift",
   "description": "A comprehensive time tracking application for managing working hours",
   "start_url": "/",
   "display": "standalone",

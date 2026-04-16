@@ -5,6 +5,7 @@ import type { User, Timer, TimeLog, Holiday, State, Balance } from '../types';
 const API_BASE_URL = import.meta.env.PROD 
   ? (import.meta.env.VITE_API_URL || window.location.origin)
   : 'http://localhost:3000/';
+console.log(API_BASE_URL)
 
 // Create a ky instance with default options
 const api = ky.create({

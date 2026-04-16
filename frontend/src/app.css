@@ -52,25 +52,6 @@ body {
   .focus\:ring-primary:focus {
     --tw-ring-color: var(--color-primary);
   }
-
-  /* Balance colours: orange (#fbb03b) for positive, blue (#29abe2) for negative */
-  .text-balance-positive {
-    color: #fbb03b;
-  }
-  .text-balance-negative {
-    color: #29abe2;
-  }
-  .dark .text-balance-positive {
-    color: #fbb03b;
-  }
-  .dark .text-balance-negative {
-    color: #29abe2;
-  }
-
-  /* Brand gradient used for progress bars */
-  .bg-brand-gradient {
-    background: linear-gradient(to right, #29abe2, #fbb03b);
-  }
 }
 
 /* Dark mode support */

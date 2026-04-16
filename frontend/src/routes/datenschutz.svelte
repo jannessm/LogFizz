@@ -23,7 +23,7 @@
         <p>Sie haben das Recht auf Auskunft, Berichtigung, Löschung und Widerspruch gegen die Verarbeitung Ihrer personenbezogenen Daten.</p>
 
         <div class="mt-4">
-          <button on:click={goBack} class="text-sm text-gray-600 dark:text-gray-400 hover:underline">Zurück zu Einstellungen</button>
+          <button on:click={goBack} class="text-sm text-gray-600 hover:underline">Zurück zu Einstellungen</button>
         </div>
       </div>
     </div>

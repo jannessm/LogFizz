@@ -5,7 +5,7 @@ import type { TargetWithSpecs } from '../../types';
 import { dayjs, userTimezone } from '../../../../lib/utils/dayjs.js';
 import { calculateTimelogDuration } from '../../../../lib/utils/balance';
 
-interface LogFizzDB extends DBSchema {
+interface TapShiftDB extends DBSchema {
   timers: {
     key: string;
     value: Timer;
@@ -56,17 +56,17 @@ interface LogFizzDB extends DBSchema {
   };
 }
 
-const DB_NAME = 'logfizz';
+const DB_NAME = 'tapshift';
 const DB_VERSION = 2; // Incremented to add holidays store
 
-let dbInstance: IDBPDatabase<LogFizzDB> | null = null;
+let dbInstance: IDBPDatabase<TapShiftDB> | null = null;
 
-export async function getDB(): Promise<IDBPDatabase<LogFizzDB>> {
+export async function getDB(): Promise<IDBPDatabase<TapShiftDB>> {
   if (dbInstance) {
     return dbInstance;
   }
 
-  dbInstance = await openDB<LogFizzDB>(DB_NAME, DB_VERSION, {
+  dbInstance = await openDB<TapShiftDB>(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion) {
       // Timers store (formerly buttons)
       if (!db.objectStoreNames.contains('timers')) {

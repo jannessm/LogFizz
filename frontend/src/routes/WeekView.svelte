@@ -326,7 +326,10 @@
                 {getDayAbbreviation(dayData.day.day())}
               </div>
               <div
-                class="text-sm font-semibold mt-0.5 {isToday(dayData.day) ? 'text-primary' : 'text-gray-800 dark:text-gray-100'}"
+                class="text-sm font-semibold mt-0.5"
+                class:text-primary={isToday(dayData.day)}
+                class:text-gray-800={!isToday(dayData.day)}
+                class:dark:text-gray-100={!isToday(dayData.day)}
               >
                 {dayData.day.format('D')}
               </div>

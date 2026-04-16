@@ -154,14 +154,14 @@
             <div class="flex flex-1 flex-col border rounded p-2 border-gray-200 items-center"
               class:bg-blue-200={duration > 0}
             >
-              <div class="text-sm text-gray-700 dark:text-gray-300">{Math.floor(duration / 60)}:{String(duration % 60).padStart(2, '0')}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">{weekdayNames[index]}</div>
+              <div class="text-sm text-gray-700">{Math.floor(duration / 60)}:{String(duration % 60).padStart(2, '0')}</div>
+              <div class="text-xs text-gray-500">{weekdayNames[index]}</div>
             </div>
           {/each}
         </div>
         
         <!-- Info -->
-        <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+        <div class="text-xs text-gray-600 space-y-1">
           {#if tempSpec.exclude_holidays}
             <div class="flex items-center gap-1 text-grey-400">
               <span class="icon-[si--sun-set-duotone] w-3 h-3"></span>
@@ -194,7 +194,7 @@
           <button
             type="button"
             disabled
-            class="p-1.5 text-gray-400 dark:text-gray-600 cursor-not-allowed rounded opacity-50"
+            class="p-1.5 text-gray-400 cursor-not-allowed rounded opacity-50"
             title={$_('target.cannotDeleteOnlySchedule')}
           >
             <span class="icon-[si--bin-duotone] w-4 h-4"></span>
@@ -222,7 +222,7 @@
                 bind:value={durationHours[index]}
                 onblur={() => syncDurationFromHoursMinutes()}
               />
-              <span class="text-xs text-gray-500 dark:text-gray-400">:</span>
+              <span class="text-xs text-gray-500">:</span>
               <input
                 type="number"
                 min="0"
@@ -233,7 +233,7 @@
                 onblur={() => syncDurationFromHoursMinutes()}
               />
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">{weekdayNames[index]}</div>
+            <div class="text-xs text-gray-500">{weekdayNames[index]}</div>
           </div>
         {/each}
       </div>
@@ -253,7 +253,7 @@
       {#if tempSpec.exclude_holidays}
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1" for="country">{$_('target.country')}</label>
+            <label class="block text-xs font-medium text-gray-700 mb-1" for="country">{$_('target.country')}</label>
             <select
               bind:value={selectedCountry}
               onchange={handleCountryChange}
@@ -266,7 +266,7 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1" for="state">{$_('target.state')}</label>
+            <label class="block text-xs font-medium text-gray-700 mb-1" for="state">{$_('target.state')}</label>
             <select
               bind:value={tempSpec.state_code}
               disabled={!selectedCountry}
@@ -287,7 +287,7 @@
           <button
             type="button"
             onclick={() => {editMode = false; resetTempSpec();}}
-            class="flex-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            class="flex-1 px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
           >
             {$_('common.cancel')}
           </button>

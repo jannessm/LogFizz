@@ -14,7 +14,7 @@ export async function requireSubscription(
   reply: FastifyReply
 ): Promise<void> {
   // Check if paywall is enabled
-  const paywallEnabled = settingsService.isPaywallEnabled();
+  const paywallEnabled = await settingsService.isPaywallEnabled();
   
   if (!paywallEnabled) {
     // Paywall is disabled, allow access

@@ -11,11 +11,6 @@ import { State } from '../entities/State.js';
 import { Balance } from '../entities/Balance.js';
 import { HolidayMetadata } from '../entities/HolidayMetadata.js';
 import { InitialSchema1699700000000 } from '../migrations/1699700000000-InitialSchema.js';
-import { AddUserSettingsColumns1741600000000 } from '../migrations/1741600000000-AddUserSettingsColumns.js';
-import { AddHolidayLocalName1748200000000 } from '../migrations/1748200000000-AddHolidayLocalName.js';
-import { AddSetupCompleted1749034000000 } from '../migrations/1749034000000-AddSetupCompleted.js';
-import { AddMagicLinkFields1749120000000 } from '../migrations/1749120000000-AddMagicLinkFields.js';
-import { BackfillTrialEndDate1749200000000 } from '../migrations/1749200000000-BackfillTrialEndDate.js';
 
 /**
  * CLI script to test migrations and seeding
@@ -66,7 +61,7 @@ async function testMigrations() {
       synchronize: false,
       logging: false,
       entities: [User, Timer, Target, TargetSpec, TimeLog, Holiday, State, Balance, HolidayMetadata],
-      migrations: [InitialSchema1699700000000, AddUserSettingsColumns1741600000000, AddHolidayLocalName1748200000000, AddSetupCompleted1749034000000, AddMagicLinkFields1749120000000, BackfillTrialEndDate1749200000000],
+      migrations: [InitialSchema1699700000000],
     });
 
     await testConnection.initialize();

@@ -110,7 +110,7 @@
         {$_('common.search')}
       </label>
       <div class="relative">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 icon-[si--search-line] w-4 h-4 text-gray-400 dark:text-gray-500"></span>
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 icon-[si--search-line] w-4 h-4 text-gray-400"></span>
         <input
           id="search"
           type="text"
@@ -165,8 +165,17 @@
             <button
               type="button"
               onclick={() => toggleType(value)}
-              class="px-3 py-1 text-sm rounded-full border transition-colors
-                {filters.types.includes(value) ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-primary'}"
+              class="px-3 py-1 text-sm rounded-full border transition-colors"
+              class:bg-primary={filters.types.includes(value)}
+              class:text-white={filters.types.includes(value)}
+              class:border-primary={filters.types.includes(value)}
+              class:bg-white={!filters.types.includes(value)}
+              class:dark:bg-gray-700={!filters.types.includes(value)}
+              class:text-gray-700={!filters.types.includes(value)}
+              class:dark:text-gray-300={!filters.types.includes(value)}
+              class:border-gray-300={!filters.types.includes(value)}
+              class:dark:border-gray-600={!filters.types.includes(value)}
+              class:hover:border-primary={!filters.types.includes(value)}
             >
               {label}
             </button>
@@ -185,8 +194,17 @@
               <button
                 type="button"
                 onclick={() => toggleTimer(timer.id)}
-                class="px-3 py-1 text-sm rounded-full border transition-colors
-                  {filters.timerIds.includes(timer.id) ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-primary'}"
+                class="px-3 py-1 text-sm rounded-full border transition-colors"
+                class:bg-primary={filters.timerIds.includes(timer.id)}
+                class:text-white={filters.timerIds.includes(timer.id)}
+                class:border-primary={filters.timerIds.includes(timer.id)}
+                class:bg-white={!filters.timerIds.includes(timer.id)}
+                class:dark:bg-gray-700={!filters.timerIds.includes(timer.id)}
+                class:text-gray-700={!filters.timerIds.includes(timer.id)}
+                class:dark:text-gray-300={!filters.timerIds.includes(timer.id)}
+                class:border-gray-300={!filters.timerIds.includes(timer.id)}
+                class:dark:border-gray-600={!filters.timerIds.includes(timer.id)}
+                class:hover:border-primary={!filters.timerIds.includes(timer.id)}
               >
                 {timer.emoji || ''} {timer.name}
               </button>
@@ -206,8 +224,17 @@
               <button
                 type="button"
                 onclick={() => toggleTarget(target.id)}
-                class="px-3 py-1 text-sm rounded-full border transition-colors
-                  {filters.targetIds.includes(target.id) ? 'bg-primary text-white border-primary' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-primary'}"
+                class="px-3 py-1 text-sm rounded-full border transition-colors"
+                class:bg-primary={filters.targetIds.includes(target.id)}
+                class:text-white={filters.targetIds.includes(target.id)}
+                class:border-primary={filters.targetIds.includes(target.id)}
+                class:bg-white={!filters.targetIds.includes(target.id)}
+                class:dark:bg-gray-700={!filters.targetIds.includes(target.id)}
+                class:text-gray-700={!filters.targetIds.includes(target.id)}
+                class:dark:text-gray-300={!filters.targetIds.includes(target.id)}
+                class:border-gray-300={!filters.targetIds.includes(target.id)}
+                class:dark:border-gray-600={!filters.targetIds.includes(target.id)}
+                class:hover:border-primary={!filters.targetIds.includes(target.id)}
               >
                 {target.name}
               </button>

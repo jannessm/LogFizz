@@ -28,9 +28,17 @@ export class SettingsService {
   }
 
   /**
-   * Check if paywall is enabled via PAYWALL_ENABLED env variable
+   * Check if paywall is enabled
    */
-  isPaywallEnabled(): boolean {
-    return process.env.PAYWALL_ENABLED === 'true';
+  async isPaywallEnabled(): Promise<boolean> {
+    const value = await this.getSetting('paywall_enabled');
+    return value === 'true';
+  }
+
+  /**
+   * Enable or disable paywall
+   */
+  async setPaywallEnabled(enabled: boolean): Promise<void> {
+    await this.setSetting('paywall_enabled', enabled ? 'true' : 'false');
   }
 }

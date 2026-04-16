@@ -211,10 +211,6 @@ export class EmailService {
   async sendMagicLinkEmail(email: string, magicLinkToken: string, userName: string, locale: string = 'en-US'): Promise<void> {
     const magicLinkUrl = `${this.appUrl}/verify-magic-link?token=${magicLinkToken}`;
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`\n🔗 Magic link for ${email}:\n   ${magicLinkUrl}\n`);
-    }
-
     const emailContent = generateMagicLinkEmail({
       userName,
       magicLinkUrl,

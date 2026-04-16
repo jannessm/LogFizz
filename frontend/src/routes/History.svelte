@@ -136,7 +136,7 @@
 
   <!-- Main content area: Calendar (slim) + Balances + Daily details/logs -->
   <div class="w-full flex-1 overflow-y-auto min-h-0">
-    <div class="w-full max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)_minmax(0,1fr)] gap-4 items-start">
+    <div class="w-full p-4 grid grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)_minmax(0,1fr)] gap-4 items-start">
       <!-- Column 1: Calendar (max width 400px) -->
       <div class="w-full max-w-[400px] mx-auto">
         <HistoryCalendar

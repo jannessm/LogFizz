@@ -2,7 +2,7 @@
   import { dayjs, type TimeLog, userTimezone } from '../../types';
   import { hasSpecialType, loadCalendarMonth, type CalendarTimeLogData } from '../../services/calendar';
   import { onMount, onDestroy } from 'svelte';
-  import { _, locale } from '../../lib/i18n';
+  import { _ } from '../../lib/i18n';
   import { getDayAbbreviation } from '../../lib/dateFormatting';
   import { userSettingsStore } from '../../stores/userSettings';
 
@@ -232,9 +232,9 @@
   function getPublicHolidayName(date: dayjs.Dayjs): string | null {
     const dateStr = date.format('YYYY-MM-DD');
     const holidays = calendarData.relevantHolidays.get(dateStr);
-    if (!holidays || holidays.length === 0) return null;
-    const h = holidays[0];
-    return $locale === 'de' && h.localName ? h.localName : h.name;
+    
+    // Return the first holiday's name if any exist
+    return holidays && holidays.length > 0 ? holidays[0].name : null;
   }
 </script>
 
@@ -329,12 +329,14 @@
         {@const gradient = createGradient(multiDayRange.colors)}
         <button
           onclick={() => selectDate(day)}
-          class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 p-1
-            {selected ? 'text-white font-bold' : ''}
-            {!selected && !currentMonthDay ? 'text-gray-400 dark:text-gray-600' : ''}
-            {!selected && currentMonthDay ? 'text-gray-800 dark:text-gray-200' : ''}
-            {!selected && today ? 'font-bold' : ''}"
+          class="relative w-full aspect-square flex flex-col items-center justify-center transition-all hover:scale-105 p-1"
+          class:text-gray-400={!currentMonthDay}
+          class:dark:text-gray-600={!currentMonthDay}
+          class:text-gray-800={currentMonthDay && !selected}
+          class:dark:text-gray-200={currentMonthDay && !selected}
           title={holidayName || ''}
+          class:text-white={selected}
+          class:font-bold={today || selected}
         >
           <!-- Multi-day range indicator (rounded rectangle connecting days with gradient) -->
           {#if multiDayRange.isInRange && !today && !selected && multiDayRange.colors.length > 0}
@@ -373,7 +375,7 @@
 
           <!-- Today indicator (light blue circle behind) - FULL SIZE -->
           {#if today && !selected}
-            <div class="absolute inset-0 rounded-full bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-500"></div>
+            <div class="absolute inset-0 rounded-full bg-blue-100 border-2 border-blue-300"></div>
           {/if}
           
           <!-- Special type indicator (colored circle behind, not today and not selected) - single day only -->

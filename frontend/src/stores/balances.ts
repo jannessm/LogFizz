@@ -62,33 +62,28 @@ function getGranularity(date: string): 'daily' | 'monthly' | 'yearly' {
 }
 
 /**
- * Build a Map of holiday date sets keyed by state_code for a given target and month.
- * Each entry maps a state_code to the set of holiday dates that apply to it so that
- * calculateDueMinutes can look up only the holidays relevant to each spec's own
- * state, preventing e.g. a Bavaria holiday from being applied to a Berlin spec.
+ * Build a Set of holiday date strings for a given target and month.
+ * Iterates the target's specs and collects holidays from the store for each
+ * spec that has `exclude_holidays` enabled with a `state_code`.
  *
  * @param target - Target whose specs are inspected
  * @param year  - Year to look up holidays for
  * @param month - Month (1-12) to look up holidays for
- * @returns Map of state_code → Set of holiday dates in YYYY-MM-DD format
+ * @returns Set of holiday dates in YYYY-MM-DD format
  */
 export function buildHolidaysSet(
   target: TargetWithSpecs,
   year: number,
   month: number
-): Map<string, Set<string>> {
-  const holidaysMap = new Map<string, Set<string>>();
+): Set<string> {
+  const holidaysSet = new Set<string>();
   for (const spec of target.target_specs || []) {
     if (spec.exclude_holidays && spec.state_code) {
-      if (!holidaysMap.has(spec.state_code)) {
-        const dates = new Set<string>();
-        holidaysStore.getHolidaysForMonth(spec.state_code, year, month)
-          .forEach(h => dates.add(h.date));
-        holidaysMap.set(spec.state_code, dates);
-      }
+      holidaysStore.getHolidaysForMonth(spec.state_code, year, month)
+        .forEach(h => holidaysSet.add(h.date));
     }
   }
-  return holidaysMap;
+  return holidaysSet;
 }
 
 /**
@@ -108,7 +103,7 @@ async function prepareCalculationContext(
   target: TargetWithSpecs;
   balanceTarget: BalanceTarget;
   timelogs: TimeLog[];
-  holidaysSet: Map<string, Set<string>>;
+  holidaysSet: Set<string>;
 } | null> {
   const _targets = get(targets) as TargetWithSpecs[];
   const target = _targets.find(t => t.id === targetId);
@@ -150,14 +145,14 @@ async function prepareCalculationContext(
  * @param date - Date string (YYYY-MM-DD)
  * @param balanceTarget - Target configuration
  * @param timelogs - Array of timelogs to include in calculation
- * @param holidaysSet - Map of state_code → Set of holiday dates
+ * @param holidaysSet - Set of holiday dates
  * @returns Balance data (without id, user_id, timestamps)
  */
 export function calculateBalanceData(
   date: string,
   balanceTarget: BalanceTarget,
   timelogs: TimeLog[],
-  holidaysSet: Map<string, Set<string>>
+  holidaysSet: Set<string>
 ): Omit<Balance, 'id' | 'user_id' | 'created_at' | 'updated_at'> {
   const dueMinutes = calculateDueMinutes(date, balanceTarget, holidaysSet);
   const { worked_minutes, counters } = calculateWorkedMinutesForDate(

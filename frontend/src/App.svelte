@@ -20,8 +20,6 @@
   import Payment from './routes/Payment.svelte';
   import PaymentSuccess from './routes/PaymentSuccess.svelte';
   import Snackbar from './components/Snackbar.svelte';
-  import UpdateBanner from './components/UpdateBanner.svelte';
-  import OfflineBanner from './components/OfflineBanner.svelte';
   import SetupModal from './components/SetupModal.svelte';
   import { syncService } from './services/sync';
   import { currentPath, navigate } from './lib/navigation';
@@ -163,10 +161,10 @@
     <VerifyEmailRequired />
   {:else if path.startsWith('/verify-email')}
     <VerifyEmail />
-  {:else if path.startsWith('/payment/success')}
-    <PaymentSuccess />
   {:else if path.startsWith('/payment')}
     <Payment />
+  {:else if path.startsWith('/payment/success')}
+    <PaymentSuccess />
   {:else if path.startsWith('/history')}
     <History />
   {:else if path.startsWith('/week')}
@@ -186,12 +184,6 @@
 
 <!-- Global Snackbar component -->
 <Snackbar />
-
-<!-- Service worker update notification -->
-<UpdateBanner />
-
-<!-- Offline banner -->
-<OfflineBanner />
 
 <!-- Setup Modal - shown once on first visit for authenticated users -->
 {#if showSetupModal && authenticated && emailVerified}

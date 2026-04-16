@@ -11,8 +11,8 @@
   import { navigate } from '../../lib/navigation';
   import { snackbar } from '../../stores/snackbar';
   import { calculateDueMinutes } from '../../../../lib/utils/balance';
-  import { holidaysStore } from '../../stores/holidays';
   import { _ } from '../../lib/i18n';
+  import { get } from 'svelte/store';
   import { formatMinutesHHMM } from '../../../../lib/utils/timeFormat';
 
   // Column visibility state
@@ -248,17 +248,7 @@
     if (!target) return undefined;
     
     const date = dayjs.utc(timelog.start_timestamp).tz(timelog.timezone || userTimezone).format('YYYY-MM-DD');
-    const [year, month] = date.split('-').map(Number);
-    const holidaysMap = new Map<string, Set<string>>();
-    for (const spec of (target as any).target_specs || []) {
-      if (spec.exclude_holidays && spec.state_code && !holidaysMap.has(spec.state_code)) {
-        const dates = new Set<string>(
-          holidaysStore.getHolidaysForMonth(spec.state_code, year, month).map((h: any) => h.date)
-        );
-        holidaysMap.set(spec.state_code, dates);
-      }
-    }
-    return calculateDueMinutes(date, target as any, holidaysMap);
+    return calculateDueMinutes(date, target as any, new Set());
   }
 
   function getDiff(timelog: TimeLog): number | undefined {
@@ -494,7 +484,7 @@
             >
               {$_('export.selectAll')}
             </button>
-            <span class="text-gray-400 dark:text-gray-600">|</span>
+            <span class="text-gray-400">|</span>
             <button
               onclick={deselectAllColumns}
               class="text-xs text-blue-600 dark:text-orange-400 hover:underline"

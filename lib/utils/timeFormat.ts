@@ -92,7 +92,7 @@ export function formatTime(seconds: number, includeSeconds: boolean = true): str
  * @returns Tailwind CSS color class
  */
 export function getBalanceColor(balanceMinutes: number): string {
-  if (balanceMinutes > 0) return 'text-balance-positive';
-  if (balanceMinutes < 0) return 'text-balance-negative';
+  if (balanceMinutes > 0) return 'text-green-600';
+  if (balanceMinutes < 0) return 'text-red-600';
   return 'text-gray-600';
 }

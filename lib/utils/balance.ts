@@ -205,15 +205,13 @@ export function calculateWorkedMinutesForDate(
  * 
  * @param date - The date to calculate for (YYYY-MM-DD)
  * @param target - The target with duration specs
- * @param holidays - Map of state_code → Set of holiday dates (YYYY-MM-DD).
- *                   Each spec's holidays are looked up by its own state_code so that
- *                   a spec for DE-BE never sees holidays that only apply to DE-BY.
+ * @param holidays - Set of holiday dates in YYYY-MM-DD format
  * @returns Due minutes for the date
  */
 export function calculateDueMinutes(
   date: string,
   target: Target,
-  holidays: Map<string, Set<string>> = new Map()
+  holidays: Set<string> = new Set()
 ): number {
   const dateObj = dayjs.utc(date);
   const weekday = dateObj.day(); // 0=Sunday, 6=Saturday
@@ -227,15 +225,9 @@ export function calculateDueMinutes(
     if (dateObj.isBefore(startDate, 'day')) continue;
     if (endDate && dateObj.isAfter(endDate, 'day')) continue;
     
-    // Check if this is a holiday and should be excluded.
-    // Only use holidays that belong to this spec's own state_code so that
-    // a Bavaria-specific holiday (e.g. Epiphany) is never applied to a
-    // Berlin spec.
-    if (spec.exclude_holidays && spec.state_code) {
-      const specHolidays = holidays.get(spec.state_code) ?? new Set<string>();
-      if (specHolidays.has(date)) {
-        return 0;
-      }
+    // Check if this is a holiday and should be excluded
+    if (spec.exclude_holidays && holidays.has(date)) {
+      return 0;
     }
     
     // Return the duration for this weekday (0=Sun, 6=Sat)

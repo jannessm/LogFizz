@@ -44,7 +44,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
     it('should return 480 min (8h) for Monday to Friday in October 2025 (old spec, no holidays)', () => {
       for (let day = 1; day <= 31; day ++) {
         const date = `2025-10-${day.toString().padStart(2, '0')}`;
-        const result = calculateDueMinutes(date, workTarget as BalanceTarget, new Map());
+        const result = calculateDueMinutes(date, workTarget as BalanceTarget, new Set());
         if (dayjs(date).day() != 0 && dayjs(date).day() != 6) {
           expect(result).toBe(480);
         } else {
@@ -54,7 +54,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
 
       for (let day = 1; day <= 30; day ++) {
         const date = `2025-11-${day.toString().padStart(2, '0')}`;
-        const result = calculateDueMinutes(date, workTarget as BalanceTarget, new Map());
+        const result = calculateDueMinutes(date, workTarget as BalanceTarget, new Set());
         if (dayjs(date).day() != 0 && dayjs(date).day() != 6) {
           expect(result).toBe(480);
         } else {
@@ -65,11 +65,10 @@ describe('Balance Calculation Tests with Seed Data', () => {
     
     it('should return 420 min (7h) for Monday to Friday in December 2025 (middle spec)', () => {
       const holidays = getHolidaysSet('DE-BW', 2025, 12);
-      const bwHolidays = holidays.get('DE-BW') ?? new Set<string>();
       for (let day = 1; day <= 31; day ++) {
         const date = `2025-12-${day.toString().padStart(2, '0')}`;
         const result = calculateDueMinutes(date, workTarget as BalanceTarget, holidays);
-        if (dayjs(date).day() != 0 && dayjs(date).day() != 6 && !bwHolidays.has(date)) {
+        if (dayjs(date).day() != 0 && dayjs(date).day() != 6 && !holidays.has(date)) {
           expect(result).toBe(420);
         } else {
           expect(result).toBe(0);
@@ -79,11 +78,10 @@ describe('Balance Calculation Tests with Seed Data', () => {
     
     it('should return 480 min (8h) for Monday to Friday in January 2026 (current spec)', () => {
       const holidays = getHolidaysSet('DE-BY', 2026, 1);
-      const byHolidays = holidays.get('DE-BY') ?? new Set<string>();
       for (let day = 1; day <= 31; day ++) {
         const date = `2026-01-${day.toString().padStart(2, '0')}`;
         const result = calculateDueMinutes(date, workTarget as BalanceTarget, holidays);
-        if (dayjs(date).day() != 0 && dayjs(date).day() != 6 && !byHolidays.has(date)) {
+        if (dayjs(date).day() != 0 && dayjs(date).day() != 6 && !holidays.has(date)) {
           expect(result).toBe(480);
         } else {
           expect(result).toBe(0);
@@ -99,7 +97,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
 
       for (let day = 1; day <= 30; day ++) {
         const date = `2025-11-${day.toString().padStart(2, '0')}`;
-        const result = calculateDueMinutes(date, studyTarget as BalanceTarget, new Map());
+        const result = calculateDueMinutes(date, studyTarget as BalanceTarget, new Set());
         if (dayjs(date).day() == 2 || dayjs(date).day() == 4) {
           expect(result).toBe(120);
         } else {
@@ -108,7 +106,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
       }
       for (let day = 1; day <= 31; day ++) {
         const date = `2025-12-${day.toString().padStart(2, '0')}`;
-        const result = calculateDueMinutes(date, studyTarget as BalanceTarget, new Map());
+        const result = calculateDueMinutes(date, studyTarget as BalanceTarget, new Set());
         if (dayjs(date).day() == 2 || dayjs(date).day() == 4) {
           expect(result).toBe(120);
         } else {
@@ -117,7 +115,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
       }
       for (let day = 1; day <= 31; day ++) {
         const date = `2026-01-${day.toString().padStart(2, '0')}`;
-        const result = calculateDueMinutes(date, studyTarget as BalanceTarget, new Map());
+        const result = calculateDueMinutes(date, studyTarget as BalanceTarget, new Set());
         if (dayjs(date).day() == 2 || dayjs(date).day() == 4) {
           expect(result).toBe(120);
         } else {
@@ -128,7 +126,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
     
     it('should return 0 for dates before November 2025 (before starting_from)', () => {
       const date = '2025-10-15'; // October
-      const result = calculateDueMinutes(date, studyTarget as BalanceTarget, new Map());
+      const result = calculateDueMinutes(date, studyTarget as BalanceTarget, new Set());
       expect(result).toBe(0);
     });
   });
@@ -140,7 +138,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
 
       for (let day = 1; day <= 30; day ++) {
         const date = `2025-09-${day.toString().padStart(2, '0')}`;
-        const result = calculateDueMinutes(date, exerciseTarget as BalanceTarget, new Map());
+        const result = calculateDueMinutes(date, exerciseTarget as BalanceTarget, new Set());
         if ([1, 3, 5].includes(dayjs(date).day())) {
           expect(result).toBe(60);
         } else {
@@ -149,7 +147,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
       }
       for (let day = 1; day <= 31; day ++) {
         const date = `2025-10-${day.toString().padStart(2, '0')}`;
-        const result = calculateDueMinutes(date, exerciseTarget as BalanceTarget, new Map());
+        const result = calculateDueMinutes(date, exerciseTarget as BalanceTarget, new Set());
         if ([1, 3, 5].includes(dayjs(date).day())) {
           expect(result).toBe(60);
         } else {
@@ -160,7 +158,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
     
     it('should return 0 for dates after October 31 2025 (after ending_at)', () => {
       const date = '2025-11-03'; // Monday in November
-      const result = calculateDueMinutes(date, exerciseTarget as BalanceTarget, new Map());
+      const result = calculateDueMinutes(date, exerciseTarget as BalanceTarget, new Set());
       expect(result).toBe(0);
     });
   });
@@ -276,7 +274,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
           date,
           workTarget as BalanceTarget,
           dayTimelogs,
-          new Map()
+          new Set()
         );
         
         if (![0, 6].includes(dayjs(date).day())) {
@@ -302,7 +300,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
           date,
           workTarget as BalanceTarget,
           dayTimelogs,
-          new Map()
+          new Set()
         );
         
         if (![0, 6].includes(dayjs(date).day()) && day <= 23) {
@@ -337,7 +335,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
           date,
           studyTarget as BalanceTarget,
           dayTimelogs,
-          new Map()
+          new Set()
         );
         
         if ([2, 4].includes(dayjs(date).day()) && day <= 23) {
@@ -374,7 +372,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
           dateStr,
           exerciseTarget as BalanceTarget,
           dayTimelogs,
-          new Map()
+          new Set()
         );
         
         if (dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5) {
@@ -401,7 +399,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
           dateStr,
           exerciseTarget as BalanceTarget,
           dayTimelogs,
-          new Map()
+          new Set()
         );
         
         if (dayOfWeek === 1 || dayOfWeek === 3 || dayOfWeek === 5) {
@@ -433,7 +431,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
           date,
           workTarget as BalanceTarget,
           dayTimelogs,
-          new Map()
+          new Set()
         );
         dailyBalances.push(balance as Balance);
       }
@@ -461,7 +459,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
           date,
           workTarget as BalanceTarget,
           dayTimelogs,
-          new Map()
+          new Set()
         );
         dailyBalances.push(balance as Balance);
       }
@@ -657,7 +655,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
     it('should use correct spec (8h) for weekdays in October 2025', () => {
       for (let day = 1; day <= 31; day++) {
         const date = `2025-10-${day.toString().padStart(2, '0')}`;
-        const dueMinutes = calculateDueMinutes(date, workTarget as BalanceTarget, new Map());
+        const dueMinutes = calculateDueMinutes(date, workTarget as BalanceTarget, new Set());
         if (![0, 6].includes(dayjs(date).day())) {
           expect(dueMinutes).toBe(480);
         }
@@ -667,7 +665,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
     it('should use correct spec (7h) for weekdays in December 2025', () => {
       for (let day = 1; day <= 31; day++) {
         const date = `2025-12-${day.toString().padStart(2, '0')}`;
-        const dueMinutes = calculateDueMinutes(date, workTarget as BalanceTarget, new Map());
+        const dueMinutes = calculateDueMinutes(date, workTarget as BalanceTarget, new Set());
         if (![0, 6].includes(dayjs(date).day())) {
           expect(dueMinutes).toBe(420);
         }
@@ -677,7 +675,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
     it('should use correct spec (8h) for weekdays in January 2026', () => {
       for (let day = 1; day <= 31; day++) {
         const date = `2026-01-${day.toString().padStart(2, '0')}`;
-        const dueMinutes = calculateDueMinutes(date, workTarget as BalanceTarget, new Map());
+        const dueMinutes = calculateDueMinutes(date, workTarget as BalanceTarget, new Set());
         if (![0, 6].includes(dayjs(date).day())) {
           expect(dueMinutes).toBe(480);
         }
@@ -813,7 +811,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
         date,
         workTarget as BalanceTarget,
         workTimelogs,
-        new Map()
+        new Set()
       );
       expect(workBalance.sick_days).toBe(1);
       
@@ -823,7 +821,7 @@ describe('Balance Calculation Tests with Seed Data', () => {
         date,
         studyTarget as BalanceTarget,
         studyTimelogs,
-        new Map()
+        new Set()
       );
       expect(studyBalance.sick_days).toBe(0);
       expect(studyBalance.worked_minutes).toBe(120);

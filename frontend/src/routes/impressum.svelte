@@ -22,7 +22,7 @@
         <p>Diese Impressumsangaben sind Platzhalter. Bitte ersetzen Sie diese mit Ihren tatsächlichen Unternehmens- oder persönlichen Daten.</p>
 
         <div class="mt-4">
-          <button on:click={goBack} class="text-sm text-gray-600 dark:text-gray-400 hover:underline">Zurück zu Einstellungen</button>
+          <button on:click={goBack} class="text-sm text-gray-600 hover:underline">Zurück zu Einstellungen</button>
         </div>
       </div>
     </div>

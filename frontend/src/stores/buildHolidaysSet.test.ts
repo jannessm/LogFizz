@@ -138,21 +138,19 @@ describe('buildHolidaysSet', () => {
       makeSpec({ exclude_holidays: true, state_code: 'DE-BY' }),
     ]);
     const result = buildHolidaysSet(target, 2024, 12);
-    expect(result).toEqual(new Map([['DE-BY', new Set(['2024-12-25', '2024-12-26'])]]));
+    expect(result).toEqual(new Set(['2024-12-25', '2024-12-26']));
   });
 
-  it('returns an empty map when the store returns no holidays', () => {
+  it('returns an empty set when the store returns no holidays', () => {
     holidaysMock = () => [];
     const target = makeTarget([
       makeSpec({ exclude_holidays: true, state_code: 'DE-BY' }),
     ]);
     const result = buildHolidaysSet(target, 2024, 12);
-    // Map has one entry for DE-BY but the inner Set is empty
-    expect(result.size).toBe(1);
-    expect(result.get('DE-BY')?.size).toBe(0);
+    expect(result.size).toBe(0);
   });
 
-  it('keeps holidays per state code without merging across states', () => {
+  it('merges holidays from multiple specs with different state codes', () => {
     holidaysMock = (stateCode) => {
       if (stateCode === 'DE-BY') return [{ date: '2024-12-25' }, { date: '2024-12-26' }];
       if (stateCode === 'DE-BW') return [{ date: '2024-12-26' }, { date: '2024-12-31' }];
@@ -163,11 +161,8 @@ describe('buildHolidaysSet', () => {
       makeSpec({ id: 'spec-2', exclude_holidays: true, state_code: 'DE-BW' }),
     ]);
     const result = buildHolidaysSet(target, 2024, 12);
-    // Each state has its own Set — holidays are NOT merged across states
-    expect(result).toEqual(new Map([
-      ['DE-BY', new Set(['2024-12-25', '2024-12-26'])],
-      ['DE-BW', new Set(['2024-12-26', '2024-12-31'])],
-    ]));
+    // Duplicates are de-duped by the Set
+    expect(result).toEqual(new Set(['2024-12-25', '2024-12-26', '2024-12-31']));
     expect(holidaysStore.getHolidaysForMonth).toHaveBeenCalledTimes(2);
   });
 
@@ -184,7 +179,7 @@ describe('buildHolidaysSet', () => {
     expect(holidaysStore.getHolidaysForMonth).toHaveBeenCalledWith('DE-BW', 2024, 12);
   });
 
-  it('returns a new Map instance on every call', () => {
+  it('returns a new Set instance on every call', () => {
     const target = makeTarget([
       makeSpec({ exclude_holidays: true, state_code: 'DE-BY' }),
     ]);
