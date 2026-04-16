@@ -112,6 +112,7 @@
     "unknownError": "Unbekannter Fehler",
     "unsaved": "Nicht gespeichert",
     "version": "Version",
+    "reportIssue": "Fehler melden oder Feature anfragen",
     "viewSubscriptionDetails": "Abonnement-Details anzeigen",
     "warning": "Warnung",
     "yes": "Ja"
@@ -347,9 +348,13 @@
     "table": "Tabelle"
   },
   "payment": {
-    "confirmCancelSubscription": "Sind Sie sicher, dass Sie Ihr Abonnement kündigen möchten?",
+    "confirmCancelSubscription": "Sind Sie sicher, dass Sie Ihr Abonnement kündigen möchten? Sie behalten den Zugang bis zum Ende des aktuellen Abrechnungszeitraums.",
+    "exportYourData": "Daten exportieren →",
     "failedToCancelSubscription": "Abonnement konnte nicht gekündigt werden",
-    "failedToCreateCheckoutSession": "Checkout-Sitzung konnte nicht erstellt werden"
+    "failedToCreateCheckoutSession": "Checkout-Sitzung konnte nicht erstellt werden",
+    "failedToOpenPortal": "Zahlungsportal konnte nicht geöffnet werden",
+    "failedToResumeSubscription": "Abonnement konnte nicht fortgesetzt werden",
+    "managePaymentDetails": "Zahlungsdetails verwalten"
   },
   "settings": {
     "accountDangerZone": "Gefahrenzone",
@@ -450,6 +455,11 @@
     "subscribeNow": "Jetzt abonnieren",
     "subscribeToLogFizz": "LogFizz abonnieren",
     "subscription": "Abonnement",
+    "endedOn": "Beendet am",
+    "renewDescription": "Ihr Abonnement ist zur Kündigung vorgemerkt. Machen Sie die Kündigung rückgängig, um weiterhin uneingeschränkten Zugriff zu behalten.",
+    "renewNow": "Kündigung rückgängig machen",
+    "renewSubscription": "Abonnement behalten",
+    "subscriptionEnded": "Abonnement beendet",
     "thankYouSubscribing": "Vielen Dank für Ihr LogFizz-Abonnement. Ihr Abonnement ist jetzt aktiv.",
     "trialEnds": "Testversion endet",
     "unlimitedTimeTracking": "Unbegrenzte Zeiterfassung",

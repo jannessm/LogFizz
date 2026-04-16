@@ -67,5 +67,21 @@
       || localStorage.getItem(KEY)
       || ((navigator.language || navigator.userLanguage || 'en').startsWith('de') ? 'de' : 'en');
     apply(current, false);
+
+    // Rewrite GitHub links if LOGFIZZ_GITHUB_URL is set via config.js
+    var ghBase = window.LOGFIZZ_GITHUB_URL;
+    if (ghBase) {
+      // Strip trailing slash for consistent prefix replacement
+      ghBase = ghBase.replace(/\/$/, '');
+      document.querySelectorAll('a[href]').forEach(function (a) {
+        var href = a.getAttribute('href');
+        if (!href) return;
+        // Replace any href that starts with the default repo URL
+        var updated = href
+          .replace(/^https:\/\/github\.com\/jannessm\/LogFizz\/issues(\/new)?/, ghBase + '/issues$1')
+          .replace(/^https:\/\/github\.com\/jannessm\/LogFizz(?=\/|$)/, ghBase);
+        if (updated !== href) a.setAttribute('href', updated);
+      });
+    }
   });
 }());

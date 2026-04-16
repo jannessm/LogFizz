@@ -5,6 +5,7 @@
   <script>(function(){var l=location.pathname.startsWith('/de')?'de':(localStorage.getItem('ts-lang')||((navigator.language||'').startsWith('de')?'de':'en'));document.documentElement.classList.add('lang-'+l);document.documentElement.lang=l;})();</script>
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/assets/styles.css?v=2" />
+  <script src="/assets/config.js"></script>
   <title>Privacy Policy / Datenschutzerkl&auml;rung &ndash; LogFizz</title>
   <meta name="description" content="LogFizz privacy policy (GDPR/DSGVO). Data hosted in Germany, encrypted at rest and in transit, no third-party tracking." />
   <meta name="robots" content="noindex" />
@@ -128,6 +129,14 @@
             <td style="padding:.75rem;font-size:.9rem;color:var(--gray)">Art. 6(1)(b) GDPR</td>
             <td style="padding:.75rem;font-size:.9rem;color:var(--gray)">Art. 6 Abs. 1 lit. b DSGVO</td>
           </tr>
+          <tr style="border-bottom:1px solid var(--light)">
+            <td style="padding:.75rem;font-size:.9rem;color:var(--gray)" class="en">Stripe customer ID, subscription status</td>
+            <td style="padding:.75rem;font-size:.9rem;color:var(--gray)" class="de">Stripe-Kunden-ID, Abonnementstatus</td>
+            <td style="padding:.75rem;font-size:.9rem;color:var(--gray)" class="en">Subscription management and billing</td>
+            <td style="padding:.75rem;font-size:.9rem;color:var(--gray)" class="de">Abonnementverwaltung und Abrechnung</td>
+            <td style="padding:.75rem;font-size:.9rem;color:var(--gray)">Art. 6(1)(b) GDPR</td>
+            <td style="padding:.75rem;font-size:.9rem;color:var(--gray)">Art. 6 Abs. 1 lit. b DSGVO</td>
+          </tr>
           <tr>
             <td style="padding:.75rem;font-size:.9rem;color:var(--gray)" class="en">Server logs (IP, timestamp, request)</td>
             <td style="padding:.75rem;font-size:.9rem;color:var(--gray)" class="de">Server-Logs (IP, Zeitstempel, Anfrage)</td>
@@ -150,8 +159,19 @@
     <div class="legal-block">
       <h2 class="en">5. Third-party services</h2>
       <h2 class="de">5. Drittanbieter-Dienste</h2>
-      <p class="en" style="color:var(--gray)">LogFizz does not share data with any third-party services for advertising, analytics, or marketing purposes. The only third-party service used is <strong>Google Fonts</strong> (loaded on the product page only, not in the app), which transmits your IP address to Google&rsquo;s servers when the font is loaded. To avoid this, you may use a browser extension that blocks Google Fonts.</p>
-      <p class="de" style="color:var(--gray)">LogFizz gibt keine Daten zu Werbe-, Analyse- oder Marketingzwecken an Dritte weiter. Der einzige eingesetzte Drittanbieter-Dienst ist <strong>Google Fonts</strong> (nur auf der Produktseite, nicht in der App), der beim Laden der Schriftart deine IP-Adresse an Googles Server &uuml;bertr&auml;gt. Um dies zu vermeiden, kannst du eine Browser-Erweiterung nutzen, die Google Fonts blockiert.</p>
+
+      <h3 class="en" style="margin-top:1.25rem">Stripe (payment processing)</h3>
+      <h3 class="de" style="margin-top:1.25rem">Stripe (Zahlungsabwicklung)</h3>
+      <p class="en" style="color:var(--gray)">Subscription payments are processed by <strong>Stripe, Inc.</strong> (354 Oyster Point Blvd, South San Francisco, CA 94080, USA). When you subscribe, your payment details (card number, billing address, etc.) are entered directly on Stripe&rsquo;s secure payment page and never reach our servers. We receive only a Stripe customer ID and subscription status. Stripe acts as an independent data controller for payment data. For details, see the <a href="https://stripe.com/privacy" rel="noopener" target="_blank">Stripe Privacy Policy</a>. The legal basis for this transfer is Art.&nbsp;6(1)(b) GDPR (performance of a contract). Stripe is certified under the EU&ndash;US Data Privacy Framework and uses Standard Contractual Clauses for data transfers.</p>
+      <p class="de" style="color:var(--gray)">Abonnementzahlungen werden von <strong>Stripe, Inc.</strong> (354 Oyster Point Blvd, South San Francisco, CA 94080, USA) verarbeitet. Wenn du dich anmeldest, werden deine Zahlungsdaten (Kartennummer, Rechnungsadresse usw.) direkt auf Stripes sicherer Zahlungsseite eingegeben und erreichen unsere Server nie. Wir erhalten lediglich eine Stripe-Kunden-ID und den Abonnementstatus. Stripe agiert als eigenverantwortlicher Datenverantwortlicher f&uuml;r Zahlungsdaten. Details findest du in der <a href="https://stripe.com/de/privacy" rel="noopener" target="_blank">Stripe Datenschutzerkl&auml;rung</a>. Rechtsgrundlage f&uuml;r diese &Uuml;bermittlung ist Art.&nbsp;6 Abs.&nbsp;1 lit.&nbsp;b DSGVO (Vertragserf&uuml;llung). Stripe ist nach dem EU&ndash;US Data Privacy Framework zertifiziert und nutzt Standardvertragsklauseln f&uuml;r Datentransfers.</p>
+
+      <h3 class="en" style="margin-top:1.25rem">Google Fonts</h3>
+      <h3 class="de" style="margin-top:1.25rem">Google Fonts</h3>
+      <p class="en" style="color:var(--gray)">The product website loads fonts from Google Fonts, which transmits your IP address to Google&rsquo;s servers. This does not apply to the app itself. To avoid this, you may use a browser extension that blocks Google Fonts.</p>
+      <p class="de" style="color:var(--gray)">Die Produktwebsite l&auml;dt Schriftarten von Google Fonts, wodurch deine IP-Adresse an Googles Server &uuml;bertragen wird. Dies gilt nicht f&uuml;r die App selbst. Um dies zu vermeiden, kannst du eine Browser-Erweiterung nutzen, die Google Fonts blockiert.</p>
+
+      <p class="en" style="color:var(--gray);margin-top:1rem">Beyond the services above, LogFizz does not share data with any third-party service for advertising, analytics, or marketing purposes.</p>
+      <p class="de" style="color:var(--gray);margin-top:1rem">Au&szlig;er den oben genannten Diensten gibt LogFizz keine Daten zu Werbe-, Analyse- oder Marketingzwecken an Dritte weiter.</p>
     </div>
 
     <div class="legal-block">

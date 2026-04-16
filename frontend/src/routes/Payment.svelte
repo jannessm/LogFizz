@@ -5,6 +5,7 @@
   import { paymentApi, type SubscriptionStatus } from '../services/payment';
   import { loadStripe } from '@stripe/stripe-js';
   import { _ } from '../lib/i18n';
+  import { dayjs } from '../types';
 
   let subscriptionStatus: SubscriptionStatus | null = null;
   let loading = true;
@@ -61,16 +62,40 @@
 
     try {
       await paymentApi.cancelSubscription();
-      // Reload status
       subscriptionStatus = await paymentApi.getSubscriptionStatus();
     } catch (err: any) {
       error = err.message || $_('payment.failedToCancelSubscription');
     }
   }
 
+  async function handleResumeSubscription() {
+    try {
+      await paymentApi.resumeSubscription();
+      subscriptionStatus = await paymentApi.getSubscriptionStatus();
+    } catch (err: any) {
+      error = err.message || $_('payment.failedToResumeSubscription');
+    }
+  }
+
+  async function handleOpenPortal() {
+    try {
+      const returnUrl = window.location.href;
+      const result = await paymentApi.createPortalSession(returnUrl);
+      window.location.href = result.url;
+    } catch (err: any) {
+      error = err.message || $_('payment.failedToOpenPortal');
+    }
+  }
+
   function formatDate(dateStr: string | undefined): string {
     if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString();
+    return dayjs(dateStr).format('LL');
+  }
+
+  function latestEndDate(s: SubscriptionStatus): string | undefined {
+    const candidates = [s.trialEndDate, s.subscriptionEndDate].filter(Boolean) as string[];
+    if (candidates.length === 0) return undefined;
+    return candidates.reduce((a, b) => dayjs(a).isAfter(dayjs(b)) ? a : b);
   }
 </script>
 
@@ -137,11 +162,23 @@
             </div>
           {/if}
 
-          {#if subscriptionStatus.status === 'active' && subscriptionStatus.subscriptionEndDate}
+          {#if subscriptionStatus.status === 'active'}
             <div class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
               <span class="text-gray-600 dark:text-gray-400">{$_('subscription.nextBillingDate')}</span>
-              <span class="font-medium text-gray-900 dark:text-gray-100">{formatDate(subscriptionStatus.subscriptionEndDate)}</span>
+              <span class="font-medium text-gray-900 dark:text-gray-100">
+                {subscriptionStatus.subscriptionEndDate ? formatDate(subscriptionStatus.subscriptionEndDate) : '—'}
+              </span>
             </div>
+          {/if}
+
+          {#if (subscriptionStatus.status === 'expired' || subscriptionStatus.status === 'canceled')}
+            {@const ended = latestEndDate(subscriptionStatus)}
+            {#if ended}
+              <div class="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
+                <span class="text-gray-600 dark:text-gray-400">{$_('subscription.endedOn')}</span>
+                <span class="font-medium text-gray-900 dark:text-gray-100">{formatDate(ended)}</span>
+              </div>
+            {/if}
           {/if}
 
           <div class="flex items-center justify-between py-3">
@@ -157,7 +194,7 @@
         </div>
       </div>
 
-      {#if subscriptionStatus.status === 'trial' || subscriptionStatus.status === 'expired' || subscriptionStatus.status === 'canceled'}
+      {#if subscriptionStatus.status === 'trial' || subscriptionStatus.status === 'expired'}
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
           <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">{$_('subscription.subscribeToLogFizz')}</h2>
           
@@ -173,18 +210,6 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
                 <span class="text-gray-700 dark:text-gray-300">{$_('subscription.unlimitedTimeTracking')}</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="h-6 w-6 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-gray-700 dark:text-gray-300">{$_('subscription.advancedStats')}</span>
-              </li>
-              <li class="flex items-start">
-                <svg class="h-6 w-6 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="text-gray-700 dark:text-gray-300">{$_('subscription.prioritySupport')}</span>
               </li>
               <li class="flex items-start">
                 <svg class="h-6 w-6 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -209,10 +234,35 @@
         </div>
       {/if}
 
+      {#if subscriptionStatus.status === 'canceled'}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">{$_('subscription.renewSubscription')}</h2>
+          <p class="text-gray-600 dark:text-gray-400 mb-6">{$_('subscription.renewDescription')}</p>
+
+          <button
+            on:click={handleResumeSubscription}
+            class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition"
+          >
+            {$_('subscription.renewNow')}
+          </button>
+
+          <p class="text-sm text-gray-500 dark:text-gray-400 text-center mt-4">
+            {$_('subscription.securePayment')}
+          </p>
+        </div>
+      {/if}
+
       {#if subscriptionStatus.status === 'active'}
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">{$_('subscription.manageSubscription')}</h2>
           
+          <button
+            on:click={handleOpenPortal}
+            class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition mb-3"
+          >
+            {$_('payment.managePaymentDetails')}
+          </button>
+
           <button
             on:click={handleCancelSubscription}
             class="w-full bg-red-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-red-700 transition"
@@ -227,7 +277,13 @@
       {/if}
     {/if}
 
-    <div class="mt-6 text-center">
+    <div class="mt-6 flex flex-col items-center gap-3">
+      <button
+        on:click={() => navigate('/export')}
+        class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+      >
+        {$_('payment.exportYourData')}
+      </button>
       <button
         on:click={() => navigate('/settings')}
         class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"

@@ -20,6 +20,7 @@ import { balanceRoutes } from './routes/balance.routes.js';
 import { paymentRoutes } from './routes/payment.routes.js';
 import { userSettingsRoutes } from './routes/user-settings.routes.js';
 import { registerRateLimit } from './config/rateLimit.js';
+import rawBody from 'fastify-raw-body';
 import { debugRoutes } from './routes/debug.routes.js';
 import './types/session.js';
 
@@ -159,6 +160,14 @@ export async function buildApp() {
 
   // Register rate limiting
   await registerRateLimit(fastify);
+
+  // Register raw body plugin so the Stripe webhook route can verify signatures
+  await fastify.register(rawBody, {
+    field: 'rawBody',
+    global: false, // only populate rawBody when a route sets config.rawBody = true
+    encoding: false, // keep it as a Buffer
+    runFirst: true,
+  });
 
   // Register Swagger
   if (process.env.NODE_ENV !== 'production') {

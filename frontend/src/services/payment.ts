@@ -3,7 +3,7 @@ import ky from 'ky';
 // In development, use proxy (relative path). In production, use env variable or default to same origin
 const API_BASE_URL = import.meta.env.PROD 
   ? (import.meta.env.VITE_API_URL || window.location.origin)
-  : '';
+  : 'http://localhost:3000/';
 
 // Create a ky instance with default options
 const api = ky.create({
@@ -41,10 +41,24 @@ export const paymentApi = {
   },
 
   /**
-   * Cancel subscription
+   * Cancel subscription (scheduled at period end)
    */
   async cancelSubscription(): Promise<{ message: string }> {
-    return api.post('api/payment/cancel-subscription').json();
+    return api.post('api/payment/cancel-subscription', { json: { cancel: true } }).json();
+  },
+
+  /**
+   * Resume a subscription that was scheduled to cancel at period end
+   */
+  async resumeSubscription(): Promise<{ message: string }> {
+    return api.post('api/payment/resume-subscription', { json: { resume: true } }).json();
+  },
+
+  /**
+   * Create a Stripe Billing Portal session to manage payment details
+   */
+  async createPortalSession(returnUrl: string): Promise<{ url: string }> {
+    return api.post('api/payment/create-portal-session', { json: { returnUrl } }).json();
   },
 
   /**

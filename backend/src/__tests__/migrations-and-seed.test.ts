@@ -209,11 +209,16 @@ describe.skip('Migrations and Seeding', () => {
       const testEmail = 'test-seed@example.com';
       const testPassword = 'test123';
       const hashedForTransport = await passwordHash.hashPasswordForTransport(testPassword, testEmail);
+
+      const trialEndDate = new Date();
+      trialEndDate.setMonth(trialEndDate.getMonth() + 2);
       
       const testUser = userRepo.create({
         email: testEmail,
         password_hash: await password.hashPassword(hashedForTransport),
         name: 'Test Seed User',
+        subscription_status: 'trial',
+        trial_end_date: trialEndDate,
       });
       
       await userRepo.save(testUser);

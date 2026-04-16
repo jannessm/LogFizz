@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { AppDataSource } from '../config/database.js';
 import { User } from '../entities/User.js';
+import { dayjs } from '../../../lib/utils/dayjs.js';
 
 export class PaymentService {
   private stripe: Stripe;
@@ -109,7 +110,9 @@ export class PaymentService {
     // Using type assertion to access it safely
     const periodEnd = (subscription as any).current_period_end;
     if (periodEnd) {
-      user.subscription_end_date = new Date(periodEnd * 1000);
+      user.subscription_end_date = dayjs(periodEnd * 1000).toDate();
+    } else {
+      user.subscription_end_date = dayjs().add(1, 'year').toDate(); // Fallback if period end is not available
     }
     await this.userRepository.save(user);
   }
@@ -120,13 +123,23 @@ export class PaymentService {
     });
     if (!user) return;
 
-    user.subscription_status = subscription.status === 'active' ? 'active' : 'expired';
     // Note: current_period_end exists in Stripe API but may not be in type definitions
     // Using type assertion to access it safely
     const periodEnd = (subscription as any).current_period_end;
     if (periodEnd) {
       user.subscription_end_date = new Date(periodEnd * 1000);
     }
+
+    // If cancel_at_period_end is set, the subscription is scheduled to cancel — mark as canceled
+    // but access continues until subscription_end_date. If it was unset (resume), mark as active.
+    if ((subscription as any).cancel_at_period_end) {
+      user.subscription_status = 'canceled';
+    } else if (subscription.status === 'active') {
+      user.subscription_status = 'active';
+    } else {
+      user.subscription_status = 'expired';
+    }
+
     await this.userRepository.save(user);
   }
 
@@ -136,7 +149,8 @@ export class PaymentService {
     });
     if (!user) return;
 
-    user.subscription_status = 'canceled';
+    // Subscription has fully ended (either at period end after cancel_at_period_end, or due to payment failure)
+    user.subscription_status = 'expired';
     await this.userRepository.save(user);
   }
 
@@ -152,6 +166,14 @@ export class PaymentService {
     if (!user) return;
 
     user.subscription_status = 'active';
+
+    // Update subscription_end_date from the invoice period end
+    const periodEnd = (invoice as any).lines?.data?.[0]?.period?.end
+      ?? (invoice as any).period_end;
+    if (periodEnd) {
+      user.subscription_end_date = new Date(periodEnd * 1000);
+    }
+
     await this.userRepository.save(user);
   }
 
@@ -175,7 +197,7 @@ export class PaymentService {
    */
   async getSubscriptionStatus(userId: string): Promise<{
     status: string;
-    trialEndDate?: Date;
+    trialEndDate: Date;
     trialDaysRemaining?: number;
     subscriptionEndDate?: Date;
     hasAccess: boolean;
@@ -186,22 +208,21 @@ export class PaymentService {
     }
 
     const now = new Date();
-    let hasAccess = true;
+    let hasAccess = false;
     let trialDaysRemaining: number | undefined;
 
-    // Check if in trial period
-    if (user.subscription_status === 'trial') {
-      hasAccess = !!user.trial_end_date && now < user.trial_end_date;
-      if (user.trial_end_date) {
-        const diffMs = user.trial_end_date.getTime() - now.getTime();
-        trialDaysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-      }
-    } else if (user.subscription_status === 'active') {
-      // Active subscribers always have access; Stripe handles expiry via webhooks
-      hasAccess = true;
-    } else if (user.subscription_status === 'expired' || user.subscription_status === 'canceled') {
-      hasAccess = false;
+    // Calculate trial days remaining
+    if (user.trial_end_date) {
+      const diffMs = user.trial_end_date.getTime() - now.getTime();
+      trialDaysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
     }
+
+    // Grant access if either trial_end_date or subscription_end_date is in the future
+    const trialValid = !!user.trial_end_date && now < user.trial_end_date;
+    const subscriptionValid = user.subscription_status === 'active' || 
+      (!!user.subscription_end_date && now < user.subscription_end_date);
+
+    hasAccess = trialValid || subscriptionValid;
 
     return {
       status: user.subscription_status || 'trial',
@@ -213,17 +234,72 @@ export class PaymentService {
   }
 
   /**
-   * Cancel a subscription
+   * Cancel a subscription (scheduled at period end, not immediately)
    */
   async cancelSubscription(userId: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user || !user.stripe_subscription_id) {
-      throw new Error('No active subscription found');
+    if (!user) {
+      throw new Error('User not found');
+    }
+    if (!user.stripe_subscription_id) {
+      throw new Error('No active subscription found. If you just subscribed, the webhook may not have been processed yet.');
     }
 
-    await this.stripe.subscriptions.cancel(user.stripe_subscription_id);
-    
+    try {
+      await this.stripe.subscriptions.update(user.stripe_subscription_id, {
+        cancel_at_period_end: true,
+      });
+    } catch (stripeError: any) {
+      console.error('Stripe cancelSubscription error:', stripeError?.message, stripeError?.raw);
+      throw new Error(stripeError?.message || 'Failed to cancel subscription in Stripe');
+    }
+
     user.subscription_status = 'canceled';
     await this.userRepository.save(user);
+  }
+
+  /**
+   * Resume a subscription that was scheduled to cancel at period end
+   */
+  async resumeSubscription(userId: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new Error('User not found');
+    }
+    if (!user.stripe_subscription_id) {
+      throw new Error('No subscription found for this user.');
+    }
+
+    try {
+      await this.stripe.subscriptions.update(user.stripe_subscription_id, {
+        cancel_at_period_end: false,
+      });
+    } catch (stripeError: any) {
+      console.error('Stripe resumeSubscription error:', stripeError?.message, stripeError?.raw);
+      throw new Error(stripeError?.message || 'Failed to resume subscription in Stripe');
+    }
+
+    user.subscription_status = 'active';
+    await this.userRepository.save(user);
+  }
+
+  /**
+   * Create a Stripe Billing Portal session so the user can manage payment details
+   */
+  async createBillingPortalSession(userId: string, returnUrl: string): Promise<string> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new Error('User not found');
+    }
+    if (!user.stripe_customer_id) {
+      throw new Error('No Stripe customer found for this user.');
+    }
+
+    const session = await this.stripe.billingPortal.sessions.create({
+      customer: user.stripe_customer_id,
+      return_url: returnUrl,
+    });
+
+    return session.url;
   }
 }

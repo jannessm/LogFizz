@@ -53,7 +53,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       response: {
         200: Type.Object({
           status: Type.String(),
-          trialEndDate: Type.Optional(Type.String()),
+          trialEndDate: Type.String(),
           trialDaysRemaining: Type.Optional(Type.Number()),
           subscriptionEndDate: Type.Optional(Type.String()),
           hasAccess: Type.Boolean(),
@@ -75,7 +75,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       const status = await paymentService.getSubscriptionStatus(request.session.userId);
       return {
         status: status.status,
-        trialEndDate: status.trialEndDate?.toISOString(),
+        trialEndDate: status.trialEndDate.toISOString(),
         trialDaysRemaining: status.trialDaysRemaining,
         subscriptionEndDate: status.subscriptionEndDate?.toISOString(),
         hasAccess: status.hasAccess,
@@ -114,8 +114,68 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Stripe webhook handler
-  fastify.post('/webhook', async (request, reply) => {
+  // Resume subscription (undo cancel_at_period_end)
+  fastify.post('/resume-subscription', {
+    schema: {
+      tags: ['Payment'],
+      response: {
+        200: Type.Object({
+          message: Type.String(),
+        }),
+        400: Type.Object({
+          error: Type.String(),
+        }),
+        401: Type.Object({
+          error: Type.String(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    if (!request.session?.userId) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
+
+    try {
+      await paymentService.resumeSubscription(request.session.userId);
+      return { message: 'Subscription resumed successfully' };
+    } catch (error: any) {
+      return reply.code(400).send({ error: error.message });
+    }
+  });
+
+  // Create Stripe Billing Portal session
+  fastify.post('/create-portal-session', {
+    schema: {
+      tags: ['Payment'],
+      body: Type.Object({
+        returnUrl: Type.String(),
+      }),
+      response: {
+        200: Type.Object({ url: Type.String() }),
+        400: Type.Object({ error: Type.String() }),
+        401: Type.Object({ error: Type.String() }),
+      },
+    },
+  }, async (request, reply) => {
+    if (!request.session?.userId) {
+      return reply.code(401).send({ error: 'Unauthorized' });
+    }
+    try {
+      const { returnUrl } = request.body as any;
+      const url = await paymentService.createBillingPortalSession(
+        request.session.userId,
+        returnUrl
+      );
+      return { url };
+    } catch (error: any) {
+      return reply.code(400).send({ error: error.message });
+    }
+  });
+
+  // Stripe webhook handler — must receive the raw (unparsed) request body
+  fastify.post('/webhook', {
+    config: { rawBody: true },
+  }, async (request, reply) => {
     const signature = request.headers['stripe-signature'] as string;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -126,12 +186,15 @@ export async function paymentRoutes(fastify: FastifyInstance) {
 
     try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2026-01-28.clover' });
-      
-      // Get the raw body as string
-      const payload = JSON.stringify(request.body);
-      
+
+      // Use the raw body buffer so the signature matches exactly what Stripe signed
+      const rawBody = (request as any).rawBody as Buffer | string | undefined;
+      if (!rawBody) {
+        return reply.code(400).send({ error: 'Missing raw body' });
+      }
+
       const event = stripe.webhooks.constructEvent(
-        payload,
+        rawBody,
         signature,
         webhookSecret
       );

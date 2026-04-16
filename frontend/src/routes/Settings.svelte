@@ -125,7 +125,13 @@
 
   function formatDate(dateStr: string | undefined): string {
     if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString();
+    return dayjs(dateStr).format('LL');
+  }
+
+  function latestEndDate(s: SubscriptionStatus): string | undefined {
+    const candidates = [s.trialEndDate, s.subscriptionEndDate].filter(Boolean) as string[];
+    if (candidates.length === 0) return undefined;
+    return candidates.reduce((a, b) => dayjs(a).isAfter(dayjs(b)) ? a : b);
   }
 
   async function handleSync() {
@@ -446,11 +452,23 @@
               </div>
             {/if}
 
-            {#if subscriptionStatus.status === 'active' && subscriptionStatus.subscriptionEndDate}
+            {#if subscriptionStatus.status === 'active'}
               <div class="flex items-center justify-between">
                 <span class="text-sm text-gray-600 dark:text-gray-400">{$_('subscription.nextBillingDate')}</span>
-                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{formatDate(subscriptionStatus.subscriptionEndDate)}</span>
+                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {subscriptionStatus.subscriptionEndDate ? formatDate(subscriptionStatus.subscriptionEndDate) : '—'}
+                </span>
               </div>
+            {/if}
+
+            {#if (subscriptionStatus.status === 'expired' || subscriptionStatus.status === 'canceled')}
+              {@const ended = latestEndDate(subscriptionStatus)}
+              {#if ended}
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600 dark:text-gray-400">{$_('subscription.endedOn')}</span>
+                  <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{formatDate(ended)}</span>
+                </div>
+              {/if}
             {/if}
           </div>
         {/if}
@@ -568,6 +586,14 @@
 
       <!-- Footer with version and legal links -->
       <div class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+        <div class="mb-2">
+          <a
+            href="{import.meta.env.VITE_GITHUB_URL ?? 'https://github.com/jannessm/LogFizz'}/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="hover:underline text-blue-500 dark:text-blue-400"
+          >{$_('common.reportIssue')}</a>
+        </div>
         <div class="mb-2">{$_('common.version')} {pkg.version}</div>
         <div class="flex justify-center gap-4">
           <!-- <a href="/impressum" class="hover:underline text-gray-600" target="_blank" rel="noopener noreferrer">{$_('legal.impressum')}</a>

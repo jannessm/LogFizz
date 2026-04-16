@@ -113,6 +113,7 @@
     "unknownError": "Unknown error",
     "unsaved": "Unsaved",
     "version": "Version",
+    "reportIssue": "Report a bug or request a feature",
     "viewSubscriptionDetails": "View Subscription Details",
     "warning": "Warning",
     "yes": "Yes"
@@ -348,9 +349,13 @@
     "table": "Table"
   },
   "payment": {
-    "confirmCancelSubscription": "Are you sure you want to cancel your subscription?",
+    "confirmCancelSubscription": "Are you sure you want to cancel your subscription? You will keep access until the end of the current billing period.",
+    "exportYourData": "Export your data →",
     "failedToCancelSubscription": "Failed to cancel subscription",
-    "failedToCreateCheckoutSession": "Failed to create checkout session"
+    "failedToCreateCheckoutSession": "Failed to create checkout session",
+    "failedToOpenPortal": "Failed to open payment portal",
+    "failedToResumeSubscription": "Failed to resume subscription",
+    "managePaymentDetails": "Manage Payment Details"
   },
   "settings": {
     "accountDangerZone": "Danger Zone",
@@ -451,6 +456,11 @@
     "subscribeNow": "Subscribe Now",
     "subscribeToLogFizz": "Subscribe to LogFizz",
     "subscription": "Subscription",
+    "endedOn": "Ended on",
+    "renewDescription": "Your subscription is scheduled to end. Undo the cancellation to keep uninterrupted access.",
+    "renewNow": "Undo Cancellation",
+    "renewSubscription": "Keep Your Subscription",
+    "subscriptionEnded": "Subscription Ended",
     "thankYouSubscribing": "Thank you for subscribing to LogFizz. Your subscription is now active.",
     "trialEnds": "Trial Ends",
     "unlimitedTimeTracking": "Unlimited time tracking",

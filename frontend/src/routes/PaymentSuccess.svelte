@@ -1,14 +1,6 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { navigate } from '../lib/navigation';
   import { _ } from '../lib/i18n';
-
-  onMount(() => {
-    // Redirect to dashboard after a short delay
-    setTimeout(() => {
-      navigate('/');
-    }, 3000);
-  });
 </script>
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
@@ -41,9 +33,5 @@
         {$_('common.viewSubscriptionDetails')}
       </button>
     </div>
-
-    <p class="text-sm text-gray-500 dark:text-gray-400 mt-6">
-      {$_('subscription.redirectingDashboard')}
-    </p>
   </div>
 </div>

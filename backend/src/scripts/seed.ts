@@ -6,6 +6,7 @@ import { Target } from '../entities/Target.js';
 import { TargetSpec } from '../entities/TargetSpec.js';
 import { TimeLog } from '../entities/TimeLog.js';
 import { Holiday } from '../entities/Holiday.js';
+import { State } from '../entities/State.js';
 import { HolidayCrawlerService } from '../services/holiday-crawler.service.js';
 
 /**
@@ -33,6 +34,35 @@ async function seed() {
       console.log('✅ Existing data cleared');
     }
 
+    // Seed German states (required before target_specs due to FK constraint)
+    console.log('🗺️  Seeding German states...');
+    const stateRepo = AppDataSource.getRepository(State);
+    const germanStates = [
+      { country: 'Germany', state: 'Baden-Württemberg', code: 'DE-BW' },
+      { country: 'Germany', state: 'Bayern', code: 'DE-BY' },
+      { country: 'Germany', state: 'Berlin', code: 'DE-BE' },
+      { country: 'Germany', state: 'Brandenburg', code: 'DE-BB' },
+      { country: 'Germany', state: 'Bremen', code: 'DE-HB' },
+      { country: 'Germany', state: 'Hamburg', code: 'DE-HH' },
+      { country: 'Germany', state: 'Hessen', code: 'DE-HE' },
+      { country: 'Germany', state: 'Mecklenburg-Vorpommern', code: 'DE-MV' },
+      { country: 'Germany', state: 'Niedersachsen', code: 'DE-NI' },
+      { country: 'Germany', state: 'Nordrhein-Westfalen', code: 'DE-NW' },
+      { country: 'Germany', state: 'Rheinland-Pfalz', code: 'DE-RP' },
+      { country: 'Germany', state: 'Saarland', code: 'DE-SL' },
+      { country: 'Germany', state: 'Sachsen', code: 'DE-SN' },
+      { country: 'Germany', state: 'Sachsen-Anhalt', code: 'DE-ST' },
+      { country: 'Germany', state: 'Schleswig-Holstein', code: 'DE-SH' },
+      { country: 'Germany', state: 'Thüringen', code: 'DE-TH' },
+    ];
+    for (const stateData of germanStates) {
+      const existing = await stateRepo.findOne({ where: { code: stateData.code } });
+      if (!existing) {
+        await stateRepo.save(stateData);
+      }
+    }
+    console.log(`✅ ${germanStates.length} German states seeded`);
+
     // Fetch holidays for German states used in seed data
     console.log('🎄 Fetching holiday data...');
     const holidayCrawler = new HolidayCrawlerService();
@@ -54,13 +84,17 @@ async function seed() {
     console.log('👤 Creating sample users...');
     const userRepo = AppDataSource.getRepository(User);
     
-    // Hash passwords as if they came from the client (SHA-256 with email)
-    // Then bcrypt hash them for storage
+    // Trial end date: 2 months from now (same as auth.service registration)
+    const trialEndDate = new Date();
+    trialEndDate.setMonth(trialEndDate.getMonth() + 2);
+
     const demoEmail = 'demo@example.com';
     
     const demoUser = userRepo.create({
       email: demoEmail,
       name: 'Demo User',
+      subscription_status: 'trial',
+      trial_end_date: trialEndDate,
     });
     await userRepo.save(demoUser);
     
@@ -69,6 +103,8 @@ async function seed() {
     const testUser = userRepo.create({
       email: testEmail,
       name: 'Test User',
+      subscription_status: 'trial',
+      trial_end_date: trialEndDate,
     });
     await userRepo.save(testUser);
     
