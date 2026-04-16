@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TapShift</title>
+    <title>LogFizz</title>
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#3b82f6" />
@@ -14,27 +14,60 @@
     <!-- iOS Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="TapShift" />
+    <meta name="apple-mobile-web-app-title" content="LogFizz" />
     <link rel="apple-touch-icon" href="/icons/icon-152x152.png" />
   </head>
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
     <script type="module">
-      // Register service worker only in production
       if ('serviceWorker' in navigator && import.meta.env.PROD) {
-        console.log('register sw')
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('ServiceWorker registered with scope:', registration.scope);
-            })
-            .catch((error) => {
-              console.log('ServiceWorker registration failed:', error);
+        window.addEventListener('load', async () => {
+          try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('ServiceWorker registered with scope:', registration.scope);
+
+            // Check for updates every 60 seconds so long-lived tabs pick up
+            // new deployments quickly.
+            setInterval(() => registration.update(), 60 * 1000);
+
+            // Detect when a new service worker is installed and waiting.
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (!newWorker) return;
+
+              newWorker.addEventListener('statechange', () => {
+                // A new SW is installed and waiting to activate.
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // Dispatch a custom DOM event the Svelte app can listen for.
+                  window.dispatchEvent(new CustomEvent('sw-update-available', {
+                    detail: { registration }
+                  }));
+                }
+              });
             });
+
+            // When the active SW tells us it just activated (SW_UPDATED),
+            // reload the page so the user gets the freshest assets.
+            navigator.serviceWorker.addEventListener('message', (event) => {
+              if (event.data && event.data.type === 'SW_UPDATED') {
+                window.dispatchEvent(new CustomEvent('sw-activated'));
+              }
+            });
+
+            // When the controlling SW changes (e.g. after skipWaiting),
+            // reload to load the new version.
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              if (refreshing) return;
+              refreshing = true;
+              window.location.reload();
+            });
+          } catch (error) {
+            console.error('ServiceWorker registration failed:', error);
+          }
         });
       } else if ('serviceWorker' in navigator && import.meta.env.DEV) {
-        console.log('unregister sw');
         // Unregister any existing service workers in development
         navigator.serviceWorker.getRegistrations().then((registrations) => {
           registrations.forEach((registration) => {

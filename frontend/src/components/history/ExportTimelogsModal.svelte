@@ -311,7 +311,7 @@
             >
               {$_('common.selectAll')}
             </button>
-            <span class="text-gray-400">|</span>
+            <span class="text-gray-400 dark:text-gray-600">|</span>
             <button
               onclick={deselectAllTimers}
               class="text-xs text-blue-600 dark:text-orange-400 hover:underline"

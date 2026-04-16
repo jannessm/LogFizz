@@ -81,7 +81,7 @@ The parsed structure can then be used to enhance the frontend import modal's PDF
 🔍 PDF Import Test Script
 
 📁 Reading PDF: Monatsliste_2025_09_Magnusson_Jannes_10040255.pdf
-   Path: /home/coder/tapshift/frontend/src/test/testdata/Monatsliste_2025_09_Magnusson_Jannes_10040255.pdf
+   Path: /home/coder/logfizz/frontend/src/test/testdata/Monatsliste_2025_09_Magnusson_Jannes_10040255.pdf
 
 📄 Raw extracted text (first 2000 chars):
 ────────────────────────────────────────────────────────────────────────────────

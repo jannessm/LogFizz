@@ -212,7 +212,7 @@
   <!-- Special Type Sessions (Sick, Holiday, etc.) -->
   {#if filteredMultiDaySessions.length > 0}
     <div class="mb-6 space-y-2">
-      <h3 class="text-sm font-semibold text-gray-700 mb-3">{$_('history.multiDayEntries')}</h3>
+      <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{$_('history.multiDayEntries')}</h3>
       {#each filteredMultiDaySessions as session}
         {@const timer = timers.find(t => t.id === session.timer_id)}
         {@const type = session.log?.type || 'normal'}
@@ -239,25 +239,25 @@
             ></div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
-                <span class="text-gray-700">
+                <span class="text-gray-700 dark:text-gray-300">
                   {timer.emoji ? `${timer.emoji} ` : ''}{timer.name}
                 </span>
                 {#if session.log?.type && session.log.type !== 'normal'}
-                  <span class="text-gray-600">•</span>
-                  <span class="font-semibold text-gray-800">{typeLabel}</span>
+                  <span class="text-gray-600 dark:text-gray-400">•</span>
+                  <span class="font-semibold text-gray-800 dark:text-gray-100">{typeLabel}</span>
                 {/if}
               </div>
               {#if isMultiDay}
-                <p class="text-xs text-gray-600 mb-1">
+                <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">
                   📅 {dateRangeText}{timezoneText}
                 </p>
               {:else if isDifferentTimezone}
-                <p class="text-xs text-gray-600 mb-1">
+                <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">
                   🌍 {timezoneText}
                 </p>
               {/if}
               {#if session.log?.notes}
-                <p class="text-sm text-gray-600 truncate">{session.log.notes}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400 truncate">{session.log.notes}</p>
               {/if}
             </div>
           </button>
@@ -269,7 +269,7 @@
   <!-- Public Holidays (displayed like whole_day timelogs) -->
   {#if relevantHolidays.length > 0}
     <div class="mb-6 space-y-2">
-      <h3 class="text-sm font-semibold text-gray-700 mb-3">{$_('history.publicHolidays')}</h3>
+      <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{$_('history.publicHolidays')}</h3>
       {#each relevantHolidays as holiday}
         <div 
           class="w-full flex items-center gap-3 p-4 rounded-lg border-2 text-left"
@@ -280,9 +280,9 @@
           ></div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
-              <span class="font-semibold text-gray-800">{$locale === 'de' && holiday.localName ? holiday.localName : holiday.name}</span>
+              <span class="font-semibold text-gray-800 dark:text-gray-100">{$locale === 'de' && holiday.localName ? holiday.localName : holiday.name}</span>
             </div>
-            <p class="text-xs text-gray-600">
+            <p class="text-xs text-gray-600 dark:text-gray-400">
               🎉 {$_('common.publicHoliday')} • {holiday.country}
             </p>
           </div>
@@ -293,14 +293,14 @@
 
   <!-- Timeline Section Header -->
   {#if filteredSessions.length > 0}
-    <h3 class="text-sm font-semibold text-gray-700 mb-3">{$_('history.timeline')}</h3>
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{$_('history.timeline')}</h3>
   {/if}
   
   {#if filteredSessions.length > 0}
     <!-- Timeline View -->
     <div class="flex gap-4 mb-[60px]">
       <!-- Time Labels (Y-Axis) -->
-      <div class="flex-1 grow-0 text-gray-500 relative" style="min-width: 50px;">
+      <div class="flex-1 grow-0 text-gray-500 dark:text-gray-400 relative" style="min-width: 50px;">
         {#each hourLabels as label, index}
           <div class="absolute right-0 text-right"
             style="top: {timelineHours > 0 ? (index / timelineHours) * 90 : 0}%;"
@@ -337,9 +337,9 @@
       </div>
     </div>
   {:else if sessions.length > 0 && selectedTimerFilter}
-    <p class="text-gray-500 text-center py-8">{$_('history.noTimelineActivities')}</p>
+    <p class="text-gray-500 dark:text-gray-400 text-center py-8">{$_('history.noTimelineActivities')}</p>
   {:else if filteredMultiDaySessions.length === 0}
-    <p class="text-gray-500 text-center py-8">{$_('history.noActivities')}</p>
+    <p class="text-gray-500 dark:text-gray-400 text-center py-8">{$_('history.noActivities')}</p>
   {/if}
 </div>
 

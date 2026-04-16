@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>(function(){var l=location.pathname.startsWith('/de')?'de':(localStorage.getItem('ts-lang')||((navigator.language||'').startsWith('de')?'de':'en'));document.documentElement.classList.add('lang-'+l);document.documentElement.lang=l;})();</script>
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/assets/styles.css?v=2" />
+  <script src="/assets/config.js"></script>
+  <title>User Guide &ndash; LogFizz</title>
+  <meta name="description" content="Learn how to use LogFizz: create tracking buttons, record work time, understand your balance, manage public holidays and special days." />
+  <meta name="keywords" content="LogFizz guide, Zeiterfassung Anleitung, how to track working hours, balance, Feiertage, Ueberstunden" />
+  <link rel="canonical" href="https://logfizz.magnusso.nz/guide.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://logfizz.magnusso.nz/guide.html" />
+  <meta property="og:title" content="User Guide &ndash; LogFizz" />
+  <meta property="og:description" content="Step-by-step guide to LogFizz &mdash; from first login to reading your yearly balance." />
+</head>
+<body>
+<div class="indie-banner">
+  <span class="en">Built by an <strong>independent developer</strong> — the €10/year subscription exists solely to cover server costs, not to make a profit. ♥</span>
+  <span class="de">Von einem <strong>unabhängigen Entwickler</strong> gebaut — das 10€/Jahr-Abo dient ausschließlich zur Deckung der Serverkosten. ♥</span>
+</div>
+<nav class="nav"><div class="container nav-inner">
+    <a href="/" class="nav-brand"><img src="/assets/icon.svg" alt="LogFizz logo" width="36" height="36" />Log<span style="margin-left: -10px">Fizz</span></a>
+    <button class="nav-toggle" aria-label="Toggle menu" onclick="this.nextElementSibling.classList.toggle('open')"><span></span><span></span><span></span></button>
+    <ul class="nav-links">
+      <li><a href="/"><span class="en">Overview</span><span class="de">&Uuml;bersicht</span></a></li>
+      <li><a href="/comparison.html"><span class="en">Comparison</span><span class="de">Vergleich</span></a></li>
+      <li><a href="/pricing.html"><span class="en">Pricing</span><span class="de">Preise</span></a></li>
+      <li><a href="/guide.html" class="active"><span class="en">Guide</span><span class="de">Anleitung</span></a></li>
+      <li><a href="/app.html" class="nav-cta"><span class="en">Open App &rarr;</span><span class="de">App &ouml;ffnen &rarr;</span></a></li>
+      <li class="lang-switcher"><button class="lang-btn lang-active" data-lang-btn="en" onclick="setLang('en')" title="English">🇬🇧</button><button class="lang-btn" data-lang-btn="de" onclick="setLang('de')" title="Deutsch">🇩🇪</button></li>
+    </ul>
+  </div></nav>
+
+<section style="background:linear-gradient(135deg,var(--dark) 0%,#1d3a5a 100%);color:var(--white);padding-block:4rem;text-align:center">
+  <div class="container">
+    <span class="badge badge-orange en">User Guide</span>
+    <span class="badge badge-orange de">Benutzerhandbuch</span>
+    <h1 style="margin-top:.75rem" class="en">How to Use LogFizz</h1>
+    <h1 style="margin-top:.75rem" class="de">Wie du LogFizz verwendest</h1>
+    <p style="color:rgba(255,255,255,.7);max-width:55ch;margin-inline:auto;margin-top:.75rem;font-size:1.1rem" class="en">From first login to importing and exporting your logs &mdash; step by step.</p>
+    <p style="color:rgba(255,255,255,.7);max-width:55ch;margin-inline:auto;margin-top:.75rem;font-size:1.1rem" class="de">Vom ersten Login bis zum Importieren und Exportieren deiner Protokolle &mdash; Schritt für Schritt.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:2rem">
+      <a href="#getting-started" class="btn btn-primary"><span class="en">Getting Started</span><span class="de">Erste Schritte</span></a>
+      <a href="#faq" class="btn btn-outline" style="border-color:rgba(255,255,255,.35);color:#fff">FAQ</a>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--light);padding-block:2.5rem">
+  <div class="container" style="max-width:760px">
+    <h2 style="margin-bottom:1.25rem" class="en">Contents</h2>
+    <h2 style="margin-bottom:1.25rem" class="de">Inhalt</h2>
+    <ol style="padding-left:1.25rem;line-height:2.2;color:var(--secondary)">
+      <li><a href="#getting-started"><span class="en">Getting started</span><span class="de">Erste Schritte</span></a></li>
+      <li><a href="#targets"><span class="en">Setting your work target</span><span class="de">Arbeitsziel festlegen</span></a></li>
+      <li><a href="#buttons"><span class="en">Creating tracking buttons</span><span class="de">Schaltfl&auml;chen erstellen</span></a></li>
+      <li><a href="#tracking"><span class="en">Recording time</span><span class="de">Zeit erfassen</span></a></li>
+      <li><a href="#special-days"><span class="en">Special log types</span><span class="de">Besondere Logtypen</span></a></li>
+      <li><a href="#holidays"><span class="en">Public holidays</span><span class="de">Gesetzliche Feiertage</span></a></li>
+      <li><a href="#history"><span class="en">History and statistics</span><span class="de">Historie und Statistiken</span></a></li>
+      <li><a href="#balance"><span class="en">Understanding your balance</span><span class="de">Den Saldo verstehen</span></a></li>
+      <li><a href="#data"><span class="en">Your data &amp; security</span><span class="de">Deine Daten &amp; Sicherheit</span></a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ol>
+  </div>
+</section>
+
+<section id="getting-started">
+  <div class="container" style="max-width:760px">
+    <span class="badge en">Step 1</span><span class="badge de">Schritt 1</span>
+    <h2 style="margin-top:.5rem" class="en">Getting Started</h2>
+    <h2 style="margin-top:.5rem" class="de">Erste Schritte</h2>
+    <p class="en">Open <a href="/app.html">LogFizz</a>, click <strong>Register</strong>, and enter your name and email. After clicking on your login link in your mail, you will be logged in immediately with a 2-month free trial &mdash; no password and no credit card required.</p>
+    <p class="de">&Ouml;ffne <a href="/app.html">LogFizz</a>, klicke auf <strong>Registrieren</strong> und gib Name und E-Mail ein. Nach dem Klicken auf den Login-Link in deiner E-Mail bist du sofort eingeloggt mit einer 2-monatigen Probezeit &mdash; kein Passwort und keine Kreditkarte n&ouml;tig.</p>
+    <div class="steps" style="margin-top:2rem">
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Create an account</h3><h3 class="de">Konto erstellen</h3>
+        <p class="en">Go to the app, click <em>Register</em>, fill in your name and email.</p>
+        <p class="de">App &ouml;ffnen, auf <em>Registrieren</em> klicken, Name und E-Mail eingeben.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Verify your email</h3><h3 class="de">E-Mail verifizieren</h3>
+        <p class="en">Check your email inbox for a login email and click the link to verify your account and login.</p>
+        <p class="de">Überprüfe deinen E-Mail-Posteingang auf eine Login-E-Mail und klicke auf den Link, um dein Konto zu verifizieren und dich einzuloggen.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Complete the initial setup</h3><h3 class="de">Ersteinrichtung abschließen</h3>
+        <p class="en">An initial setup wizard will guide you through the basic configuration steps, like language, and notifications.</p>
+        <p class="de">Ein Einrichtungsassistent führt dich durch die grundlegenden Konfigurationsschritte, wie Sprache und Benachrichtigungen.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Explore the three tabs</h3><h3 class="de">Die drei Tabs erkunden</h3>
+        <p class="en">The app has three main tabs: <strong>Timer</strong> (tracking buttons), <strong>History</strong> (calendar and statistics), and <strong>Settings</strong>.</p>
+        <p class="de">Die App hat drei Tabs: <strong>Timer</strong> (Schaltfl&auml;chen), <strong>Historie</strong> (Kalender und Statistiken) und <strong>Einstellungen</strong>.</p>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section id="targets" style="background:var(--light)">
+  <div class="container" style="max-width:760px">
+    <span class="badge en">Step 2</span><span class="badge de">Schritt 2</span>
+    <h2 style="margin-top:.5rem" class="en">Setting Your Work Target</h2>
+    <h2 style="margin-top:.5rem" class="de">Arbeitsziel festlegen</h2>
+    <p class="en">A <strong>target</strong> defines how many hours you are contracted to work per day. LogFizz uses this to compute your running balance.</p>
+    <p class="de">Ein <strong>Arbeitsziel</strong> legt fest, wie viele Stunden du pro Tag arbeiten willst. LogFizz nutzt dies f&uuml;r den laufenden Saldo.</p>
+    <div class="steps" style="margin-top:2rem">
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Create a target</h3><h3 class="de">Ziel erstellen</h3>
+        <p class="en">In <em>Dashboard &rarr; Edit</em>, tap <em>+</em>, give it a name and enter your hours per weekday.</p>
+        <p class="de">In <em>Dashboard &rarr; Bearbeiten</em> auf <em>+</em> tippen und Stunden pro Wochentag eingeben.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Set a start date</h3><h3 class="de">Startdatum festlegen</h3>
+        <p class="en">Enter the date your employment started. LogFizz calculates your running balance from that date, including public holidays.</p>
+        <p class="de">Gib das Datum ein, an dem dein Arbeitsverhältnis begann. LogFizz berechnet den laufenden Saldo ab diesem Datum inklusive der Feiertage.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Toggle "Exclude public holidays"</h3><h3 class="de">"Feiertage ausschlie&szlig;en" aktivieren</h3>
+        <p class="en">Enable this if LogFizz should exclude public holidays (standard for German employment). Due hours for those days are set to zero automatically. Don't forget to set the correct state.</p>
+        <p class="de">Aktiviere dies, wenn LogFizz Feiertage ausschließen soll (Standard für deutsche Anstellungsverhältnisse). Die fälligen Stunden für diese Tage werden automatisch auf null gesetzt. Vergiss nicht, das richtige Bundesland festzulegen.</p>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section id="buttons">
+  <div class="container" style="max-width:760px">
+    <span class="badge en">Step 3</span><span class="badge de">Schritt 3</span>
+    <h2 style="margin-top:.5rem" class="en">Creating Tracking Buttons</h2>
+    <h2 style="margin-top:.5rem" class="de">Schaltfl&auml;chen erstellen</h2>
+    <p class="en">Each activity you want to track needs a button on the <strong>Timer</strong> tab.</p>
+    <p class="de">Jede Aktivit&auml;t braucht eine Schaltfl&auml;che im <strong>Timer</strong>-Tab.</p>
+    <div class="steps" style="margin-top:2rem">
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Tap &ldquo;+&rdquo; to add a button</h3><h3 class="de">Auf &ldquo;+&rdquo; tippen</h3>
+        <p class="en">On the Timer tab, tap <em>edit &rarr; +</em>. A configuration screen opens.</p>
+        <p class="de">Im Timer-Tab auf <em>Bearbeiten &rarr; +</em> tippen. Ein Konfigurationsbildschirm &ouml;ffnet sich.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Choose a name and emoji</h3><h3 class="de">Name und Emoji w&auml;hlen</h3>
+        <p class="en">Give your button a short label and pick an emoji. Examples: &#x1F4BC; Work, &#x2615; Break, &#x1F4DE; Meetings.</p>
+        <p class="de">Kurze Bezeichnung und Emoji vergeben. Beispiele: &#x1F4BC; Arbeit, &#x2615; Pause, &#x1F4DE; Besprechungen.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Pick a color</h3><h3 class="de">Farbe w&auml;hlen</h3>
+        <p class="en">Colors appear in the calendar history so you can see which activity happened on which day at a glance.</p>
+        <p class="de">Farben erscheinen im Kalender, damit du auf einen Blick siehst, welche Aktivit&auml;t wann stattgefunden hat.</p>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section id="tracking" style="background:var(--light)">
+  <div class="container" style="max-width:760px">
+    <span class="badge en">Step 4</span><span class="badge de">Schritt 4</span>
+    <h2 style="margin-top:.5rem" class="en">Recording Time</h2>
+    <h2 style="margin-top:.5rem" class="de">Zeit erfassen</h2>
+    <div class="steps" style="margin-top:2rem">
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Tap a button to start</h3><h3 class="de">Schaltfl&auml;che antippen zum Starten</h3>
+        <p class="en">Tapping a button starts the timer. It pulses to show it is active and updates the elapsed time every minute.</p>
+        <p class="de">Antippen startet den Timer. Er pulsiert und aktualisiert die vergangene Zeit min&uuml;tlich.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Long Tap a button to edit (optional)</h3><h3 class="de">Schaltfl&auml;che lange antippen zum Bearbeiten (optional)</h3>
+        <p class="en">Long tapping a button opens the edit menu. You can change the log type, the start time, and more.</p>
+        <p class="de">Langes Antippen öffnet das Bearbeitungsmenü. Du kannst den Typ, die Startzeit und mehr ändern.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Tap again to stop</h3><h3 class="de">Nochmal tippen zum Stoppen</h3>
+        <p class="en">Tap the active button a second time. The time log is saved locally and synced to the server.</p>
+        <p class="de">Noch einmal antippen. Das Zeitprotokoll wird lokal gespeichert und mit dem Server synchronisiert.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Add entries manually</h3><h3 class="de">Eintr&auml;ge manuell hinzuf&uuml;gen</h3>
+        <p class="en">Forgot to start the timer? Use <em>History &rarr; +</em>, pick the target, date and time range, select the type, and save.</p>
+        <p class="de">Zeiterfassung vergessen? &Uuml;ber <em>Historie &rarr; +</em>, Arbeitsziel, Datum und Zeitraum w&auml;hlen, Typ ausw&auml;hlen und speichern.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Edit or delete entries</h3><h3 class="de">Eintr&auml;ge bearbeiten oder l&ouml;schen</h3>
+        <p class="en">Tap any day in the calendar to see its entries. Tap any entry to edit or delete. The balance recalculates immediately.</p>
+        <p class="de">Tag im Kalender antippen, um Eintr&auml;ge zu sehen. Eintrag antippen zum Bearbeiten oder L&ouml;schen. Der Saldo wird sofort neu berechnet.</p>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section id="special-days">
+  <div class="container" style="max-width:760px">
+    <h2 style="margin-top:.5rem" class="en">Special Log Types</h2>
+    <h2 style="margin-top:.5rem" class="de">Besondere Logtypen</h2>
+    <p class="en">LogFizz tracks these types, each contributing to your balance correctly:</p>
+    <p class="de">LogFizz erfasst diese Typen, die alle korrekt in den Saldo einflie&szlig;en:</p>
+    <div class="features-grid" style="margin-top:1.75rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F3E0;</div>
+        <h3 class="en">Homeoffice</h3><h3 class="de">Homeoffice</h3>
+        <p class="en">Logged as a timed entry, tracked separately in statistics.</p>
+        <p class="de">Als zeitgesteuerter Eintrag protokolliert, separat in der Statistik erfasst.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F912;</div>
+        <h3 class="en">Sick Day</h3><h3 class="de">Krankheitstag</h3>
+        <p class="en">Counts as a worked day for balance purposes, tracked separately in statistics.</p>
+        <p class="de">Z&auml;hlt f&uuml;r den Saldo als gearbeiteter Tag, separat in der Statistik erfasst.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon blue">&#x1F476;</div>
+        <h3 class="en">Child-Sick Day</h3><h3 class="de">Kindkranktag</h3>
+        <p class="en">Same treatment as sick days, tracked separately for yearly statistics.</p>
+        <p class="de">Gleiche Behandlung wie Krankheitstage, f&uuml;r die j&auml;hrliche Statistik separat erfasst.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F3D6;</div>
+        <h3 class="en">Holiday (Urlaub)</h3><h3 class="de">Urlaub</h3>
+        <p class="en">Counts as worked for balance, tracked separately from public holidays.</p>
+        <p class="de">Z&auml;hlt f&uuml;r den Saldo, separat von gesetzlichen Feiertagen erfasst.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon blue">&#x2708;</div>
+        <h3 class="en">Business Trip</h3><h3 class="de">Dienstreise</h3>
+        <p class="en">Logged as a timed entry, counted as a worked day in statistics.</p>
+        <p class="de">Als zeitgesteuerter Eintrag protokolliert, z&auml;hlt als gearbeiteter Tag.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="holidays" style="background:var(--light)">
+  <div class="container" style="max-width:760px">
+    <span class="badge en">Public Holidays</span><span class="badge de">Gesetzliche Feiertage</span>
+    <h2 style="margin-top:.5rem" class="en">Public Holidays</h2>
+    <h2 style="margin-top:.5rem" class="de">Gesetzliche Feiertage</h2>
+    <p class="en">LogFizz fetches the official public holiday calendar for your federal state automatically. When a target is configured with <em>Exclude public holidays</em> enabled, due hours for those days are set to zero automatically.</p>
+    <p class="de">LogFizz l&auml;dt automatisch den offiziellen Feiertagskalender f&uuml;r dein Bundesland. Wenn ein Ziel mit <em>Feiertage ausschlie&szlig;en</em> konfiguriert ist, werden die Sollstunden f&uuml;r diese Tage automatisch auf null gesetzt.</p>
+    <div class="callout orange" style="margin-top:1.5rem">
+      <strong class="en">Tip:</strong><strong class="de">Tipp:</strong>
+      <span class="en"> Different federal states have different public holiday counts. Make sure your state is set correctly under <em>Timer &rarr; Edit &rarr; Target</em>.</span>
+      <span class="de"> Verschiedene Bundesl&auml;nder haben unterschiedlich viele Feiertage. Stelle sicher, dass dein Bundesland korrekt unter <em>Timer &rarr; Bearbeiten &rarr; Ziel</em> eingestellt ist.</span>
+    </div>
+  </div>
+</section>
+
+<section id="history">
+  <div class="container" style="max-width:760px">
+    <span class="badge en">History</span><span class="badge de">Historie</span>
+    <h2 style="margin-top:.5rem" class="en">History and Statistics</h2>
+    <h2 style="margin-top:.5rem" class="de">Historie und Statistiken</h2>
+    <div class="steps" style="margin-top:1.75rem">
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Calendar view</h3><h3 class="de">Kalenderansicht</h3>
+        <p class="en">A color-coded calendar shows which days had activity. Tap any day to see a detailed breakdown. You can navigate with your arrow keys.</p>
+        <p class="de">Ein farbkodierter Kalender zeigt aktive Tage. Tippe auf einen Tag f&uuml;r Details. Du kannst mit den Pfeiltasten navigieren.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Monthly summary</h3><h3 class="de">Monats&uuml;bersicht</h3>
+        <p class="en">Total worked hours, due hours, overtime or deficit, and counts of special types for the month.</p>
+        <p class="de">Gesamte Arbeitsstunden, Sollstunden, &Uuml;ber- oder Minusstunden sowie besondere Logtypen, wie Krank- und Urlaubstage, f&uuml;r den Monat.</p>
+      </div></div>
+      <div class="step"><div class="step-num"></div><div>
+        <h3 class="en">Yearly statistics</h3><h3 class="de">Jahresstatistiken</h3>
+        <p class="en">The yearly cumulative balance shows whether you&rsquo;ve worked more or less than contracted over the entire year to date.</p>
+        <p class="de">Der j&auml;hrliche kumulative Saldo zeigt, ob du mehr oder weniger als vertraglich vereinbart gearbeitet hast.</p>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section id="balance" style="background:var(--light)">
+  <div class="container" style="max-width:760px">
+    <span class="badge badge-orange en">Key Concept</span><span class="badge badge-orange de">Schl&uuml;sselkonzept</span>
+    <h2 style="margin-top:.5rem" class="en">Understanding Your Balance</h2>
+    <h2 style="margin-top:.5rem" class="de">Den Saldo verstehen</h2>
+    <p class="en">The balance is the difference between what you <em>worked</em> and what you <em>owe</em>. Positive = overtime; negative = deficit. When enabled, breaks are automatically deducted from your balance according to German labor law.</p>
+    <p class="de">Der Saldo ist die Differenz zwischen dem, was du <em>gearbeitet</em> hast, und dem, was du <em>solltest</em>. Positiv = &Uuml;berstunden; negativ = Fehlzeit. Wenn aktiviert, werden Pausen automatisch von deinem Saldo abgezogen, gemäß dem deutschen Arbeitsrecht.</p>
+    <div style="background:rgba(41,171,226,.06);border-radius:var(--radius-lg);padding:1.75rem;margin-top:1.75rem;border:1px solid rgba(41,171,226,.15)">
+      <ol style="padding-left:1.25rem;line-height:2;color:var(--text)" class="en">
+        <li>For each day, LogFizz sums all worked minutes from your time logs.</li>
+        <li>It fetches the <em>due</em> minutes from your target (weekends and public holidays already excluded).</li>
+        <li>Daily balance = <code>worked &minus; due</code>.</li>
+        <li>Monthly and yearly balances sum all daily balances with a cumulative carry-forward.</li>
+      </ol>
+      <ol style="padding-left:1.25rem;line-height:2;color:var(--text)" class="de">
+        <li>F&uuml;r jeden Tag summiert LogFizz alle gearbeiteten Minuten aus deinen Zeitprotokollen.</li>
+        <li>Es holt die <em>Soll</em>-Minuten aus deinem Ziel (Wochenenden und Feiertage bereits ausgeschlossen).</li>
+        <li>Tagessaldo = <code>Gearbeitet &minus; Soll</code>.</li>
+        <li>Monats- und Jahressalden summieren alle Tagessalden mit kumulativem &Uuml;bertrag.</li>
+      </ol>
+    </div>
+    <div class="callout" style="margin-top:1.5rem">
+      <strong class="en">Live updates:</strong><strong class="de">Live-Updates:</strong>
+      <span class="en"> While a timer is running, the balance updates every minute.</span>
+      <span class="de"> W&auml;hrend ein Timer l&auml;uft, aktualisiert sich der Saldo jede Minute.</span>
+    </div>
+  </div>
+</section>
+
+<section id="data">
+  <div class="container" style="max-width:760px">
+    <span class="badge en">Privacy &amp; Security</span><span class="badge de">Datenschutz &amp; Sicherheit</span>
+    <h2 style="margin-top:.5rem" class="en">Your Data &amp; Security</h2>
+    <h2 style="margin-top:.5rem" class="de">Deine Daten &amp; Sicherheit</h2>
+    <div class="features-grid" style="margin-top:1.75rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+      <div class="feature-card" style="background:rgba(251,176,59,.06);border-color:rgba(251,176,59,.2)">
+        <div class="feature-icon">&#x1F1E9;&#x1F1EA;</div>
+        <h3 class="en">Hosted in Germany</h3><h3 class="de">Hosting in Deutschland</h3>
+        <p class="en">All data is stored exclusively on servers in Germany, subject to German and EU data protection law (DSGVO/GDPR).</p>
+        <p class="de">Alle Daten werden ausschlie&szlig;lich auf Servern in Deutschland gespeichert, die dem deutschen und europ&auml;ischen Datenschutzrecht unterliegen.</p>
+      </div>
+      <div class="feature-card" style="background:rgba(41,171,226,.06);border-color:rgba(41,171,226,.2)">
+        <div class="feature-icon blue">&#x1F510;</div>
+        <h3 class="en">Encrypted</h3><h3 class="de">Verschl&uuml;sselt</h3>
+        <p class="en">All communication uses TLS. No password needed.</p>
+        <p class="de">Alle Kommunikation ist TLS-verschl&uuml;sselt. Passw&ouml;rter werden nicht ben&ouml;tigt.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F645;</div>
+        <h3 class="en">No Third-Party Tracking</h3><h3 class="de">Kein Drittparteien-Tracking</h3>
+        <p class="en">No analytics, no ad networks, no data brokers. Your time logs are yours alone.</p>
+        <p class="de">Keine Analytics, keine Werbenetzwerke, keine Datenmakler. Deine Zeitprotokolle geh&ouml;ren nur dir.</p>
+      </div>
+    </div>
+    <p style="margin-top:1.5rem;color:var(--gray)" class="en">For full details, see our <a href="/privacy.html">Privacy Policy</a>.</p>
+    <p style="margin-top:1.5rem;color:var(--gray)" class="de">Alle Details in der <a href="/privacy.html">Datenschutzerkl&auml;rung</a>.</p>
+  </div>
+</section>
+
+<section id="faq" style="background:var(--light)">
+  <div class="container" style="max-width:760px">
+    <div class="section-header">
+      <span class="badge">FAQ</span>
+      <h2 class="en">Frequently Asked Questions</h2>
+      <h2 class="de">H&auml;ufig gestellte Fragen</h2>
+    </div>
+    <details open>
+      <summary><span class="en">Can I use LogFizz on multiple devices?</span><span class="de">Kann ich LogFizz auf mehreren Ger&auml;ten nutzen?</span></summary>
+      <div class="details-body">
+        <p class="en">Yes. Log in with the same account on any device. Data syncs automatically when online.</p>
+        <p class="de">Ja. Mit demselben Konto auf jedem Ger&auml;t einloggen. Daten synchronisieren sich automatisch online.</p>
+      </div>
+    </details>
+    <details>
+      <summary><span class="en">My balance looks wrong &mdash; what should I check?</span><span class="de">Mein Saldo stimmt nicht &mdash; was soll ich pr&uuml;fen?</span></summary>
+      <div class="details-body">
+        <ul class="en"><li>Is your target start date correct?</li><li>Is the correct state set for this target?</li><li>Are public holidays excluded in your target?</li></ul>
+        <ul class="de"><li>Ist das Startdatum des Ziels korrekt?</li><li>Ist das richtige Bundesland in den Einstellungen gew&auml;hlt?</li><li>Sind Feiertage im Ziel ausgeschlossen?</li></ul>
+        <p class="en">If everything looks correct, try recalculating your balance in <em>Settings &rarr; Recalculate Balance</em>.</p>
+        <p class="de">Wenn alles korrekt aussieht, versuche deinen Saldo unter <em>Einstellungen &rarr; Saldo neu berechnen</em> neu zu berechnen.</p>
+      </div>
+    </details>
+    <details>
+      <summary><span class="en">What happens if a timer runs past midnight?</span><span class="de">Was passiert, wenn ein Timer &uuml;ber Mitternacht l&auml;uft?</span></summary>
+      <div class="details-body">
+        <p class="en">LogFizz handles cross-midnight shifts correctly. Time is split between the two days.</p>
+        <p class="de">LogFizz behandelt &Uuml;ber-Mitternacht-Schichten korrekt. Die Zeit wird auf die beiden Tage aufgeteilt.</p>
+      </div>
+    </details>
+    <details>
+      <summary><span class="en">Where can I report a bug?</span><span class="de">Wo kann ich einen Fehler melden?</span></summary>
+      <div class="details-body">
+        <p class="en">Open an issue on <a href="https://github.com/jannessm/LogFizz/issues" rel="noopener">GitHub</a>.</p>
+        <p class="de">Ein Issue auf <a href="https://github.com/jannessm/LogFizz/issues" rel="noopener">GitHub</a> &ouml;ffnen.</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="container">
+    <h2 class="en">Ready to take control of your hours?</h2>
+    <h2 class="de">Bereit, deine Stunden im Griff zu haben?</h2>
+    <p class="en">Start your free 2-month trial &mdash; no credit card, no commitment.</p>
+    <p class="de">Starte die kostenlose 2-monatige Probezeit &mdash; keine Kreditkarte, keine Bindung.</p>
+    <a href="/app.html" class="btn btn-dark btn-lg en">Open LogFizz &rarr;</a>
+    <a href="/app.html" class="btn btn-dark btn-lg de">LogFizz &ouml;ffnen &rarr;</a>
+  </div>
+</section>
+
+<footer><div class="container"><div class="footer-inner">
+  <div class="footer-brand">
+    <a href="/" class="footer-logo"><img src="/assets/icon.svg" alt="LogFizz" width="32" height="32" />Log<span style="margin-left: -10px;">Fizz</span></a>
+    <p class="en">An independent working-hours tracker. Data hosted in Germany. No ads, no tracking.</p>
+    <p class="de">Ein unabhängiger Zeiterfasser. Daten in Deutschland. Keine Werbung, kein Tracking.</p>
+  </div>
+  <div class="footer-col">
+    <h4 class="en">Product</h4><h4 class="de">Produkt</h4>
+    <ul>
+      <li><a href="/"><span class="en">Overview</span><span class="de">&Uuml;bersicht</span></a></li>
+      <li><a href="/pricing.html"><span class="en">Pricing</span><span class="de">Preise</span></a></li>
+      <li><a href="/guide.html"><span class="en">User Guide</span><span class="de">Anleitung</span></a></li>
+      <li><a href="/app.html"><span class="en">Open App</span><span class="de">App &ouml;ffnen</span></a></li>
+    </ul>
+  </div>
+  <div class="footer-col">
+    <h4 class="en">Learn</h4><h4 class="de">Mehr erfahren</h4>
+    <ul>
+      <li><a href="/comparison.html"><span class="en">Comparison</span><span class="de">Vergleich</span></a></li>
+      <li><a href="/guide.html#faq">FAQ</a></li>
+    </ul>
+  </div>
+  <div class="footer-col">
+    <h4 class="en">Legal</h4><h4 class="de">Rechtliches</h4>
+    <ul>
+      <li><a href="/impressum.html">Impressum</a></li>
+      <li><a href="/privacy.html"><span class="en">Privacy Policy</span><span class="de">Datenschutz</span></a></li>
+      <li><a href="https://github.com/jannessm/LogFizz" rel="noopener">GitHub</a></li>
+    </ul>
+  </div>
+</div>
+<div class="footer-bottom">
+  <span class="en">© 2026 LogFizz — Independent open-source project.</span>
+  <span class="de">© 2026 LogFizz — Unabhängiges Open-Source-Projekt.</span>
+</div></div></footer>
+<script src="/assets/lang.js?v=2"></script>
+</body>
+</html>

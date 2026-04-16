@@ -60,8 +60,8 @@ export class User implements UserEntity {
   @Column('timestamptz', { nullable: true })
   subscription_end_date?: Date;
 
-  @Column('timestamptz', { nullable: true })
-  trial_end_date?: Date;
+  @Column('timestamptz')
+  trial_end_date: Date;
 
   @Column('varchar', { nullable: true })
   stripe_customer_id?: string;

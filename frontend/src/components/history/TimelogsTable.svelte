@@ -8,7 +8,7 @@
   import { dailyBalances, monthlyBalances } from '../../stores/balances';
   import { holidaysStore } from '../../stores/holidays';
   import { get } from 'svelte/store';
-  import { _ } from '../../lib/i18n';
+  import { _, locale } from '../../lib/i18n';
   import { formatMinutesCompact } from '../../../../lib/utils/timeFormat';
 
   type SortColumn = 'timer' | 'target' | 'type' | 'start' | 'end' | 'total_duration' | 'effective_duration' | 'due_time' | 'diff';
@@ -161,6 +161,20 @@
     return classes[type] || '';
   }
 
+  function buildHolidaysForDate(date: string, target: TargetWithSpecs): Map<string, Set<string>> {
+    const holidaysMap = new Map<string, Set<string>>();
+    const [year, month] = date.split('-').map(Number);
+    for (const spec of target.target_specs || []) {
+      if (spec.exclude_holidays && spec.state_code && !holidaysMap.has(spec.state_code)) {
+        const dates = new Set<string>(
+          holidaysStore.getHolidaysForMonth(spec.state_code, year, month).map(h => h.date)
+        );
+        holidaysMap.set(spec.state_code, dates);
+      }
+    }
+    return holidaysMap;
+  }
+
   function getTotalDuration(timelog: TimeLog): number | undefined {
     if (timelog.whole_day) {
       // For whole_day entries, return due minutes from target
@@ -169,7 +183,7 @@
         const target = targets.find(t => t.id === targetId);
         if (target) {
           const date = dayjs.utc(timelog.start_timestamp).tz(timelog.timezone || userTimezone).format('YYYY-MM-DD');
-          return calculateDueMinutes(date, target as any, new Set());
+          return calculateDueMinutes(date, target as any, buildHolidaysForDate(date, target));
         }
       }
       return undefined;
@@ -189,7 +203,7 @@
         const target = targets.find(t => t.id === targetId);
         if (target) {
           const date = dayjs.utc(timelog.start_timestamp).tz(timelog.timezone || userTimezone).format('YYYY-MM-DD');
-          return calculateDueMinutes(date, target as any, new Set());
+          return calculateDueMinutes(date, target as any, buildHolidaysForDate(date, target));
         }
       }
       return 0;
@@ -243,7 +257,7 @@
     if (!target) return 0;
     
     const date = dayjs.utc(timelog.start_timestamp).tz(timelog.timezone || userTimezone).format('YYYY-MM-DD');
-    const fullDue = calculateDueMinutes(date, target as any, new Set());
+    const fullDue = calculateDueMinutes(date, target as any, buildHolidaysForDate(date, target));
     const prior = getPriorWork(timelog);
     return Math.max(0, fullDue - prior);
   }
@@ -496,7 +510,8 @@
         if (date >= minDate && date <= maxDate && !groupMap.has(date)) {
           const dateDayjs = dayjs(date);
           const holidays = holidaysStore.getHolidaysForDate(date, stateCodes);
-          const holidayName = holidays.length > 0 ? holidays[0].name : null;
+          const h0 = holidays[0];
+          const holidayName = h0 ? (get(locale) === 'de' && h0.localName ? h0.localName : h0.name) : null;
           
           if (!holidayName && balance.worked_minutes === 0 && balance.due_minutes === 0) {
             // Skip non-holiday dates with no work
@@ -534,7 +549,8 @@
         
         // Check for holiday
         const holidays = holidaysStore.getHolidaysForDate(groupKey, stateCodes);
-        holidayName = holidays.length > 0 ? holidays[0].name : null;
+        const h0 = holidays[0];
+        holidayName = h0 ? (get(locale) === 'de' && h0.localName ? h0.localName : h0.name) : null;
       } else if (sortColumn === 'timer') {
         groupKey = expanded.timelog.timer_id;
         groupLabel = getTimerName(expanded.timelog.timer_id);
@@ -806,7 +822,7 @@
                         {#if target}
                           <span class="text-gray-500 dark:text-gray-500">
                             {target.name}: 
-                            <span class:text-green-600={balance >= 0} class:text-red-600={balance < 0}>
+                            <span class:text-balance-positive={balance >= 0} class:text-balance-negative={balance < 0}>
                               {formatBalance(balance)}
                             </span>
                           </span>
@@ -841,7 +857,7 @@
                         {#if target}
                           <span class="text-gray-500 dark:text-gray-500">
                             {target.name}: 
-                            <span class:text-green-600={balance >= 0} class:text-red-600={balance < 0}>
+                            <span class:text-balance-positive={balance >= 0} class:text-balance-negative={balance < 0}>
                               {formatBalance(balance)}
                             </span>
                           </span>

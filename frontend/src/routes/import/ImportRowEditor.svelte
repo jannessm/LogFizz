@@ -189,7 +189,7 @@
   </td>
   <td class="px-2 py-2">
     {#if row.isSkipped}
-      <span class="text-gray-500 text-xs">{$_('import.skipped')}</span>
+      <span class="text-gray-500 dark:text-gray-400 text-xs">{$_('import.skipped')}</span>
     {:else if !row.isValid}
       <span class="text-red-600 dark:text-red-400 text-xs" title={row.errorMsg}>{$_('import.invalid')}</span>
     {:else if !row.timerId}

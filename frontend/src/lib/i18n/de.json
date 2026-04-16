@@ -1,6 +1,10 @@
 {
+  "sw": {
+    "updateAvailable": "Eine neue Version ist verfügbar.",
+    "reload": "Neu laden"
+  },
   "setup": {
-    "title": "Willkommen bei TapShift",
+    "title": "Willkommen bei LogFizz",
     "description": "Bitte wählen Sie Ihre bevorzugte Sprache und Ihr Datumsformat, um zu beginnen.",
     "language": "Sprache",
     "dateFormat": "Datum & Zeitformat",
@@ -23,7 +27,7 @@
     "invalidCredentials": "Ungültige Anmeldedaten",
     "invalidMagicLinkToken": "Ungültiger oder abgelaufener Magic Link. Bitte fordern Sie einen neuen an.",
     "login": "Anmelden",
-    "loginToTapShift": "Bei TapShift anmelden",
+    "loginToLogFizz": "Bei LogFizz anmelden",
     "logout": "Abmelden",
     "alreadyLoggedIn": "Sie sind bereits angemeldet",
     "alreadyLoggedInHint": "Dieser Anmeldelink ist für eine andere Sitzung bestimmt. Bitte melden Sie sich zuerst ab und klicken Sie dann erneut auf den Link.",
@@ -37,7 +41,7 @@
     "passwordMinLength": "Passwort muss mindestens 8 Zeichen lang sein",
     "pleaseWait": "Bitte warten...",
     "register": "Registrieren",
-    "registerToTapShift": "Bei TapShift registrieren",
+    "registerToLogFizz": "Bei LogFizz registrieren",
     "registrationSuccess": "Ihr Konto wurde erstellt. Wir haben einen Anmeldelink an Ihre E-Mail-Adresse gesendet — bitte prüfen Sie Ihren Posteingang, um fortzufahren.",
     "sendMagicLink": "Magic Link senden",
     "tooManyAttempts": "Zu viele Versuche. Bitte warten Sie 1 Minute.",
@@ -97,7 +101,7 @@
     "selectAll": "Alle auswählen",
     "selected": "ausgewählt",
     "show": "Anzeigen",
-    "sickLeave": "Krankheit",
+    "sickLeave": "Krank",
     "start": "Start",
     "target": "Arbeitsziel",
     "timelogs": "Zeitprotokolle",
@@ -109,6 +113,7 @@
     "unknownError": "Unbekannter Fehler",
     "unsaved": "Nicht gespeichert",
     "version": "Version",
+    "reportIssue": "Fehler melden oder Feature anfragen",
     "viewSubscriptionDetails": "Abonnement-Details anzeigen",
     "warning": "Warnung",
     "yes": "Ja"
@@ -136,9 +141,9 @@
     "thisMonth": "Dieser Monat",
     "thisWeek": "Diese Woche",
     "timersLinkedToEndedTargets": "Timer verknüpft mit beendeten Zielen",
-    "title": "Dashboard",
+    "title": "Timer",
     "today": "Heute",
-    "trialExpiresIn": "Ihre Testversion läuft in {days} Tagen ab. Abonnieren Sie, um TapShift weiterhin zu nutzen."
+    "trialExpiresIn": "Ihre Testversion läuft in {days} Tagen ab. Abonnieren Sie, um LogFizz weiterhin zu nutzen."
   },
   "export": {
     "dateRangeOptional": "Datumsbereich (Optional)",
@@ -216,14 +221,14 @@
     "selectYear": "Jahr auswählen",
     "sickDays": "Krankheitstage:",
     "timeline": "Zeitleiste",
-    "title": "Verlauf",
+    "title": "Historie",
     "today": "Heute",
     "undertime": "Minusstunden",
     "weekView": "Wochenansicht",
     "weekOf": "Woche vom {date}",
     "previousWeek": "Vorherige Woche",
     "nextWeek": "Nächste Woche",
-    "backToHistory": "Zurück zum Verlauf",
+    "backToHistory": "Zurück zur Historie",
     "worked": "Gearbeitet",
     "workedDays": "Gearbeitete Tage:",
     "workedLabel": "Gearbeitet:",
@@ -338,15 +343,19 @@
     "privacyPolicy": "Datenschutzbestimmung"
   },
   "nav": {
-    "dashboard": "Dashboard",
-    "history": "Verlauf",
+    "dashboard": "Timer",
+    "history": "Historie",
     "settings": "Einstellungen",
     "table": "Tabelle"
   },
   "payment": {
-    "confirmCancelSubscription": "Sind Sie sicher, dass Sie Ihr Abonnement kündigen möchten?",
+    "confirmCancelSubscription": "Sind Sie sicher, dass Sie Ihr Abonnement kündigen möchten? Sie behalten den Zugang bis zum Ende des aktuellen Abrechnungszeitraums.",
+    "exportYourData": "Daten exportieren →",
     "failedToCancelSubscription": "Abonnement konnte nicht gekündigt werden",
-    "failedToCreateCheckoutSession": "Checkout-Sitzung konnte nicht erstellt werden"
+    "failedToCreateCheckoutSession": "Checkout-Sitzung konnte nicht erstellt werden",
+    "failedToOpenPortal": "Zahlungsportal konnte nicht geöffnet werden",
+    "failedToResumeSubscription": "Abonnement konnte nicht fortgesetzt werden",
+    "managePaymentDetails": "Zahlungsdetails verwalten"
   },
   "settings": {
     "accountDangerZone": "Gefahrenzone",
@@ -445,9 +454,14 @@
     "securePayment": "Sichere Zahlungsabwicklung durch Stripe",
     "status": "Status",
     "subscribeNow": "Jetzt abonnieren",
-    "subscribeToTapShift": "TapShift abonnieren",
+    "subscribeToLogFizz": "LogFizz abonnieren",
     "subscription": "Abonnement",
-    "thankYouSubscribing": "Vielen Dank für Ihr TapShift-Abonnement. Ihr Abonnement ist jetzt aktiv.",
+    "endedOn": "Beendet am",
+    "renewDescription": "Ihr Abonnement ist zur Kündigung vorgemerkt. Machen Sie die Kündigung rückgängig, um weiterhin uneingeschränkten Zugriff zu behalten.",
+    "renewNow": "Kündigung rückgängig machen",
+    "renewSubscription": "Abonnement behalten",
+    "subscriptionEnded": "Abonnement beendet",
+    "thankYouSubscribing": "Vielen Dank für Ihr LogFizz-Abonnement. Ihr Abonnement ist jetzt aktiv.",
     "trialEnds": "Testversion endet",
     "unlimitedTimeTracking": "Unbegrenzte Zeiterfassung",
     "viewSubscriptionStatus": "Sehen Sie Ihren Abonnementstatus und verwalten Sie Ihre Rechnungen."
@@ -456,6 +470,7 @@
     "calendarView": "Kalenderansicht",
     "date": "Datum",
     "diff": "Differenz",
+    "difference": "Differenz",
     "dueTime": "Soll",
     "duration": "Arbeitszeit",
     "effectiveDuration": "Netto Arbeitszeit",
@@ -669,7 +684,7 @@
   "verifyEmail": {
     "checkSpam": "Keine E-Mail erhalten? Überprüfen Sie Ihren Spam-Ordner.",
     "currentlyLoggedAs": "Sie sind derzeit angemeldet als",
-    "description": "Bitte verifizieren Sie Ihre E-Mail-Adresse, um TapShift weiter zu nutzen.",
+    "description": "Bitte verifizieren Sie Ihre E-Mail-Adresse, um LogFizz weiter zu nutzen.",
     "emailSent": "Bestätigungs-E-Mail gesendet! Bitte überprüfen Sie Ihren Posteingang.",
     "goToDashboard": "Zum Dashboard",
     "invalidOrExpired": "Der Bestätigungslink ist ungültig oder abgelaufen.",

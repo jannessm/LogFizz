@@ -101,18 +101,26 @@ export class UserBalanceService {
       });
       const timerIds = timers.map(t => t.id);
 
-      // Load holidays for applicable specs
-      const holidaysSet = new Set<string>();
+      // Load holidays per state_code so that calculateDueMinutes can look up
+      // only the holidays that are relevant to each spec's own state.
+      // Using a flat Set would incorrectly apply e.g. Bavaria-only holidays
+      // (like Epiphany) to specs configured for Berlin.
+      const holidaysMap = new Map<string, Set<string>>();
       for (const spec of balanceTarget.target_specs) {
-        if (spec.exclude_holidays && spec.state_code) {
-          const country = spec.state_code.split('-')[0];
-          const holidays = await this.holidayRepository.find({
-            where: { country },
-          });
+        if (spec.exclude_holidays && spec.state_code && !holidaysMap.has(spec.state_code)) {
+          const stateCode = spec.state_code;
+          const country = stateCode.split('-')[0];
+          // Fetch only holidays that are global OR specific to this state
+          const holidays = await this.holidayRepository
+            .createQueryBuilder('h')
+            .where('h.country = :country', { country })
+            .andWhere('(h.global = true OR :state = ANY (h.counties))', { state: stateCode })
+            .getMany();
+          const dateSet = new Set<string>();
           for (const h of holidays) {
-            const dateStr = dayjs(h.date).format('YYYY-MM-DD');
-            holidaysSet.add(dateStr);
+            dateSet.add(dayjs(h.date).format('YYYY-MM-DD'));
           }
+          holidaysMap.set(stateCode, dateSet);
         }
       }
 
@@ -136,7 +144,7 @@ export class UserBalanceService {
           updated_at: tl.start_timestamp.toISOString(),
         }));
 
-        const dueMinutes = calculateDueMinutes(dateStr, balanceTarget, holidaysSet);
+        const dueMinutes = calculateDueMinutes(dateStr, balanceTarget, holidaysMap);
         const { worked_minutes, counters } = calculateWorkedMinutesForDate(
           dateStr,
           timelogTypes as any,

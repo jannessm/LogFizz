@@ -206,12 +206,31 @@ describe('Balance Calculation Utilities', () => {
         starting_from: '2024-01-01',
         duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Mon-Fri
         exclude_holidays: true,
+        state_code: 'DE-BY',
       }]);
       
-      const holidays = new Set(['2024-06-17']);
+      const holidays = new Map([['DE-BY', new Set(['2024-06-17'])]]);
       const date = '2024-06-17'; // Monday but also a holiday
       const result = calculateDueMinutes(date, target, holidays);
       expect(result).toBe(0);
+    });
+
+    it('should NOT return 0 for a holiday that belongs to a different state', () => {
+      const target = createTarget([{
+        starting_from: '2024-01-01',
+        duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Mon-Fri
+        exclude_holidays: true,
+        state_code: 'DE-BE', // Berlin
+      }]);
+
+      // Epiphany is only a holiday in DE-BY / DE-BW / DE-ST, not in DE-BE
+      const holidays = new Map([
+        ['DE-BY', new Set(['2024-01-06'])],
+        ['DE-BE', new Set<string>()], // No holidays in Berlin on this date
+      ]);
+      const date = '2024-01-08'; // Monday in January
+      const result = calculateDueMinutes(date, target, holidays);
+      expect(result).toBe(480); // Should be a normal working day for Berlin
     });
 
     it('should handle multiple duration specs and use the applicable one', () => {

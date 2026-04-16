@@ -30,7 +30,7 @@
   const timerSize = 150; // Base size of each timer in pixels
 
   let containerWidth = $state(500);
-  let containerHeight = $state(600);
+  let containerHeight = $state(300);
   let toggleMode = $state(false);
   let containerEl: HTMLDivElement;
   let timerPositions: Map<string, { x: number; y: number }> = $state(new Map());
@@ -39,7 +39,7 @@
     if (containerEl) {
       const rect = containerEl.getBoundingClientRect();
       containerWidth = rect.width;
-      containerHeight = Math.max(rect.height, 600);
+      containerHeight = Math.max(rect.height, 200);
       timerPositions = computeTimerLayout(buttons, mapToArray($timeLogsStore.items), containerWidth, containerHeight, timerSize);
     }
 
@@ -62,10 +62,10 @@
 <div 
   bind:this={containerEl}
   class="relative w-full h-full"
-  style="min-height: 600px; height: 100%;"
+  style="min-height: 300px; height: 100%;"
 >
   {#if buttons.length === 0}
-    <div class="absolute inset-0 flex items-center justify-center text-center py-12 text-gray-500">
+    <div class="absolute inset-0 flex items-center justify-center text-center py-12 text-gray-500 dark:text-gray-400">
       <div>
         <p class="text-lg mb-2">{$_('dashboard.noTrackingButtons')}</p>
         <p class="text-sm">{$_('dashboard.clickAddTimer')}</p>

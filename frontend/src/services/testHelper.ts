@@ -363,13 +363,14 @@ export function getTimelogsForDate(timelogs: TimeLog[], date: string): TimeLog[]
 }
 
 /**
- * Get holidays set for a specific state
+ * Get holidays map for a specific state (keyed by state_code → Set<date>)
+ * Mirrors the Map<string, Set<string>> format expected by calculateDueMinutes
  */
-export function getHolidaysSet(stateCode: string, year: number, month: number): Set<string> {
+export function getHolidaysSet(stateCode: string, year: number, month: number): Map<string, Set<string>> {
   const holidays = stateCode === 'DE-BY' ? HOLIDAYS_DE_BY : HOLIDAYS_DE_BW;
   const filtered = holidays.filter(h => {
     const hDate = dayjs(h.date);
     return hDate.year() === year && hDate.month() + 1 === month;
   });
-  return new Set(filtered.map(h => h.date));
+  return new Map([[stateCode, new Set(filtered.map(h => h.date))]]);
 }

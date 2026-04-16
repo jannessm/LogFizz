@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>(function(){var l=location.pathname.startsWith('/de')?'de':(localStorage.getItem('ts-lang')||((navigator.language||'').startsWith('de')?'de':'en'));document.documentElement.classList.add('lang-'+l);document.documentElement.lang=l;})();</script>
+  <title>Open LogFizz App</title>
+  <meta name="description" content="Open the LogFizz time tracking app &mdash; log in or create a free account to start your 2-month trial." />
+  <meta name="robots" content="noindex" />
+  <link rel="canonical" href="https://logfizz.magnusso.nz/app.html" />
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/assets/styles.css?v=2" />
+  <!-- App URL is written by the Docker entrypoint from the APP_URL environment variable -->
+  <script src="/assets/config.js"></script>
+</head>
+<body>
+<div class="indie-banner">
+  <span class="en">Built by an <strong>independent developer</strong> — the €10/year subscription exists solely to cover server costs, not to make a profit. ♥</span>
+  <span class="de">Von einem <strong>unabhängigen Entwickler</strong> gebaut — das 10€/Jahr-Abo dient ausschließlich zur Deckung der Serverkosten. ♥</span>
+</div>
+<nav class="nav"><div class="container nav-inner">
+  <a href="/" class="nav-brand"><img src="/assets/icon.svg" alt="LogFizz logo" width="36" height="36" />Log<span style="margin-left: -10px">Fizz</span></a>
+  <button class="nav-toggle" aria-label="Toggle menu" onclick="this.nextElementSibling.classList.toggle('open')"><span></span><span></span><span></span></button>
+  <ul class="nav-links">
+    <li><a href="/"><span class="en">Overview</span><span class="de">&Uuml;bersicht</span></a></li>
+    <li><a href="/comparison.html"><span class="en">Comparison</span><span class="de">Vergleich</span></a></li>
+    <li><a href="/pricing.html"><span class="en">Pricing</span><span class="de">Preise</span></a></li>
+    <li><a href="/guide.html"><span class="en">Guide</span><span class="de">Anleitung</span></a></li>
+    <li><a href="/app.html" class="nav-cta active"><span class="en">Open App &rarr;</span><span class="de">App &ouml;ffnen &rarr;</span></a></li>
+    <li class="lang-switcher">
+      <button class="lang-btn lang-active" data-lang-btn="en" onclick="setLang('en')" title="English">🇬🇧</button>
+      <button class="lang-btn" data-lang-btn="de" onclick="setLang('de')" title="Deutsch">🇩🇪</button>
+    </li>
+  </ul>
+</div></nav>
+
+<div style="background:linear-gradient(135deg,var(--dark) 0%,#1d3a5a 100%);min-height:80vh;display:flex;align-items:center;justify-content:center;padding:3rem 1.5rem">
+  <div style="text-align:center;color:var(--white);max-width:480px">
+    <img src="/assets/icon.svg" alt="LogFizz" width="80" height="80" style="margin-bottom:1.5rem" />
+    <h1 style="font-size:2.25rem;margin-bottom:.75rem" class="en">Launch LogFizz</h1>
+    <h1 style="font-size:2.25rem;margin-bottom:.75rem" class="de">LogFizz starten</h1>
+    <p style="color:rgba(255,255,255,.7);margin-bottom:2.5rem;font-size:1.05rem" class="en">Log in to your existing account or create a free account and start your 2-month trial.</p>
+    <p style="color:rgba(255,255,255,.7);margin-bottom:2.5rem;font-size:1.05rem" class="de">In dein Konto einloggen oder ein kostenloses Konto erstellen und die 2-monatige Probezeit starten.</p>
+
+    <div style="display:flex;flex-direction:column;gap:1rem;align-items:center">
+      <!--
+        The href below is set dynamically from window.LOGFIZZ_APP_URL,
+        which is written by the Docker entrypoint from the APP_URL environment variable.
+        To configure: set APP_URL=https://app.yourdomain.com in docker-compose.yml.
+      -->
+      <a href="#" id="app-link" class="btn btn-primary btn-lg" style="width:100%;max-width:320px;justify-content:center">
+        <span class="en">Open LogFizz App &rarr;</span>
+        <span class="de">LogFizz-App &ouml;ffnen &rarr;</span>
+      </a>
+      <p style="font-size:.85rem;color:rgba(255,255,255,.45)" class="en">Opens the LogFizz web app</p>
+      <p style="font-size:.85rem;color:rgba(255,255,255,.45)" class="de">&Ouml;ffnet die LogFizz-Web-App</p>
+    </div>
+
+    <div style="margin-top:3rem;padding-top:2rem;border-top:1px solid rgba(255,255,255,.1)">
+      <p style="color:rgba(255,255,255,.5);font-size:.85rem;margin-bottom:1.25rem" class="en">New to LogFizz?</p>
+      <p style="color:rgba(255,255,255,.5);font-size:.85rem;margin-bottom:1.25rem" class="de">Neu bei LogFizz?</p>
+      <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+        <a href="/guide.html" class="btn btn-outline" style="border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.8)">
+          <span class="en">Read the Guide</span><span class="de">Anleitung lesen</span>
+        </a>
+        <a href="/pricing.html" class="btn btn-outline" style="border-color:rgba(255,255,255,.3);color:rgba(255,255,255,.8)">
+          <span class="en">See Pricing</span><span class="de">Preise ansehen</span>
+        </a>
+      </div>
+    </div>
+
+    <div style="margin-top:2.5rem;background:rgba(255,255,255,.05);border-radius:var(--radius);padding:1.25rem">
+      <p style="font-size:.85rem;color:rgba(255,255,255,.5);line-height:1.7" class="en">
+        LogFizz is an <strong style="color:rgba(255,255,255,.75)">independent project</strong> &mdash; your data is stored on servers in Germany. The &euro;10/year subscription after the free trial covers server costs only.
+      </p>
+      <p style="font-size:.85rem;color:rgba(255,255,255,.5);line-height:1.7" class="de">
+        LogFizz ist ein <strong style="color:rgba(255,255,255,.75)">unabh&auml;ngiges Projekt</strong> &mdash; deine Daten werden auf Servern in Deutschland gespeichert. Das 10€/Jahr-Abo nach der Probezeit deckt nur Serverkosten.
+      </p>
+    </div>
+  </div>
+</div>
+
+<footer><div class="container"><div class="footer-inner">
+  <div class="footer-brand">
+    <a href="/" class="footer-logo"><img src="/assets/icon.svg" alt="LogFizz" width="32" height="32" />Log<span style="margin-left: -10px;">Fizz</span></a>
+    <p class="en">An independent working-hours tracker. Data hosted in Germany. No ads, no tracking.</p>
+    <p class="de">Ein unabhängiger Zeiterfasser. Daten in Deutschland. Keine Werbung, kein Tracking.</p>
+  </div>
+  <div class="footer-col">
+    <h4 class="en">Product</h4><h4 class="de">Produkt</h4>
+    <ul>
+      <li><a href="/"><span class="en">Overview</span><span class="de">&Uuml;bersicht</span></a></li>
+      <li><a href="/pricing.html"><span class="en">Pricing</span><span class="de">Preise</span></a></li>
+      <li><a href="/guide.html"><span class="en">User Guide</span><span class="de">Anleitung</span></a></li>
+    </ul>
+  </div>
+  <div class="footer-col">
+    <h4 class="en">Learn</h4><h4 class="de">Mehr erfahren</h4>
+    <ul>
+      <li><a href="/comparison.html"><span class="en">Comparison</span><span class="de">Vergleich</span></a></li>
+      <li><a href="/guide.html#faq">FAQ</a></li>
+    </ul>
+  </div>
+  <div class="footer-col">
+    <h4 class="en">Legal</h4><h4 class="de">Rechtliches</h4>
+    <ul>
+      <li><a href="/impressum.html">Impressum</a></li>
+      <li><a href="/privacy.html"><span class="en">Privacy Policy</span><span class="de">Datenschutz</span></a></li>
+    </ul>
+  </div>
+</div>
+<div class="footer-bottom">
+  <span class="en">© 2026 LogFizz — Independent open-source project.</span>
+  <span class="de">© 2026 LogFizz — Unabhängiges Open-Source-Projekt.</span>
+</div></div></footer>
+
+<script src="/assets/lang.js?v=2"></script>
+<script>
+  // Set app link from config.js (written by Docker entrypoint from APP_URL env var)
+  (function () {
+    var url = (typeof window.LOGFIZZ_APP_URL === 'string' && window.LOGFIZZ_APP_URL !== '')
+      ? window.LOGFIZZ_APP_URL
+      : null;
+    var link = document.getElementById('app-link');
+    if (url) {
+      link.href = url;
+    } else {
+      // APP_URL not configured yet; show a notice
+      link.style.opacity = '0.5';
+      link.style.pointerEvents = 'none';
+      var note = document.createElement('p');
+      note.style.cssText = 'font-size:.8rem;color:rgba(255,100,100,.8);margin-top:.5rem';
+      note.textContent = 'App URL not configured. Set APP_URL in docker-compose.yml.';
+      link.parentNode.insertBefore(note, link.nextSibling);
+    }
+  })();
+</script>
+</body>
+</html>
