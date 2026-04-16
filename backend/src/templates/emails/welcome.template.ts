@@ -20,7 +20,7 @@ export function generateWelcomeEmailContent(data: WelcomeEmailData): string {
     <h1>${t('email.welcomeTitle', lang)}</h1>
     <p>Hi ${userName},</p>
     <p>${t('email.welcomeThankYou', lang)}</p>
-    <p>TapShift helps you track your time efficiently with customizable buttons, automatic logging, and insightful statistics.</p>
+    <p>LogFizz helps you track your time efficiently with customizable buttons, automatic logging, and insightful statistics.</p>
     
     ${securityNotice ? `
     <div class="divider"></div>
@@ -84,7 +84,7 @@ Hi ${data.userName},
 
 ${t('email.welcomeThankYou', lang)}
 
-TapShift helps you track your time efficiently with customizable buttons, automatic logging, and insightful statistics.
+LogFizz helps you track your time efficiently with customizable buttons, automatic logging, and insightful statistics.
 ${securityNoticeText}
 ${t('email.welcomeVerifyPrompt', lang)}
 ${data.verificationUrl}

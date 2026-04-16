@@ -138,7 +138,7 @@ export function generateEmailTemplate(data: EmailTemplateData): string {
           <!-- Header -->
           <div class="header">
             <div class="header-icon">⏳</div>
-            <h1 class="header-title">TapShift</h1>
+            <h1 class="header-title">LogFizz</h1>
           </div>
           
           <!-- Content -->
@@ -148,14 +148,14 @@ export function generateEmailTemplate(data: EmailTemplateData): string {
           
           <!-- Footer -->
           <div class="footer">
-            <p>Thank you for using TapShift!</p>
+            <p>Thank you for using LogFizz!</p>
             <p>
-              <a href="${appUrl}">Visit TapShift</a> |
+              <a href="${appUrl}">Visit LogFizz</a> |
               <a href="${appUrl}/help">Help Center</a> |
               <a href="${appUrl}/privacy">Privacy Policy</a>
             </p>
             <p style="margin-top: 20px;">
-              © ${new Date().getFullYear()} TapShift. All rights reserved.
+              © ${new Date().getFullYear()} LogFizz. All rights reserved.
             </p>
           </div>
         </div>
@@ -200,7 +200,7 @@ export function generatePlainTextEmail(data: EmailTemplateData): string {
 
   return `
 ════════════════════════════════════════
-⏳ TapShift
+⏳ LogFizz
 ════════════════════════════════════════
 
 ${title}
@@ -208,12 +208,12 @@ ${title}
 ${plainContent}
 
 ────────────────────────────────────────
-Thank you for using TapShift!
+Thank you for using LogFizz!
 
-Visit TapShift: ${appUrl}
+Visit LogFizz: ${appUrl}
 Help Center: ${appUrl}/help
 Privacy Policy: ${appUrl}/privacy
 
-© ${new Date().getFullYear()} TapShift. All rights reserved.
+© ${new Date().getFullYear()} LogFizz. All rights reserved.
   `.trim();
 }

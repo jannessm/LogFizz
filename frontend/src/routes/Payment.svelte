@@ -200,7 +200,7 @@
           
           <div class="border-2 border-blue-200 dark:border-blue-700 rounded-lg p-6 mb-6">
             <div class="flex items-baseline mb-4">
-              <span class="text-5xl font-bold text-gray-900 dark:text-gray-100">€5</span>
+              <span class="text-5xl font-bold text-gray-900 dark:text-gray-100">€10</span>
               <span class="text-xl text-gray-500 dark:text-gray-400 ml-2">{$_('subscription.perYear')}</span>
             </div>
             

@@ -122,7 +122,7 @@ export function generateStatisticsEmail(data: StatisticsEmailData): {
     <div class="divider"></div>
     
     <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
-      This is an automated statistics report from TapShift. 
+      This is an automated statistics report from LogFizz. 
       This email was sent to the administrator email address.
     </p>
   `;
@@ -169,7 +169,7 @@ Times Used: ${statistics.activity.most_used_timer.usage_count.toLocaleString()}`
   : t('email.statisticsNoData', lang)}
 
 ────────────────────────────────────────
-This is an automated statistics report from TapShift.
+This is an automated statistics report from LogFizz.
   `;
 
   const text = generatePlainTextEmail({
