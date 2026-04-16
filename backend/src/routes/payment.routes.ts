@@ -185,7 +185,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     }
 
     try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2026-01-28.clover' });
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2026-02-25.clover' });
 
       // Use the raw body buffer so the signature matches exactly what Stripe signed
       const rawBody = (request as any).rawBody as Buffer | string | undefined;

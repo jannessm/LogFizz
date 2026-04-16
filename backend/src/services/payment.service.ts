@@ -12,9 +12,9 @@ export class PaymentService {
     if (!stripeSecretKey) {
       console.warn('STRIPE_SECRET_KEY not configured. Payment features will not work.');
       // Initialize with a dummy key to prevent errors, but payments won't work
-      this.stripe = new Stripe('sk_test_dummy', { apiVersion: '2026-01-28.clover' });
+      this.stripe = new Stripe('sk_test_dummy', { apiVersion: '2026-02-25.clover' });
     } else {
-      this.stripe = new Stripe(stripeSecretKey, { apiVersion: '2026-01-28.clover' });
+      this.stripe = new Stripe(stripeSecretKey, { apiVersion: '2026-02-25.clover' });
     }
   }
 
