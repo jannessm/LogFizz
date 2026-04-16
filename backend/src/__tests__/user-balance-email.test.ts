@@ -188,8 +188,8 @@ describe('User Statistics Email', () => {
       });
 
       expect(result.html).toContain('Full Time Job');
-      expect(result.html).toContain('TapShift');
-      expect(result.subject).toContain('TapShift');
+      expect(result.html).toContain('LogFizz');
+      expect(result.subject).toContain('LogFizz');
       expect(result.text).toContain('Full Time Job');
     });
 

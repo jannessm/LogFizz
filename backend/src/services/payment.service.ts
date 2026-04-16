@@ -50,8 +50,8 @@ export class PaymentService {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: 'TapShift Annual Subscription',
-              description: 'Full access to TapShift time tracking application',
+              name: 'LogFizz Annual Subscription',
+              description: 'Full access to LogFizz time tracking application',
             },
             unit_amount: 500, // €5.00 in cents
             recurring: {
