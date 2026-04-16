@@ -46,10 +46,7 @@ export class AuthService {
       trial_end_date: trialEndDate,
     });
 
-    await this.userRepository.save(user);
-    // Reload to get auto-generated timestamps
-    const newUser = await this.userRepository.findOne({ where: { id: user.id } });
-    if (!newUser) throw new Error('Failed to create user');
+    const newUser = await this.userRepository.save(user);
 
     // Send welcome email with magic link (serves as verification + first login)
     if (process.env.MAGIC_LINK_DISABLED !== 'true') {
@@ -60,8 +57,11 @@ export class AuthService {
     }
 
     // Create example target and timer so the user has something to start with
-    this.createExampleData(newUser.id)
-      .catch(error => console.error('Failed to create example data for new user:', error));
+    try {
+      await this.createExampleData(newUser.id);
+    } catch (error) {
+      console.error('Failed to create example data for new user:', error);
+    }
 
     return newUser;
   }

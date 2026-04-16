@@ -448,6 +448,7 @@
     "paywallDisabled": "Paywall is currently disabled",
     "paywallNotActive": "The subscription paywall is not active. You have full access to all features.",
     "perYear": "/ year",
+    "pricePerYearAmount": "€10",
     "prioritySupport": "Priority support",
     "processing": "Processing...",
     "redirectingDashboard": "Redirecting to dashboard in 3 seconds...",
