@@ -121,6 +121,9 @@
   "dashboard": {
     "addTimer": "Add Timer",
     "addTimerDescription": "Create a new timer button",
+    "archived": {
+      "ended": "Archived (Ended)"
+    },
     "archivedEnded": "Archived (Ended)",
     "autoBreaks": "Auto breaks",
     "clickAddTimer": "Click \"Add Timer\" to create your first timer",
@@ -212,6 +215,7 @@
     "noTargetsConfiguredThisMonth": "No work targets configured for this month.",
     "noTimeLogsThisMonth": "No timelogs for this month.",
     "noTimelineActivities": "No activities for selected project on this date",
+    "overallBalance": "Overall Balance",
     "overtime": "Overtime",
     "previousDay": "Previous day",
     "previousMonth": "Previous month",

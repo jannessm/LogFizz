@@ -3,7 +3,7 @@
 
   import {
     HistoryCharts, HistoryCalendar,
-    HistoryLogs, BalancesOverview
+    HistoryLogs, BalancesOverview, OverallBalanceOverview
   } from '../components/history';
   import { timers } from '../stores/timers';
   import { targets } from '../stores/targets';
@@ -137,17 +137,35 @@
   <!-- Main content area: Calendar (slim) + Balances + Daily details/logs -->
   <div class="w-full flex-1 overflow-y-auto min-h-0">
     <div class="w-full max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)_minmax(0,1fr)] gap-4 items-start">
-      <!-- Column 1: Calendar (max width 400px) -->
-      <div class="w-full max-w-[400px] mx-auto">
-        <HistoryCalendar
-          timeLogs={Array.from(calendarData.timeLogsByDate.values()).flat()}
-          calendarData={calendarData}
-          bind:selectedDate
-        />
+      <!-- Column 1: Overall Balance (mobile) / Calendar (desktop) -->
+      <div class="w-full max-w-[400px] mx-auto order-first lg:order-none flex flex-col gap-4">
+        <div class="lg:hidden">
+          <OverallBalanceOverview
+            title={$_('history.overallBalance')}
+            targets={$targets}
+            periods={{
+              year: { year: selectedDate.month.year() },
+            }}
+          />
+        </div>
+        <div class="hidden lg:block">
+          <HistoryCalendar
+            timeLogs={Array.from(calendarData.timeLogsByDate.values()).flat()}
+            calendarData={calendarData}
+            bind:selectedDate
+          />
+        </div>
       </div>
 
-      <!-- Column 2: Yearly + Monthly balance -->
-      <div class="w-full flex flex-col gap-4">
+      <!-- Column 2: Yearly + Monthly balance (desktop only) -->
+      <div class="w-full flex flex-col gap-4 hidden lg:flex">
+        <OverallBalanceOverview
+          title={$_('history.overallBalance')}
+          targets={$targets}
+          periods={{
+            year: { year: selectedDate.month.year() },
+          }}
+        />
         <BalancesOverview
           title={$_('history.balance')}
           targets={$targets}
@@ -159,8 +177,26 @@
         />
       </div>
 
-      <!-- Column 3: Daily balance + history logs -->
-      <div class="w-full flex flex-col gap-4">
+      <!-- Column 3: Daily balance + history logs (desktop) / Mobile content -->
+      <div class="w-full flex flex-col gap-4 lg:order-none">
+        <div class="lg:hidden">
+          <HistoryCalendar
+            timeLogs={Array.from(calendarData.timeLogsByDate.values()).flat()}
+            calendarData={calendarData}
+            bind:selectedDate
+          />
+        </div>
+        <div class="lg:hidden">
+          <BalancesOverview
+            title={$_('history.balance')}
+            targets={$targets}
+            periods={{
+              day: { date: selectedDate.date.format('YYYY-MM-DD') },
+              month: { year: selectedDate.month.year(), month: selectedDate.month.month() + 1 },
+              year: { year: selectedDate.month.year() },
+            }}
+          />
+        </div>
 
         <div class="flex flex-col">
 

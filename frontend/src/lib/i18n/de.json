@@ -121,6 +121,9 @@
   "dashboard": {
     "addTimer": "Projekt hinzufügen",
     "addTimerDescription": "Neues Projekt erstellen",
+    "archived": {
+      "ended": "Archiviert (Beendet)"
+    },
     "archivedEnded": "Archiviert (Beendet)",
     "autoBreaks": "Automatische Pausen",
     "clickAddTimer": "Klicken Sie auf \"Projekt hinzufügen\", um Ihr erstes Project zu erstellen",
@@ -212,6 +215,7 @@
     "noTargetsConfiguredThisMonth": "Keine Arbeitsziele für diesen Monat konfiguriert.",
     "noTimeLogsThisMonth": "Keine Arbeitsprotokolle für diesen Monat.",
     "noTimelineActivities": "Keine Aktivitäten für ausgewähltes Projekt an diesem Datum",
+    "overallBalance": "Gesamtsaldo",
     "overtime": "Überstunden",
     "previousDay": "Vorheriger Tag",
     "previousMonth": "Vorheriger Monat",
