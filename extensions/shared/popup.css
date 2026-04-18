@@ -1,0 +1,311 @@
+/* ===========================
+   LogFizz Browser Extension Popup
+   =========================== */
+
+:root {
+  --primary: #fbb03b;
+  --primary-dark: #e89d20;
+  --secondary: #29abe2;
+  --dark: #1a1a2e;
+  --dark-2: #2d2d44;
+  --gray: #6b7280;
+  --light: #f8f9fa;
+  --white: #ffffff;
+  --text: #1f2937;
+  --border: #e5e7eb;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --transition: 0.2s ease;
+  --green: #22c55e;
+  --red: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  background: var(--white);
+  width: 320px;
+  min-height: 180px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  padding: 16px;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.brand {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--dark);
+}
+
+/* ── States ── */
+.state {
+  text-align: center;
+}
+
+.state[hidden] {
+  display: none !important;
+}
+
+/* ── Spinner ── */
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 16px auto;
+}
+
+.spinner.small {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+  margin: 8px auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition);
+  text-decoration: none;
+  line-height: 1;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--dark);
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--gray);
+  border: 1px solid var(--border);
+}
+
+.btn-outline:hover {
+  border-color: var(--gray);
+  color: var(--text);
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* ── Messages ── */
+.message {
+  font-size: 14px;
+  color: var(--gray);
+  margin-bottom: 12px;
+}
+
+.error-message {
+  color: var(--red);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--gray);
+  margin-top: 8px;
+}
+
+/* ── User Info ── */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.user-email {
+  font-size: 12px;
+  color: var(--gray);
+}
+
+/* ── Divider ── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0;
+}
+
+/* ── Section Title ── */
+.section-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--gray);
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+/* ── Timer List ── */
+.timers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timers-loading,
+.timers-empty {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.timers-empty p {
+  font-size: 13px;
+  color: var(--gray);
+}
+
+/* ── Timer Button ── */
+.timer-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--white);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: left;
+  font-family: inherit;
+}
+
+.timer-btn:hover {
+  border-color: var(--gray);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.timer-btn.active {
+  border-color: var(--green);
+  background: #f0fdf4;
+}
+
+.timer-emoji {
+  font-size: 20px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.timer-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.timer-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.timer-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timer-status {
+  font-size: 11px;
+  color: var(--gray);
+}
+
+.timer-status.running {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.timer-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition);
+  flex-shrink: 0;
+  font-size: 16px;
+  background: var(--light);
+  color: var(--text);
+}
+
+.timer-action.start {
+  background: var(--green);
+  color: var(--white);
+}
+
+.timer-action.start:hover {
+  background: #16a34a;
+}
+
+.timer-action.stop {
+  background: var(--red);
+  color: var(--white);
+}
+
+.timer-action.stop:hover {
+  background: #dc2626;
+}

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=320" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <img src="icons/icon-48.png" alt="LogFizz" width="24" height="24" />
+      <span class="brand">LogFizz</span>
+    </header>
+
+    <!-- Loading state -->
+    <div id="loading" class="state">
+      <div class="spinner"></div>
+      <p>Connecting…</p>
+    </div>
+
+    <!-- Logged-out state -->
+    <div id="logged-out" class="state" hidden>
+      <p class="message">You are not logged in.</p>
+      <button id="btn-open-login" class="btn btn-primary full-width">Log in to LogFizz →</button>
+      <p class="hint">Opens the LogFizz app in a new tab.</p>
+    </div>
+
+    <!-- Logged-in state -->
+    <div id="logged-in" class="state" hidden>
+      <div class="user-info">
+        <span class="user-avatar" id="user-avatar">👤</span>
+        <div>
+          <div class="user-name" id="user-name"></div>
+          <div class="user-email" id="user-email"></div>
+        </div>
+      </div>
+
+      <button id="btn-open-app" class="btn btn-primary full-width">Open LogFizz →</button>
+
+      <div class="divider"></div>
+
+      <h3 class="section-title">Timer Buttons</h3>
+      <div id="timers-loading" class="timers-loading">
+        <div class="spinner small"></div>
+      </div>
+      <div id="timers-empty" class="timers-empty" hidden>
+        <p>No timers configured yet.</p>
+        <p class="hint">Create timers in the LogFizz app.</p>
+      </div>
+      <div id="timers-list" class="timers-list" hidden></div>
+
+      <div class="divider"></div>
+      <button id="btn-open-dashboard" class="btn btn-outline full-width">Open Dashboard</button>
+    </div>
+
+    <!-- Error state -->
+    <div id="error-state" class="state" hidden>
+      <p class="message error-message">Could not connect to LogFizz.</p>
+      <button id="btn-retry" class="btn btn-outline full-width">Retry</button>
+      <button id="btn-open-app-error" class="btn btn-primary full-width" style="margin-top:8px">Open LogFizz →</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
