@@ -1,8 +1,10 @@
 import { writable, derived, get } from 'svelte/store';
 import { activeTimeLogs } from './timelogs';
 import { balancesStore } from './balances';
+import { timers } from './timers';
 import { mapToArray } from './base-store';
 import dayjs from '../../../lib/utils/dayjs.js';
+import type { TimeLog, Timer } from '../types';
 
 /**
  * Store that tracks whether any component is viewing balances
@@ -145,5 +147,109 @@ export const activeTimelogDurations = derived(
         elapsed_minutes: elapsedMinutes,
       };
     });
+  }
+);
+
+// ---------------------------------------------------------------------------
+// Shared live-balance utilities
+// ---------------------------------------------------------------------------
+
+/**
+ * Calculate German-law break deduction (minutes) for a given elapsed duration.
+ * ≥ 9 h → 45 min, ≥ 6 h → 30 min, otherwise 0.
+ */
+export function getBreakDeduction(elapsedMinutes: number): number {
+  if (elapsedMinutes >= 9 * 60) return 45;
+  if (elapsedMinutes >= 6 * 60) return 30;
+  return 0;
+}
+
+/**
+ * Compute how many minutes are currently being worked (for a specific target
+ * on today) from active timelogs. The stored daily `worked_minutes` never
+ * includes active (still-running) timelogs because `calculateTimelogDuration`
+ * returns 0 when `end_timestamp` is absent, so we add the full elapsed time
+ * without subtracting anything from the stored balance.
+ *
+ * Handles the multi-timelog day case correctly: completed timelogs are already
+ * baked into `worked_minutes` by the normal balance calculation; this function
+ * only sums the active (no `end_timestamp`) logs for the target.
+ *
+ * @param targetId - Target to compute active minutes for
+ * @param allTimers - Full timers array (used to resolve timer → target)
+ * @param activeLogs - Currently active (no end_timestamp) timelogs
+ */
+export function computeLiveExtraMinutes(
+  targetId: string,
+  allTimers: Timer[],
+  activeLogs: TimeLog[],
+): number {
+  const linkedTimerIds = new Set(
+    allTimers.filter(t => t.target_id === targetId).map(t => t.id)
+  );
+  const todayStr = dayjs().format('YYYY-MM-DD');
+  const todayStart = dayjs().startOf('day').utc();
+  const now = dayjs.utc();
+
+  let activeMinutes = 0;
+  for (const tl of activeLogs) {
+    if (!linkedTimerIds.has(tl.timer_id)) continue;
+
+    const startMoment = dayjs.utc(tl.start_timestamp);
+    const logDate = startMoment.local().format('YYYY-MM-DD');
+    // Skip timelogs not belonging to today or that haven't started yet
+    if (logDate !== todayStr && startMoment.isAfter(now)) continue;
+
+    let elapsed = now.diff(startMoment, 'minute');
+    // Clip to today's start if the timelog began before midnight
+    if (startMoment.isBefore(todayStart)) {
+      elapsed = now.diff(todayStart, 'minute');
+    }
+
+    if (tl.apply_break_calculation) {
+      const totalElapsed = now.diff(dayjs.utc(tl.start_timestamp), 'minute');
+      elapsed = Math.max(0, elapsed - getBreakDeduction(totalElapsed));
+    }
+
+    activeMinutes += elapsed;
+  }
+
+  // The stored balance contributes 0 for active logs, so return full elapsed time
+  return Math.max(0, activeMinutes);
+}
+
+/**
+ * Derived store: maps `targetId → liveExtraMinutes` for today.
+ *
+ * Updated every time `liveBalanceTick` fires (≈ 1 min) or whenever
+ * `activeTimeLogs` / `timers` / `dailyBalances` change.
+ *
+ * Both `BalancesOverview` and `OverallBalanceOverview` consume this store
+ * so the live-update logic lives in a single place.
+ */
+export const liveExtraMinutesByTargetId = derived(
+  [activeTimeLogs, timers, liveBalanceTick],
+  ([$activeLogs, $timers, _tick]) => {
+    const result = new Map<string, number>();
+
+    if ($activeLogs.length === 0) return result;
+
+    // Collect target IDs linked to any active timelog
+    const activeTargetIds = new Set<string>();
+    for (const tl of $activeLogs) {
+      const timer = $timers.find(t => t.id === tl.timer_id);
+      if (timer?.target_id) {
+        activeTargetIds.add(timer.target_id);
+      }
+    }
+
+    for (const targetId of activeTargetIds) {
+      const extra = computeLiveExtraMinutes(targetId, $timers, $activeLogs);
+      if (extra > 0) {
+        result.set(targetId, extra);
+      }
+    }
+
+    return result;
   }
 );
