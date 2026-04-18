@@ -218,9 +218,9 @@
       // Emoji or color dot
       var leading = '';
       if (timer.emoji) {
-        leading = '<span class="timer-emoji">' + timer.emoji + '</span>';
+        leading = '<span class="timer-emoji">' + escapeHtml(timer.emoji) + '</span>';
       } else {
-        leading = '<span class="timer-color-dot" style="background:' + (timer.color || '#3B82F6') + '"></span>';
+        leading = '<span class="timer-color-dot" style="background:' + sanitizeColor(timer.color) + '"></span>';
       }
 
       // Status text
@@ -264,6 +264,16 @@
     var div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  /** Validate that a value looks like a CSS color (hex, rgb, hsl, named). */
+  function sanitizeColor(value) {
+    if (!value || typeof value !== 'string') return '#3B82F6';
+    // Allow hex, rgb(), hsl(), and simple named colors only
+    if (/^#[0-9a-fA-F]{3,8}$/.test(value)) return value;
+    if (/^(rgb|hsl)a?\(\s*[\d.,\s%]+\)$/.test(value)) return value;
+    if (/^[a-zA-Z]{1,20}$/.test(value)) return value;
+    return '#3B82F6';
   }
 
   function handleTimerClick(appUrl, timer, activeLog) {
