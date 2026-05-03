@@ -1,6 +1,6 @@
 {
   "name": "@clock/shared",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Shared utilities for clock frontend and backend",
   "type": "module",
   "exports": {
