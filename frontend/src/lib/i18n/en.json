@@ -236,6 +236,7 @@
     "nextWeek": "Next week",
     "backToHistory": "Back to History",
     "worked": "Worked",
+    "normalDays": "Normal days:",
     "workedDays": "Worked days:",
     "workedLabel": "Worked:",
     "typeDaysHint": "Each day is counted once by type priority: sick > holiday > child-sick > homeoffice > business trip > normal. The sum of all type days equals worked days.",

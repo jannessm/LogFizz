@@ -160,7 +160,6 @@
     
     try {
       isRecalculating = true;
-      snackbar.info($_('settings.recalculating'), 3000);
       
       await balancesStore.recalculateBalances();
       

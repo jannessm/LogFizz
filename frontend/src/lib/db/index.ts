@@ -57,7 +57,7 @@ interface LogFizzDB extends DBSchema {
 }
 
 const DB_NAME = 'logfizz';
-const DB_VERSION = 2; // Incremented to add holidays store
+const DB_VERSION = 3; // Incremented to add holidays store
 
 let dbInstance: IDBPDatabase<LogFizzDB> | null = null;
 
@@ -396,9 +396,13 @@ export async function clearAllData(): Promise<void> {
 }
 
 // Balance operations (unified for daily/monthly/yearly)
+
 export async function saveBalance(balance: Balance): Promise<void> {
   const db = await getDB();
-  await db.put('balances', balance);
+  await db.put('balances', {
+    ...balance,
+    normal_days: balance.normal_days ?? 0,
+  });
 }
 
 export async function getBalance(id: string): Promise<Balance | undefined> {

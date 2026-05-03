@@ -236,6 +236,7 @@
     "nextWeek": "Nächste Woche",
     "backToHistory": "Zurück zur Historie",
     "worked": "Gearbeitet",
+    "normalDays": "Normale Arbeitstage:",
     "workedDays": "Gearbeitete Tage:",
     "workedLabel": "Gearbeitet:",
     "typeDaysHint": "Jeder Tag wird einmal nach Priorität gezählt: Krank > Urlaub > Kindkrank > Homeoffice > Dienstreise > Normal. Die Summe aller Typtage entspricht den gearbeiteten Tagen.",
