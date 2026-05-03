@@ -28,7 +28,7 @@ export function generateEmailChangeVerificationContent(data: EmailChangeVerifica
     </p>
     
     <p>Or copy and paste this link into your browser:</p>
-    <div class="code-block">${verificationUrl}</div>
+    <div class="code-block"><a href="${verificationUrl}" x-apple-data-detectors="false" style="color: inherit; text-decoration: none; pointer-events: none; cursor: text;">${verificationUrl}</a></div>
     
     <div class="divider"></div>
     

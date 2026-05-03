@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Timer } from '../../types';
+  import { untrack } from 'svelte';
   import { timersStore } from '../../stores/timers';
   import { targets } from '../../stores/targets';
   import EmojiPicker from './EmojiPicker.svelte';
@@ -20,12 +21,12 @@
     deleteFailed: $_('timer.deleteFailed'),
   };
 
-  let name = $state(timer?.name || '');
-  let emoji = $state(timer?.emoji || '');
-  let color = $state(timer?.color || '#3B82F6');
-  let autoSubtractBreaks = $state(timer?.auto_subtract_breaks ?? false);
-  let archived = $state(timer?.archived ?? false);
-  let targetId = $state(timer?.target_id || '');
+  let name = $state(untrack(() => timer?.name || ''));
+  let emoji = $state(untrack(() => timer?.emoji || ''));
+  let color = $state(untrack(() => timer?.color || '#3B82F6'));
+  let autoSubtractBreaks = $state(untrack(() => timer?.auto_subtract_breaks ?? false));
+  let archived = $state(untrack(() => timer?.archived ?? false));
+  let targetId = $state(untrack(() => timer?.target_id || ''));
   let isLoading = $state(false);
   let errorMessage = $state('');
   let showDeleteConfirm = $state(false);

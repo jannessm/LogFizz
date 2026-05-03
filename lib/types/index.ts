@@ -100,6 +100,7 @@ export interface Balance {
   business_trip: number;
   child_sick: number;
   homeoffice: number;
+  normal_days: number;
   worked_days: number;
   
   created_at: string;

@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "main": "index.js",
   "type": "module",
   "engines": {
@@ -25,6 +25,7 @@
     "maintenance": "tsx -e \"import { AppDataSource } from './src/config/database.js'; import { CleanupService } from './src/services/cleanup.service.js'; await AppDataSource.initialize(); const service = new CleanupService(); await service.runAllMaintenanceTasks(); await AppDataSource.destroy();\"",
     "statistics:send": "tsx src/scripts/statistics.ts",
     "statistics:show": "tsx src/scripts/statistics.ts -- --show",
+    "mail:daily": "tsx src/scripts/send-daily-mails.ts",
     "balance-email:weekly": "tsx src/scripts/send-user-balance-emails.ts -- --weekly",
     "balance-email:monthly": "tsx src/scripts/send-user-balance-emails.ts -- --monthly",
     "balance-email:test": "tsx src/scripts/send-user-balance-emails.ts -- --test"

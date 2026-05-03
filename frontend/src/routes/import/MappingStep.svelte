@@ -468,7 +468,7 @@
               <span class="w-4 h-4 mt-0.5 flex-shrink-0" 
                 class:icon-[si--check-circle-line]={log.isValid && !log.isActiveTimelog}
                 class:icon-[si--close-circle-line]={!log.isValid && !log.isActiveTimelog}
-                class:icon-[si--skip-forward-line]={log.isActiveTimelog}
+                class:icon-[si--arrow-right-circle-duotone]={log.isActiveTimelog}
               ></span>
               <div class="flex-1 min-w-0">
                 <div class="font-medium truncate">Row {index + 2}: {log.start} → {log.end || '—'}</div>

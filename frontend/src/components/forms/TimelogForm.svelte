@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { timers } from '../../stores/timers';
   import { dayjs, type TimeLog } from '../../types';
   import { userTimezone } from '../../../../lib/utils/dayjs';
@@ -88,14 +88,13 @@
   // When editing, convert from stored timezone to user's local timezone
   // For new entries, use selectedDate and current time as defaults
   const now = $derived(dayjs.utc(selectedDate).tz(userTimezone));
-  console.log(now.toISOString(), userTimezone);
 
   let newLog: Partial<TimeLog> = $state({
     timer_id: undefined,
     type: 'normal',
     whole_day: false,
     apply_break_calculation: false,
-    start_timestamp: now.toISOString(),
+    start_timestamp: untrack(() => now.toISOString()),
     end_timestamp: undefined,
     timezone: userTimezone,
     notes: ''
@@ -103,10 +102,10 @@
   let isRunning = $derived(!newLog.end_timestamp); // When stopping timer, it should not be running
   
   // Initialize start timestamp - mutable for binding
-  let startTimestamp = $state(now);
+  let startTimestamp = $state(untrack(() => now));
   
   // Initialize end timestamp - mutable for binding
-  let endTimestamp = $state(now);
+  let endTimestamp = $state(untrack(() => now));
 
   // Sync startTimestamp changes to newLog
   $effect(() => {

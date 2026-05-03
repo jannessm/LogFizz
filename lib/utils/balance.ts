@@ -41,6 +41,7 @@ export interface WholeDayCounters {
   business_trip: number;
   child_sick: number;
   homeoffice: number;
+  normal_days: number;
 }
 
 /**
@@ -144,27 +145,50 @@ export function calculateWorkedMinutesForDate(
     business_trip: 0,
     child_sick: 0,
     homeoffice: 0,
+    normal_days: 0,
   };
-  
-  for (const timelog of timelogs) {
-    // Use the timelog's own timezone for day boundary calculations
-    const logTimezone = timelog.timezone || 'UTC';
 
-    // Get effective range for this date in the timelog's timezone
+  // Collect timelogs that overlap with this date and their types
+  const activeTypes = new Set<TimeLogType>();
+  const activeLogs: TimeLog[] = [];
+
+  for (const timelog of timelogs) {
+    const logTimezone = timelog.timezone || 'UTC';
     const range = getEffectiveRange(date, timelog.start_timestamp, timelog.end_timestamp, logTimezone);
-    if (!range) continue; // Timelog doesn't overlap with this date
-    
+    if (!range) continue;
+    activeLogs.push(timelog);
+    activeTypes.add(timelog.type || 'normal');
+  }
+
+  if (activeLogs.length === 0) {
+    return { worked_minutes: 0, counters };
+  }
+
+  // Determine the dominant type for this day (per-day, max 1 per counter).
+  // Priority: sick > child-sick > holiday > business-trip > homeoffice > normal
+  if (activeTypes.has('sick') && dueMinutes > 0) {
+    counters.sick_days = 1;
+  } else if (activeTypes.has('child-sick') && dueMinutes > 0) {
+    counters.child_sick = 1;
+  } else if (activeTypes.has('holiday') && dueMinutes > 0) {
+    counters.holidays = 1;
+  } else if (activeTypes.has('business-trip')) {
+    counters.business_trip = 1;
+  } else if (activeTypes.has('homeoffice')) {
+    counters.homeoffice = 1;
+  } else {
+    // Only 'normal' type logs present
+    counters.normal_days = 1;
+  }
+
+  // Calculate worked minutes from all active logs
+  for (const timelog of activeLogs) {
+    const logTimezone = timelog.timezone || 'UTC';
+    const range = getEffectiveRange(date, timelog.start_timestamp, timelog.end_timestamp, logTimezone)!;
     const duration = calculateTimelogDuration(timelog);
     const type = timelog.type || 'normal';
-    
-    // update counters, for sick, holiday, child-sick only when dueminutes > 0 (day where one should actually work)
-    if (type === 'sick' && dueMinutes > 0) counters.sick_days++;
-    else if (type === 'holiday' && dueMinutes > 0) counters.holidays++;
-    else if (type === 'business-trip') counters.business_trip++;
-    else if (type === 'child-sick' && dueMinutes > 0) counters.child_sick++;
-    else if (type === 'homeoffice') counters.homeoffice++;
 
-    // if no due minutes and type is sick, holiday, or child-sick continue without adding worked minutes
+    // if no due minutes and type is sick, holiday, or child-sick skip worked minutes
     if (['sick', 'holiday', 'child-sick'].includes(type) && dueMinutes <= 0) {
       continue;
     }
@@ -174,7 +198,7 @@ export function calculateWorkedMinutesForDate(
       worked += dueMinutes;
       continue;
     }
-    
+
     // calculate worked minutes
     const { effectiveStart, effectiveEnd } = range;
     const logStart = dayjs.utc(timelog.start_timestamp);
@@ -182,21 +206,20 @@ export function calculateWorkedMinutesForDate(
     const dayEnd = dayjs.utc(date).tz(logTimezone).endOf('day');
     const totalDuration = duration;
     const actualDuration = logEnd.diff(logStart, 'minute');
-    
+
     // Determine if this log had breaks applied (duration < actual time range)
     const breaksWereApplied = totalDuration < actualDuration;
-    
-    // If log ends after this day, use full effective range
+
     let effectiveMinutes = effectiveEnd.diff(effectiveStart, 'minute');
 
     // If log ends within this day, adjust based on breaks
     if (logEnd.isBefore(dayEnd) && breaksWereApplied) {
       effectiveMinutes -= (actualDuration - totalDuration);
     }
-    
+
     worked += effectiveMinutes;
   }
-  
+
   return { worked_minutes: Math.max(0, Math.round(worked)), counters };
 }
 
@@ -263,12 +286,13 @@ export function aggregateToMonthly(
   const first = dailyBalances[0];
   let totalDue = 0;
   let totalWorked = 0;
-  const counters: Omit<WholeDayCounters, 'normal'> = {
+  const counters: WholeDayCounters = {
     sick_days: 0,
     holidays: 0,
     business_trip: 0,
     child_sick: 0,
     homeoffice: 0,
+    normal_days: 0,
   };
   let workedDays = 0;
   
@@ -280,12 +304,14 @@ export function aggregateToMonthly(
     counters.business_trip += daily.business_trip;
     counters.child_sick += daily.child_sick;
     counters.homeoffice += daily.homeoffice;
+    counters.normal_days += daily.normal_days ?? 0;
     
-    // Note: worked_minutes already includes due_minutes for whole_day entries
-    // (added in calculateBalanceData), so we do NOT add them again here
-    
-    // Count worked days (excluding certain special types, excluding business trips)
-    if (daily.worked_minutes > 0 && daily.business_trip === 0) {
+    // Count worked days: sum of all type-day counters so that
+    // normal_days + sick_days + holidays + business_trip + child_sick + homeoffice = worked_days
+    if (
+      daily.sick_days > 0 || daily.holidays > 0 || daily.child_sick > 0 ||
+      daily.homeoffice > 0 || daily.business_trip > 0 || (daily.normal_days ?? 0) > 0
+    ) {
       workedDays++;
     }
   }
@@ -325,12 +351,13 @@ export function aggregateToYearly(
   const first = monthlyBalances[0];
   let totalDue = 0;
   let totalWorked = 0;
-  const counters: Omit<WholeDayCounters, 'normal'> = {
+  const counters: WholeDayCounters = {
     sick_days: 0,
     holidays: 0,
     business_trip: 0,
     child_sick: 0,
     homeoffice: 0,
+    normal_days: 0,
   };
   let workedDays = 0;
   
@@ -342,6 +369,7 @@ export function aggregateToYearly(
     counters.business_trip += monthly.business_trip;
     counters.child_sick += monthly.child_sick;
     counters.homeoffice += monthly.homeoffice;
+    counters.normal_days += monthly.normal_days ?? 0;
     workedDays += monthly.worked_days;
   }
   

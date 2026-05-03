@@ -31,6 +31,8 @@
   let balancesDayByTargetId = $state<Map<string, Balance>>(new Map());
   let balancesMonthByTargetId = $state<Map<string, Balance>>(new Map());
   let balancesYearByTargetId = $state<Map<string, Balance>>(new Map());
+  // Today's daily balances, always loaded independently of the calendar selection
+  let balancesTodayByTargetId = $state<Map<string, Balance>>(new Map());
 
   let selectedTargetId = $state<string | null>(null);
   
@@ -120,14 +122,28 @@
     periods?.month?.month === dayjs().month() + 1
   );
 
-  /** Live-adjusted month balance: same extra as the day, added when showing the current month. */
-  const liveMonthBalance = $derived((() => {
-    const _tick = $liveBalanceTick;
+  /**
+   * Monthly balance without today's contribution.
+   * When viewing the current month, subtract today's stored daily balance so
+   * the aggregate only reflects completed days (up to and including yesterday).
+   */
+  const monthBalanceUntilYesterday = $derived((() => {
     const base = selectedMonthBalance;
     if (!base || !isMonthCurrent || !selectedTargetId) return base;
-    const extra = $liveExtraMinutesByTargetId.get(selectedTargetId) ?? 0;
-    if (extra <= 0) return base;
-    return { ...base, worked_minutes: base.worked_minutes + extra };
+    const today = balancesTodayByTargetId.get(selectedTargetId) ?? null;
+    if (!today) return base;
+    return {
+      ...base,
+      worked_minutes: base.worked_minutes - today.worked_minutes,
+      due_minutes: base.due_minutes - today.due_minutes,
+      sick_days: base.sick_days - today.sick_days,
+      holidays: base.holidays - today.holidays,
+      business_trip: base.business_trip - today.business_trip,
+      child_sick: base.child_sick - today.child_sick,
+      homeoffice: base.homeoffice - today.homeoffice,
+      normal_days: base.normal_days - today.normal_days,
+      worked_days: base.worked_days - today.worked_days,
+    };
   })());
 
   const selectedYearBalance = $derived(
@@ -137,14 +153,28 @@
   // Whether the year period shown is the current year
   const isYearCurrent = $derived(periods?.year?.year === dayjs().year());
 
-  /** Live-adjusted year balance: same extra as the day, added when showing the current year. */
-  const liveYearBalance = $derived((() => {
-    const _tick = $liveBalanceTick;
+  /**
+   * Yearly balance without today's contribution.
+   * When viewing the current year, subtract today's stored daily balance so
+   * the aggregate only reflects completed days (up to and including yesterday).
+   */
+  const yearBalanceUntilYesterday = $derived((() => {
     const base = selectedYearBalance;
     if (!base || !isYearCurrent || !selectedTargetId) return base;
-    const extra = $liveExtraMinutesByTargetId.get(selectedTargetId) ?? 0;
-    if (extra <= 0) return base;
-    return { ...base, worked_minutes: base.worked_minutes + extra };
+    const today = balancesTodayByTargetId.get(selectedTargetId) ?? null;
+    if (!today) return base;
+    return {
+      ...base,
+      worked_minutes: base.worked_minutes - today.worked_minutes,
+      due_minutes: base.due_minutes - today.due_minutes,
+      sick_days: base.sick_days - today.sick_days,
+      holidays: base.holidays - today.holidays,
+      business_trip: base.business_trip - today.business_trip,
+      child_sick: base.child_sick - today.child_sick,
+      homeoffice: base.homeoffice - today.homeoffice,
+      normal_days: base.normal_days - today.normal_days,
+      worked_days: base.worked_days - today.worked_days,
+    };
   })());
 
   async function load() {
@@ -152,15 +182,18 @@
     error = null;
 
     try {
-      const [dayRes, monthRes, yearRes] = await Promise.all([
+      const todayDate = dayjs().format('YYYY-MM-DD');
+      const [dayRes, monthRes, yearRes, todayRes] = await Promise.all([
         loadBalancesByTargetId({ granularity: 'day', period: periods.day }),
         loadBalancesByTargetId({ granularity: 'month', period: periods.month }),
         loadBalancesByTargetId({ granularity: 'year', period: periods.year }),
+        loadBalancesByTargetId({ granularity: 'day', period: { date: todayDate } }),
       ]);
 
       balancesDayByTargetId = dayRes.balancesByTargetId;
       balancesMonthByTargetId = monthRes.balancesByTargetId;
       balancesYearByTargetId = yearRes.balancesByTargetId;
+      balancesTodayByTargetId = todayRes.balancesByTargetId;
 
       // Prefer selecting based on the year view (most representative for a default)
       preselectTargetWithMostDueMinutes(yearRes.balancesByTargetId);
@@ -231,8 +264,8 @@
   {:else}
     <div class="flex flex-col gap-3">
       <BalanceDisplay granularity="day" target={selectedTarget} balance={liveDayBalance} />
-      <BalanceDisplay granularity="month" target={selectedTarget} balance={liveMonthBalance} />
-      <BalanceDisplay granularity="year" target={selectedTarget} balance={liveYearBalance} />
+      <BalanceDisplay granularity="month" target={selectedTarget} balance={monthBalanceUntilYesterday} showUntilYesterdayHint={isMonthCurrent} />
+      <BalanceDisplay granularity="year" target={selectedTarget} balance={yearBalanceUntilYesterday} showUntilYesterdayHint={isYearCurrent} />
     </div>
   {/if}
 </div>

@@ -23,7 +23,8 @@
     "email": "Email",
     "hCaptchaExpired": "hCaptcha expired. Please verify again.",
     "hCaptchaFailed": "hCaptcha verification failed. Please try again.",
-    "hasAccount": "Already have an account? Login",
+    "hasAccount": "Already have an account?",
+    "switchToLogin": "Login",
     "invalidCredentials": "Invalid credentials",
     "invalidMagicLinkToken": "Invalid or expired magic link. Please request a new one.",
     "login": "Login",
@@ -36,7 +37,8 @@
     "magicLinkSent": "We've sent a login link to your email address. Please check your inbox and click the link to sign in.",
     "magicLinkVerified": "Successfully signed in!",
     "name": "Name",
-    "noAccount": "Don't have an account? Register",
+    "noAccount": "Don't have an account?",
+    "switchToRegister": "Register",
     "password": "Password",
     "passwordMinLength": "Password must be at least 8 characters",
     "pleaseWait": "Please wait...",
@@ -236,6 +238,8 @@
     "worked": "Worked",
     "workedDays": "Worked days:",
     "workedLabel": "Worked:",
+    "typeDaysHint": "Each day is counted once by type priority: sick > holiday > child-sick > homeoffice > business trip > normal. The sum of all type days equals worked days.",
+    "untilYesterdayHint": "This balance only includes activities up to yesterday.",
     "yearlyBalance": "Yearly Balance"
   },
   "import": {
@@ -604,6 +608,7 @@
     "childSick": "Child Sick",
     "holiday": "Holiday",
     "homeoffice": "Homeoffice",
+    "normalDays": "Normal days",
     "normal": "Normal",
     "sick": "Sick"
   },

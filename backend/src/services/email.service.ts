@@ -34,7 +34,8 @@ export class EmailService {
     const emailConfig = this.getEmailConfig();
     
     this.transporter = nodemailer.createTransport(emailConfig);
-    this.fromEmail = process.env.SMTP_USER || 'noreply@clock-app.com';
+    const smtpUser = process.env.SMTP_USER || 'noreply@clock-app.com';
+    this.fromEmail = `LogFizz <${smtpUser}>`;
     this.appUrl = process.env.APP_URL || 'http://localhost:5173';
   }
 

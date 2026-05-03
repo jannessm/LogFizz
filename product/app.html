@@ -10,8 +10,6 @@
   <link rel="canonical" href="https://logfizz.magnusso.nz/app.html" />
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/assets/styles.css?v=2" />
-  <!-- App URL is written by the Docker entrypoint from the APP_URL environment variable -->
-  <script src="/assets/config.js"></script>
 </head>
 <body>
 <div class="indie-banner">
@@ -26,7 +24,7 @@
     <li><a href="/comparison.html"><span class="en">Comparison</span><span class="de">Vergleich</span></a></li>
     <li><a href="/pricing.html"><span class="en">Pricing</span><span class="de">Preise</span></a></li>
     <li><a href="/guide.html"><span class="en">Guide</span><span class="de">Anleitung</span></a></li>
-    <li><a href="/app.html" class="nav-cta active"><span class="en">Open App &rarr;</span><span class="de">App &ouml;ffnen &rarr;</span></a></li>
+    <li><a href="APP_URL" class="nav-cta active"><span class="en">Open App &rarr;</span><span class="de">App &ouml;ffnen &rarr;</span></a></li>
     <li class="lang-switcher">
       <button class="lang-btn lang-active" data-lang-btn="en" onclick="setLang('en')" title="English">🇬🇧</button>
       <button class="lang-btn" data-lang-btn="de" onclick="setLang('de')" title="Deutsch">🇩🇪</button>
@@ -44,11 +42,10 @@
 
     <div style="display:flex;flex-direction:column;gap:1rem;align-items:center">
       <!--
-        The href below is set dynamically from window.LOGFIZZ_APP_URL,
-        which is written by the Docker entrypoint from the APP_URL environment variable.
+        The href below is replaced by the Docker entrypoint using the APP_URL environment variable.
         To configure: set APP_URL=https://app.yourdomain.com in docker-compose.yml.
       -->
-      <a href="#" id="app-link" class="btn btn-primary btn-lg" style="width:100%;max-width:320px;justify-content:center">
+      <a href="APP_URL/login" id="app-link" class="btn btn-primary btn-lg" style="width:100%;max-width:320px;justify-content:center">
         <span class="en">Open LogFizz App &rarr;</span>
         <span class="de">LogFizz-App &ouml;ffnen &rarr;</span>
       </a>
@@ -115,25 +112,5 @@
 </div></div></footer>
 
 <script src="/assets/lang.js?v=2"></script>
-<script>
-  // Set app link from config.js (written by Docker entrypoint from APP_URL env var)
-  (function () {
-    var url = (typeof window.LOGFIZZ_APP_URL === 'string' && window.LOGFIZZ_APP_URL !== '')
-      ? window.LOGFIZZ_APP_URL
-      : null;
-    var link = document.getElementById('app-link');
-    if (url) {
-      link.href = url;
-    } else {
-      // APP_URL not configured yet; show a notice
-      link.style.opacity = '0.5';
-      link.style.pointerEvents = 'none';
-      var note = document.createElement('p');
-      note.style.cssText = 'font-size:.8rem;color:rgba(255,100,100,.8);margin-top:.5rem';
-      note.textContent = 'App URL not configured. Set APP_URL in docker-compose.yml.';
-      link.parentNode.insertBefore(note, link.nextSibling);
-    }
-  })();
-</script>
 </body>
 </html>

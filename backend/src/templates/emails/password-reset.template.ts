@@ -27,7 +27,7 @@ export function generatePasswordResetEmailContent(data: PasswordResetEmailData):
     </p>
     
     <p>Or copy and paste this link into your browser:</p>
-    <div class="code-block">${resetUrl}</div>
+    <div class="code-block"><a href="${resetUrl}" x-apple-data-detectors="false" style="color: inherit; text-decoration: none; pointer-events: none; cursor: text;">${resetUrl}</a></div>
     
     <div class="divider"></div>
     

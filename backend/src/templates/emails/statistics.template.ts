@@ -53,6 +53,17 @@ export function generateStatisticsEmail(data: StatisticsEmailData): {
         <td style="padding: 12px; border: 1px solid #e5e7eb; font-weight: bold; color: #3b82f6;">${statistics.users.new}</td>
       </tr>
     </table>
+
+    <h2 style="color: #1f2937; font-size: 20px; margin-bottom: 15px;">🆕 New Registrations This Week</h2>
+    ${statistics.users.new_last_week.length > 0 ? `
+    <ul style="margin: 0 0 20px 0; padding-left: 20px; color: #374151;">
+      ${statistics.users.new_last_week.map(name => `<li style="padding: 4px 0;">${escapeHtml(name)}</li>`).join('\n      ')}
+    </ul>
+    ` : `
+    <div style="background-color: #f9fafb; padding: 16px; margin-bottom: 20px; border-radius: 4px;">
+      <p style="margin: 0; color: #6b7280;">No new registrations in the last 7 days.</p>
+    </div>
+    `}
     
     <h2 style="color: #1f2937; font-size: 20px; margin-bottom: 15px;">🎯 ${t('email.statisticsTimerStats', lang)}</h2>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
@@ -143,6 +154,12 @@ ${t('email.statisticsUserStats', lang).toUpperCase()}
 ${t('email.statisticsTotalUsers', lang)}: ${statistics.users.total}
 Active Users (Last 30 Days): ${statistics.users.active}
 ${t('email.statisticsNewUsersMonth', lang)}: ${statistics.users.new}
+
+NEW REGISTRATIONS THIS WEEK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${statistics.users.new_last_week.length > 0
+  ? statistics.users.new_last_week.map(name => `• ${name}`).join('\n')
+  : 'No new registrations in the last 7 days.'}
 
 ${t('email.statisticsTimerStats', lang).toUpperCase()}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

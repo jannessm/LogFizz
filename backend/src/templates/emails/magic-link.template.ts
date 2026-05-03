@@ -26,7 +26,7 @@ export function generateMagicLinkEmailContent(data: MagicLinkEmailData): string 
     </p>
     
     <p>Or copy and paste this link into your browser:</p>
-    <div class="code-block">${magicLinkUrl}</div>
+    <div class="code-block"><a href="${magicLinkUrl}" x-apple-data-detectors="false" style="color: inherit; text-decoration: none; pointer-events: none; cursor: text;">${magicLinkUrl}</a></div>
     
     <div class="divider"></div>
     

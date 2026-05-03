@@ -489,6 +489,8 @@ describe('Balance Calculation Tests with Seed Data', () => {
           holidays: 0,
           business_trip: 0,
           child_sick: 0,
+          homeoffice: 0,
+          normal_days: 0,
           worked_days: 23,
           created_at: '2025-10-31',
           updated_at: '2025-10-31',
@@ -505,6 +507,8 @@ describe('Balance Calculation Tests with Seed Data', () => {
           holidays: 0,
           business_trip: 0,
           child_sick: 0,
+          homeoffice: 0,
+          normal_days: 0,
           worked_days: 17,
           created_at: '2025-11-23',
           updated_at: '2025-11-23',
@@ -994,6 +998,8 @@ describe('Balance Calculation Tests with Seed Data', () => {
         holidays: 0,
         business_trip: 0,
         child_sick: 0,
+        homeoffice: 0,
+        normal_days: 0,
         worked_days: 1,
         created_at: '2025-11-03',
         updated_at: '2025-11-03',
@@ -1012,6 +1018,8 @@ describe('Balance Calculation Tests with Seed Data', () => {
         holidays: 0,
         business_trip: 0,
         child_sick: 0,
+        homeoffice: 0,
+        normal_days: 0,
         worked_days: 1,
         created_at: '2025-11-04',
         updated_at: '2025-11-04',
@@ -1030,6 +1038,8 @@ describe('Balance Calculation Tests with Seed Data', () => {
         holidays: 0,
         business_trip: 0,
         child_sick: 0,
+        homeoffice: 0,
+        normal_days: 0,
         worked_days: 1,
         created_at: '2025-11-05',
         updated_at: '2025-11-05',
@@ -1067,6 +1077,8 @@ describe('Balance Calculation Tests with Seed Data', () => {
           holidays: 1,
           business_trip: 0,
           child_sick: 0,
+          homeoffice: 0,
+          normal_days: 0,
           worked_days: 1,
           created_at: `2025-11-0${day}`,
           updated_at: `2025-11-0${day}`,
@@ -1098,6 +1110,8 @@ describe('Balance Calculation Tests with Seed Data', () => {
         holidays: 0,
         business_trip: 0,
         child_sick: 0,
+        homeoffice: 0,
+        normal_days: 0,
         worked_days: 1,
         created_at: '2025-11-03',
         updated_at: '2025-11-03',
@@ -1116,6 +1130,8 @@ describe('Balance Calculation Tests with Seed Data', () => {
         holidays: 1,
         business_trip: 0,
         child_sick: 0,
+        homeoffice: 0,
+        normal_days: 0,
         worked_days: 1,
         created_at: '2025-11-04',
         updated_at: '2025-11-04',
@@ -1134,6 +1150,8 @@ describe('Balance Calculation Tests with Seed Data', () => {
         holidays: 0,
         business_trip: 0,
         child_sick: 1,
+        homeoffice: 0,
+        normal_days: 0,
         worked_days: 1,
         created_at: '2025-11-05',
         updated_at: '2025-11-05',
@@ -1152,7 +1170,9 @@ describe('Balance Calculation Tests with Seed Data', () => {
         holidays: 0,
         business_trip: 1,
         child_sick: 0,
-        worked_days: 0, // business trips don't count as worked days
+        homeoffice: 0,
+        normal_days: 0,
+        worked_days: 1, // business trips count as worked days
         created_at: '2025-11-06',
         updated_at: '2025-11-06',
       });
@@ -1168,8 +1188,8 @@ describe('Balance Calculation Tests with Seed Data', () => {
       // Total worked should be 4 * 480 = 1920
       expect(monthlyBalance.worked_minutes).toBe(1920);
       
-      // Worked days should be 3 (business trip doesn't count)
-      expect(monthlyBalance.worked_days).toBe(3);
+      // Worked days should be 4: sick + holiday + child_sick + business_trip
+      expect(monthlyBalance.worked_days).toBe(4);
     });
   });
 });

@@ -93,10 +93,15 @@
     }
   }
 
+  let calendarEl = $state<HTMLElement | null>(null);
+
   function handleKeydown(e: KeyboardEvent) {
     // Don't intercept if a select/input element is focused
     const tag = (e.target as HTMLElement)?.tagName;
     if (tag === 'SELECT' || tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+    // Only respond when this calendar instance is actually visible in the DOM
+    if (!calendarEl || calendarEl.offsetParent === null) return;
 
     switch (e.key) {
       case 'ArrowLeft':
@@ -238,7 +243,7 @@
   }
 </script>
 
-<div>
+<div bind:this={calendarEl}>
 <!-- Month Navigation -->
 <div class="flex justify-between items-center mb-4">
   <div class="flex items-center gap-2">

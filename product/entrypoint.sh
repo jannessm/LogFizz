@@ -19,4 +19,23 @@ window.LOGFIZZ_APP_URL = "${APP_URL}";
 window.LOGFIZZ_GITHUB_URL = "${GITHUB_URL}";
 EOF
 
+# Replace APP_URL placeholders in all HTML files.
+# The more specific pattern (APP_URL?register=true) must come before the plain (APP_URL).
+HTML_DIR=/usr/share/nginx/html
+if [ -n "${APP_URL}" ]; then
+  find "${HTML_DIR}" -name "*.html" | while read -r f; do
+    sed -i \
+      -e "s|APP_URL?register=true|${APP_URL}/login?register=true|g" \
+      -e "s|APP_URL|${APP_URL}/login|g" \
+      "$f"
+  done
+fi
+
+# Replace GITHUB_URL placeholders in all HTML files.
+if [ -n "${GITHUB_URL}" ]; then
+  find "${HTML_DIR}" -name "*.html" | while read -r f; do
+    sed -i "s|GITHUB_URL|${GITHUB_URL}|g" "$f"
+  done
+fi
+
 exec "$@"

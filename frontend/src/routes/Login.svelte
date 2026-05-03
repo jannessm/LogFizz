@@ -27,6 +27,13 @@
   onMount(() => {
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
+    // Pre-select register mode if the URL contains ?register=true
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('register') === 'true') {
+        isRegisterMode = true;
+      }
+    }
   });
 
   onDestroy(() => {
@@ -192,14 +199,15 @@
       </form>
 
       <div class="mt-6 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+          {isRegisterMode ? $_('auth.hasAccount') : $_('auth.noAccount')}
+        </p>
         <button
           on:click={toggleMode}
           disabled={!isOnline}
-          class="text-primary hover:underline text-sm disabled:text-gray-400 disabled:cursor-not-allowed disabled:no-underline"
+          class="w-full py-2 px-4 rounded-md text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {isRegisterMode 
-            ? $_('auth.hasAccount')
-            : $_('auth.noAccount')}
+          {isRegisterMode ? $_('auth.switchToLogin') : $_('auth.switchToRegister')}
         </button>
       </div>
     {/if}

@@ -78,9 +78,10 @@ services:
     ports:
       - "8090:80"
     environment:
-      # Set APP_URL to the full URL of the deployed TapShift web application.
+      # Set APP_URL to the full URL of the deployed LogFizz web application.
       # Example: APP_URL=https://app.yourdomain.com
-      APP_URL: "https://mytapshift.magnusso.nz"
+      # APP_URL: "https://mylogfizz.magnusso.nz"
+      APP_URL: "http://localhost:5173"
     restart: unless-stopped
 
 volumes:

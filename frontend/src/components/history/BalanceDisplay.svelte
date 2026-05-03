@@ -9,11 +9,13 @@
     target,
     balance,
     showNoStartingFromWarning = true,
+    showUntilYesterdayHint = false,
   }: {
     granularity: BalanceGranularity;
     target: TargetWithSpecs | null;
     balance: Balance | null;
     showNoStartingFromWarning?: boolean;
+    showUntilYesterdayHint?: boolean;
   } = $props();
 
   const hasStartingFrom = $derived(
@@ -90,7 +92,15 @@
           <span class="text-gray-600 dark:text-gray-400">{$_('history.homeoffice')}</span>
           <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.homeoffice}</span>
         </div>
+        <div>
+          <span class="text-gray-600 dark:text-gray-400">{$_('history.normalDays')}</span>
+          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.normal_days}</span>
+        </div>
       </div>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">{$_('history.typeDaysHint')}</p>
+      {#if showUntilYesterdayHint}
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{$_('history.untilYesterdayHint')}</p>
+      {/if}
     </div>
   {:else}
     <!-- Month + Day view -->
@@ -144,7 +154,15 @@
               <span class="text-gray-600 dark:text-gray-400">{$_('history.homeoffice')}</span>
               <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.homeoffice}</span>
             </div>
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">{$_('history.normalDays')}</span>
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.normal_days}</span>
+            </div>
           </div>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">{$_('history.typeDaysHint')}</p>
+          {#if showUntilYesterdayHint}
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{$_('history.untilYesterdayHint')}</p>
+          {/if}
         </div>
       {/if}
     </div>

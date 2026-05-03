@@ -23,7 +23,8 @@
     "email": "E-Mail",
     "hCaptchaExpired": "hCaptcha abgelaufen. Bitte erneut verifizieren.",
     "hCaptchaFailed": "hCaptcha-Verifizierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
-    "hasAccount": "Bereits ein Konto? Anmelden",
+    "hasAccount": "Bereits ein Konto?",
+    "switchToLogin": "Anmelden",
     "invalidCredentials": "Ungültige Anmeldedaten",
     "invalidMagicLinkToken": "Ungültiger oder abgelaufener Magic Link. Bitte fordern Sie einen neuen an.",
     "login": "Anmelden",
@@ -36,7 +37,8 @@
     "magicLinkSent": "Wir haben einen Anmeldelink an Ihre E-Mail-Adresse gesendet. Bitte prüfen Sie Ihren Posteingang und klicken Sie den Link, um sich anzumelden.",
     "magicLinkVerified": "Erfolgreich angemeldet!",
     "name": "Name",
-    "noAccount": "Noch kein Konto? Registrieren",
+    "noAccount": "Noch kein Konto?",
+    "switchToRegister": "Registrieren",
     "password": "Passwort",
     "passwordMinLength": "Passwort muss mindestens 8 Zeichen lang sein",
     "pleaseWait": "Bitte warten...",
@@ -236,6 +238,8 @@
     "worked": "Gearbeitet",
     "workedDays": "Gearbeitete Tage:",
     "workedLabel": "Gearbeitet:",
+    "typeDaysHint": "Jeder Tag wird einmal nach Priorität gezählt: Krank > Urlaub > Kindkrank > Homeoffice > Dienstreise > Normal. Die Summe aller Typtage entspricht den gearbeiteten Tagen.",
+    "untilYesterdayHint": "Dieser Saldo enthält nur Aktivitäten bis einschließlich gestern.",
     "yearlyBalance": "Jahressaldo"
   },
   "import": {
@@ -604,6 +608,7 @@
     "childSick": "Kindkrank",
     "holiday": "Urlaub",
     "homeoffice": "Homeoffice",
+    "normalDays": "Normale Tage",
     "normal": "Normal",
     "sick": "Krank"
   },

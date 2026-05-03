@@ -10,6 +10,7 @@ export interface SystemStatistics {
     total: number;
     active: number; // Users who logged time in last 30 days
     new: number; // Users created in last 30 days
+    new_last_week: string[]; // Names of users registered in the last 7 days
   };
   timers: {
     total: number;
@@ -50,6 +51,7 @@ export class StatisticsService {
    */
   async generateSystemStatistics(): Promise<SystemStatistics> {
     const thirtyDaysAgo = dayjs().subtract(30, 'day').toDate();
+    const sevenDaysAgo = dayjs().subtract(7, 'day').toDate();
 
     // User statistics
     const totalUsers = await this.userRepository.count({
@@ -61,6 +63,16 @@ export class StatisticsService {
         deleted_at: IsNull(),
         created_at: MoreThan(thirtyDaysAgo),
       },
+    });
+
+    // Users registered in the last 7 days
+    const newUsersLastWeek = await this.userRepository.find({
+      where: {
+        deleted_at: IsNull(),
+        created_at: MoreThan(sevenDaysAgo),
+      },
+      select: { name: true },
+      order: { created_at: 'ASC' },
     });
 
     // Get active users (users who have logged time in last 30 days)
@@ -105,6 +117,7 @@ export class StatisticsService {
         total: totalUsers,
         active: activeUsers,
         new: newUsers,
+        new_last_week: newUsersLastWeek.map(u => u.name),
       },
       timers: {
         total: totalTimers,
