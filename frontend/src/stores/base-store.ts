@@ -271,7 +271,6 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
         }
 
         await deleteItem(item);
-        console.log('Deleted item', item.id);
 
         // Run after hook
         if (hooks.afterDelete) {

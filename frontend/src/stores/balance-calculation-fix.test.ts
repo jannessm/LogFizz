@@ -16,7 +16,22 @@ import dayjs from '../../../lib/utils/dayjs.js';
 import type { Balance, Target, TargetSpec, Timer, TimeLog } from '../types';
 
 // Mock modules
-vi.mock('../lib/db');
+vi.mock('../lib/db', () => ({
+  getAllBalances: vi.fn().mockResolvedValue([]),
+  saveBalance: vi.fn(),
+  deleteBalance: vi.fn(),
+  getBalancesByDate: vi.fn(),
+  getBalancesByTargetId: vi.fn().mockResolvedValue([]),
+  getBalance: vi.fn().mockResolvedValue(undefined),
+  getTimelogIdsForDate: vi.fn().mockResolvedValue([]),
+  getTimeLogsByIds: vi.fn().mockResolvedValue([]),
+  ensureTimelogDateIndex: vi.fn().mockResolvedValue(undefined),
+  clearTimelogDateIndex: vi.fn().mockResolvedValue(undefined),
+  rebuildTimelogDateIndex: vi.fn().mockResolvedValue(undefined),
+  getBalanceCalcMeta: vi.fn().mockResolvedValue(null),
+  setBalanceCalcMetaForTarget: vi.fn().mockResolvedValue(undefined),
+  clearBalanceCalcMeta: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('../services/sync', () => ({
   syncService: {
     queueUpsertBalance: vi.fn(),
@@ -63,7 +78,32 @@ describe('Balance Calculation Fix - Timer target_id Integration', () => {
     mockTargets = [];
     mockTimers = [];
     vi.mocked(db.getAllBalances).mockResolvedValue([]);
+    // Default: index returns no timelogs
+    vi.mocked(db.getTimelogIdsForDate).mockResolvedValue([]);
+    vi.mocked(db.getTimeLogsByIds).mockResolvedValue([]);
+    vi.mocked(db.ensureTimelogDateIndex).mockResolvedValue(undefined);
   });
+
+  /**
+   * Set up date-index mocks for a list of timelogs.
+   * getTimelogIdsForDate(date) returns the IDs of timelogs that span that date.
+   * getTimeLogsByIds(ids) returns the matching timelogs.
+   */
+  function mockDateIndex(timelogs: TimeLog[]) {
+    vi.mocked(db.getTimelogIdsForDate).mockImplementation(async (date: string) => {
+      return timelogs
+        .filter(tl => {
+          const start = dayjs.utc(tl.start_timestamp).startOf('day').format('YYYY-MM-DD');
+          const end = (tl.end_timestamp ? dayjs.utc(tl.end_timestamp) : dayjs.utc())
+            .startOf('day').format('YYYY-MM-DD');
+          return date >= start && date <= end;
+        })
+        .map(tl => tl.id);
+    });
+    vi.mocked(db.getTimeLogsByIds).mockImplementation(async (ids: string[]) => {
+      return timelogs.filter(tl => ids.includes(tl.id));
+    });
+  }
 
   /**
    * Helper to create a mock target with specs
@@ -171,7 +211,7 @@ describe('Balance Calculation Fix - Timer target_id Integration', () => {
     // Set up mocks
     mockTargets = [target];
     mockTimers = [timer];
-    vi.mocked(db.getTimeLogsByYearMonth).mockResolvedValue([timelog]);
+    mockDateIndex([timelog]);
     vi.mocked(db.getBalanceCalcMeta).mockResolvedValue(null);
     vi.mocked(db.getBalance).mockResolvedValue(undefined);
     vi.mocked(db.getBalancesByTargetId).mockResolvedValue([]);
@@ -212,7 +252,7 @@ describe('Balance Calculation Fix - Timer target_id Integration', () => {
     // Set up mocks
     mockTargets = [target];
     mockTimers = [timer];
-    vi.mocked(db.getTimeLogsByYearMonth).mockResolvedValue([timelog]);
+    mockDateIndex([timelog]);
     vi.mocked(db.getBalanceCalcMeta).mockResolvedValue(null);
     vi.mocked(db.getBalance).mockResolvedValue(undefined);
     vi.mocked(db.getBalancesByTargetId).mockResolvedValue([]);
@@ -260,7 +300,7 @@ describe('Balance Calculation Fix - Timer target_id Integration', () => {
     // Set up mocks
     mockTargets = [target1];
     mockTimers = [timer1, timer2];
-    vi.mocked(db.getTimeLogsByYearMonth).mockResolvedValue([timelog1, timelog2]);
+    mockDateIndex([timelog1, timelog2]);
     vi.mocked(db.getBalanceCalcMeta).mockResolvedValue(null);
     vi.mocked(db.getBalance).mockResolvedValue(undefined);
     vi.mocked(db.getBalancesByTargetId).mockResolvedValue([]);
@@ -296,7 +336,7 @@ describe('Balance Calculation Fix - Timer target_id Integration', () => {
 
     mockTargets = [target];
     mockTimers = [timer];
-    vi.mocked(db.getTimeLogsByYearMonth).mockResolvedValue(timelogs);
+    mockDateIndex(timelogs);
     vi.mocked(db.getBalanceCalcMeta).mockResolvedValue(null);
     vi.mocked(db.getBalance).mockResolvedValue(undefined);
     vi.mocked(db.getBalancesByTargetId).mockResolvedValue([]);

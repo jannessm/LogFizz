@@ -55,36 +55,27 @@ export function createCalendarStore(
   targets: TargetWithSpecs[]
 ): Readable<CalendarTimeLogData> {
   return derived([timeLogsStore, holidaysStore], ([$timeLogsStore, $holidaysStore]) => {
-    // Calculate which months to include
-    const targetMonths: Array<{ year: number; month: number }> = [];
-    for (let i = -range; i <= range; i++) {
-      const targetDate = dayjs()
-        .year(year)
-        .month(month - 1)
-        .date(1)
-        .add(i, 'month');
-      targetMonths.push({
-        year: targetDate.year(),
-        month: targetDate.month() + 1,
-      });
-    }
+    // Compute the full calendar date range this store covers
+    const firstMonth = dayjs().year(year).month(month - 1).date(1).subtract(range, 'month');
+    const lastMonth = dayjs().year(year).month(month - 1).date(1).add(range, 'month');
+    const rangeStart = firstMonth.startOf('month');
+    const rangeEnd = lastMonth.endOf('month');
 
-    // Filter timelogs for the target months
+    // A timelog is relevant if it overlaps with [rangeStart, rangeEnd].
+    // This correctly includes:
+    //   - timelogs whose start OR end falls within the range
+    //   - timelogs that start before and end after the range (spanning the whole view)
     const relevantLogs = mapToArray($timeLogsStore.items).filter((tl: TimeLog) => {
       if (tl.deleted_at) return false;
-    
-      const logTimezone = tl.timezone || userTimezone;
-      const logStartYear = tl.year ?? dayjs.utc(tl.start_timestamp).tz(logTimezone).year();
-      const logStartMonth = tl.month ?? dayjs.utc(tl.start_timestamp).tz(logTimezone).month() + 1;
-      const logEndYear = tl.end_timestamp ? (tl.year ?? dayjs.utc(tl.end_timestamp).tz(logTimezone).year()) : logStartYear;
-      const logEndMonth = tl.end_timestamp ? (tl.month ?? dayjs.utc(tl.end_timestamp).tz(logTimezone).month() + 1) : logStartMonth;
 
-      // Check if either the start or end month/year matches the target months
-      
-      return targetMonths.some(
-        (target) => (target.year === logStartYear && target.month === logStartMonth) ||
-                     (target.year === logEndYear && target.month === logEndMonth)
-      );
+      const logTimezone = tl.timezone || userTimezone;
+      const logStart = dayjs.utc(tl.start_timestamp).tz(logTimezone).startOf('day');
+      const logEnd = tl.end_timestamp
+        ? dayjs.utc(tl.end_timestamp).tz(logTimezone).startOf('day')
+        : dayjs(); // running timelog extends to now
+
+      // Overlap condition: log starts before range ends AND log ends after range starts
+      return logStart.isSameOrBefore(rangeEnd, 'day') && logEnd.isSameOrAfter(rangeStart, 'day');
     });
 
     // Build timeLogsByDate map - map timelogs to ALL dates they span
@@ -130,19 +121,16 @@ export function createCalendarStore(
     }
 
     
-    // Calculate the calendar range we need to check
-    const firstMonth = dayjs().year(year).month(month - 1).date(1).subtract(range, 'month');
-    const lastMonth = dayjs().year(year).month(month - 1).date(1).add(range + 1, 'month');
-    
+    // Calculate the calendar range we need to check (reuse rangeStart/rangeEnd computed above)
     // Build multiDayRanges map - pre-compute multi-day range info for each date
-    const multiDayRanges = calculateMultiDayRange(firstMonth.startOf('month'), lastMonth, relevantLogs);
+    const multiDayRanges = calculateMultiDayRange(rangeStart, rangeEnd, relevantLogs);
 
     // Build relevantHolidays map - filter holidays that affect balance calculations
     const relevantHolidays = new Map<string, Holiday[]>();
     
     // Reset to check the same range for holidays
-    let currentDay = firstMonth.startOf('month');
-    while (currentDay.isBefore(lastMonth, 'day')) {
+    let currentDay = rangeStart;
+    while (currentDay.isSameOrBefore(rangeEnd, 'day')) {
       const dateStr = currentDay.format('YYYY-MM-DD');
       const holidays = getRelevantHolidaysForDate(currentDay, targets, $holidaysStore.holidays);
       if (holidays.length > 0) {
@@ -351,22 +339,14 @@ export async function loadCalendarMonth(
   month: number,
   range: number = 1
 ): Promise<void> {
-  const promises = [];
-  
-  for (let i = -range; i <= range; i++) {
-    const monthToLoad = dayjs()
-      .year(year)
-      .month(month - 1)
-      .date(1)
-      .add(i, 'month');
-    
-    promises.push(
-      timeLogsStore.loadLogsByYearMonth(
-        monthToLoad.year(),
-        monthToLoad.month() + 1
-      )
-    );
-  }
-  
-  await Promise.all(promises);
+  // Calculate the full date range to load (first day of earliest month to last day of latest month)
+  const firstMonth = dayjs().year(year).month(month - 1).date(1).subtract(range, 'month');
+  const lastMonth = dayjs().year(year).month(month - 1).date(1).add(range, 'month');
+  const startDate = firstMonth.format('YYYY-MM-DD');
+  const endDate = lastMonth.endOf('month').format('YYYY-MM-DD');
+
+  // Use the date index to load all timelogs that span any day in the range.
+  // This correctly handles multi-month timelogs (e.g. a holiday starting in
+  // December that extends into January) which would be missed by per-month queries.
+  await timeLogsStore.loadLogsByDateRange(startDate, endDate);
 }

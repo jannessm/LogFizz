@@ -8,6 +8,7 @@ vi.mock('../../lib/db', () => ({
   getSyncCursor: vi.fn(),
   saveSyncCursor: vi.fn(),
   getTimeLogsByYearMonth: vi.fn().mockResolvedValue([]),
+  getTimeLogsByDateRange: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock the stores

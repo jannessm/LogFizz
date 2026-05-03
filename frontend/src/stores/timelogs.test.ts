@@ -21,6 +21,8 @@ function calculateDurationWithBreaks(startTs: string, endTs: string, applyBreaks
 // Mock the db module
 vi.mock('../lib/db', () => ({
   getTimeLogsByYearMonth: vi.fn(),
+  getTimeLogsByDateRange: vi.fn().mockResolvedValue([]),
+  ensureTimelogDateIndex: vi.fn().mockResolvedValue(undefined),
   saveTimeLog: vi.fn(),
   deleteTimeLog: vi.fn(),
   getAllTimers: vi.fn().mockResolvedValue([]),

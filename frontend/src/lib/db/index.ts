@@ -54,10 +54,15 @@ interface LogFizzDB extends DBSchema {
       'by-date': string;
     };
   };
+  /** Maps each calendar day (YYYY-MM-DD) to the IDs of timelogs that span it */
+  timelogDateIndex: {
+    key: string; // YYYY-MM-DD
+    value: { date: string; timelogIds: string[] };
+  };
 }
 
 const DB_NAME = 'logfizz';
-const DB_VERSION = 3; // Incremented to add holidays store
+const DB_VERSION = 4; // Incremented to add timelogDateIndex store
 
 let dbInstance: IDBPDatabase<LogFizzDB> | null = null;
 
@@ -119,13 +124,157 @@ export async function getDB(): Promise<IDBPDatabase<LogFizzDB>> {
         holidayStore.createIndex('by-country-year', 'cacheKey');
         holidayStore.createIndex('by-date', 'date');
       }
+
+      // Timelog date index: maps YYYY-MM-DD → list of timelog IDs spanning that day.
+      // Created at DB_VERSION 4. When upgrading from an older version the index will be
+      // empty and will be populated lazily via rebuildTimelogDateIndex().
+      if (!db.objectStoreNames.contains('timelogDateIndex')) {
+        db.createObjectStore('timelogDateIndex', { keyPath: 'date' });
+      }
     },
   });
 
   return dbInstance;
 }
 
-// Timer operations (formerly Button)
+// ── Timelog Date Index helpers ────────────────────────────────────────────────
+
+const TIMELOG_DATE_INDEX_BUILT_KEY = 'timelog_date_index_v1';
+
+/**
+ * Enumerate all calendar days (YYYY-MM-DD, UTC) that a timelog spans.
+ * Running timelogs (no end_timestamp) are treated as ending today.
+ */
+function getDateRangeForTimelog(timelog: TimeLog): string[] {
+  const timezone = timelog.timezone || userTimezone || 'UTC';
+  const start = dayjs.utc(timelog.start_timestamp).tz(timezone).startOf('day');
+  const end = (timelog.end_timestamp ? dayjs.utc(timelog.end_timestamp).tz(timezone) : dayjs.utc()).endOf('day');
+  const dates: string[] = [];
+  for (let d = start; !d.isAfter(end); d = d.add(1, 'day')) {
+    dates.push(d.format('YYYY-MM-DD'));
+  }
+  return dates;
+}
+
+/** Add a timelog ID to all given date entries in the index (internal, uses open db). */
+async function _addToDateIndex(db: IDBPDatabase<LogFizzDB>, timelogId: string, dates: string[]): Promise<void> {
+  for (const date of dates) {
+    const entry = await db.get('timelogDateIndex', date) ?? { date, timelogIds: [] };
+    if (!entry.timelogIds.includes(timelogId)) {
+      entry.timelogIds.push(timelogId);
+      await db.put('timelogDateIndex', entry);
+    }
+  }
+}
+
+/** Remove a timelog ID from all given date entries in the index (internal, uses open db). */
+async function _removeFromDateIndex(db: IDBPDatabase<LogFizzDB>, timelogId: string, dates: string[]): Promise<void> {
+  for (const date of dates) {
+    const entry = await db.get('timelogDateIndex', date);
+    if (!entry) continue;
+    entry.timelogIds = entry.timelogIds.filter(id => id !== timelogId);
+    if (entry.timelogIds.length === 0) {
+      await db.delete('timelogDateIndex', date);
+    } else {
+      await db.put('timelogDateIndex', entry);
+    }
+  }
+}
+
+/**
+ * Get the timelog IDs that span a given date.
+ * Returns an empty array if the date has no entry in the index.
+ */
+export async function getTimelogIdsForDate(date: string): Promise<string[]> {
+  const db = await getDB();
+  const entry = await db.get('timelogDateIndex', date);
+  return entry?.timelogIds ?? [];
+}
+
+/**
+ * Fetch multiple timelogs by their IDs (skips missing ones).
+ */
+export async function getTimeLogsByIds(ids: string[]): Promise<TimeLog[]> {
+  if (ids.length === 0) return [];
+  const db = await getDB();
+  const results: TimeLog[] = [];
+  for (const id of ids) {
+    const tl = await db.get('timelogs', id);
+    if (tl) results.push(tl);
+  }
+  return results;
+}
+
+/**
+ * Wipe the entire timelog date index (and its "built" flag).
+ * Call this before a full balance recalculation.
+ */
+export async function clearTimelogDateIndex(): Promise<void> {
+  const db = await getDB();
+  await db.clear('timelogDateIndex');
+  await db.delete('settings', TIMELOG_DATE_INDEX_BUILT_KEY);
+}
+
+/**
+ * Rebuild the timelog date index from scratch using all stored timelogs.
+ * Clears the existing index first.
+ */
+export async function rebuildTimelogDateIndex(): Promise<void> {
+  const db = await getDB();
+  await db.clear('timelogDateIndex');
+  const allTimelogs = await db.getAll('timelogs');
+  for (const tl of allTimelogs) {
+    if (tl.deleted_at) continue;
+    await _addToDateIndex(db, tl.id, getDateRangeForTimelog(tl));
+  }
+  await db.put('settings', true, TIMELOG_DATE_INDEX_BUILT_KEY);
+}
+
+/**
+ * Fetch all timelogs that span ANY day in the given date range (inclusive).
+ * Uses the timelogDateIndex IDB store with a key-range query for efficiency.
+ * Skips soft-deleted timelogs.
+ *
+ * @param startDate - ISO date string 'YYYY-MM-DD' (inclusive)
+ * @param endDate   - ISO date string 'YYYY-MM-DD' (inclusive)
+ */
+export async function getTimeLogsByDateRange(startDate: string, endDate: string): Promise<TimeLog[]> {
+  const db = await getDB();
+  const range = IDBKeyRange.bound(startDate, endDate);
+  const entries = await db.getAll('timelogDateIndex', range);
+
+  // Collect unique IDs across all date entries
+  const idSet = new Set<string>();
+  for (const entry of entries) {
+    for (const id of entry.timelogIds) {
+      idSet.add(id);
+    }
+  }
+
+  // Fetch the actual timelog records, skip missing or soft-deleted ones
+  const results: TimeLog[] = [];
+  for (const id of idSet) {
+    const tl = await db.get('timelogs', id);
+    if (tl && !tl.deleted_at) results.push(tl);
+  }
+  return results;
+}
+
+/**
+ * Ensure the timelog date index has been built at least once.
+ * Rebuilds automatically when the "built" flag is missing (e.g. first run after
+ * a DB upgrade from version < 4 or after clearTimelogDateIndex()).
+ */
+export async function ensureTimelogDateIndex(): Promise<void> {
+  const db = await getDB();
+  const built = await db.get('settings', TIMELOG_DATE_INDEX_BUILT_KEY);
+  if (!built) {
+    await rebuildTimelogDateIndex();
+  }
+}
+
+// ── Timer operations (formerly Button) ────────────────────────────────────────
+
 export async function saveTimer(timer: Timer): Promise<void> {
   const db = await getDB();
   await db.put('timers', timer);
@@ -187,6 +336,22 @@ export async function saveTimeLog(timelog: TimeLog): Promise<void> {
     apply_break_calculation: applyBreaks,
   };
 
+  // ── Update the timelog date index ──────────────────────────────────────────
+  // Only touch the index when it has already been built to avoid accidentally
+  // triggering a rebuild here (the rebuild happens lazily in ensureTimelogDateIndex).
+  const indexBuilt = await db.get('settings', TIMELOG_DATE_INDEX_BUILT_KEY);
+  if (indexBuilt) {
+    // Remove from old dates if the timelog already existed
+    const oldTimelog = await db.get('timelogs', finalTimelog.id);
+    if (oldTimelog && !oldTimelog.deleted_at) {
+      await _removeFromDateIndex(db, oldTimelog.id, getDateRangeForTimelog(oldTimelog));
+    }
+    // Add to new dates (unless this is a soft-delete)
+    if (!finalTimelog.deleted_at) {
+      await _addToDateIndex(db, finalTimelog.id, getDateRangeForTimelog(finalTimelog));
+    }
+  }
+
   await db.put('timelogs', finalTimelog);
 }
 
@@ -216,6 +381,16 @@ export async function deleteTimeLog(timelog: TimeLog): Promise<void> {
     throw new Error('Cannot delete timelog: invalid or missing id');
   }
   const db = await getDB();
+
+  // Remove from date index if the index has been built
+  const indexBuilt = await db.get('settings', TIMELOG_DATE_INDEX_BUILT_KEY);
+  if (indexBuilt) {
+    const existing = await db.get('timelogs', timelog.id);
+    if (existing && !existing.deleted_at) {
+      await _removeFromDateIndex(db, existing.id, getDateRangeForTimelog(existing));
+    }
+  }
+
   await db.delete('timelogs', timelog.id);
 }
 

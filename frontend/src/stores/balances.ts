@@ -5,12 +5,16 @@ import {
   deleteBalance,
   getBalancesByDate,
   getBalancesByTargetId,
-  getTimeLogsByYearMonth,
   getBalance,
   getBalanceCalcMeta,
   setBalanceCalcMetaForTarget,
   clearBalanceCalcMeta,
   getAllBalances,
+  getTimelogIdsForDate,
+  getTimeLogsByIds,
+  clearTimelogDateIndex,
+  rebuildTimelogDateIndex,
+  ensureTimelogDateIndex,
 } from '../lib/db';
 import { syncService } from '../services/sync';
 import { createBaseStore, type BaseStoreConfig, mapToArray } from './base-store';
@@ -92,18 +96,16 @@ export function buildHolidaysSet(
 }
 
 /**
- * Helper to get target and prepare calculation context
- * Loads target, timelogs, and builds holidays set for balance calculations
- * 
+ * Helper to get target and prepare calculation context for a specific date.
+ * Reads timelog IDs from the date index, then fetches those timelogs directly.
+ *
  * @param targetId - Target ID to prepare context for
- * @param year - Year for timelogs
- * @param month - Month for timelogs (1-12)
+ * @param date - The specific date (YYYY-MM-DD) being calculated
  * @returns Context with target, timelogs, and holidays or null if target not found
  */
 async function prepareCalculationContext(
   targetId: string,
-  year: number,
-  month: number
+  date: string
 ): Promise<{
   target: TargetWithSpecs;
   balanceTarget: BalanceTarget;
@@ -117,22 +119,25 @@ async function prepareCalculationContext(
     return null;
   }
 
-  // Load timelogs for this month
-  const allTimelogs = await getTimeLogsByYearMonth(year, month);
+  // Load only the timelogs that the date index says overlap this day
+  const timelogIds = await getTimelogIdsForDate(date);
+  const allTimelogs = await getTimeLogsByIds(timelogIds);
+  console.log(date, timelogIds, allTimelogs);
+
   const _timers = get(timers);
-  // Filter to only include timelogs from timers linked to this specific target
-  // and exclude deleted timelogs
-  const timelogs = allTimelogs.filter(tl => {
+  // Filter to timelogs from timers linked to this target; exclude deleted ones
+  const timelogs = allTimelogs.filter((tl: TimeLog) => {
     if (tl.deleted_at) return false;
     const timer = _timers.find(t => t.id === tl.timer_id);
     return timer !== undefined && timer.target_id === targetId;
   });
-  allTimelogs.forEach(tl => {
+  allTimelogs.forEach((tl: TimeLog) => {
     tl.duration_minutes = calculateTimelogDuration(tl);
   });
 
-  // Build holidays set for the target
-  const holidaysSet = buildHolidaysSet(target, year, month);
+  // Build holidays set for the date's month
+  const dateObj = dayjs(date);
+  const holidaysSet = buildHolidaysSet(target, dateObj.year(), dateObj.month() + 1);
 
   return {
     target,
@@ -282,11 +287,7 @@ function createBalancesStore() {
      * @returns Created or updated balance
      */
     async calculateAndUpsertDailyBalance(targetId: string, date: string): Promise<Balance | null> {
-      const dateObj = dayjs.utc(date).tz(userTimezone);
-      const year = dateObj.year();
-      const month = dateObj.month() + 1;
-
-      const context = await prepareCalculationContext(targetId, year, month);
+      const context = await prepareCalculationContext(targetId, date);
       if (!context) return null;
 
       const { balanceTarget, timelogs, holidaysSet } = context;
@@ -501,6 +502,11 @@ function createBalancesStore() {
 
       console.log(`Initializing/updating balances for ${_targets.length} target(s)...`);
 
+      // Ensure the timelog → date mapping is ready before any balance calculation.
+      // If the index was never built (e.g. first launch after DB upgrade) this
+      // will scan all timelogs once and populate it.
+      await ensureTimelogDateIndex();
+
       for (const target of _targets) {
         try {
           await this.ensureBalancesUpToDate(target.id);
@@ -537,6 +543,11 @@ function createBalancesStore() {
           await baseStore.delete(balance);
         }
       }
+
+      // Reset and rebuild the timelog date index so balance recalculation
+      // uses a fresh, consistent mapping.
+      await clearTimelogDateIndex();
+      await rebuildTimelogDateIndex();
 
       // Rebuild using unified function
       for (const target of targetsToProcess) {

@@ -2,6 +2,8 @@ import { derived } from 'svelte/store';
 import type { TimeLog, Timer } from '../types';
 import { 
   getTimeLogsByYearMonth,
+  getTimeLogsByDateRange,
+  ensureTimelogDateIndex,
   saveTimeLog as saveTimeLogDB,
   deleteTimeLog as deleteTimeLogDB,
 } from '../lib/db';
@@ -103,23 +105,45 @@ function createTimeLogsStore() {
   // initialize with current month as loaded by store (month() + 1 because dayjs months are 0-indexed)
   loadedMonths.add(`${dayjs.utc().tz(userTimezone).year()}-${dayjs.utc().tz(userTimezone).month() + 1}`);
 
+  // Track which date ranges have been loaded via loadLogsByDateRange.
+  // Each entry is "YYYY-MM-DD/YYYY-MM-DD".
+  const loadedDateRanges = new Set<string>();
+
   /**
-   * Reload all previously loaded months (used after sync)
+   * Reload all previously loaded months AND date ranges (used after sync).
+   * Uses merge semantics so date-range-loaded timelogs (e.g. multi-month spans)
+   * are not wiped out by year/month-only queries.
    */
   async function reloadAllLoadedMonths(): Promise<void> {
-    const months = Array.from(loadedMonths);
     const allTimeLogs: TimeLog[] = [];
-    
-    for (const monthKey of months) {
+    const seenIds = new Set<string>();
+
+    // Reload by year/month combinations
+    for (const monthKey of loadedMonths) {
       const [yearStr, monthStr] = monthKey.split('-');
       const year = parseInt(yearStr);
       const month = parseInt(monthStr);
-      
       const logs = (await getTimeLogsByYearMonth(year, month)).filter(tl => !tl.deleted_at);
-      allTimeLogs.push(...logs);
+      for (const log of logs) {
+        if (!seenIds.has(log.id)) {
+          seenIds.add(log.id);
+          allTimeLogs.push(log);
+        }
+      }
     }
-    
-    // Update the store with all loaded timelogs
+
+    // Reload by date ranges (covers multi-month timelogs not captured above)
+    for (const rangeKey of loadedDateRanges) {
+      const [startDate, endDate] = rangeKey.split('/');
+      const logs = await getTimeLogsByDateRange(startDate, endDate);
+      for (const log of logs) {
+        if (!log.deleted_at && !seenIds.has(log.id)) {
+          seenIds.add(log.id);
+          allTimeLogs.push(log);
+        }
+      }
+    }
+
     baseStore.updateWriteable(state => ({
       ...state,
       items: arrayToMap(allTimeLogs),
@@ -255,6 +279,43 @@ function createTimeLogsStore() {
       }
     },
 
+    /**
+     * Load all timelogs that span any day in the given date range (inclusive).
+     * Uses the timelogDateIndex for efficient lookup instead of month-based queries.
+     * Merges results into the store without duplicating existing entries.
+     *
+     * @param startDate - ISO date string 'YYYY-MM-DD' (inclusive)
+     * @param endDate   - ISO date string 'YYYY-MM-DD' (inclusive)
+     */
+    async loadLogsByDateRange(startDate: string, endDate: string): Promise<TimeLog[]> {
+      baseStore.updateWriteable(state => ({ ...state, isLoading: true, error: null }));
+      try {
+        // Ensure the date index is built before querying it.
+        await ensureTimelogDateIndex();
+        const timeLogs = await getTimeLogsByDateRange(startDate, endDate);
+        // Remember this range so reloadAllLoadedMonths includes it after sync
+        loadedDateRanges.add(`${startDate}/${endDate}`);
+        baseStore.updateWriteable(state => {
+          const newItems = new Map(state.items);
+          for (const log of timeLogs) {
+            if (log.deleted_at) {
+              newItems.delete(log.id);
+            } else {
+              newItems.set(log.id, log);
+            }
+          }
+          return { ...state, items: newItems, isLoading: false };
+        });
+        return timeLogs;
+      } catch (error: any) {
+        baseStore.updateWriteable(state => ({
+          ...state,
+          error: error.message,
+          isLoading: false,
+        }));
+        throw error;
+      }
+    },
 
     /**
      * Start a new timer (create running timelog)
