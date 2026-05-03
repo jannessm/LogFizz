@@ -78,10 +78,7 @@ export function getEffectiveRange(
   const logEnd = end ? dayjs(end).utc() : dayjs.utc(); // Use current time for running logs
 
   // Check if timespans overlap.
-  // Use isSameOrBefore / isSameOrAfter so that a log ending *exactly* at
-  // midnight (dayStart) or starting *exactly* at the last millisecond of the
-  // day (dayEnd) is NOT counted as overlapping that day.
-  if (!logEnd.isAfter(dayStart) || !logStart.isBefore(dayEnd)) {
+  if (logEnd.isBefore(dayStart) || logStart.isAfter(dayEnd)) {
     return null; // No overlap
   }
   
