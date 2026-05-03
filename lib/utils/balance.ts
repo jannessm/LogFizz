@@ -71,12 +71,12 @@ export function getEffectiveRange(
   // Parse day boundaries in the timelog's timezone so that a Berlin log
   // from 00:30-01:30 is attributed to the correct Berlin date
   const tz = timezone || 'UTC';
-  const dayStart = dayjs.utc(date).tz(tz).startOf('day');
-  const dayEnd = dayjs.utc(date).tz(tz).endOf('day');
+  const dayStart = dayjs(date).tz(tz).startOf('day');
+  const dayEnd = dayjs(date).tz(tz).endOf('day');
 
-  const logStart = dayjs.utc(start);
-  const logEnd = end ? dayjs.utc(end) : dayjs.utc(); // Use current time for running logs
-  
+  const logStart = dayjs(start).utc();
+  const logEnd = end ? dayjs(end).utc() : dayjs.utc(); // Use current time for running logs
+
   // Check if timespans overlap.
   // Use isSameOrBefore / isSameOrAfter so that a log ending *exactly* at
   // midnight (dayStart) or starting *exactly* at the last millisecond of the
