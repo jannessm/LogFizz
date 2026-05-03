@@ -36,7 +36,7 @@ describe('Login Component', () => {
 
   it('shows register form when toggle is clicked', async () => {
     render(Login);
-    const toggleButton = screen.getByText(/Don't have an account\? Register/i);
+    const toggleButton = screen.getByRole('button', { name: /^Register$/i });
     await fireEvent.click(toggleButton);
     expect(screen.getByText(/Register to LogFizz/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Name/i)).toBeInTheDocument();
@@ -60,7 +60,7 @@ describe('Login Component', () => {
   it('shows check-email page after registration instead of staying on the form', async () => {
     render(Login);
     // Switch to register mode
-    await fireEvent.click(screen.getByText(/Don't have an account\? Register/i));
+    await fireEvent.click(screen.getByRole('button', { name: /^Register$/i }));
 
     // Fill in the form
     await fireEvent.input(screen.getByLabelText(/Name/i), { target: { value: 'Test User' } });

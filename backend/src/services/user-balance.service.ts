@@ -165,6 +165,7 @@ export class UserBalanceService {
           business_trip: counters.business_trip,
           child_sick: counters.child_sick,
           homeoffice: counters.homeoffice,
+          normal_days: counters.normal_days,
           worked_days: worked_minutes > 0 ? 1 : 0,
           created_at: dayjs().toISOString(),
           updated_at: dayjs().toISOString(),
