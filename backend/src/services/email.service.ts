@@ -215,6 +215,7 @@ export class EmailService {
     const emailContent = generateMagicLinkEmail({
       userName,
       magicLinkUrl,
+      otpCode: magicLinkToken,
       appUrl: this.appUrl,
       locale,
     });

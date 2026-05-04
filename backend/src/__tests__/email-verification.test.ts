@@ -78,7 +78,8 @@ describe('Email Verification', () => {
 
       expect(user).toBeDefined();
       expect(user.magic_link_token).toBeDefined();
-      expect(user.magic_link_token).toHaveLength(64); // 32 bytes hex = 64 chars
+      expect(user.magic_link_token).toHaveLength(6); // 6-char alphanumeric OTP
+      expect(user.magic_link_token).toMatch(/^[A-Z0-9]{6}$/);
       expect(user.magic_link_token_expires_at).toBeDefined();
       expect(user.email_verified_at).toBeNull();
 

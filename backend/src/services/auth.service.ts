@@ -10,6 +10,17 @@ import { IsNull, MoreThan } from 'typeorm';
 import { EmailService } from './email.service.js';
 import crypto from 'crypto';
 
+const OTP_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+function generateOtpToken(): string {
+  let token = '';
+  const bytes = crypto.randomBytes(6);
+  for (let i = 0; i < 6; i++) {
+    token += OTP_CHARS[bytes[i] % OTP_CHARS.length];
+  }
+  return token;
+}
+
 // Repositories used only for example-data creation (lazily accessed)
 const targetRepo = () => AppDataSource.getRepository(Target);
 const targetSpecRepo = () => AppDataSource.getRepository(TargetSpec);
@@ -29,7 +40,7 @@ export class AuthService {
     }
 
     // Generate magic link token - serves as email verification on first login
-    const magicLinkToken = crypto.randomBytes(32).toString('hex');
+    const magicLinkToken = generateOtpToken();
     const magicLinkExpiresAt = new Date();
     magicLinkExpiresAt.setHours(magicLinkExpiresAt.getHours() + 24); // 24 hours for registration link
 
@@ -128,7 +139,7 @@ export class AuthService {
     }
 
     // Generate a secure magic link token
-    const magicLinkToken = crypto.randomBytes(32).toString('hex');
+    const magicLinkToken = generateOtpToken();
     
     // Token expires in 15 minutes
     const expiresAt = new Date();

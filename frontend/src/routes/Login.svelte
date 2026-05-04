@@ -5,16 +5,23 @@
   import { onMount, onDestroy } from 'svelte';
   import { _ } from '../lib/i18n';
   import { get } from 'svelte/store';
+  import { snackbar } from '../stores/snackbar';
 
   let email = '';
   let name = '';
   let isRegisterMode = false;
   let errorMessage = '';
-  let successMessage = '';
   let isLoading = false;
   let hcaptchaToken = '';
   let hcaptchaComponent: { reset: () => void } | undefined = undefined;
   let isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+  // Code-entry state
+  let codeSent = false;
+  let otpCode = '';
+  let isVerifying = false;
+  let resendCooldown = 0;
+  let resendTimer: ReturnType<typeof setInterval> | undefined;
 
   const HCAPTCHA_SITE_KEY = import.meta.env.VITE_HCAPTCHA_SITE_KEY || '';
 
@@ -41,6 +48,7 @@
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
     }
+    if (resendTimer) clearInterval(resendTimer);
   });
 
   function handleHCaptchaVerify(token: string) {
@@ -57,12 +65,21 @@
     errorMessage = $_('auth.hCaptchaExpired');
   }
 
+  function startResendCooldown() {
+    resendCooldown = 60;
+    resendTimer = setInterval(() => {
+      resendCooldown--;
+      if (resendCooldown <= 0) {
+        clearInterval(resendTimer);
+        resendTimer = undefined;
+      }
+    }, 1000);
+  }
+
   async function handleSubmit() {
     errorMessage = '';
-    successMessage = '';
 
     if (isRegisterMode) {
-      // Registration requires hCaptcha
       if (!hcaptchaToken && HCAPTCHA_SITE_KEY) {
         errorMessage = $_('auth.completeHCaptcha');
         return;
@@ -74,21 +91,19 @@
     try {
       if (isRegisterMode) {
         await authStore.register(email, name, hcaptchaToken);
-        // After registration, show success message (user must check email for magic link)
-        successMessage = $_('auth.registrationSuccess');
-      } else {
-        // Login: request magic link
-        await authStore.requestMagicLink(email);
-        successMessage = $_('auth.magicLinkSent');
+        snackbar.success($_('auth.registrationSuccess'));
+        // Switch to login/code-entry mode for the registered email
+        isRegisterMode = false;
       }
+      await authStore.requestMagicLink(email);
+      codeSent = true;
+      startResendCooldown();
     } catch (error: any) {
-      // Check for rate limiting (429 Too Many Requests)
       if (error.response?.status === 429) {
         errorMessage = $_('auth.tooManyAttempts');
       } else {
         errorMessage = error.message || $_('auth.authFailed');
       }
-      // Reset hCaptcha on error
       if (isRegisterMode && hcaptchaComponent?.reset) {
         hcaptchaComponent.reset();
       }
@@ -98,15 +113,66 @@
     }
   }
 
+  async function handleVerifyCode() {
+    errorMessage = '';
+    isVerifying = true;
+    try {
+      await authStore.verifyMagicLink(otpCode.toUpperCase().trim());
+      snackbar.success($_('auth.magicLinkVerified'));
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectPath) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        navigate(redirectPath, { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
+    } catch (error: any) {
+      errorMessage = error.response?.status === 429
+        ? $_('auth.tooManyAttempts')
+        : $_('auth.invalidCode');
+      otpCode = '';
+    } finally {
+      isVerifying = false;
+    }
+  }
+
+  async function handleResend() {
+    if (resendCooldown > 0) return;
+    errorMessage = '';
+    isLoading = true;
+    try {
+      await authStore.requestMagicLink(email);
+      startResendCooldown();
+      otpCode = '';
+    } catch (error: any) {
+      errorMessage = error.response?.status === 429
+        ? $_('auth.tooManyAttempts')
+        : error.message || $_('auth.authFailed');
+    } finally {
+      isLoading = false;
+    }
+  }
+
   function toggleMode() {
     isRegisterMode = !isRegisterMode;
     errorMessage = '';
-    successMessage = '';
+    codeSent = false;
+    otpCode = '';
     hcaptchaToken = '';
-    // Reset hCaptcha when switching modes
     if (hcaptchaComponent?.reset) {
       hcaptchaComponent.reset();
     }
+  }
+
+  function backToEmail() {
+    codeSent = false;
+    otpCode = '';
+    errorMessage = '';
+    if (resendTimer) {
+      clearInterval(resendTimer);
+      resendTimer = undefined;
+    }
+    resendCooldown = 0;
   }
 </script>
 
@@ -122,24 +188,65 @@
       </div>
     {/if}
 
-    {#if successMessage}
-      <!-- Intermediate "check your email" page (login and register) -->
-      <div class="text-center space-y-4">
-        <div class="flex justify-center">
-          <svg class="w-16 h-16 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    {#if codeSent}
+      <!-- Code entry form -->
+      <div class="space-y-4">
+        <div class="flex justify-center mb-2">
+          <svg class="w-14 h-14 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
               d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
         </div>
-        <p class="text-gray-700 dark:text-gray-300 text-base">
-          {successMessage}
+        <p class="text-gray-700 dark:text-gray-300 text-base text-center">
+          {$_('auth.magicLinkSent')}
         </p>
-        <button
-          on:click={() => { successMessage = ''; email = ''; isRegisterMode = false; }}
-          class="text-primary hover:underline text-sm"
-        >
-          {$_('auth.backToLogin')}
-        </button>
+        <p class="text-sm text-gray-500 dark:text-gray-400 text-center">
+          {email}
+        </p>
+
+        <form on:submit|preventDefault={handleVerifyCode} class="space-y-3 mt-2">
+          <div>
+            <label for="otp" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {$_('auth.enterCode')}
+            </label>
+            <input
+              id="otp"
+              type="text"
+              bind:value={otpCode}
+              maxlength="6"
+              autocomplete="one-time-code"
+              required
+              class="w-full px-3 py-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary text-center text-2xl font-mono tracking-widest uppercase"
+              placeholder={$_('auth.codePlaceholder')}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isVerifying || !isOnline || otpCode.trim().length < 6}
+            class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-primary-hover disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
+          >
+            {isVerifying ? $_('auth.pleaseWait') : $_('auth.verifyCode')}
+          </button>
+        </form>
+
+        <div class="flex items-center justify-between pt-2">
+          <button
+            on:click={backToEmail}
+            class="text-sm text-gray-500 dark:text-gray-400 hover:underline"
+          >
+            {$_('auth.backToLogin')}
+          </button>
+          <button
+            on:click={handleResend}
+            disabled={resendCooldown > 0 || isLoading || !isOnline}
+            class="text-sm text-primary hover:underline disabled:text-gray-400 dark:disabled:text-gray-600 disabled:cursor-not-allowed"
+          >
+            {resendCooldown > 0
+              ? $_('auth.resendCodeIn', { values: { seconds: resendCooldown } })
+              : $_('auth.resendCode')}
+          </button>
+        </div>
       </div>
     {:else}
       <form on:submit|preventDefault={handleSubmit} class="space-y-4">
