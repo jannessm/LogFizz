@@ -298,7 +298,7 @@ export class UserBalanceService {
         business_trip: balance.business_trip,
         child_sick: balance.child_sick,
         homeoffice: balance.homeoffice,
-        parent_leave: (balance as any).parent_leave ?? 0,
+        parent_leave: balance.parent_leave ?? 0,
         worked_days: balance.worked_days,
       });
       delete (existing as any).updated_at;
@@ -317,7 +317,7 @@ export class UserBalanceService {
         business_trip: balance.business_trip,
         child_sick: balance.child_sick,
         homeoffice: balance.homeoffice,
-        parent_leave: (balance as any).parent_leave ?? 0,
+        parent_leave: balance.parent_leave ?? 0,
         worked_days: balance.worked_days,
       });
       await this.balanceRepository.save(entity);
