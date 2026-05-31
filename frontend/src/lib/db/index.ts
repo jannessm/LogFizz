@@ -577,6 +577,7 @@ export async function saveBalance(balance: Balance): Promise<void> {
   await db.put('balances', {
     ...balance,
     normal_days: balance.normal_days ?? 0,
+    parent_leave: balance.parent_leave ?? 0,
   });
 }
 

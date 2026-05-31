@@ -283,6 +283,8 @@ export function getTypeColor(type: string): string | null {
       return '#F59E0B'; // Orange/Amber
     case 'child-sick':
       return '#EC4899'; // Pink
+    case 'parent-leave':
+      return '#14B8A6'; // Teal
     case 'homeoffice':
       return '#06B6D4'; // Cyan
     case 'normal':

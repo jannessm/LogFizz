@@ -42,6 +42,9 @@ export class Balance implements BalanceEntity {
   homeoffice!: number;
 
   @Column('integer', { default: 0 })
+  parent_leave!: number;
+
+  @Column('integer', { default: 0 })
   normal_days!: number;
 
   @Column('integer', { default: 0 })

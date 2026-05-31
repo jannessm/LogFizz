@@ -145,6 +145,7 @@
       'holiday': $_('timelog.typeHoliday'),
       'business-trip': $_('timelog.typeBusinessTrip'),
       'child-sick': $_('timelog.typeChildSick'),
+      'parent-leave': $_('timelog.typeParentLeave'),
     };
     return labels[type] || type;
   }
@@ -157,6 +158,7 @@
       'holiday': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
       'business-trip': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
       'child-sick': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+      'parent-leave': 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400',
     };
     return classes[type] || '';
   }

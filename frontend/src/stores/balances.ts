@@ -242,6 +242,7 @@ function createBalancesStore() {
         business_trip: balanceData.business_trip || 0,
         child_sick: balanceData.child_sick || 0,
         homeoffice: balanceData.homeoffice || 0,
+        parent_leave: balanceData.parent_leave || 0,
         normal_days: balanceData.normal_days || 0,
         worked_days: balanceData.worked_days || 0,
         created_at: dayjs().toISOString(),

@@ -73,14 +73,16 @@
     'sick': $_('common.sickLeave'),
     'holiday': $_('common.holiday'),
     'business-trip': $_('common.businessTrip'),
-    'child-sick': $_('common.childSickLeave')
+    'child-sick': $_('common.childSickLeave'),
+    'parent-leave': $_('common.parentLeave')
   };
 
   const TYPE_COLORS: Record<string, string> = {
     'sick': '#EF4444',
     'holiday': '#10B981',
     'business-trip': '#F59E0B',
-    'child-sick': '#EC4899'
+    'child-sick': '#EC4899',
+    'parent-leave': '#14B8A6'
   };
 
   function isToday(date: dayjs.Dayjs): boolean {

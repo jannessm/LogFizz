@@ -176,7 +176,7 @@
       let type: TimeLogType = 'normal';
       if (typeIdx >= 0) {
         const typeValue = row[typeIdx]?.toLowerCase().trim() || '';
-        if (['normal', 'sick', 'holiday', 'business-trip', 'child-sick'].includes(typeValue)) {
+        if (['normal', 'sick', 'holiday', 'business-trip', 'child-sick', 'parent-leave'].includes(typeValue)) {
           type = typeValue as TimeLogType;
         }
       }

@@ -141,6 +141,7 @@
       business_trip: base.business_trip - today.business_trip,
       child_sick: base.child_sick - today.child_sick,
       homeoffice: base.homeoffice - today.homeoffice,
+      parent_leave: (base.parent_leave ?? 0) - (today.parent_leave ?? 0),
       normal_days: base.normal_days - today.normal_days,
       worked_days: base.worked_days - today.worked_days,
     };
@@ -172,6 +173,7 @@
       business_trip: base.business_trip - today.business_trip,
       child_sick: base.child_sick - today.child_sick,
       homeoffice: base.homeoffice - today.homeoffice,
+      parent_leave: (base.parent_leave ?? 0) - (today.parent_leave ?? 0),
       normal_days: base.normal_days - today.normal_days,
       worked_days: base.worked_days - today.worked_days,
     };

@@ -93,6 +93,10 @@
           <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.homeoffice}</span>
         </div>
         <div>
+          <span class="text-gray-600 dark:text-gray-400">{$_('history.parentLeave')}</span>
+          <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.parent_leave}</span>
+        </div>
+        <div>
           <span class="text-gray-600 dark:text-gray-400">{$_('history.normalDays')}</span>
           <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.normal_days}</span>
         </div>
@@ -153,6 +157,10 @@
             <div>
               <span class="text-gray-600 dark:text-gray-400">{$_('history.homeoffice')}</span>
               <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.homeoffice}</span>
+            </div>
+            <div>
+              <span class="text-gray-600 dark:text-gray-400">{$_('history.parentLeave')}</span>
+              <span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{balance.parent_leave}</span>
             </div>
             <div>
               <span class="text-gray-600 dark:text-gray-400">{$_('history.normalDays')}</span>
