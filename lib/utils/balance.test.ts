@@ -252,6 +252,68 @@ describe('Balance Calculation Utilities', () => {
       // After July
       expect(calculateDueMinutes('2024-07-15', target)).toBe(360);
     });
+
+    it('should use the most-recent spec when multiple specs overlap (no ending_at on older spec)', () => {
+      // Simulates a user who created an initial spec and later added a new one
+      // without setting ending_at on the old spec.
+      // The array intentionally has the OLDER spec first to surface the ordering bug.
+      const target = createTarget([
+        {
+          starting_from: '2024-01-01',
+          // no ending_at → overlaps with spec below for dates after 2024-07-01
+          duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Mon-Fri = 480
+        },
+        {
+          starting_from: '2024-07-01',
+          duration_minutes: [0, 420, 420, 420, 420, 420, 0], // Mon-Fri = 420
+        },
+      ]);
+
+      // Date before newer spec starts → old spec applies
+      expect(calculateDueMinutes('2024-06-17', target)).toBe(480);
+
+      // Date after newer spec starts → newer spec must take precedence
+      expect(calculateDueMinutes('2024-07-15', target)).toBe(420);
+      expect(calculateDueMinutes('2025-01-06', target)).toBe(420);
+    });
+
+    it('should skip a spec whose starting_from is in the future and use the current spec', () => {
+      // Older spec is "current"; newer spec starts in the far future.
+      // Array has the future spec listed BEFORE the current one.
+      const target = createTarget([
+        {
+          starting_from: '2099-01-01', // far future
+          duration_minutes: [0, 240, 240, 240, 240, 240, 0], // 4 h
+        },
+        {
+          starting_from: '2024-01-01', // current
+          duration_minutes: [0, 480, 480, 480, 480, 480, 0], // 8 h
+        },
+      ]);
+
+      // 2024-06-17 is a Monday; the future spec must be skipped
+      expect(calculateDueMinutes('2024-06-17', target)).toBe(480);
+    });
+
+    it('should use future spec only when its starting_from date has been reached', () => {
+      const target = createTarget([
+        {
+          starting_from: '2024-01-01',
+          duration_minutes: [0, 480, 480, 480, 480, 480, 0], // 8 h
+        },
+        {
+          starting_from: '2025-01-01',
+          duration_minutes: [0, 420, 420, 420, 420, 420, 0], // 7 h
+        },
+      ]);
+
+      // Before the second spec starts
+      expect(calculateDueMinutes('2024-12-30', target)).toBe(480);
+      // On the exact start date of the second spec (Monday 2025-01-06)
+      expect(calculateDueMinutes('2025-01-06', target)).toBe(420);
+      // After the second spec starts
+      expect(calculateDueMinutes('2025-03-03', target)).toBe(420);
+    });
   });
 
   describe('aggregateToMonthly', () => {

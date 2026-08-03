@@ -6,6 +6,7 @@ import { createBaseStore, type BaseStoreConfig, mapToArray } from './base-store'
 import { holidaysStore } from './holidays';
 import { timers } from './timers'; 
 import dayjs from '../../../lib/utils/dayjs.js';
+import { getActiveTargetSpec } from '../lib/utils/targetSpec';
 
 /**
  * Check if any target spec dates or duration have changed between old and new target
@@ -166,28 +167,24 @@ export const targets = derived(
 
 /**
  * Derived store for targets active today
- * Filters targets that have a target_spec matching today's date and weekday
+ * Filters targets that have the most-recent active target_spec for today
+ * with a duration > 0 for today's weekday.
  */
 export const todayTargets = derived(
   targetsStore,
   ($targetsStore) => {
     const today = dayjs();
     const todayWeekday = today.day(); // 0=Sunday, 6=Saturday
+    const todayDate = today.toDate();
     
     return mapToArray($targetsStore.items).filter(target => {
-      for (const spec of target.target_specs || []) {
-        const startDate = dayjs(spec.starting_from);
-        const endDate = spec.ending_at ? dayjs(spec.ending_at) : null;
-        
-        if (today.isBefore(startDate, 'day')) continue;
-        if (endDate && today.isAfter(endDate, 'day')) continue;
-        
-        // Check if today has a duration > 0 in this spec
-        if (spec.duration_minutes[todayWeekday] > 0) {
-          return true;
-        }
-      }
-      return false;
+      // getActiveTargetSpec returns the most-recent spec whose date range
+      // includes today. Using it (instead of iterating all specs) prevents
+      // an older spec from incorrectly marking the target as active when the
+      // newer spec has 0 duration for today's weekday.
+      const activeSpec = getActiveTargetSpec(target, todayDate);
+      if (!activeSpec) return false;
+      return activeSpec.duration_minutes[todayWeekday] > 0;
     });
   }
 );

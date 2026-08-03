@@ -241,8 +241,14 @@ export function calculateDueMinutes(
   const dateObj = dayjs.utc(date);
   const weekday = dateObj.day(); // 0=Sunday, 6=Saturday
   
-  // Find the applicable duration spec for this date
-  for (const spec of target.target_specs) {
+  // Find the applicable duration spec for this date.
+  // Sort by starting_from descending so the most-recent spec takes precedence
+  // when multiple specs overlap (i.e. an older spec has no ending_at).
+  const sortedSpecs = [...target.target_specs].sort((a, b) =>
+    dayjs.utc(b.starting_from).diff(dayjs.utc(a.starting_from))
+  );
+
+  for (const spec of sortedSpecs) {
     const startDate = dayjs.utc(spec.starting_from);
     const endDate = spec.ending_at ? dayjs.utc(spec.ending_at) : null;
     
