@@ -167,19 +167,19 @@ export function calculateWorkedMinutesForDate(
   }
 
   // Determine the dominant type for this day (per-day, max 1 per counter).
-  // Priority: sick > child-sick > holiday > parent-leave > business-trip > homeoffice > normal
-  if (activeTypes.has('sick') && dueMinutes > 0) {
+  // Priority: parent-leave > sick > child-sick > holiday > homeoffice > business-trip > normal
+  if (activeTypes.has('parent-leave') && dueMinutes > 0) {
+    counters.parent_leave = 1;
+  } else if (activeTypes.has('sick') && dueMinutes > 0) {
     counters.sick_days = 1;
   } else if (activeTypes.has('child-sick') && dueMinutes > 0) {
     counters.child_sick = 1;
   } else if (activeTypes.has('holiday') && dueMinutes > 0) {
     counters.holidays = 1;
-  } else if (activeTypes.has('parent-leave') && dueMinutes > 0) {
-    counters.parent_leave = 1;
-  } else if (activeTypes.has('business-trip')) {
-    counters.business_trip = 1;
   } else if (activeTypes.has('homeoffice')) {
     counters.homeoffice = 1;
+  } else if (activeTypes.has('business-trip')) {
+    counters.business_trip = 1;
   } else {
     // Only 'normal' type logs present
     counters.normal_days = 1;

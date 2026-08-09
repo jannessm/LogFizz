@@ -247,7 +247,7 @@
     "normalDays": "Normal days:",
     "workedDays": "Worked days:",
     "workedLabel": "Worked:",
-    "typeDaysHint": "Each day is counted once by type priority: sick > holiday > child-sick > parent-leave > homeoffice > business trip > normal. The sum of all type days equals worked days.",
+    "typeDaysHint": "Each day is counted once by type priority: parent-leave > sick > child-sick > holiday > homeoffice > business trip > normal. The sum of all type days equals worked days.",
     "untilYesterdayHint": "This balance only includes activities up to yesterday.",
     "yearlyBalance": "Yearly Balance"
   },

@@ -247,7 +247,7 @@
     "normalDays": "Normale Arbeitstage:",
     "workedDays": "Gearbeitete Tage:",
     "workedLabel": "Gearbeitet:",
-    "typeDaysHint": "Jeder Tag wird einmal nach Priorität gezählt: Krank > Urlaub > Kindkrank > Elternzeit > Homeoffice > Dienstreise > Normal. Die Summe aller Typtage entspricht den gearbeiteten Tagen.",
+    "typeDaysHint": "Jeder Tag wird einmal nach Priorität gezählt: Elternzeit > Krank > Kindkrank > Urlaub > Homeoffice > Dienstreise > Normal. Die Summe aller Typtage entspricht den gearbeiteten Tagen.",
     "untilYesterdayHint": "Dieser Saldo enthält nur Aktivitäten bis einschließlich gestern.",
     "yearlyBalance": "Jahressaldo"
   },
