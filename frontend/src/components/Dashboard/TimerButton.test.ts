@@ -37,6 +37,11 @@ vi.mock('../../../../lib/utils/timeFormat.js', () => ({
     const secs = seconds % 60;
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   },
+  formatMinutesCompact: (minutes: number) => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  },
 }));
 
 describe('TimerButton Component', () => {

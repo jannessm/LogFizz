@@ -16,7 +16,7 @@
     getHourLabels, getSessionsForSelectedDate,
   } from '../services/timeline';
   import { saveTimelog } from '../services/formHandlers';
-  import { formatMinutesCompact } from '../../../lib/dist/utils/timeFormat';
+  import { formatMinutesCompact } from '../../../lib/utils/timeFormat.js';
   import { getDayAbbreviation } from '../lib/dateFormatting';
   import { userSettingsStore } from '../stores/userSettings';
 

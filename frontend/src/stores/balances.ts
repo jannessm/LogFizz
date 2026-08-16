@@ -30,9 +30,9 @@ import {
   aggregateToYearly,
   type Target as BalanceTarget,
   type WholeDayCounters,
+  calculateTimelogDuration,
 } from '../../../lib/utils/balance.js';
 import { generateBalanceId } from '../../../lib/types/index.js';
-import { calculateTimelogDuration } from '../../../lib/dist/utils/balance';
 
 /**
  * Configuration for the balances store

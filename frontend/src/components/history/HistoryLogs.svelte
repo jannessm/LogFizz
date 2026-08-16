@@ -12,7 +12,7 @@
   } from '../../services/timeline';
     import { saveTimelog } from '../../services/formHandlers';
   import { _, locale } from '../../lib/i18n';
-    import { formatMinutesCompact } from '../../../../lib/dist/utils/timeFormat';
+    import { formatMinutesCompact } from '../../../../lib/utils/timeFormat.js';
   import { navigate } from '../../lib/navigation';
 
   // Get user's timezone
