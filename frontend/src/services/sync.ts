@@ -333,9 +333,16 @@ export class SyncService {
     // Only pull balances from server on initial seed (no local calc metadata).
     // After the first calculation, local balances are the source of truth and
     // are pushed to server for other devices to seed from.
+    // Also skip balance pull when source data changed — balances will be
+    // recalculated locally from the new timelogs/targets.
     if (balanceConfig) {
-      const meta = await getBalanceCalcMeta();
-      const hasLocalCalculations = meta && Object.keys(meta.targets).length > 0;
+      const shouldSkipBalancePull = sourceDataChanged;
+      let hasLocalCalculations = shouldSkipBalancePull;
+
+      if (!shouldSkipBalancePull) {
+        const meta = await getBalanceCalcMeta();
+        hasLocalCalculations = !!(meta && Object.keys(meta.targets).length > 0);
+      }
 
       if (!hasLocalCalculations) {
         await this.pullChanges(
@@ -349,7 +356,6 @@ export class SyncService {
         // Still update the cursor so we don't re-pull old data on next initial seed
         const cursor = await getSyncCursor(balanceConfig.cursorKey);
         if (!cursor) {
-          // Set cursor to epoch so if metadata is cleared later, first pull gets all
           await saveSyncCursor(balanceConfig.cursorKey, new Date(0).toISOString());
         }
       }

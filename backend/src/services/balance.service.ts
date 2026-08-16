@@ -32,7 +32,10 @@ export class BalanceService {
   ): Promise<{ saved: Balance[] }> {
     const savedBalances: Balance[] = [];
 
-    for (const change of changes) {
+    for (const originalChange of changes) {
+      // Work on a shallow copy to avoid mutating the caller's input
+      const change = { ...originalChange };
+
       // Generate composite ID from target_id and date
       const compositeId = change.target_id && change.date 
         ? generateBalanceId(change.target_id, change.date)
@@ -43,9 +46,8 @@ export class BalanceService {
         continue;
       }
 
-      // Remove updated_at from client to let TypeORM auto-update it
+      // Remove timestamps to let TypeORM manage them
       delete (change as any).updated_at;
-      // Remove created_at and deleted_at to prevent overwriting with undefined
       delete (change as any).created_at;
       delete (change as any).deleted_at;
 
