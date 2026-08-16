@@ -19,11 +19,13 @@ export class AddMagicLinkFields1749120000000 implements MigrationInterface {
         ADD COLUMN IF NOT EXISTS "email_change_token_expires_at" timestamptz
     `);
 
-    // Make password_hash nullable (new users won't set a password on login)
-    await queryRunner.query(`
-      ALTER TABLE "users"
-        ALTER COLUMN "password_hash" DROP NOT NULL
-    `);
+    // Make password_hash nullable when migrating from schemas that still have it.
+    if (await queryRunner.hasColumn('users', 'password_hash')) {
+      await queryRunner.query(`
+        ALTER TABLE "users"
+          ALTER COLUMN "password_hash" DROP NOT NULL
+      `);
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -36,13 +38,15 @@ export class AddMagicLinkFields1749120000000 implements MigrationInterface {
         DROP COLUMN IF EXISTS "email_change_token_expires_at"
     `);
 
-    // Restore NOT NULL on password_hash (set empty string for nulls first)
-    await queryRunner.query(`
-      UPDATE "users" SET "password_hash" = '' WHERE "password_hash" IS NULL
-    `);
-    await queryRunner.query(`
-      ALTER TABLE "users"
-        ALTER COLUMN "password_hash" SET NOT NULL
-    `);
+    // Restore NOT NULL on password_hash only for schemas that still keep it.
+    if (await queryRunner.hasColumn('users', 'password_hash')) {
+      await queryRunner.query(`
+        UPDATE "users" SET "password_hash" = '' WHERE "password_hash" IS NULL
+      `);
+      await queryRunner.query(`
+        ALTER TABLE "users"
+          ALTER COLUMN "password_hash" SET NOT NULL
+      `);
+    }
   }
 }

@@ -438,9 +438,9 @@
                         {#if index === 0 && !archiveDate}
                           <span class="text-xs text-primary font-semibold mb-1">{$_('target.current')}</span>
                         {/if}
-                        {#if index < targetSpecs.length - 1}
+                        {#if index > 0}
                           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {$_('target.endsOn')} {dayjs(targetSpecs[index + 1].startDate).subtract(1, 'day').format('ll')}
+                            {$_('target.endsOn')} {dayjs(targetSpecs[index - 1].startDate).subtract(1, 'day').format('ll')}
                           </p>
                         {:else if index === 0 && archiveDate}
                           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
