@@ -264,4 +264,240 @@ describe('Monthly Balance Service - Sync Only', () => {
       expect(data.saved[0].cumulative_minutes).toBe(-2600);
     });
   });
+
+  describe('Multi-device sync robustness', () => {
+    it('should allow Device B to overwrite Device A balance (last-write-wins)', async () => {
+      const balanceDate = '2025-04';
+
+      // Device A pushes a balance
+      await app.inject({
+        method: 'POST',
+        url: '/api/balances/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          balances: [{
+            target_id: targetId,
+            date: balanceDate,
+            due_minutes: 9600,
+            worked_minutes: 8000,
+            cumulative_minutes: -1600,
+            sick_days: 0,
+            holidays: 0,
+            business_trip: 0,
+            child_sick: 0,
+            homeoffice: 0,
+            normal_days: 0,
+            worked_days: 20,
+          }],
+        },
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Device B pushes updated balance for same period (more worked minutes)
+      const deviceBResponse = await app.inject({
+        method: 'POST',
+        url: '/api/balances/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          balances: [{
+            target_id: targetId,
+            date: balanceDate,
+            due_minutes: 9600,
+            worked_minutes: 9200,
+            cumulative_minutes: -400,
+            sick_days: 0,
+            holidays: 0,
+            business_trip: 0,
+            child_sick: 0,
+            homeoffice: 0,
+            normal_days: 0,
+            worked_days: 21,
+          }],
+        },
+      });
+
+      expect(deviceBResponse.statusCode).toBe(200);
+      const data = JSON.parse(deviceBResponse.payload);
+      expect(data.saved).toHaveLength(1);
+      expect(data.saved[0].worked_minutes).toBe(9200);
+      expect(data.saved[0].worked_days).toBe(21);
+    });
+
+    it('should return latest balance state on pull after multi-device pushes', async () => {
+      const balanceDate = '2025-05';
+
+      // Device A pushes
+      const pushA = await app.inject({
+        method: 'POST',
+        url: '/api/balances/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          balances: [{
+            target_id: targetId,
+            date: balanceDate,
+            due_minutes: 9600,
+            worked_minutes: 5000,
+            cumulative_minutes: -4600,
+            sick_days: 0,
+            holidays: 0,
+            business_trip: 0,
+            child_sick: 0,
+            homeoffice: 0,
+            normal_days: 0,
+            worked_days: 15,
+          }],
+        },
+      });
+      const cursorAfterA = JSON.parse(pushA.payload).cursor;
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Device B pushes (newer, more accurate)
+      await app.inject({
+        method: 'POST',
+        url: '/api/balances/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          balances: [{
+            target_id: targetId,
+            date: balanceDate,
+            due_minutes: 9600,
+            worked_minutes: 9600,
+            cumulative_minutes: 0,
+            sick_days: 0,
+            holidays: 0,
+            business_trip: 0,
+            child_sick: 0,
+            homeoffice: 0,
+            normal_days: 0,
+            worked_days: 22,
+          }],
+        },
+      });
+
+      // Device A pulls using its old cursor — should see Device B's update
+      const pullResponse = await app.inject({
+        method: 'GET',
+        url: `/api/balances/sync?since=${cursorAfterA}`,
+        headers: { cookie: sessionCookie },
+      });
+
+      expect(pullResponse.statusCode).toBe(200);
+      const pullData = JSON.parse(pullResponse.payload);
+      expect(pullData.balances).toHaveLength(1);
+      expect(pullData.balances[0].worked_minutes).toBe(9600);
+      expect(pullData.balances[0].worked_days).toBe(22);
+    });
+
+    it('should handle bulk balance push for multiple periods', async () => {
+      const pushResponse = await app.inject({
+        method: 'POST',
+        url: '/api/balances/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          balances: [
+            {
+              target_id: targetId,
+              date: '2025-01',
+              due_minutes: 9600,
+              worked_minutes: 9000,
+              cumulative_minutes: 0,
+              sick_days: 0,
+              holidays: 0,
+              business_trip: 0,
+              child_sick: 0,
+              homeoffice: 0,
+              normal_days: 0,
+              worked_days: 20,
+            },
+            {
+              target_id: targetId,
+              date: '2025-02',
+              due_minutes: 8000,
+              worked_minutes: 8500,
+              cumulative_minutes: -600,
+              sick_days: 1,
+              holidays: 0,
+              business_trip: 0,
+              child_sick: 0,
+              homeoffice: 0,
+              normal_days: 0,
+              worked_days: 18,
+            },
+            {
+              target_id: targetId,
+              date: '2025',
+              due_minutes: 17600,
+              worked_minutes: 17500,
+              cumulative_minutes: 0,
+              sick_days: 1,
+              holidays: 0,
+              business_trip: 0,
+              child_sick: 0,
+              homeoffice: 0,
+              normal_days: 0,
+              worked_days: 38,
+            },
+          ],
+        },
+      });
+
+      expect(pushResponse.statusCode).toBe(200);
+      const data = JSON.parse(pushResponse.payload);
+      expect(data.saved).toHaveLength(3);
+
+      // Verify all can be pulled back
+      const pullResponse = await app.inject({
+        method: 'GET',
+        url: '/api/balances/sync?since=1970-01-01T00:00:00.000Z',
+        headers: { cookie: sessionCookie },
+      });
+
+      const pullData = JSON.parse(pullResponse.payload);
+      expect(pullData.balances).toHaveLength(3);
+    });
+
+    it('should not return balances for other users', async () => {
+      // Create balance for first user
+      await app.inject({
+        method: 'POST',
+        url: '/api/balances/sync',
+        headers: { cookie: sessionCookie },
+        payload: {
+          balances: [{
+            target_id: targetId,
+            date: '2025-06',
+            due_minutes: 9600,
+            worked_minutes: 9000,
+            cumulative_minutes: -600,
+            sick_days: 0,
+            holidays: 0,
+            business_trip: 0,
+            child_sick: 0,
+            homeoffice: 0,
+            normal_days: 0,
+            worked_days: 20,
+          }],
+        },
+      });
+
+      // Register second user
+      const result2 = await registerAndAuthenticate(app, {
+        email: 'balance2@test.com',
+        name: 'Balance Test 2',
+      });
+
+      // Second user pulls — should not see first user's balances
+      const pullResponse = await app.inject({
+        method: 'GET',
+        url: '/api/balances/sync?since=1970-01-01T00:00:00.000Z',
+        headers: { cookie: result2.authCookie },
+      });
+
+      expect(pullResponse.statusCode).toBe(200);
+      const pullData = JSON.parse(pullResponse.payload);
+      expect(pullData.balances).toHaveLength(0);
+    });
+  });
 });

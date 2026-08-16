@@ -14,6 +14,8 @@ import {
   getSyncCursor,
   saveSyncCursor,
   getUser,
+  getBalanceCalcMeta,
+  clearBalanceCalcMeta,
 } from '../lib/db';
 import { timerApi, timeLogApi, targetApi, balanceApi, isOnline } from './api';
 import type { Timer, TimeLog } from '../types';
@@ -207,7 +209,7 @@ export class SyncService {
     dataKey: string,
     save: (item: any) => Promise<void>,
     deleteItem: (item: any) => Promise<void>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     let cursor = await getSyncCursor(cursorKey);
     if (!cursor) {
       // First sync - use epoch time to get all data
@@ -216,9 +218,11 @@ export class SyncService {
 
     const result = await api.getSyncChanges(cursor);
 
+    const items = result[dataKey] || [];
+
     // Update local DB with server changes
     const promises = [];
-    for (const item of result[dataKey]) {
+    for (const item of items) {
       if ((item as any).deleted_at) {
         // Item was deleted on server - pass full item to delete helper
         promises.push(deleteItem(item));
@@ -230,6 +234,8 @@ export class SyncService {
 
     // Save new cursor
     await saveSyncCursor(cursorKey, result.cursor);
+
+    return items.length > 0;
   }
 
   private async pushChanges(
@@ -298,18 +304,56 @@ export class SyncService {
 
   // Pull server changes since last cursor
   private async pullServerChanges(typeConfigs: SyncConfig[]): Promise<void> {
-    // Pull changes for each type
-    const promises = [];
-    for (const config of typeConfigs) {
-      promises.push(this.pullChanges(
+    let sourceDataChanged = false;
+
+    // Pull changes for each type (except balance, which is handled specially)
+    const nonBalanceConfigs = typeConfigs.filter(c => c.type !== 'balance');
+    const balanceConfig = typeConfigs.find(c => c.type === 'balance');
+
+    const promises = nonBalanceConfigs.map(async (config) => {
+      const changed = await this.pullChanges(
         config.cursorKey,
         config.api,
         config.dataKey,
         config.save,
         config.delete
-      ));
-    }
+      );
+      if (changed && (config.type === 'timelog' || config.type === 'target')) {
+        sourceDataChanged = true;
+      }
+    });
     await Promise.all(promises);
+
+    // If timelogs or targets changed from server, invalidate balance calc
+    // metadata so balances will be recalculated from source-of-truth locally
+    if (sourceDataChanged) {
+      await clearBalanceCalcMeta();
+    }
+
+    // Only pull balances from server on initial seed (no local calc metadata).
+    // After the first calculation, local balances are the source of truth and
+    // are pushed to server for other devices to seed from.
+    if (balanceConfig) {
+      const meta = await getBalanceCalcMeta();
+      const hasLocalCalculations = meta && Object.keys(meta.targets).length > 0;
+
+      if (!hasLocalCalculations) {
+        await this.pullChanges(
+          balanceConfig.cursorKey,
+          balanceConfig.api,
+          balanceConfig.dataKey,
+          balanceConfig.save,
+          balanceConfig.delete
+        );
+      } else {
+        // Still update the cursor so we don't re-pull old data on next initial seed
+        const cursor = await getSyncCursor(balanceConfig.cursorKey);
+        if (!cursor) {
+          // Set cursor to epoch so if metadata is cleared later, first pull gets all
+          await saveSyncCursor(balanceConfig.cursorKey, new Date(0).toISOString());
+        }
+      }
+    }
   }
 
   // Add listener for sync events

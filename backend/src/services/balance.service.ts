@@ -43,7 +43,13 @@ export class BalanceService {
         continue;
       }
 
-      // Check if balance exists on server
+      // Remove updated_at from client to let TypeORM auto-update it
+      delete (change as any).updated_at;
+      // Remove created_at and deleted_at to prevent overwriting with undefined
+      delete (change as any).created_at;
+      delete (change as any).deleted_at;
+
+      // Upsert: try to find existing, then save
       const existing = await this.balanceRepository.findOne({
         where: { id: compositeId, user_id: userId },
       });
@@ -51,18 +57,10 @@ export class BalanceService {
       if (existing) {
         // Always apply client data — client recalculation wins
         Object.assign(existing, change);
-        existing.id = compositeId; // Ensure ID is composite format
-        // Remove updated_at from client to let TypeORM auto-update it
-        delete (existing as any).updated_at;
-        await this.balanceRepository.save(existing);
-        // Reload to get the auto-generated timestamps
-        const balance = await this.balanceRepository.findOne({
-          where: { id: compositeId, user_id: userId },
-        });
-        if (balance) {
-          console.log('Updated existing balance with ID:', balance.id);
-          savedBalances.push(balance);
-        }
+        existing.id = compositeId;
+        existing.user_id = userId;
+        const saved = await this.balanceRepository.save(existing);
+        savedBalances.push(saved);
       } else {
         // Balance doesn't exist, create new one with composite ID
         const balance = this.balanceRepository.create({
@@ -70,17 +68,8 @@ export class BalanceService {
           user_id: userId,
           id: compositeId,
         });
-        console.log('Creating new balance with ID:', balance.id);
-        // Remove updated_at to let TypeORM set it
-        delete (change as any).updated_at;
-        await this.balanceRepository.save(balance);
-        // Reload to get the auto-generated timestamps
-        const saved = await this.balanceRepository.findOne({
-          where: { id: compositeId, user_id: userId },
-        });
-        if (saved) {
-          savedBalances.push(saved);
-        }
+        const saved = await this.balanceRepository.save(balance);
+        savedBalances.push(saved);
       }
     }
 
