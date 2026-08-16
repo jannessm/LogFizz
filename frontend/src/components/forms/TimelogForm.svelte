@@ -329,6 +329,7 @@
           <option value="holiday">{$_('timelog.typeHoliday')}</option>
           <option value="business-trip">{$_('timelog.typeBusinessTrip')}</option>
           <option value="child-sick">{$_('timelog.typeChildSick')}</option>
+          <option value="parent-leave">{$_('timelog.typeParentLeave')}</option>
         </select>
         {#if isSpecialType}
           <p class="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-start gap-1">

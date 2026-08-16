@@ -16,7 +16,7 @@
     getHourLabels, getSessionsForSelectedDate,
   } from '../services/timeline';
   import { saveTimelog } from '../services/formHandlers';
-  import { formatMinutesCompact } from '../../../lib/dist/utils/timeFormat';
+  import { formatMinutesCompact } from '../../../lib/utils/timeFormat.js';
   import { getDayAbbreviation } from '../lib/dateFormatting';
   import { userSettingsStore } from '../stores/userSettings';
 
@@ -270,6 +270,15 @@
     'holiday': '#10B981',
     'business-trip': '#F59E0B',
     'child-sick': '#EC4899',
+    'parent-leave': '#7C3AED',
+  };
+
+  const TYPE_LABELS: Record<string, string> = {
+    'sick': $_('timelog.typeSick'),
+    'holiday': $_('timelog.typeHoliday'),
+    'business-trip': $_('timelog.typeBusinessTrip'),
+    'child-sick': $_('timelog.typeChildSick'),
+    'parent-leave': $_('timelog.typeParentLeave'),
   };
 </script>
 
@@ -312,6 +321,22 @@
   <div class="w-full flex-1 overflow-auto min-h-0">
     <div class="w-full px-4 pb-4 max-w-7xl mx-auto">
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+
+        <!-- Legend -->
+        <div class="mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+          <h4 class="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">{$_('history.legend')}</h4>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+            {#each Object.entries(TYPE_LABELS) as [type, label]}
+              <div class="flex items-center gap-2">
+                <div
+                  class="w-4 h-4 rounded-full border-2 flex-shrink-0"
+                  style="background-color: {TYPE_COLORS[type]}4D; border-color: {TYPE_COLORS[type]};"
+                ></div>
+                <span class="text-gray-600 dark:text-gray-400">{label}</span>
+              </div>
+            {/each}
+          </div>
+        </div>
 
         <!-- Day Headers -->
         <div class="grid gap-0 mb-2" style="grid-template-columns: 50px repeat(7, 1fr);">

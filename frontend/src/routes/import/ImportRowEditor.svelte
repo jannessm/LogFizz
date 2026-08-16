@@ -36,6 +36,7 @@
     { value: 'holiday', label: $_('timelogtype.holiday') },
     { value: 'business-trip', label: $_('timelogtype.businessTrip') },
     { value: 'child-sick', label: $_('timelogtype.childSick') },
+    { value: 'parent-leave', label: $_('timelogtype.parentLeave') },
   ];
 
   function handleStartDateChange(event: Event) {
