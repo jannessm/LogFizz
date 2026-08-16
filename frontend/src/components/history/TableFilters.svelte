@@ -40,6 +40,7 @@
     { value: 'holiday', label: $_('timelog.typeHoliday') },
     { value: 'business-trip', label: $_('timelog.typeBusinessTrip') },
     { value: 'child-sick', label: $_('timelog.typeChildSick') },
+    { value: 'parent-leave', label: $_('timelog.typeParentLeave') },
   ]);
 
   let showAdvanced = $state(false);

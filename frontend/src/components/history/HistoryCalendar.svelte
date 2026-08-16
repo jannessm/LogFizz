@@ -452,6 +452,10 @@
         <span class="text-gray-600 dark:text-gray-400">{$_('timelog.typeChildSick')}</span>
       </div>
       <div class="flex items-center gap-2">
+        <div class="w-4 h-4 rounded-full bg-violet-500 opacity-30 border-2 border-violet-500 flex-shrink-0"></div>
+        <span class="text-gray-600 dark:text-gray-400">{$_('timelog.typeParentLeave')}</span>
+      </div>
+      <div class="flex items-center gap-2">
         <div class="flex gap-0.5 w-4 justify-center items-center flex-shrink-0">
           <div class="w-1 h-1 rounded-full bg-blue-600"></div>
           <div class="w-1 h-1 rounded-full bg-green-600"></div>

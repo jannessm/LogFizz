@@ -145,6 +145,7 @@
       'holiday': $_('timelog.typeHoliday'),
       'business-trip': $_('timelog.typeBusinessTrip'),
       'child-sick': $_('timelog.typeChildSick'),
+      'parent-leave': $_('timelog.typeParentLeave'),
     };
     return labels[type] || type;
   }
@@ -155,8 +156,9 @@
       'homeoffice': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400',
       'sick': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
       'holiday': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-      'business-trip': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-      'child-sick': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+      'business-trip': 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+      'child-sick': 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400',
+      'parent-leave': 'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-400',
     };
     return classes[type] || '';
   }

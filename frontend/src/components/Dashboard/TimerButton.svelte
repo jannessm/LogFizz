@@ -6,7 +6,7 @@
   import { formatTime } from '../../../../lib/utils/timeFormat.js';
   import { _ } from '../../lib/i18n';
   import { get } from 'svelte/store';
-  import { formatMinutesCompact } from '../../../../lib/dist/utils/timeFormat';
+  import { formatMinutesCompact } from '../../../../lib/utils/timeFormat.js';
   import { calculateTimelogDuration, calculateWorkedMinutesForDate, calculateDueMinutes } from '../../../../lib/utils/balance';
   import { targets } from '../../stores/targets';
   import { buildHolidaysSet } from '../../stores/balances';
