@@ -82,7 +82,7 @@
     'holiday': '#10B981',
     'business-trip': '#F59E0B',
     'child-sick': '#EC4899',
-    'parent-leave': '#14B8A6'
+    'parent-leave': '#7C3AED'
   };
 
   function isToday(date: dayjs.Dayjs): boolean {

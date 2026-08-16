@@ -31,6 +31,7 @@ describe('Calendar Service', () => {
       expect(getTypeColor('holiday')).toBe('#10B981');
       expect(getTypeColor('business-trip')).toBe('#F59E0B');
       expect(getTypeColor('child-sick')).toBe('#EC4899');
+      expect(getTypeColor('parent-leave')).toBe('#7C3AED');
       expect(getTypeColor('normal')).toBeNull();
     });
 

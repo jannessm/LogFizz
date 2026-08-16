@@ -29,6 +29,17 @@ type SyncConfig = {
   name: string;
 };
 
+type BalanceSyncPayload = {
+  parent_leave?: number;
+  normal_days?: number;
+  sick_days?: number;
+  holidays?: number;
+  business_trip?: number;
+  child_sick?: number;
+  homeoffice?: number;
+  worked_days?: number;
+};
+
 export class SyncService {
   private syncingLocks = {
     timer: false,
@@ -86,6 +97,20 @@ export class SyncService {
         name: 'balance',
       },
     ];
+
+  private normalizeBalancePayload(balance: any): BalanceSyncPayload {
+    return {
+      ...balance,
+      parent_leave: balance.parent_leave ?? 0,
+      normal_days: balance.normal_days ?? 0,
+      sick_days: balance.sick_days ?? 0,
+      holidays: balance.holidays ?? 0,
+      business_trip: balance.business_trip ?? 0,
+      child_sick: balance.child_sick ?? 0,
+      homeoffice: balance.homeoffice ?? 0,
+      worked_days: balance.worked_days ?? 0,
+    };
+  }
 
   // Generic helper to queue operations
   private async queueOperation(
@@ -149,7 +174,7 @@ export class SyncService {
 
   // Balance queue operations
   async queueUpsertBalance(balance: any): Promise<void> {
-    await this.queueOperation('balance', balance, saveBalance);
+    await this.queueOperation('balance', this.normalizeBalancePayload(balance), saveBalance);
   }
 
   async queueDeleteBalance(balance: any): Promise<void> {
@@ -242,6 +267,9 @@ export class SyncService {
     // Remove user_id from payload as server sets it from session
     const payload = data.map((qi: any) => {
       const { user_id, ...rest } = qi.data;
+      if (cursor === 'balances') {
+        return this.normalizeBalancePayload(rest);
+      }
       return rest;
     });
 
