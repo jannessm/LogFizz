@@ -13,7 +13,7 @@
   import BottomNav from '../components/BottomNav.svelte';
   import { type Timer, type TargetWithSpecs, type TimeLog, dayjs } from '../types';
   import { getSetting, saveSetting } from '../lib/db';
-  import { saveTimelog, deleteTimelog } from '../services/formHandlers';
+  import { saveTimelog, deleteTimelog, showTimelogSaveError } from '../services/formHandlers';
   import { _ } from '../lib/i18n';
 
   let showTimerForm = $state(false);
@@ -152,8 +152,11 @@
     editingTimelog = null;
   }
 
-  function handleSaveTimelog(newLog: TimeLog) {
-    saveTimelog(newLog, editingTimelog, timerToStop).then(res => {
+  async function handleSaveTimelog(newLog: TimeLog) {
+    try {
+      const res = await saveTimelog(newLog, editingTimelog, timerToStop);
+
+      console.log('Timelog saved successfully:', res);
       // Close the TimelogForm after saving
       showTimelogForm = false;
       editingTimelog = null;
@@ -161,7 +164,10 @@
       if (res && res.timerToStop !== undefined) {
         timerToStop = null;
       }
-    });
+    } catch (error) {
+      console.log(error);
+      showTimelogSaveError(error);
+    }
   }
 
   function handleDeleteTimelog(timelog?: TimeLog) {

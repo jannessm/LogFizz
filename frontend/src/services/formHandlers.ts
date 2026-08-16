@@ -1,4 +1,5 @@
 import { timeLogsStore } from "../stores/timelogs";
+import { snackbar } from "../stores/snackbar";
 import type { TimeLog } from "../types";
 
 export async function saveTimelog(
@@ -33,6 +34,15 @@ export async function saveTimelog(
     // Creating new timelog
     await timeLogsStore.create(newLog);
   }
+}
+
+export function showTimelogSaveError(error: unknown) {
+  if (error instanceof Error && error.message) {
+    snackbar.error(error.message);
+    return;
+  }
+
+  snackbar.error('Failed to save time log.');
 }
 
 export function deleteTimelog(timelog?: TimeLog) {

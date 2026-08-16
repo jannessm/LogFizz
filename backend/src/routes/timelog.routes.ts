@@ -152,7 +152,9 @@ export async function timeLogRoutes(fastify: FastifyInstance) {
     const processedTimeLogs = timeLogs.map((log: any) => ({
       ...log,
       start_timestamp: dayjs(log.start_timestamp).toDate(),
-      end_timestamp: log.end_timestamp ? dayjs(log.end_timestamp).toDate() : undefined,
+      // Preserve explicit null semantics for running entries.
+      // TypeORM ignores `undefined` on update, but persists `null` to clear a column.
+      end_timestamp: log.end_timestamp ? dayjs(log.end_timestamp).toDate() : null,
       updated_at: dayjs(log.updated_at).toDate(),
       deleted_at: log.deleted_at ? dayjs(log.deleted_at).toDate() : undefined,
     }));

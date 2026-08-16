@@ -15,7 +15,7 @@
   import {
     getHourLabels, getSessionsForSelectedDate,
   } from '../services/timeline';
-  import { saveTimelog } from '../services/formHandlers';
+  import { saveTimelog, showTimelogSaveError } from '../services/formHandlers';
   import { formatMinutesCompact } from '../../../lib/dist/utils/timeFormat';
   import { getDayAbbreviation } from '../lib/dateFormatting';
   import { userSettingsStore } from '../stores/userSettings';
@@ -205,12 +205,15 @@
     showTimelogForm = true;
   }
 
-  function handleSaveTimelog(newLog: TimeLog) {
-    saveTimelog(newLog, editingTimelog?.log).then(() => {
+  async function handleSaveTimelog(newLog: TimeLog) {
+    try {
+      await saveTimelog(newLog, editingTimelog?.log);
       showTimelogForm = false;
       editingTimelog = null;
       editingDate = null;
-    });
+    } catch (error) {
+      showTimelogSaveError(error);
+    }
   }
 
   function handleCloseForm() {

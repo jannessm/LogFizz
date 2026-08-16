@@ -4,7 +4,7 @@
   import { userTimezone } from '../../../../lib/utils/dayjs';
   import { TimelogForm } from '../forms';
   import { calculateDueMinutes } from '../../../../lib/utils/balance';
-  import { deleteTimelog, saveTimelog } from '../../services/formHandlers';
+  import { deleteTimelog, saveTimelog, showTimelogSaveError } from '../../services/formHandlers';
   import { dailyBalances, monthlyBalances } from '../../stores/balances';
   import { holidaysStore } from '../../stores/holidays';
   import { get } from 'svelte/store';
@@ -341,8 +341,12 @@
 
   async function handleSaveTimelog(newLog: TimeLog) {
     if (editingTimelog) {
-      saveTimelog(newLog, editingTimelog);
-      editingTimelog = null;
+      try {
+        await saveTimelog(newLog, editingTimelog);
+        editingTimelog = null;
+      } catch (error) {
+        showTimelogSaveError(error);
+      }
     }
   }
 
