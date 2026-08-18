@@ -384,7 +384,7 @@ export class TargetService {
           
           const newEndingAt = specData.ending_at ? dayjs(specData.ending_at).toDate() : null;
           if ((newEndingAt?.getTime() || 0) !== (existingSpec.ending_at?.getTime() || 0)) {
-            existingSpec.ending_at = newEndingAt as any;
+            existingSpec.ending_at = newEndingAt;
             specNeedsUpdate = true;
           }
           

@@ -17,7 +17,7 @@ export class TargetSpec implements TargetSpecEntity {
 
 
   @Column('timestamptz', { nullable: true })
-  ending_at?: Date;
+  ending_at?: Date | null;
 
 
   @Column('simple-array')
