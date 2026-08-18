@@ -535,6 +535,7 @@ function createMockBalanceForCumulation(date: string, due: number, worked: numbe
     business_trip: 0,
     child_sick: 0,
     homeoffice: 0,
+    parent_leave: 0,
     normal_days: 1,
     worked_days: 1,
     created_at: '2024-01-01T00:00:00Z',
