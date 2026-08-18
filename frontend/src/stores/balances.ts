@@ -33,6 +33,7 @@ import {
   calculateTimelogDuration,
 } from '../../../lib/utils/balance.js';
 import { generateBalanceId } from '../../../lib/types/index.js';
+import { calculateTimelogDuration } from '../../../lib/utils/balance.js';
 
 /**
  * Configuration for the balances store

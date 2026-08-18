@@ -78,7 +78,7 @@ export interface TargetSpec {
   user_id: string;
   target_id: string;
   starting_from: string;
-  ending_at?: string;
+  ending_at?: string | null;
   duration_minutes: number[]; // 7-entry array for Sun-Sat (indices 0-6)
   exclude_holidays: boolean;
   state_code?: string;
@@ -235,7 +235,7 @@ export interface TargetEntity extends Omit<Target, 'created_at' | 'updated_at' |
 
 export interface TargetSpecEntity extends Omit<TargetSpec, 'starting_from' | 'ending_at'> {
   starting_from: Date;
-  ending_at?: Date;
+  ending_at?: Date | null;
   created_at: Date;
   updated_at: Date;
 }

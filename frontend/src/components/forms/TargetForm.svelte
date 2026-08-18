@@ -259,7 +259,7 @@
           exclude_holidays: spec.exclude_holidays,
           state_code: spec.state_code,
           starting_from: startDate.toISOString(),
-          ending_at: endDate?.toISOString(),
+          ending_at: endDate?.toISOString() ?? null,
         };
       });
 

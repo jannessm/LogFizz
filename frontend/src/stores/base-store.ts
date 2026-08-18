@@ -59,6 +59,7 @@ export interface SyncOperations<T extends BaseItem> {
  */
 export interface StoreHooks<T extends BaseItem> {
   afterLoad?: (items: T[]) => Promise<T[]> | T[];
+  afterSync?: (items: T[]) => Promise<void> | void;
   beforeCreate?: (item: T) => Promise<void> | void;
   afterCreate?: (item: T) => Promise<void> | void;
   beforeUpdate?: (item: T, state: BaseStoreState<T>) => Promise<T> | void;
@@ -128,6 +129,10 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
       if (!this.syncCallbackRegistered) {
         syncService.afterSync(config.sync.syncType, async () => {
           await this.load(false);
+          if (hooks.afterSync) {
+            const state = get({ subscribe });
+            await hooks.afterSync(mapToArray(state.items));
+          }
         });
         this.syncCallbackRegistered = true;
       }

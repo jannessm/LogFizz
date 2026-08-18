@@ -109,6 +109,20 @@ const targetStoreConfig: BaseStoreConfig<TargetWithSpecs> = {
       }
       targetBeforeUpdate = undefined;
     },
+    afterSync: async (targets) => {
+      // After targets are synced from server, check if recalculation is needed.
+      // clearBalanceCalcMeta() is called by the sync service when source data changes,
+      // so we check if metadata is missing for each target and recalculate if so.
+      const { getBalanceCalcMeta } = await import('../lib/db');
+      const meta = await getBalanceCalcMeta();
+      const { balancesStore } = await import('./balances');
+      for (const target of targets) {
+        const needsRecalc = !meta || !meta.targets[target.id];
+        if (needsRecalc) {
+          await balancesStore.recalculateBalances(target.id);
+        }
+      }
+    },
   },
   storeName: 'Target',
 };
