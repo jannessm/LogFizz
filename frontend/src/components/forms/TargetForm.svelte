@@ -243,12 +243,12 @@
         } else if (index === 0 && !archiveDate) {
           // No archive date, so no end date for current spec
           endDate = undefined;
-        } else if (index < arr.length - 1) {
-          // There's a next (older) spec, use its start date - 1 day
-          const nextStartDate = dayjs(arr[index + 1].startDate);
-          endDate = nextStartDate.subtract(1, 'day');
+        } else {
+          // For all older specs (including the oldest), the end date is one day
+          // before the newer spec (at index - 1 in the newest-first sorted array) starts.
+          const newerSpecStartDate = dayjs(arr[index - 1].startDate);
+          endDate = newerSpecStartDate.subtract(1, 'day');
         }
-        // If this is the oldest spec and no archive date, no end date
         
         // Create a plain object to avoid proxy cloning issues
         return {
@@ -438,9 +438,9 @@
                         {#if index === 0 && !archiveDate}
                           <span class="text-xs text-primary font-semibold mb-1">{$_('target.current')}</span>
                         {/if}
-                        {#if index < targetSpecs.length - 1}
+                        {#if index > 0}
                           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {$_('target.endsOn')} {dayjs(targetSpecs[index + 1].startDate).subtract(1, 'day').format('ll')}
+                            {$_('target.endsOn')} {dayjs(targetSpecs[index - 1].startDate).subtract(1, 'day').format('ll')}
                           </p>
                         {:else if index === 0 && archiveDate}
                           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">

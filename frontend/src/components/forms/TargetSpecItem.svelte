@@ -4,6 +4,7 @@
   import { onlyUnique } from "../../../../lib/utils/helper";
   import { _ } from '../../lib/i18n';
   import { dayjs } from '../../types';
+  import { untrack } from 'svelte';
   import { getDayAbbreviations } from '../../lib/dateFormatting';
 
   type PartialTargetSpec = {
@@ -47,13 +48,7 @@
   let availableCountries: string[] = $derived(
     Array.from(new Set(availableStates.map(s => s.country))).sort()
   );
-  let selectedCountry: string = $derived(
-    tempSpec.state_code 
-      ? (availableStates.find(s => s.code === tempSpec.state_code)?.country || '') 
-      : availableStates.map(s => s.country).filter(onlyUnique).length === 1
-        ? availableStates[0].country
-        : ''
-  );
+  let selectedCountry: string = $state('');
   let filteredStates: State[] = $derived(
     selectedCountry 
       ? availableStates.filter(s => s.country === selectedCountry).sort((a, b) => a.state.localeCompare(b.state))
@@ -81,11 +76,17 @@
   });
 
   $effect(() => {
-    // Separate effect for country selection to avoid circular updates
-    if (tempSpec.state_code && availableStates.length > 0 && !selectedCountry) {
+    // Sync selectedCountry when state_code or available states change
+    if (tempSpec.state_code && availableStates.length > 0) {
       const state = availableStates.find(s => s.code === tempSpec.state_code);
       if (state) {
         selectedCountry = state.country;
+      }
+    } else if (!tempSpec.state_code && !untrack(() => selectedCountry)) {
+      // Auto-select country when there is only one and nothing is selected yet
+      const countries = availableStates.map(s => s.country).filter(onlyUnique);
+      if (countries.length === 1) {
+        selectedCountry = countries[0];
       }
     }
   });

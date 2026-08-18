@@ -10,7 +10,7 @@
     calculateTimeline, getHourLabels, getSessionsForSelectedDate,
     type SessionData, type TimelineProps
   } from '../../services/timeline';
-    import { saveTimelog } from '../../services/formHandlers';
+    import { saveTimelog, showTimelogSaveError } from '../../services/formHandlers';
   import { _, locale } from '../../lib/i18n';
     import { formatMinutesCompact } from '../../../../lib/utils/timeFormat.js';
   import { navigate } from '../../lib/navigation';
@@ -123,12 +123,16 @@
     showTimelogForm = true;
   }
 
-  function handleSaveTimelog(newLog: TimeLog) {
-    saveTimelog(newLog, editingTimelog?.log).then(res => {
+  async function handleSaveTimelog(newLog: TimeLog) {
+    try {
+      await saveTimelog(newLog, editingTimelog?.log);
+
       // Close the TimelogForm after saving
       showTimelogForm = false;
       editingTimelog = null;
-    });
+    } catch (error) {
+      showTimelogSaveError(error);
+    }
   }
 
   function handleCloseForm() {

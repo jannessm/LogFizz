@@ -99,7 +99,8 @@
     timezone: userTimezone,
     notes: ''
   });
-  let isRunning = $derived(!newLog.end_timestamp); // When stopping timer, it should not be running
+  // Mutable state is required here because the checkbox needs two-way binding.
+  let isRunning = $state(true);
   
   // Initialize start timestamp - mutable for binding
   let startTimestamp = $state(untrack(() => now));
@@ -131,6 +132,7 @@
       newLog.whole_day = true;
       newLog.end_timestamp = newLog.start_timestamp;
       endTimestamp = startTimestamp;
+      isRunning = false;
       errorMessage = '';
     }
   });
@@ -158,6 +160,7 @@
     if (existingLog) {
       newLog = { ...existingLog };
       newLog.timezone = existingLog.timezone || userTimezone;
+      isRunning = !newLog.end_timestamp;
 
       const tz = newLog.timezone || userTimezone;
       startTimestamp = dayjs.utc(newLog.start_timestamp).tz(tz);
@@ -166,6 +169,7 @@
         // For stopping timer, set end time to now if not set
         newLog.end_timestamp = now.toISOString();
         endTimestamp = now;
+        isRunning = false;
       } else if (newLog.end_timestamp) {
         endTimestamp = dayjs.utc(newLog.end_timestamp).tz(tz);
       }
@@ -216,8 +220,6 @@
       }
     }
 
-    // is not TimeLog type
-    console.log('saving:', newLog);
     save(newLog);
   }
 
@@ -370,6 +372,7 @@
             onchange={() => {
               if (newLog.whole_day) {
                 newLog.end_timestamp = newLog.start_timestamp;
+                isRunning = false;
                 errorMessage = '';
               }
             }}
