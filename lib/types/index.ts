@@ -100,6 +100,7 @@ export interface Balance {
   business_trip: number;
   child_sick: number;
   homeoffice: number;
+  parent_leave: number;
   normal_days: number;
   worked_days: number;
   
@@ -134,7 +135,7 @@ export function parseBalanceId(id: string): { targetId: string; date: string } |
 }
 
 // TimeLog type enum
-export type TimeLogType = 'normal' | 'sick' | 'holiday' | 'business-trip' | 'child-sick' | 'homeoffice';
+export type TimeLogType = 'normal' | 'sick' | 'holiday' | 'business-trip' | 'child-sick' | 'homeoffice' | 'parent-leave';
 
 // TimeLog types - Time range based system
 // Each TimeLog represents a time tracking session with start/end timestamps

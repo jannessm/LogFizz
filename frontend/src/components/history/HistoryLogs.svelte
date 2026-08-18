@@ -12,7 +12,7 @@
   } from '../../services/timeline';
     import { saveTimelog } from '../../services/formHandlers';
   import { _, locale } from '../../lib/i18n';
-    import { formatMinutesCompact } from '../../../../lib/dist/utils/timeFormat';
+    import { formatMinutesCompact } from '../../../../lib/utils/timeFormat.js';
   import { navigate } from '../../lib/navigation';
 
   // Get user's timezone
@@ -73,14 +73,16 @@
     'sick': $_('common.sickLeave'),
     'holiday': $_('common.holiday'),
     'business-trip': $_('common.businessTrip'),
-    'child-sick': $_('common.childSickLeave')
+    'child-sick': $_('common.childSickLeave'),
+    'parent-leave': $_('common.parentLeave')
   };
 
   const TYPE_COLORS: Record<string, string> = {
     'sick': '#EF4444',
     'holiday': '#10B981',
     'business-trip': '#F59E0B',
-    'child-sick': '#EC4899'
+    'child-sick': '#EC4899',
+    'parent-leave': '#7C3AED'
   };
 
   function isToday(date: dayjs.Dayjs): boolean {
