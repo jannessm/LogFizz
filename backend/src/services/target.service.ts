@@ -382,9 +382,9 @@ export class TargetService {
             specNeedsUpdate = true;
           }
           
-          const newEndingAt = specData.ending_at ? dayjs(specData.ending_at).toDate() : undefined;
+          const newEndingAt = specData.ending_at ? dayjs(specData.ending_at).toDate() : null;
           if ((newEndingAt?.getTime() || 0) !== (existingSpec.ending_at?.getTime() || 0)) {
-            existingSpec.ending_at = newEndingAt;
+            existingSpec.ending_at = newEndingAt as any;
             specNeedsUpdate = true;
           }
           
