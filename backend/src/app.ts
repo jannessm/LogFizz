@@ -177,7 +177,7 @@ export async function buildApp() {
         info: {
           title: 'Clock Time Tracking API',
           description: 'API for the Clock time tracking application',
-          version: '1.0.0',
+          version: '1.2.3',
         },
         servers: [
           {

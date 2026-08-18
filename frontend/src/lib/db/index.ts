@@ -62,7 +62,7 @@ interface LogFizzDB extends DBSchema {
 }
 
 const DB_NAME = 'logfizz';
-const DB_VERSION = 4; // Incremented to add timelogDateIndex store
+const DB_VERSION = 5; // Incremented to add timelogDateIndex store
 
 let dbInstance: IDBPDatabase<LogFizzDB> | null = null;
 
