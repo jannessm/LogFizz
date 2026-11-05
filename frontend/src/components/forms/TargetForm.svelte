@@ -8,6 +8,7 @@
   import DateTimeInput from './DateTimeInput.svelte';
   import { dayjs } from '../../types';
   import { _ } from '../../lib/i18n';
+  import { normalizeTargetSpecs } from '../../../../lib/utils/balance.js';
 
   let {
     target = null,
@@ -228,29 +229,12 @@
     }
 
     // Filter out null specs (placeholders)
-    const validSpecs = targetSpecs
+    let validSpecs: TargetSpec[];
+    try {
+      validSpecs = normalizeTargetSpecs(targetSpecs
       .filter((s): s is SpecWithDate & { spec: TargetSpec } => s.spec !== null)
-      .map((s, index, arr) => {
+      .map((s) => {
         const spec = s.spec;
-        const startDate = dayjs(s.startDate);
-        
-        // Calculate end date based on position and archive date
-        let endDate: dayjs.Dayjs | undefined = undefined;
-        
-        if (index === 0 && archiveDate) {
-          // This is the newest (current) spec, use archive date if provided
-          endDate = dayjs(archiveDate);
-        } else if (index === 0 && !archiveDate) {
-          // No archive date, so no end date for current spec
-          endDate = undefined;
-        } else {
-          // For all older specs (including the oldest), the end date is one day
-          // before the newer spec (at index - 1 in the newest-first sorted array) starts.
-          const newerSpecStartDate = dayjs(arr[index - 1].startDate);
-          endDate = newerSpecStartDate.subtract(1, 'day');
-        }
-        
-        // Create a plain object to avoid proxy cloning issues
         return {
           id: spec.id,
           user_id: spec.user_id,
@@ -258,10 +242,14 @@
           duration_minutes: [...spec.duration_minutes], // Clone array
           exclude_holidays: spec.exclude_holidays,
           state_code: spec.state_code,
-          starting_from: startDate.toISOString(),
-          ending_at: endDate?.toISOString() ?? null,
+          starting_from: s.startDate,
+          ending_at: null,
         };
-      });
+      }), archiveDate);
+    } catch (error) {
+      errorMessage = error instanceof Error ? error.message : 'Invalid specification dates';
+      return;
+    }
 
     if (validSpecs.length === 0) {
       errorMessage = 'Please add at least one target specification';

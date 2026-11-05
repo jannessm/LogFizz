@@ -2,6 +2,7 @@ import type { TargetWithSpecs, TimeLog } from '../types';
 import { dayjs } from '../types';
 import { targetsStore } from '../stores/targets.js';
 import { balancesStore } from '../stores/balances.js';
+import { getTimelogDateRange } from '../../../lib/utils/balance.js';
 
 /**
  * Triggers balance recalculation for a timelog.
@@ -50,21 +51,14 @@ export async function recalculateBalancesForTimeLog(
  * the old or new timespan.
  */
 function buildUnionTimelog(current: TimeLog, previous: TimeLog): TimeLog {
-  const starts = [
-    dayjs(current.start_timestamp),
-    dayjs(previous.start_timestamp),
-  ];
-  const ends = [
-    current.end_timestamp ? dayjs(current.end_timestamp) : dayjs(),
-    previous.end_timestamp ? dayjs(previous.end_timestamp) : dayjs(),
-  ];
-
-  const earliestStart = starts.reduce((a, b) => a.isBefore(b) ? a : b);
-  const latestEnd = ends.reduce((a, b) => a.isAfter(b) ? a : b);
+  const ranges = [current, previous].map(getTimelogDateRange);
+  const earliestStart = ranges.map(range => range.start).sort()[0];
+  const latestEnd = ranges.map(range => range.end).sort().at(-1)!;
 
   return {
     ...current,
-    start_timestamp: earliestStart.toISOString(),
-    end_timestamp: latestEnd.toISOString(),
+    timezone: 'UTC',
+    start_timestamp: dayjs.utc(earliestStart).toISOString(),
+    end_timestamp: dayjs.utc(latestEnd).add(1, 'day').toISOString(),
   };
 }

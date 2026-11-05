@@ -2,7 +2,7 @@
  * Tests for balance calculation utilities
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import dayjs from './dayjs.js';
 import {
   getEffectiveRange,
@@ -12,12 +12,48 @@ import {
   aggregateToMonthly,
   aggregateToYearly,
   propagateCumulativeMinutes,
+  normalizeTargetSpecs,
+  getTargetCalculationRange,
   type Balance,
   type Target,
 } from './balance.js';
 import type { TimeLog, TargetSpec } from '../types/index.js';
 
 describe('Balance Calculation Utilities', () => {
+  describe('target spec dates', () => {
+    const makeSpec = (id: string, start: string, end: string | null = null): TargetSpec => ({
+      id, user_id: 'user', target_id: 'target', starting_from: start, ending_at: end,
+      duration_minutes: Array(7).fill(480), exclude_holidays: false,
+    });
+
+    it('closes older specs at the next newer start, regardless of input order', () => {
+      const specs = normalizeTargetSpecs([
+        makeSpec('new', '2025-07-01'), makeSpec('old', '2025-01-01'), makeSpec('middle', '2025-04-01'),
+      ]);
+      expect(specs.map(spec => [spec.id, spec.ending_at])).toEqual([
+        ['old', '2025-03-31T00:00:00.000Z'], ['middle', '2025-06-30T00:00:00.000Z'], ['new', null],
+      ]);
+    });
+
+    it('rejects duplicate starts and an archive date before the latest start', () => {
+      expect(() => normalizeTargetSpecs([makeSpec('first', '2025-01-01'), makeSpec('second', '2025-01-01')])).toThrow();
+      expect(() => normalizeTargetSpecs([makeSpec('first', '2025-01-01')], '2024-12-31')).toThrow();
+    });
+
+    it('uses the union of spec ranges, capped at today', () => {
+      expect(getTargetCalculationRange([
+        makeSpec('first', '2025-01-15', '2025-01-18'), makeSpec('second', '2025-01-16', '2025-01-16'),
+      ], '2025-01-20')).toEqual({ start: '2025-01-15', end: '2025-01-18' });
+      expect(getTargetCalculationRange([
+        makeSpec('first', '2025-01-15'), makeSpec('second', '2025-01-16', '2025-01-16'),
+      ], '2025-01-20')).toEqual({ start: '2025-01-15', end: '2025-01-20' });
+    });
+
+    it('does not initialize a target whose specs are all in the future', () => {
+      expect(getTargetCalculationRange([makeSpec('future', '2025-02-01')], '2025-01-20')).toBeNull();
+    });
+  });
+
   describe('getEffectiveRange', () => {
     it('should return null when timespans do not overlap', () => {
       const date = '2024-06-15';
@@ -47,7 +83,7 @@ describe('Balance Calculation Utilities', () => {
       const result = getEffectiveRange(date, start, end);
       expect(result).not.toBeNull();
       expect(result!.effectiveStart.format('YYYY-MM-DD HH:mm')).toBe('2024-06-15 20:00');
-      expect(result!.effectiveEnd.format('YYYY-MM-DD HH:mm')).toBe('2024-06-15 23:59');
+      expect(result!.effectiveEnd.format('YYYY-MM-DD HH:mm')).toBe('2024-06-16 00:00');
     });
 
     it('should handle logs fully contained within the day', () => {
@@ -107,6 +143,81 @@ describe('Balance Calculation Utilities', () => {
   });
 
   describe('calculateWorkedMinutesForDate', () => {
+    const crossingLog = {
+      id: 'crossing', timer_id: 'timer', type: 'normal', whole_day: false,
+      start_timestamp: '2025-01-15T16:00:00Z', end_timestamp: '2025-01-16T00:15:00Z',
+      timezone: 'UTC', apply_break_calculation: true,
+    } as TimeLog;
+
+    it('preserves parent-leave credit only on scheduled days', () => {
+      const log = { ...crossingLog, type: 'parent-leave' as const, whole_day: true };
+      expect(calculateWorkedMinutesForDate('2025-01-15', [log], 480)).toMatchObject({
+        worked_minutes: 480, counters: { parent_leave: 1 },
+      });
+      expect(calculateWorkedMinutesForDate('2025-01-15', [log], 0)).toMatchObject({
+        worked_minutes: 0, counters: { parent_leave: 0 },
+      });
+    });
+
+    it('clips at local midnight and applies the break on the local final day', () => {
+      const log = { ...crossingLog, timezone: 'Europe/Berlin', start_timestamp: '2025-01-15T15:00:00Z', end_timestamp: '2025-01-15T23:15:00Z' };
+      expect(calculateWorkedMinutesForDate('2025-01-15', [log]).worked_minutes).toBe(480);
+      expect(calculateWorkedMinutesForDate('2025-01-16', [log]).worked_minutes).toBe(-15);
+    });
+
+    it.each([
+      ['Europe/Berlin', '2025-01-14T23:30:00Z', '2025-01-15T00:30:00Z', '2025-01-15'],
+      ['America/New_York', '2025-01-16T02:00:00Z', '2025-01-16T03:00:00Z', '2025-01-15'],
+    ])('attributes work to the local date in %s rather than the UTC date', (timezone, start, end, date) => {
+      const log = { ...crossingLog, timezone, start_timestamp: start, end_timestamp: end, apply_break_calculation: false };
+      expect(calculateWorkedMinutesForDate(date, [log]).worked_minutes).toBe(60);
+    });
+
+    it.each([
+      ['2025-03-30', '2025-03-29T23:00:00Z', '2025-03-30T22:00:00Z', 1380],
+      ['2025-10-26', '2025-10-25T22:00:00Z', '2025-10-26T23:00:00Z', 1500],
+    ])('uses the actual local midnight boundaries on DST date %s', (date, start, end, minutes) => {
+      const log = { ...crossingLog, timezone: 'Europe/Berlin', start_timestamp: start, end_timestamp: end, apply_break_calculation: false };
+      expect(calculateWorkedMinutesForDate(date, [log]).worked_minutes).toBe(minutes);
+      expect(calculateWorkedMinutesForDate(dayjs.utc(date).add(1, 'day').format('YYYY-MM-DD'), [log]).worked_minutes).toBe(0);
+    });
+
+    it('uses each log timezone independently when aggregating the same date', () => {
+      const berlin = { ...crossingLog, timezone: 'Europe/Berlin', start_timestamp: '2025-01-14T23:30:00Z', end_timestamp: '2025-01-15T00:30:00Z', apply_break_calculation: false };
+      const newYork = { ...berlin, id: 'new-york', timezone: 'America/New_York' };
+      expect(calculateWorkedMinutesForDate('2025-01-14', [berlin, newYork]).worked_minutes).toBe(60);
+      expect(calculateWorkedMinutesForDate('2025-01-15', [berlin, newYork]).worked_minutes).toBe(60);
+    });
+
+    it('preserves every minute across midnight and subtracts a break only once', () => {
+      const log = { ...crossingLog, start_timestamp: '2025-01-15T22:00:00Z', end_timestamp: '2025-01-16T02:00:00Z', apply_break_calculation: false };
+      expect(calculateWorkedMinutesForDate('2025-01-15', [log]).worked_minutes).toBe(120);
+      expect(calculateWorkedMinutesForDate('2025-01-16', [log]).worked_minutes).toBe(120);
+    });
+
+    it('applies the break to the last occupied day when ending exactly at midnight', () => {
+      const log = { ...crossingLog, end_timestamp: '2025-01-16T00:00:00Z' };
+      expect(calculateWorkedMinutesForDate('2025-01-15', [log]).worked_minutes).toBe(450);
+      expect(calculateWorkedMinutesForDate('2025-01-16', [log]).worked_minutes).toBe(0);
+      expect(calculateWorkedMinutesForDate('2025-01-16', [log]).counters.normal_days).toBe(0);
+    });
+
+    it('does not count a deleted log', () => {
+      expect(calculateWorkedMinutesForDate('2025-01-15', [{ ...crossingLog, deleted_at: '2025-01-17' }]).worked_minutes).toBe(0);
+    });
+
+    it('leaves the running-day contribution to the live overlay without losing earlier days', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-01-16T02:00:00Z'));
+      try {
+        const log = { ...crossingLog, start_timestamp: '2025-01-15T22:00:00Z', end_timestamp: undefined };
+        expect(calculateWorkedMinutesForDate('2025-01-15', [log]).worked_minutes).toBe(120);
+        expect(calculateWorkedMinutesForDate('2025-01-16', [log]).worked_minutes).toBe(0);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('should count worked minutes from normal timelogs', () => {
       const date = '2024-06-15';
       const timelogs: Partial<TimeLog>[] = [
@@ -253,70 +364,26 @@ describe('Balance Calculation Utilities', () => {
       expect(calculateDueMinutes('2024-07-15', target)).toBe(360);
     });
 
-    it('should use the most-recent spec when multiple specs overlap (no ending_at on older spec)', () => {
-      // Simulates a user who created an initial spec and later added a new one
-      // without setting ending_at on the old spec.
-      // The array intentionally has the OLDER spec first to surface the ordering bug.
+    it('uses the latest applicable spec regardless of server ordering', () => {
       const target = createTarget([
-        {
-          starting_from: '2024-01-01',
-          // no ending_at → overlaps with spec below for dates after 2024-07-01
-          duration_minutes: [0, 480, 480, 480, 480, 480, 0], // Mon-Fri = 480
-        },
-        {
-          starting_from: '2024-07-01',
-          duration_minutes: [0, 420, 420, 420, 420, 420, 0], // Mon-Fri = 420
-        },
+        { starting_from: '2024-01-01', duration_minutes: Array(7).fill(480) },
+        { starting_from: '2024-07-01', duration_minutes: Array(7).fill(360) },
       ]);
-
-      // Date before newer spec starts → old spec applies
-      expect(calculateDueMinutes('2024-06-17', target)).toBe(480);
-
-      // Date after newer spec starts → newer spec must take precedence
-      expect(calculateDueMinutes('2024-07-15', target)).toBe(420);
-      expect(calculateDueMinutes('2025-01-06', target)).toBe(420);
-    });
-
-    it('should skip a spec whose starting_from is in the future and use the current spec', () => {
-      // Older spec is "current"; newer spec starts in the far future.
-      // Array has the future spec listed BEFORE the current one.
-      const target = createTarget([
-        {
-          starting_from: '2099-01-01', // far future
-          duration_minutes: [0, 240, 240, 240, 240, 240, 0], // 4 h
-        },
-        {
-          starting_from: '2024-01-01', // current
-          duration_minutes: [0, 480, 480, 480, 480, 480, 0], // 8 h
-        },
-      ]);
-
-      // 2024-06-17 is a Monday; the future spec must be skipped
-      expect(calculateDueMinutes('2024-06-17', target)).toBe(480);
-    });
-
-    it('should use future spec only when its starting_from date has been reached', () => {
-      const target = createTarget([
-        {
-          starting_from: '2024-01-01',
-          duration_minutes: [0, 480, 480, 480, 480, 480, 0], // 8 h
-        },
-        {
-          starting_from: '2025-01-01',
-          duration_minutes: [0, 420, 420, 420, 420, 420, 0], // 7 h
-        },
-      ]);
-
-      // Before the second spec starts
-      expect(calculateDueMinutes('2024-12-30', target)).toBe(480);
-      // On the exact start date of the second spec (Monday 2025-01-06)
-      expect(calculateDueMinutes('2025-01-06', target)).toBe(420);
-      // After the second spec starts
-      expect(calculateDueMinutes('2025-03-03', target)).toBe(420);
+      expect(calculateDueMinutes('2024-07-15', target)).toBe(360);
+      target.target_specs.reverse();
+      expect(calculateDueMinutes('2024-07-15', target)).toBe(360);
     });
   });
 
   describe('aggregateToMonthly', () => {
+    it('keeps parent-leave counters and credit without counting leave as a worked day', () => {
+      const daily = { ...createMockBalanceForCumulation('2025-01-15', 480, 480), parent_leave: 1, normal_days: 0 };
+      const monthly = aggregateToMonthly([daily]);
+      expect(monthly).toMatchObject({ worked_minutes: 480, parent_leave: 1, worked_days: 0 });
+      const yearly = aggregateToYearly([{ ...monthly, id: 'target-1_2025-01', created_at: '2025-01-01', updated_at: '2025-01-15' }]);
+      expect(yearly).toMatchObject({ worked_minutes: 480, parent_leave: 1, worked_days: 0 });
+    });
+
     it('should aggregate daily balances correctly', () => {
       const dailyBalances: Balance[] = [
         {
@@ -333,6 +400,7 @@ describe('Balance Calculation Utilities', () => {
           business_trip: 0,
           child_sick: 0,
           homeoffice: 0,
+          parent_leave: 0,
           normal_days: 1,
           worked_days: 1,
           created_at: '2024-06-01T00:00:00Z',
@@ -352,6 +420,7 @@ describe('Balance Calculation Utilities', () => {
           business_trip: 0,
           child_sick: 0,
           homeoffice: 0,
+          parent_leave: 0,
           normal_days: 1,
           worked_days: 1,
           created_at: '2024-06-02T00:00:00Z',
@@ -386,6 +455,7 @@ describe('Balance Calculation Utilities', () => {
           business_trip: 0,
           child_sick: 0,
           homeoffice: 0,
+          parent_leave: 0,
           normal_days: 0,
           worked_days: 1,
           created_at: '2024-06-01T00:00:00Z',
@@ -414,6 +484,7 @@ describe('Balance Calculation Utilities', () => {
           business_trip: 0,
           child_sick: 0,
           homeoffice: 0,
+          parent_leave: 0,
           normal_days: 1,
           worked_days: 1,
           created_at: '2024-06-01T00:00:00Z',
@@ -444,6 +515,7 @@ describe('Balance Calculation Utilities', () => {
           business_trip: 0,
           child_sick: 0,
           homeoffice: 0,
+          parent_leave: 0,
           normal_days: 19,
           worked_days: 20,
           created_at: '2024-01-01T00:00:00Z',
@@ -463,6 +535,7 @@ describe('Balance Calculation Utilities', () => {
           business_trip: 0,
           child_sick: 0,
           homeoffice: 0,
+          parent_leave: 0,
           normal_days: 17,
           worked_days: 19,
           created_at: '2024-02-01T00:00:00Z',

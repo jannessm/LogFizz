@@ -755,13 +755,9 @@ describe('Balance Calculation Tests with Seed Data', () => {
       };
       
       const oct6Result = calculateWorkedMinutesForDate('2025-10-06', [multiDayTimelog]);
-      // In Europe/Berlin (CEST, UTC+2), 20:00Z = 22:00 Berlin, 04:00Z = 06:00 Berlin
-      // Oct 6 Berlin: 22:00 - 23:59 ≈ 120 minutes
-      expect(oct6Result.worked_minutes).toBeGreaterThanOrEqual(119);
-      expect(oct6Result.worked_minutes).toBeLessThanOrEqual(120);
+      expect(oct6Result.worked_minutes).toBe(120);
       
       const oct7Result = calculateWorkedMinutesForDate('2025-10-07', [multiDayTimelog]);
-      // Oct 7 Berlin: 00:00 - 06:00 = 360 minutes
       expect(oct7Result.worked_minutes).toBe(360);
     });
   });
@@ -1188,8 +1184,8 @@ describe('Balance Calculation Tests with Seed Data', () => {
       // Total worked should be 4 * 480 = 1920
       expect(monthlyBalance.worked_minutes).toBe(1920);
       
-      // Worked days should be 4: sick + holiday + child_sick + business_trip
-      expect(monthlyBalance.worked_days).toBe(4);
+      // Only the business trip counts as a worked day.
+      expect(monthlyBalance.worked_days).toBe(1);
     });
   });
 });

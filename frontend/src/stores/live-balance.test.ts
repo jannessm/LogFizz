@@ -134,6 +134,49 @@ describe('computeLiveExtraMinutes — single active timelog', () => {
   const timerId = 'timer-1';
   const timers: Timer[] = [makeTimer(timerId, targetId)];
 
+  it('uses the active log local midnight rather than machine or UTC midnight', () => {
+    const previousTimezone = process.env.TZ;
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-16T00:30:00Z'));
+    process.env.TZ = 'America/New_York';
+    try {
+      expect(computeLiveExtraMinutes(targetId, timers, [{ ...makeActiveLog('overnight', timerId, 120), timezone: 'Europe/Berlin' }])).toBe(90);
+    } finally {
+      process.env.TZ = previousTimezone;
+      vi.useRealTimers();
+    }
+  });
+
+  it('clips each active log using its own timezone', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-16T00:30:00Z'));
+    try {
+      const activeLogs = [
+        { ...makeActiveLog('berlin', timerId, 120), timezone: 'Europe/Berlin' },
+        { ...makeActiveLog('new-york', timerId, 120), timezone: 'America/New_York' },
+      ];
+      expect(computeLiveExtraMinutes(targetId, timers, activeLogs)).toBe(210);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('only adds live minutes to the local balance date being displayed', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-16T00:30:00Z'));
+    try {
+      const activeLogs = [
+        { ...makeActiveLog('berlin', timerId, 120), timezone: 'Europe/Berlin' },
+        { ...makeActiveLog('new-york', timerId, 120), timezone: 'America/New_York' },
+      ];
+      expect(computeLiveExtraMinutes(targetId, timers, activeLogs, '2025-01-16')).toBe(90);
+      expect(computeLiveExtraMinutes(targetId, timers, activeLogs, '2025-01-15')).toBe(120);
+      expect(computeLiveExtraMinutes(targetId, timers, activeLogs, '2025-01-14')).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('returns elapsed minutes from active log', () => {
     const activeLogs = [makeActiveLog('tl-1', timerId, 30)];
     const extra = computeLiveExtraMinutes(targetId, timers, activeLogs);

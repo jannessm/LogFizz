@@ -4,6 +4,7 @@ import TimelogForm from './TimelogForm.svelte';
 import dayjs from '../../../../lib/utils/dayjs.js';
 import { get } from 'svelte/store';
 import { setDayjsLocale } from '../../lib/dateFormatting';
+import type { TimeLog, TimeLogType } from '../../types';
 
 // Mock the stores
 const mockButtons = [
@@ -121,7 +122,8 @@ describe('TimelogForm Component', () => {
     // Set end time before start time
     const endDateInput = screen.getByLabelText(/End Date/i) as HTMLInputElement;
     const endTimeInput = screen.getByLabelText(/End Time/i) as HTMLInputElement;
-    await fireEvent.input(endDateInput, { target: { value: '2024-12-04' } });
+    await fireEvent.input(endDateInput, { target: { value: '04.12.2024' } });
+    await fireEvent.blur(endDateInput);
     await fireEvent.input(endTimeInput, { target: { value: '09:00' } });
 
     // Try to submit
@@ -160,6 +162,192 @@ describe('TimelogForm Component', () => {
     // When stopping timer, running checkbox should not be shown
     // Use queryByLabelText to specifically check for the checkbox, not the "Keep Running" button
     expect(screen.queryByLabelText(/Running/i)).not.toBeInTheDocument();
+  });
+
+  describe('switching running status', () => {
+    it('defaults the end time to now when stopping a new entry', async () => {
+      const save = vi.fn();
+      render(TimelogForm, {
+        props: { selectedDate, save, close: vi.fn(), del: vi.fn() },
+      });
+
+      await fireEvent.change(screen.getByLabelText(/Timer/i), { target: { value: 'timer-2' } });
+      const beforeToggle = Date.now();
+      await fireEvent.click(screen.getByLabelText(/Running/i));
+      const afterToggle = Date.now();
+      await fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
+
+      expect(save).toHaveBeenCalledOnce();
+      const savedLog: Partial<TimeLog> = save.mock.calls[0][0];
+      expect(savedLog.end_timestamp).toBeDefined();
+      const endTime = dayjs(savedLog.end_timestamp).valueOf();
+      expect(endTime).toBeGreaterThanOrEqual(beforeToggle);
+      expect(endTime).toBeLessThanOrEqual(afterToggle);
+    });
+
+    const existingLog: TimeLog = {
+      id: 'log-1',
+      user_id: 'user-1',
+      timer_id: 'timer-2',
+      type: 'normal',
+      whole_day: false,
+      start_timestamp: '2024-12-04T09:00:00.000Z',
+      timezone: 'UTC',
+      apply_break_calculation: false,
+      notes: 'Existing entry',
+      created_at: '2024-12-04T09:00:00Z',
+      updated_at: '2024-12-04T09:00:00Z',
+    };
+    const runningTypes: TimeLogType[] = ['normal', 'homeoffice', 'business-trip'];
+
+    it.each(runningTypes)('stops an active %s entry using the current time by default', async (type) => {
+      const save = vi.fn();
+      render(TimelogForm, {
+        props: { selectedDate, existingLog: { ...existingLog, type }, save, close: vi.fn(), del: vi.fn() },
+      });
+
+      const runningCheckbox = screen.getByLabelText(/Running/i);
+      expect(runningCheckbox).toBeEnabled();
+      expect(runningCheckbox).toBeChecked();
+      expect(screen.queryByLabelText(/End Time/i)).not.toBeInTheDocument();
+
+      const beforeToggle = Date.now();
+      await fireEvent.click(runningCheckbox);
+      const afterToggle = Date.now();
+      expect(screen.getByLabelText(/End Time/i)).toBeInTheDocument();
+
+      await fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
+
+      expect(save).toHaveBeenCalledOnce();
+      const savedLog: Partial<TimeLog> = save.mock.calls[0][0];
+      expect(savedLog.start_timestamp).toBe(existingLog.start_timestamp);
+      expect(savedLog.end_timestamp).toBeDefined();
+      const endTime = dayjs(savedLog.end_timestamp).valueOf();
+      expect(endTime).toBeGreaterThanOrEqual(beforeToggle);
+      expect(endTime).toBeLessThanOrEqual(afterToggle);
+      expect(existingLog.end_timestamp).toBeUndefined();
+    });
+
+    it.each(runningTypes)('reactivates an inactive %s entry by clearing its end time', async (type) => {
+      const save = vi.fn();
+      const stoppedLog = { ...existingLog, type, end_timestamp: '2024-12-04T17:00:00Z' };
+      render(TimelogForm, {
+        props: { selectedDate, existingLog: stoppedLog, save, close: vi.fn(), del: vi.fn() },
+      });
+
+      const runningCheckbox = screen.getByLabelText(/Running/i);
+      expect(runningCheckbox).not.toBeChecked();
+      await fireEvent.click(runningCheckbox);
+      expect(screen.queryByLabelText(/End Time/i)).not.toBeInTheDocument();
+
+      await fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
+
+      expect(save).toHaveBeenCalledOnce();
+      expect(save).toHaveBeenCalledWith(expect.objectContaining({
+        id: existingLog.id,
+        start_timestamp: existingLog.start_timestamp,
+        end_timestamp: undefined,
+      }));
+      expect(stoppedLog.end_timestamp).toBe('2024-12-04T17:00:00Z');
+    });
+
+    it('resets the end time to now each time an originally active entry is stopped', async () => {
+      const save = vi.fn();
+      render(TimelogForm, {
+        props: {
+          selectedDate,
+          existingLog,
+          save,
+          close: vi.fn(),
+          del: vi.fn(),
+        },
+      });
+
+      const runningCheckbox = screen.getByLabelText(/Running/i);
+      for (let toggle = 0; toggle < 2; toggle++) {
+        const beforeToggle = Date.now();
+        await fireEvent.click(runningCheckbox);
+        const afterToggle = Date.now();
+        await fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
+
+        expect(save).toHaveBeenCalledTimes(toggle + 1);
+        const savedLog: Partial<TimeLog> = save.mock.calls[toggle][0];
+        expect(savedLog.end_timestamp).toBeDefined();
+        const endTime = dayjs(savedLog.end_timestamp).valueOf();
+        expect(endTime).toBeGreaterThanOrEqual(beforeToggle);
+        expect(endTime).toBeLessThanOrEqual(afterToggle);
+
+        await fireEvent.input(screen.getByLabelText(/End Date/i), { target: { value: '04.12.2024' } });
+        await fireEvent.blur(screen.getByLabelText(/End Date/i));
+        await fireEvent.click(runningCheckbox);
+      }
+    });
+
+    it('preserves the last end input when toggling an originally inactive entry', async () => {
+      const save = vi.fn();
+      render(TimelogForm, {
+        props: {
+          selectedDate,
+          existingLog: { ...existingLog, end_timestamp: '2024-12-04T17:00:00Z' },
+          save,
+          close: vi.fn(),
+          del: vi.fn(),
+        },
+      });
+
+      const runningCheckbox = screen.getByLabelText(/Running/i);
+      for (const endTime of ['17:00', '18:30']) {
+        await fireEvent.input(screen.getByLabelText(/End Time/i), { target: { value: endTime } });
+        await fireEvent.click(runningCheckbox);
+        await fireEvent.click(runningCheckbox);
+        expect(screen.getByLabelText(/End Time/i)).toHaveValue(endTime);
+        await fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
+
+        expect(save).toHaveBeenLastCalledWith(expect.objectContaining({
+          end_timestamp: `2024-12-04T${endTime}:00.000Z`,
+        }));
+      }
+      expect(save).toHaveBeenCalledTimes(2);
+    });
+
+    it('validates and saves a custom end time when stopping an active entry', async () => {
+      const save = vi.fn();
+      render(TimelogForm, { props: { selectedDate, existingLog, save, close: vi.fn(), del: vi.fn() } });
+
+      await fireEvent.click(screen.getByLabelText(/Running/i));
+      await fireEvent.input(screen.getByLabelText(/End Date/i), { target: { value: '04.12.2024' } });
+      await fireEvent.blur(screen.getByLabelText(/End Date/i));
+      await fireEvent.input(screen.getByLabelText(/End Time/i), { target: { value: '08:00' } });
+      await fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
+      expect(save).not.toHaveBeenCalled();
+      expect(screen.getByText(/End time must be after start time/i)).toBeInTheDocument();
+
+      await fireEvent.input(screen.getByLabelText(/End Time/i), { target: { value: '09:00' } });
+      await fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
+      expect(save).not.toHaveBeenCalled();
+      expect(screen.getByText(/Duration must be at least 1 minute/i)).toBeInTheDocument();
+
+      await fireEvent.input(screen.getByLabelText(/End Time/i), { target: { value: '17:00' } });
+      await fireEvent.click(screen.getByRole('button', { name: /^Save$/i }));
+      expect(save).toHaveBeenCalledOnce();
+      const savedLog: Partial<TimeLog> = save.mock.calls[0][0];
+      expect(dayjs(savedLog.end_timestamp).utc().format('YYYY-MM-DDTHH:mm')).toBe('2024-12-04T17:00');
+    });
+
+    it('keeps whole-day entries inactive', () => {
+      render(TimelogForm, {
+        props: {
+          selectedDate,
+          existingLog: { ...existingLog, whole_day: true, end_timestamp: '2024-12-04T09:00:00Z' },
+          save: vi.fn(),
+          close: vi.fn(),
+          del: vi.fn(),
+        },
+      });
+
+      expect(screen.getByLabelText(/Running/i)).toBeDisabled();
+      expect(screen.getByLabelText(/Running/i)).not.toBeChecked();
+    });
   });
 
   it('shows delete button only when editing existing log', () => {

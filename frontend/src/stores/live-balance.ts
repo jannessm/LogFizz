@@ -2,7 +2,8 @@ import { writable, derived, get } from 'svelte/store';
 import { activeTimeLogs } from './timelogs';
 import { balancesStore } from './balances';
 import { timers } from './timers';
-import { mapToArray } from './base-store';
+import { getCalculationDayRange } from '../../../lib/utils/balance.js';
+import { refreshTimelogDateIndex } from '../lib/db';
 import dayjs from '../../../lib/utils/dayjs.js';
 import type { TimeLog, Timer } from '../types';
 
@@ -102,16 +103,12 @@ function stopMinuteTimer() {
  * Called automatically when live balance updates occur
  */
 async function recalculateTodayBalances() {
-  const today = dayjs().format('YYYY-MM-DD');
-  const state = balancesStore.getState();
-  
-  // Find all targets that have a daily balance for today
-  const todayBalances = mapToArray(state.items).filter(b => b.date === today);
-  const targetIds = new Set(todayBalances.map(b => b.target_id));
-  
-  // Recalculate each target's daily balance
-  for (const targetId of targetIds) {
-    await balancesStore.recalculateDailyBalance(targetId, today);
+  for (const timelog of get(activeTimeLogs)) {
+    const currentTimelog = await refreshTimelogDateIndex(timelog.id);
+    if (!currentTimelog) continue;
+    const targetId = get(timers).find(timer => timer.id === currentTimelog.timer_id)?.target_id;
+    if (!targetId) continue;
+    await balancesStore.ensureBalancesUpToDate(targetId, currentTimelog);
   }
 }
 
@@ -183,22 +180,23 @@ export function computeLiveExtraMinutes(
   targetId: string,
   allTimers: Timer[],
   activeLogs: TimeLog[],
+  date?: string,
 ): number {
   const linkedTimerIds = new Set(
     allTimers.filter(t => t.target_id === targetId).map(t => t.id)
   );
-  const todayStr = dayjs().format('YYYY-MM-DD');
-  const todayStart = dayjs().startOf('day').utc();
   const now = dayjs.utc();
 
   let activeMinutes = 0;
   for (const tl of activeLogs) {
-    if (!linkedTimerIds.has(tl.timer_id)) continue;
+    if (!linkedTimerIds.has(tl.timer_id) || tl.deleted_at || tl.end_timestamp) continue;
 
     const startMoment = dayjs.utc(tl.start_timestamp);
-    const logDate = startMoment.local().format('YYYY-MM-DD');
-    // Skip timelogs not belonging to today or that haven't started yet
-    if (logDate !== todayStr && startMoment.isAfter(now)) continue;
+    if (startMoment.isAfter(now)) continue;
+    const timezone = tl.timezone || 'UTC';
+    const today = now.tz(timezone).format('YYYY-MM-DD');
+    if (date && date !== today) continue;
+    const { dayStart: todayStart } = getCalculationDayRange(today, timezone);
 
     let elapsed = now.diff(startMoment, 'minute');
     // Clip to today's start if the timelog began before midnight

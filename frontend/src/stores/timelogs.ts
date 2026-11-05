@@ -11,26 +11,6 @@ import { syncService } from '../services/sync';
 import { createBaseStore, type BaseStoreConfig, mapToArray, arrayToMap } from './base-store';
 import { dayjs, userTimezone } from '../../../lib/utils/dayjs.js';
 import { recalculateBalancesForTimeLog } from '../utils/balance-recalculation';
-/**
- * Check if a timelog started before the given timestamp
- */
-function timelogStartedBefore(timelog: TimeLog, timestamp: string): boolean {
-  return new Date(timelog.start_timestamp).getTime() < new Date(timestamp).getTime();
-}
-
-/**
- * Check if a timelog ended after the given timestamp
- * Returns true if timelog is still running (no end_timestamp) and timestamp is undefined
- */
-function timelogEndedAfter(timelog: TimeLog, timestamp?: string): boolean {
-  if (!timestamp) {
-    return timelog.end_timestamp === undefined;
-  } else if (!timelog.end_timestamp) {
-    return false;
-  } else {
-    return new Date(timelog.end_timestamp).getTime() > new Date(timestamp).getTime();
-  }
-}
 
 /**
  * Configuration for the timelogs store
@@ -63,22 +43,6 @@ const timeLogStoreConfig: BaseStoreConfig<TimeLog> = {
       // Capture the old version so afterUpdate can recalculate the union of old+new ranges
       const oldTimelog = state.items.get(timeLog.id);
       previousTimelogForRecalc = oldTimelog ? { ...oldTimelog } : undefined;
-
-      // sort all timelogs by start_timestamp
-      const allTimeLogs = mapToArray(state.items).filter(tl => tl.id !== timeLog.id)
-        .sort((a, b) =>
-          new Date(a.start_timestamp).getTime() - new Date(b.start_timestamp).getTime()
-        );
-
-      // get timelog that starts before the updated timelog and ends after
-      const warppingTimelog = allTimeLogs.find(tl => 
-        timelogStartedBefore(tl, timeLog.start_timestamp) && 
-        timelogEndedAfter(tl, timeLog.end_timestamp)
-      );
-
-      if (warppingTimelog) {
-        throw new Error('The updated time log overlaps with an existing time log.');
-      }
 
       return timeLog;
     },
@@ -396,8 +360,8 @@ export function getTimeLogsForMonthRange(year: number, month: number, range: num
         const targetMonth = targetDate.month() + 1;
         
         const monthLogs = mapToArray($timeLogsStore.items).filter((tl: TimeLog) => {
-          const logYear = tl.year ?? dayjs.utc(tl.start_timestamp).tz(userTimezone).year();
-          const logMonth = tl.month ?? (dayjs.utc(tl.start_timestamp).tz(userTimezone).month() + 1);
+          const logYear = tl.year ?? dayjs.utc(tl.start_timestamp).tz(tl.timezone || 'UTC').year();
+          const logMonth = tl.month ?? (dayjs.utc(tl.start_timestamp).tz(tl.timezone || 'UTC').month() + 1);
           return logYear === targetYear && logMonth === targetMonth;
         });
         logs.push(...monthLogs);
@@ -417,7 +381,7 @@ export function getTimeLogsForDate(date: string) {
     $timeLogsStore => {
       return mapToArray($timeLogsStore.items).filter(tl => {
         if (!tl.start_timestamp) return false;
-        const logTimezone = tl.timezone || userTimezone;
+        const logTimezone = tl.timezone || 'UTC';
         const logDate = dayjs.utc(tl.start_timestamp).tz(logTimezone);
         return logDate.format('YYYY-MM-DD') === date;
       });

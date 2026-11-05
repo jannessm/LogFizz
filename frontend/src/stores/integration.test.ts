@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { TimeLog, Timer, Balance, TargetWithSpecs, TargetSpec } from '../types';
-import { mapToArray } from './base-store';
+import { mapToArray, createBaseStore } from './base-store';
 
 /**
  * Integration tests for the balance calculation flow
@@ -9,6 +9,7 @@ import { mapToArray } from './base-store';
 
 // Mock the db module - return empty arrays by default, tests will setup specific mocks
 vi.mock('../lib/db', () => ({
+  getAllTimeLogs: vi.fn().mockResolvedValue([]),
   getTimeLogsByYearMonth: vi.fn().mockResolvedValue([]),
   getTimeLogsByDateRange: vi.fn().mockResolvedValue([]),
   getTimelogIdsForDate: vi.fn().mockResolvedValue([]),
@@ -179,6 +180,19 @@ async function initBalancesStore(balancesList: Balance[]) {
 }
 
 describe('Integration Tests - Balance Calculation Flow', () => {
+  it('publishes the new schedule before running afterUpdate calculations', async () => {
+    const timer = createMockTimer('hook-timer', 'Old');
+    const observed: string[] = [];
+    const store = createBaseStore<Timer>({
+      db: { getAll: async () => [timer], save: async () => {}, delete: async () => {} },
+      sync: { syncType: 'timer', autoSync: false, queueUpsert: async () => {}, queueDelete: async () => {} },
+      hooks: { afterUpdate: () => { observed.push(get(store).items.get(timer.id)!.name); } },
+    });
+    await store.load(false);
+    await store.update(timer.id, { name: 'New' });
+    expect(observed).toEqual(['New']);
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });

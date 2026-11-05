@@ -6,6 +6,7 @@ vi.mock('../lib/db', () => ({
   getBalancesByDate: vi.fn(),
   getBalancesByTargetId: vi.fn(),
   getAllBalances: vi.fn(),
+  getAllTimeLogs: vi.fn().mockResolvedValue([]),
   saveBalance: vi.fn(),
   deleteBalance: vi.fn(),
   getBalance: vi.fn(),
@@ -452,6 +453,25 @@ describe('ensureBalancesUpToDate', () => {
     expect(db.saveBalance).not.toHaveBeenCalled();
   });
 
+  it('recomputes existing historical days when their metadata has been invalidated', async () => {
+    const date = '2025-01-15';
+    const stale = createMockBalance('target-1_' + date, date);
+    stale.worked_minutes = 0;
+    await initStoreWithBalances([stale]);
+    mockTargets = [createMockTarget('target-1', 'user-1', date, date)];
+    mockTimers = [{ id: 'timer-1', target_id: 'target-1' }];
+    vi.mocked(db.getBalanceCalcMeta).mockResolvedValue(null);
+    vi.mocked(db.getTimelogIdsForDate).mockResolvedValue(['log']);
+    vi.mocked(db.getTimeLogsByIds).mockResolvedValue([
+      createMockTimeLog('log', 'timer-1', `${date}T08:00:00Z`, `${date}T16:00:00Z`),
+    ]);
+    vi.mocked(db.getBalancesByTargetId).mockResolvedValue([]);
+    await balancesStore.ensureBalancesUpToDate('target-1');
+    expect(db.saveBalance).toHaveBeenCalledWith(expect.objectContaining({ date, worked_minutes: 450 }));
+    vi.mocked(db.getTimelogIdsForDate).mockResolvedValue([]);
+    vi.mocked(db.getTimeLogsByIds).mockResolvedValue([]);
+  });
+
   it('should skip if target is not found', async () => {
     await initStoreWithBalances([]);
     mockTargets = [];
@@ -795,6 +815,19 @@ describe('init', () => {
     expect(db.saveBalance).not.toHaveBeenCalled();
   });
 
+  it('forces dirty source data to be recalculated even if an earlier job just wrote metadata', async () => {
+    const date = '2025-01-15';
+    await initStoreWithBalances([createMockBalance('target-1_' + date, date)]);
+    mockTargets = [createMockTarget('target-1', 'user-1', date, date)];
+    vi.mocked(db.getBalanceCalcMeta).mockResolvedValue({
+      schema_version: 1, user_id: 'user-1', targets: { 'target-1': { last_updated_day: date, updated_at: date } },
+    });
+    vi.mocked(db.getBalancesByTargetId).mockResolvedValue([]);
+    await balancesStore.init(true);
+    expect(db.saveBalance).toHaveBeenCalledWith(expect.objectContaining({ date }));
+    vi.mocked(db.getBalanceCalcMeta).mockResolvedValue(null);
+  });
+
   it('should call ensureBalancesUpToDate for each target', async () => {
     const twoDaysAgo = new Date();
     twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
@@ -857,6 +890,22 @@ describe('recalculateBalances', () => {
     vi.clearAllMocks();
     mockTargets = [];
     mockTimers = [];
+  });
+
+  it('serializes overlapping full recalculations', async () => {
+    await initStoreWithBalances([]);
+    let release!: () => void;
+    const blocked = new Promise<void>(resolve => { release = resolve; });
+    vi.mocked(db.rebuildTimelogDateIndex).mockImplementationOnce(() => blocked);
+    const first = balancesStore.recalculateBalances();
+    await vi.waitFor(() => expect(db.rebuildTimelogDateIndex).toHaveBeenCalledTimes(1));
+    const second = balancesStore.recalculateBalances();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(db.clearTimelogDateIndex).toHaveBeenCalledTimes(1);
+    release();
+    await Promise.all([first, second]);
+    expect(db.rebuildTimelogDateIndex).toHaveBeenCalledTimes(2);
   });
 
   it('should clear metadata and delete existing balances before rebuilding', async () => {

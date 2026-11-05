@@ -17,6 +17,7 @@ import type { Balance, Target, TargetSpec, Timer, TimeLog } from '../types';
 
 // Mock modules
 vi.mock('../lib/db', () => ({
+  getAllTimeLogs: vi.fn().mockResolvedValue([]),
   getAllBalances: vi.fn().mockResolvedValue([]),
   saveBalance: vi.fn(),
   deleteBalance: vi.fn(),

@@ -4,6 +4,7 @@ import { getAllTimers, saveTimer as saveTimerDB, deleteTimer as deleteTimerDB } 
 import { syncService } from '../services/sync';
 import { createBaseStore, type BaseStoreConfig, mapToArray } from './base-store';
 import dayjs from '../../../lib/utils/dayjs.js';
+const changedAssignments = new WeakSet<Timer>();
 
 /**
  * Configuration for the timers store
@@ -26,10 +27,21 @@ const timerStoreConfig: BaseStoreConfig<Timer> = {
         item.target_id = undefined;
       }
     },
-    beforeUpdate(item) {
+    beforeUpdate(item, state) {
       if (item.target_id === '') {
         item.target_id = undefined;
       }
+      if ((state.items.get(item.id)?.target_id ?? null) !== (item.target_id ?? null)) {
+        changedAssignments.add(item);
+      }
+    },
+    async afterUpdate(item) {
+      if (!changedAssignments.has(item)) return;
+      changedAssignments.delete(item);
+      const { clearBalanceCalcMeta } = await import('../lib/db');
+      await clearBalanceCalcMeta();
+      const { balancesStore } = await import('./balances');
+      await balancesStore.init(true);
     },
   },
   storeName: 'Timer',

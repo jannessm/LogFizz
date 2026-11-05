@@ -11,7 +11,10 @@ vi.mock('../lib/db', () => ({
   getSyncCursor: vi.fn().mockResolvedValue({}),
   saveSyncCursor: vi.fn(),
   getUser: vi.fn().mockResolvedValue(null),
+  clearBalanceCalcMeta: vi.fn().mockResolvedValue(undefined),
 }));
+
+vi.mock('./balances', () => ({ balancesStore: { init: vi.fn().mockResolvedValue(undefined) } }));
 
 // Mock the sync service
 vi.mock('../services/sync', () => ({

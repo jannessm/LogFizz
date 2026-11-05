@@ -1,10 +1,14 @@
 # Balance Calculations
 
-Balances are calculated bottom up. All balances are from type Balance. Yearly, Monthly, Daily are stored in separate tables in the frontend. If any Object in a chain from bottom to User changes, propagate the change up to the respective target. No hashing, instead offer recalculation button. All balances are synced to backend to lower initial setup time after login in.
+Balances are calculated bottom up. All balances are of type Balance. Yearly, monthly, and daily entries share the frontend balances table, distinguished by their date format. If any object in a chain from timelog to target changes, propagate the change up to the respective target. No hashing; instead offer a recalculation button. All balances are synced to the backend to lower initial setup time after login.
 
 If a timelog spans midnight or multiple days, only the effective range is used. In other words: the time span is clipped for the specific date and breaks are only considered, if the log ends before the respective date ends. Breaks are applied ONCE per timelog based on total duration and applied only on the last day even if the duration from start of the day to end is less then the break duration.
 
-Timezones should not be considered. If a work is done in a different timezone (see timelog timezone field), the timezone should be handled as being local time (work at 8:00am in berlin is the same as 8:00am in New York). All timestamps stored in UTC, displayed in user's local timezone. For calculation purposes, ignore timezone offset - treat as if local.
+All timestamps are stored as UTC instants, but work is attributed to calendar dates in each timelog's `timezone`. A Berlin timelog starting at `2025-01-14T23:30:00Z` starts at 00:30 on January 15 locally and contributes to the January 15 balance, not January 14. Changing the user's or machine's timezone must not move this work to a different balance date. Legacy logs without a timezone use UTC.
+
+For every requested date, construct its midnight and the next date's midnight directly in the timelog's timezone, then clip the log's UTC instants to those boundaries. Construct both midnights separately so daylight-saving transitions produce the correct 23- or 25-hour interval. Duration and break thresholds use actual elapsed minutes. Target schedules and holidays remain calendar-date rules, applied to the date being calculated; specs are not shifted by a timelog's timezone.
+
+Daily intervals are half-open: `[local date 00:00, next local date 00:00)`. A local-midnight end belongs to the preceding occupied day. This avoids losing a minute at midnight. The final local day's break deduction may make that day's contribution negative; do not clamp it to zero, since that would lose part of the one-time deduction.
 
 ```mermaid
 flowchart
@@ -59,6 +63,8 @@ TimeLogsArray1 --> TimeLog
 
 ### Target Spec Structure
 
+Specs represent successive schedules, not additive requirements. On form save, sort by start date and end each older spec one day before the next newer start. Only the newest spec uses the target archive date or remains open-ended. Duplicate start dates and ends before starts are invalid. When reading legacy overlapping specs, use the matching spec with the latest start, independently of server ordering; do not silently rewrite legacy source records.
+
 only used in the backend. the frontend gets a nested datastructure and therefore no created, updated, deleted timestamps are used by the frontend.
 
 - id!
@@ -96,6 +102,8 @@ only used in the backend. the frontend gets a nested datastructure and therefore
 
 To be as up to date as possible use a loop to trigger the update of active timelogs and propagate the due (only changes daily) and worked minutes (changes each minute). This should only happen when the balance is displayed to the user (e.g. history view).
 
+The live overlay owns the current unfinished local day's running-log contribution so it is not also counted in the persisted daily balance. Each active log uses its own timezone, and a daily view only adds live minutes belonging to the displayed date. Completed earlier-day slices of a running log remain in the daily balances. Minute updates refresh only missing date-index memberships using the current persisted running log, without rewriting the timelog or queuing a timelog sync. Stopped, deleted, or missing logs are skipped. Affected dates are then propagated through monthly and yearly balances. Once the log ends, recalculate its affected days and apply its break deduction on the final occupied local day.
+
 ### Init/recalculation of Balances
 
 Balances are still calculated bottom-up (daily -> monthly -> yearly), but we introduce a small metadata structure stored in local storage to avoid recalculating ranges that are known to be up to date.
@@ -104,7 +112,7 @@ Balances are still calculated bottom-up (daily -> monthly -> yearly), but we int
 
 Store a per-user, per-target marker for the last *day* for which balances are fully derived and propagated.
 
-- key: `balance_calc_meta_v1`
+- key in IndexedDB settings: `balance_calc_meta_v3`
 - value:
 
   - `schema_version: 1`
@@ -116,6 +124,7 @@ Notes:
 - `last_updated_day` refers to the *daily* balance layer being present and correct up to that date, and higher layers derived at least up to the same date.
 - When conflicts occur during sync (or when data is cleared), this metadata should be cleared for the affected target(s).
 - The metadata does not replace correctness guarantees: if inputs change in the past, affected ranges still need recomputation (see “Update Balances on Timelog change”).
+- The key version invalidates balances calculated by the older algorithms, including UTC-date attribution. The payload schema remains version 1. Missing metadata requires recomputing existing daily entries, not just creating missing entries. Date-index version 3 also rebuilds local-date and local-month/year indexes from stored timelogs.
 
 #### Initial calculation / full recalculation
 
@@ -125,7 +134,10 @@ Algorithm (per target):
 
 1. Determine the calculation range:
    - `range_start = min(targetSpec.starting_from)`
-   - `range_end = min(targetSpec.ending_at, today)` (inclusive)
+    - `today` is the latest current local date among the timezones of logs linked to the target, or the user's local date if the target has no logs.
+    - Consider all valid specs whose start is not in the future.
+    - `range_end = min(max(spec.ending_at ?? today), today)` (inclusive)
+    - Return without calculating when all specs are in the future. Remove balances outside a changed range before aggregating.
 2. Iterate all days from `range_start` to `range_end`:
    - compute due minutes from the applicable target spec + holiday rules
    - compute worked minutes for that date by aggregating effective durations of timelogs overlapping that date
@@ -155,8 +167,7 @@ Important: does not calculate the total duration of a timelog. instead it extrac
 
 worked_days calculation:
 
-- Increment for each day where worked_minutes > 0
-- all specials except business_trip are excluded
+- Increment for each day where worked_minutes > 0, excluding sick, child-sick, and holiday absences. Business trips and homeoffice count as worked days.
 - worked_days should be = days of the year - sick - child_sick - holiday - days not specified by the target (e.g. weekends, public holidays if exclude_holidays)
 
 ```mermaid
@@ -171,14 +182,18 @@ eachTarget --> done
 
 ### Update Balances on Timelog change
 
+Source synchronization downloads timers, timelogs, and targets before recalculation. Await store reloads, then run one serialized calculation phase. A timelog change, target-spec change, or timer-to-target reassignment invalidates derived balances, including historical days. Old and new local dates and target assignments must both be accounted for, including timezone-only edits. Automatic and manual recalculations must not overlap. Balance writes are queued during calculation and pushed after the calculation phase instead of initiating one request per day.
+
+Timelog writes, deletes, and date-index rebuilds update the relevant IndexedDB stores in read-write transactions. This prevents parallel same-day saves or a rebuild from losing index entries. The index has its own version marker and is rebuilt when that marker is obsolete.
+
 Routine to update balances without doing all the math when one timelog changes.
 
 Key change: use the same bottom-up algorithm as the initial calculation, but only *create* daily balances when they don’t exist yet. Existing daily balances are considered authoritative unless the timelog change affects their day.
 
 1) Determine affected date range:
 
-- `affected_start = date(start_timestamp)`
-- `affected_end = date(end_timestamp ?? start_timestamp)`
+- `affected_start = date(start_timestamp in the timelog timezone)`
+- `affected_end = date((end_timestamp - 1 millisecond) in the timelog timezone)` for a completed log, or its current local date for a running log.
 - If a timelog crosses midnight, all days in-between are affected.
 
 2) Ensure daily layer exists up to today (incremental extension):
@@ -275,7 +290,7 @@ eachTimelog --done--> return[return worked, counters]
 
 ```mermaid
 graph TD
-getEffectiveRange(["getEffectiveRange(date, start, end)"]) --> getStart["eff_start = dayjs(date + 0:0:0)"] --> getEnd["eff_end = dayjs(date + 23:59:59)"]
+getEffectiveRange(["getEffectiveRange(date, start, end, timezone)"]) --> getStart["eff_start = date at midnight in timelog timezone"] --> getEnd["eff_end = next local date at midnight, exclusive"]
  --> sanity{timespans overlap?} --yes--> startafter{start after eff_start &&<br>start before eff_end?} --yes--> setStart[eff_start = start] --> endbefore
      startafter --no--> endbefore{end before eff_end &&<br>end after eff_start?} --yes--> setEnd[eff_end = end] --> return[return eff_start, eff_end]
      endbefore --no--> return

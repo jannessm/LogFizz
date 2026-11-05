@@ -117,6 +117,40 @@ describe('timeLogsStore - Break Calculation', () => {
    * which is derived from the button's auto_subtract_breaks setting.
    */
   describe('update with break calculation', () => {
+    it.each([
+      { name: 'completed', end_timestamp: '2024-12-04T18:00:00Z' },
+      { name: 'running', end_timestamp: undefined },
+    ])('allows updating an entry inside another $name entry', async ({ end_timestamp }) => {
+      const wrappingLog: TimeLog = {
+        id: 'wrapping-log',
+        user_id: 'user-1',
+        timer_id: 'timer-1',
+        type: 'normal',
+        whole_day: false,
+        start_timestamp: '2024-12-04T08:00:00Z',
+        end_timestamp,
+        timezone: 'UTC',
+        apply_break_calculation: false,
+        created_at: '2024-12-04T08:00:00Z',
+        updated_at: '2024-12-04T08:00:00Z',
+      };
+      const existingLog: TimeLog = {
+        ...wrappingLog,
+        id: 'edited-log',
+        start_timestamp: '2024-12-04T09:00:00Z',
+        end_timestamp: '2024-12-04T10:00:00Z',
+      };
+      await initStoreWithTimeLogs([wrappingLog, existingLog]);
+
+      const updatedLog = await timeLogsStore.update(existingLog.id, {
+        end_timestamp: end_timestamp ? '2024-12-04T11:00:00Z' : undefined,
+      });
+
+      expect(db.saveTimeLog).toHaveBeenCalledWith(updatedLog);
+      expect(timeLogsStore.getById(existingLog.id)).toEqual(updatedLog);
+      expect(timeLogsStore.getById(wrappingLog.id)).toEqual(wrappingLog);
+    });
+
     it('should subtract 45 min break for 10-hour session when apply_break_calculation is true', async () => {
       const existingTimeLog: TimeLog = {
         id: 'log-1',
