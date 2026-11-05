@@ -42,7 +42,7 @@ vi.mock('./api', () => ({
 }));
 
 import * as db from '../lib/db';
-import { balanceApi, timeLogApi, targetApi } from './api';
+import { balanceApi, timeLogApi, targetApi, timerApi } from './api';
 import { SyncService } from './sync';
 
 describe('SyncService - Balance sync robustness', () => {
@@ -51,6 +51,38 @@ describe('SyncService - Balance sync robustness', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     syncService = new SyncService();
+    vi.mocked(db.getUnsyncedItems).mockResolvedValue([]);
+    vi.mocked(timerApi.getSyncChanges).mockResolvedValue({ timers: [], cursor: '2025-01-01T00:00:00Z' });
+  });
+
+  it('awaits asynchronous reload listeners before source recalculation', async () => {
+    const events: string[] = [];
+    syncService.afterSync('timer', async () => {
+      await Promise.resolve();
+      events.push('timers loaded');
+    });
+    syncService.afterSourceSync(async () => { events.push('recalculated'); });
+    await syncService.sync('all');
+    expect(events).toEqual(['timers loaded', 'recalculated']);
+  });
+
+  it('invalidates calculations when a remote timer assignment changes', async () => {
+    vi.mocked(timerApi.getSyncChanges).mockResolvedValue({
+      timers: [{ id: 'timer', user_id: 'user', name: 'Work', target_id: null, auto_subtract_breaks: false, archived: false, created_at: '2025-01-01', updated_at: '2025-01-02' }],
+      cursor: '2025-01-02T00:00:00Z',
+    });
+    await syncService.sync('all');
+    expect(db.clearBalanceCalcMeta).toHaveBeenCalled();
+  });
+
+  it('does not replace locally authoritative balances with push acknowledgements', async () => {
+    vi.mocked(db.getUnsyncedItems).mockResolvedValue([{ id: 'queued', type: 'balance', synced: false, data: { id: 'balance' } }]);
+    vi.mocked(balanceApi.pushSyncChanges).mockResolvedValue({
+      saved: [{ id: 'balance' } as any], cursor: '2025-01-02T00:00:00Z',
+    });
+    vi.mocked(db.getBalanceCalcMeta).mockResolvedValue({ schema_version: 1, user_id: 'user', targets: { target: { last_updated_day: '2025-01-01', updated_at: '2025-01-01' } } });
+    await syncService.sync('balance');
+    expect(db.saveBalance).not.toHaveBeenCalled();
   });
 
   describe('balance pull is skipped when local calc metadata exists', () => {

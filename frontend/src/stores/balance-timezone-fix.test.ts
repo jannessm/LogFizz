@@ -15,6 +15,7 @@ import type { TargetWithSpecs } from '../types';
 
 // Mock modules
 vi.mock('../lib/db', () => ({
+  getAllTimeLogs: vi.fn().mockResolvedValue([]),
   getAllBalances: vi.fn().mockResolvedValue([]),
   saveBalance: vi.fn(),
   deleteBalance: vi.fn(),

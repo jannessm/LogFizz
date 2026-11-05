@@ -27,6 +27,8 @@ A progressive web application built with Svelte and TypeScript that provides an 
 - Visual timer feedback with enlarged buttons
 - Real-time elapsed time display
 - Track multiple activities
+- Time entries may overlap, including running entries.
+- Switch new or existing time entries between running and stopped using the **Running** checkbox in the time entry form. Unchecking **Running** resets the end time to now for new entries and entries that were active when the form opened. Entries opened as inactive retain the last entered end time when toggled. Saving a running entry clears its end time. Whole-day entries cannot run.
 
 ### 🎯 Goal Tracking
 

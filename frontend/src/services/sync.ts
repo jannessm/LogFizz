@@ -43,6 +43,8 @@ type BalanceSyncPayload = {
 };
 
 export class SyncService {
+  private syncTask?: Promise<void>;
+  private sourceListeners: ((changed: boolean) => Promise<void> | void)[] = [];
   private syncingLocks = {
     timer: false,
     timelog: false,
@@ -50,10 +52,10 @@ export class SyncService {
     balance: false,
   };
   private syncListeners: {
-    timer: (() => void)[];
-    timelog: (() => void)[];
-    target: (() => void)[];
-    balance: (() => void)[];
+    timer: (() => Promise<void> | void)[];
+    timelog: (() => Promise<void> | void)[];
+    target: (() => Promise<void> | void)[];
+    balance: (() => Promise<void> | void)[];
   } = {
     timer: [],
     timelog: [],
@@ -129,7 +131,7 @@ export class SyncService {
     });
 
     await save(data);
-    this.notifyListeners(type);
+    await this.notifyListeners(type);
   }
 
   // Timer queue operations
@@ -186,13 +188,25 @@ export class SyncService {
 
   // Alias for external calls
   async sync(type: 'all' | 'timer' | 'timelog' | 'target' | 'balance' = 'all'): Promise<void> {
+    if (this.syncTask) {
+      await this.syncTask;
+      return this.sync(type);
+    }
+    const task = this.performSync(type);
+    this.syncTask = task;
+    try {
+      await task;
+    } finally {
+      this.syncTask = undefined;
+    }
+  }
+
+  private async performSync(type: 'all' | 'timer' | 'timelog' | 'target' | 'balance'): Promise<void> {
     if (!isOnline()) {
       return;
     }
 
-    const types = type === 'all'
-      ? ['timer', 'timelog', 'target', 'balance']
-      : [type];
+    const types = type === 'balance' ? ['balance'] : ['timer', 'timelog', 'target', 'balance'];
 
     const notSyncing = types.filter(t => !this.syncingLocks[t as keyof typeof this.syncingLocks]);
 
@@ -217,9 +231,15 @@ export class SyncService {
       await this.pushLocalChanges(configs);
       
       // Phase 2: Pull server changes since last sync
-      await this.pullServerChanges(configs);
+      const sourceDataChanged = await this.pullServerChanges(configs);
       
-      notSyncing.forEach(t => this.notifyListeners(t as keyof typeof this.syncListeners));
+      for (const sourceType of notSyncing) {
+        await this.notifyListeners(sourceType as keyof typeof this.syncListeners);
+      }
+      if (type !== 'balance') {
+        for (const listener of this.sourceListeners) await listener(sourceDataChanged);
+        await this.pushLocalChanges(configs.filter(config => config.type === 'balance'));
+      }
     } finally {
       for (const t of notSyncing) {
         this.syncingLocks[t as keyof typeof this.syncingLocks] = false;
@@ -281,9 +301,6 @@ export class SyncService {
 
     const result = await api.pushSyncChanges(payload);
 
-    // Save the new cursor
-    await saveSyncCursor(cursor, result.cursor);
-
     // remove item from sync queue since conflict alters local database
     // TODO: should keep track of local changes for proper conflict handling
     for (const qi of data) {
@@ -292,7 +309,7 @@ export class SyncService {
     }
 
     // Update local DB with server-confirmed data
-    if (result.saved) {
+    if (cursor !== 'balances' && result.saved) {
       for (const item of result.saved) {
         // TODO: delete if marked as deleted
         await save(item);
@@ -331,7 +348,7 @@ export class SyncService {
   }
 
   // Pull server changes since last cursor
-  private async pullServerChanges(typeConfigs: SyncConfig[]): Promise<void> {
+  private async pullServerChanges(typeConfigs: SyncConfig[]): Promise<boolean> {
     let sourceDataChanged = false;
 
     // Pull changes for each type (except balance, which is handled specially)
@@ -346,7 +363,7 @@ export class SyncService {
         config.save,
         config.delete
       );
-      if (changed && (config.type === 'timelog' || config.type === 'target')) {
+      if (changed) {
         sourceDataChanged = true;
       }
     });
@@ -388,19 +405,24 @@ export class SyncService {
         }
       }
     }
+    return sourceDataChanged;
   }
 
   // Add listener for sync events
   afterSync(
     type: 'timer' | 'timelog' | 'target' | 'balance',
-    callback: () => void
+    callback: () => Promise<void> | void
   ) {
     console.log('Registering sync listener for', type);
     this.syncListeners[type].push(callback);
   }
 
-  private notifyListeners(type: 'timer' | 'timelog' | 'target' | 'balance'): void {
-    this.syncListeners[type].forEach(callback => callback());
+  afterSourceSync(callback: (changed: boolean) => Promise<void> | void): void {
+    this.sourceListeners.push(callback);
+  }
+
+  private async notifyListeners(type: 'timer' | 'timelog' | 'target' | 'balance'): Promise<void> {
+    for (const callback of this.syncListeners[type]) await callback();
   }
 
   // Check if there are pending sync items

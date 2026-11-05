@@ -10,6 +10,7 @@ import {
   setBalanceCalcMetaForTarget,
   clearBalanceCalcMeta,
   getAllBalances,
+  getAllTimeLogs,
   getTimelogIdsForDate,
   getTimeLogsByIds,
   clearTimelogDateIndex,
@@ -25,6 +26,8 @@ import { holidaysStore } from './holidays';
 import type { TargetWithSpecs } from '../types';
 import {
   calculateDueMinutes,
+  getTargetCalculationRange,
+  getTimelogDateRange,
   calculateWorkedMinutesForDate,
   aggregateToMonthly,
   aggregateToYearly,
@@ -48,11 +51,19 @@ const balancesConfig: BaseStoreConfig<Balance> = {
     queueUpsert: syncService.queueUpsertBalance.bind(syncService),
     queueDelete: syncService.queueDeleteBalance.bind(syncService),
     syncType: 'balance',
+    autoSync: false,
   },
   storeName: 'balances',
 };
 
 const baseStore = createBaseStore<Balance>(balancesConfig);
+let calculationQueue = Promise.resolve();
+
+function serializeCalculation<Result>(operation: () => Promise<Result>): Promise<Result> {
+  const result = calculationQueue.then(operation);
+  calculationQueue = result.then(() => undefined, () => undefined);
+  return result;
+}
 
 /**
  * Determine balance granularity from date string format
@@ -122,7 +133,6 @@ async function prepareCalculationContext(
   // Load only the timelogs that the date index says overlap this day
   const timelogIds = await getTimelogIdsForDate(date);
   const allTimelogs = await getTimeLogsByIds(timelogIds);
-  console.log(date, timelogIds, allTimelogs);
 
   const _timers = get(timers);
   // Filter to timelogs from timers linked to this target; exclude deleted ones
@@ -177,7 +187,7 @@ export function calculateBalanceData(
     due_minutes: dueMinutes,
     worked_minutes,
     cumulative_minutes: 0, // is the cumulation of previous balances without the current one
-    worked_days: worked_minutes > 0 ? 1 : 0,
+    worked_days: worked_minutes > 0 && !counters.sick_days && !counters.holidays && !counters.child_sick && !counters.parent_leave ? 1 : 0,
     ...counters,
   };
 }
@@ -397,6 +407,10 @@ function createBalancesStore() {
       targetId: string,
       affectedTimelog?: TimeLog
     ): Promise<void> {
+      return serializeCalculation(() => this.calculateBalances(targetId, affectedTimelog));
+    },
+
+    async calculateBalances(targetId: string, affectedTimelog?: TimeLog, force = false): Promise<void> {
       const _targets = get(targets) as TargetWithSpecs[];
       const target = _targets.find(t => t.id === targetId);
       
@@ -405,19 +419,29 @@ function createBalancesStore() {
       }
 
       // Determine the calculation range from target specs
-      const sortedSpecs = [...target.target_specs].sort((a, b) =>
-        dayjs(a.starting_from).unix() - dayjs(b.starting_from).unix()
-      );
-      
-      const rangeStart = dayjs(sortedSpecs[0].starting_from).startOf('day');
-      const lastSpec = sortedSpecs[sortedSpecs.length - 1];
-      const specEnd = lastSpec.ending_at ? dayjs(lastSpec.ending_at) : null;
-      const today = dayjs().startOf('day');
-      const rangeEnd = specEnd && specEnd.isBefore(today) ? specEnd : today;
+      const timerIds = new Set(get(timers).filter(timer => timer.target_id === targetId).map(timer => timer.id));
+      const timezones = new Set((await getAllTimeLogs())
+        .filter(timelog => !timelog.deleted_at && timerIds.has(timelog.timer_id))
+        .map(timelog => timelog.timezone || 'UTC'));
+      if (!timezones.size) timezones.add(userTimezone);
+      const today = [...timezones].map(timezone => dayjs.utc().tz(timezone).format('YYYY-MM-DD')).sort().at(-1)!;
+      const range = getTargetCalculationRange(target.target_specs, today);
+      if (!range) return;
+      const rangeStart = dayjs.utc(range.start);
+      const rangeEnd = dayjs.utc(range.end);
 
       // ── 1. Read metadata ──
       const meta = await getBalanceCalcMeta();
-      const targetMeta = meta?.targets[targetId];
+      const targetMeta = force ? undefined : meta?.targets[targetId];
+      if (!targetMeta) {
+        const stored = await getBalancesByTargetId(targetId);
+        for (const balance of stored) {
+          const length = balance.date.length;
+          if (balance.date < range.start.slice(0, length) || balance.date > range.end.slice(0, length)) {
+            await baseStore.delete(balance);
+          }
+        }
+      }
       const lastUpdatedDay = targetMeta?.last_updated_day
         ? dayjs(targetMeta.last_updated_day)
         : null;
@@ -437,7 +461,7 @@ function createBalancesStore() {
             generateBalanceId(targetId, dateStr)
           );
 
-          if (!existingBalance) {
+          if (!targetMeta || !existingBalance) {
             await this.calculateAndUpsertDailyBalance(targetId, dateStr);
           }
         }
@@ -447,14 +471,9 @@ function createBalancesStore() {
       let earliestImpacted = extendFrom;
       
       if (affectedTimelog) {
-        // Use the timelog's own timezone so that e.g. a Berlin 00:30-01:30 log
-        // (UTC 23:30 prev day - 00:30) is attributed to the correct Berlin date
-        const logTz = affectedTimelog.timezone || userTimezone;
-        const affectedStart = dayjs.utc(affectedTimelog.start_timestamp).tz(logTz).startOf('day');
-        const affectedEnd = (affectedTimelog.end_timestamp
-          ? dayjs.utc(affectedTimelog.end_timestamp).tz(logTz)
-          : dayjs.utc().tz(logTz)
-        ).endOf('day');
+        const affectedRange = getTimelogDateRange(affectedTimelog);
+        const affectedStart = dayjs.utc(affectedRange.start);
+        const affectedEnd = dayjs.utc(affectedRange.end);
 
         // Update earliest impacted for monthly/yearly rebuild
         if (affectedStart.isBefore(earliestImpacted)) {
@@ -462,7 +481,8 @@ function createBalancesStore() {
         }
 
         // Recalculate each affected day
-        for (let d = affectedStart; d.isSameOrBefore(affectedEnd, 'day'); d = d.add(1, 'day')) {
+        for (let d = affectedStart.isBefore(rangeStart) ? rangeStart : affectedStart;
+          d.isSameOrBefore(affectedEnd, 'day') && d.isSameOrBefore(rangeEnd, 'day'); d = d.add(1, 'day')) {
           await this.calculateAndUpsertDailyBalance(targetId, d.format('YYYY-MM-DD'));
         }
       }
@@ -493,7 +513,8 @@ function createBalancesStore() {
      * - Extension (balances exist but < today)
      * - No-op (balances already up to date)
      */
-    async init(): Promise<void> {
+    async init(force = false): Promise<void> {
+      return serializeCalculation(async () => {
       const _targets = get(targets) as TargetWithSpecs[];
 
       if (_targets.length === 0) {
@@ -507,16 +528,18 @@ function createBalancesStore() {
       // If the index was never built (e.g. first launch after DB upgrade) this
       // will scan all timelogs once and populate it.
       await ensureTimelogDateIndex();
+      if (force) await clearBalanceCalcMeta();
 
       for (const target of _targets) {
         try {
-          await this.ensureBalancesUpToDate(target.id);
+          await this.calculateBalances(target.id, undefined, force);
         } catch (error) {
           console.error(`Error updating balances for target ${target.id}:`, error);
         }
       }
 
       console.log('Balance initialization/update complete');
+      });
     },
 
     /**
@@ -527,6 +550,7 @@ function createBalancesStore() {
      * @param targetId - Optional target ID. If omitted, recalculates all targets.
      */
     async recalculateBalances(targetId?: string): Promise<void> {
+      await serializeCalculation(async () => {
       const _targets = get(targets) as TargetWithSpecs[];
       const targetsToProcess = targetId
         ? _targets.filter(t => t.id === targetId)
@@ -539,7 +563,10 @@ function createBalancesStore() {
         
         // Delete existing balances
         const state = baseStore.getState();
-        const balancesToDelete = mapToArray(state.items).filter(b => b.target_id === target.id);
+        const stored = await getBalancesByTargetId(target.id);
+        const balancesToDelete = [...new Map([
+          ...stored, ...mapToArray(state.items).filter(balance => balance.target_id === target.id),
+        ].map(balance => [balance.id, balance])).values()];
         for (const balance of balancesToDelete) {
           await baseStore.delete(balance);
         }
@@ -552,8 +579,10 @@ function createBalancesStore() {
 
       // Rebuild using unified function
       for (const target of targetsToProcess) {
-        await this.ensureBalancesUpToDate(target.id);
+        await this.calculateBalances(target.id);
       }
+      });
+      await syncService.sync('balance');
     },
 
     /**
@@ -564,7 +593,7 @@ function createBalancesStore() {
      * @param date - Date in YYYY-MM-DD format
      */
     async recalculateDailyBalance(targetId: string, date: string): Promise<Balance | null> {
-      return await this.calculateAndUpsertDailyBalance(targetId, date);
+      return serializeCalculation(() => this.calculateAndUpsertDailyBalance(targetId, date));
     },
   };
 }

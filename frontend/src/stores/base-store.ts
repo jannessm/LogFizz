@@ -49,6 +49,7 @@ export interface DbOperations<T extends BaseItem> {
  * Sync operations interface
  */
 export interface SyncOperations<T extends BaseItem> {
+  autoSync?: boolean;
   queueUpsert: (item: T) => Promise<void>;
   queueDelete: (item: T) => Promise<void>;
   syncType: 'timer' | 'timelog' | 'target' | 'balance';
@@ -85,7 +86,7 @@ function createStoreHelpers<T extends BaseItem>(config: BaseStoreConfig<T>) {
   async function upsert(item: T) {
     await config.db.save(item);
     await config.sync.queueUpsert(item);
-    if (isOnline()) {
+    if (isOnline() && config.sync.autoSync !== false) {
       syncService.sync(config.sync.syncType);
     }
   }
@@ -93,7 +94,7 @@ function createStoreHelpers<T extends BaseItem>(config: BaseStoreConfig<T>) {
   async function deleteItem(item: T) {
     await config.db.delete(item);
     await config.sync.queueDelete(item);
-    if (isOnline()) {
+    if (isOnline() && config.sync.autoSync !== false) {
       syncService.sync(config.sync.syncType);
     }
   }
@@ -238,11 +239,6 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
 
         await upsert(updatedItem);
 
-        // Run after hook
-        if (hooks.afterUpdate) {
-          await hooks.afterUpdate(updatedItem);
-        }
-
         update(state => {
           const newItems = new Map(state.items);
           newItems.set(id, updatedItem);
@@ -252,6 +248,10 @@ export function createBaseStore<T extends BaseItem>(config: BaseStoreConfig<T>) 
             isLoading: false
           };
         });
+
+        if (hooks.afterUpdate) {
+          await hooks.afterUpdate(updatedItem);
+        }
 
         return updatedItem;
       } catch (error: any) {

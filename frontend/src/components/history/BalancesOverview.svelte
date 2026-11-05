@@ -9,7 +9,9 @@
   import { _ } from '../../lib/i18n';
   import { balancesStore } from '../../stores/balances';
   import { dayjs } from '../../types';
-  import { liveBalanceTick, liveExtraMinutesByTargetId } from '../../stores/live-balance';
+  import { liveBalanceTick, computeLiveExtraMinutes } from '../../stores/live-balance';
+  import { timers } from '../../stores/timers';
+  import { activeTimeLogs } from '../../stores/timelogs';
 
   type BalancesOverviewPeriods = {
     day: BalancePeriod & { date: string };
@@ -92,11 +94,6 @@
     selectedTargetId ? balancesDayByTargetId.get(selectedTargetId) || null : null
   );
 
-  // Whether the day period shown is today — only then do we apply live adjustment
-  const isDayToday = $derived(
-    periods?.day?.date === dayjs().format('YYYY-MM-DD')
-  );
-
   /**
    * Live-adjusted day balance: adds elapsed minutes from currently running
    * timelogs on top of the stored worked_minutes, exactly like TargetProgressBar.
@@ -106,8 +103,8 @@
     // reference tick so Svelte tracks it
     const _tick = $liveBalanceTick;
     const base = selectedDayBalance;
-    if (!base || !isDayToday || !selectedTargetId) return base;
-    const extra = $liveExtraMinutesByTargetId.get(selectedTargetId) ?? 0;
+    if (!base || !selectedTargetId) return base;
+    const extra = computeLiveExtraMinutes(selectedTargetId, $timers, $activeTimeLogs, periods.day.date);
     if (extra <= 0) return base;
     return { ...base, worked_minutes: base.worked_minutes + extra };
   })());

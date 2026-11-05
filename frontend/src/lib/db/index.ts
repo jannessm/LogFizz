@@ -1,9 +1,9 @@
 import { openDB } from 'idb';
-import type { DBSchema, IDBPDatabase } from 'idb';
+import type { DBSchema, IDBPDatabase, IDBPTransaction } from 'idb';
 import type { Timer, TimeLog, User, SyncQueueItem, Balance, Holiday, BalanceCalcMeta } from '../../types';
 import type { TargetWithSpecs } from '../../types';
 import { dayjs, userTimezone } from '../../../../lib/utils/dayjs.js';
-import { calculateTimelogDuration } from '../../../../lib/utils/balance';
+import { calculateTimelogDuration, getTimelogDateRange } from '../../../../lib/utils/balance';
 
 interface LogFizzDB extends DBSchema {
   timers: {
@@ -140,15 +140,17 @@ export async function getDB(): Promise<IDBPDatabase<LogFizzDB>> {
 // ── Timelog Date Index helpers ────────────────────────────────────────────────
 
 const TIMELOG_DATE_INDEX_BUILT_KEY = 'timelog_date_index_v1';
+const TIMELOG_DATE_INDEX_VERSION = 3;
+type TimelogTransaction = IDBPTransaction<LogFizzDB, ('timelogs' | 'timelogDateIndex' | 'settings')[], 'readwrite'>;
 
 /**
  * Enumerate all calendar days (YYYY-MM-DD, UTC) that a timelog spans.
  * Running timelogs (no end_timestamp) are treated as ending today.
  */
 function getDateRangeForTimelog(timelog: TimeLog): string[] {
-  const timezone = timelog.timezone || userTimezone || 'UTC';
-  const start = dayjs.utc(timelog.start_timestamp).tz(timezone).startOf('day');
-  const end = (timelog.end_timestamp ? dayjs.utc(timelog.end_timestamp).tz(timezone) : dayjs.utc()).endOf('day');
+  const range = getTimelogDateRange(timelog);
+  const start = dayjs.utc(range.start);
+  const end = dayjs.utc(range.end);
   const dates: string[] = [];
   for (let d = start; !d.isAfter(end); d = d.add(1, 'day')) {
     dates.push(d.format('YYYY-MM-DD'));
@@ -157,26 +159,28 @@ function getDateRangeForTimelog(timelog: TimeLog): string[] {
 }
 
 /** Add a timelog ID to all given date entries in the index (internal, uses open db). */
-async function _addToDateIndex(db: IDBPDatabase<LogFizzDB>, timelogId: string, dates: string[]): Promise<void> {
+async function _addToDateIndex(transaction: TimelogTransaction, timelogId: string, dates: string[]): Promise<void> {
+  const store = transaction.objectStore('timelogDateIndex');
   for (const date of dates) {
-    const entry = await db.get('timelogDateIndex', date) ?? { date, timelogIds: [] };
+    const entry = await store.get(date) ?? { date, timelogIds: [] };
     if (!entry.timelogIds.includes(timelogId)) {
       entry.timelogIds.push(timelogId);
-      await db.put('timelogDateIndex', entry);
+      await store.put(entry);
     }
   }
 }
 
 /** Remove a timelog ID from all given date entries in the index (internal, uses open db). */
-async function _removeFromDateIndex(db: IDBPDatabase<LogFizzDB>, timelogId: string, dates: string[]): Promise<void> {
+async function _removeFromDateIndex(transaction: TimelogTransaction, timelogId: string, dates: string[]): Promise<void> {
+  const store = transaction.objectStore('timelogDateIndex');
   for (const date of dates) {
-    const entry = await db.get('timelogDateIndex', date);
+    const entry = await store.get(date);
     if (!entry) continue;
     entry.timelogIds = entry.timelogIds.filter(id => id !== timelogId);
     if (entry.timelogIds.length === 0) {
-      await db.delete('timelogDateIndex', date);
+      await store.delete(date);
     } else {
-      await db.put('timelogDateIndex', entry);
+      await store.put(entry);
     }
   }
 }
@@ -189,6 +193,19 @@ export async function getTimelogIdsForDate(date: string): Promise<string[]> {
   const db = await getDB();
   const entry = await db.get('timelogDateIndex', date);
   return entry?.timelogIds ?? [];
+}
+
+export async function refreshTimelogDateIndex(timelogId: string): Promise<TimeLog | undefined> {
+  const db = await getDB();
+  const transaction = db.transaction(['timelogs', 'timelogDateIndex', 'settings'], 'readwrite');
+  const timelog = await transaction.objectStore('timelogs').get(timelogId);
+  if (!timelog || timelog.deleted_at || timelog.end_timestamp) {
+    await transaction.done;
+    return undefined;
+  }
+  await _addToDateIndex(transaction, timelog.id, getDateRangeForTimelog(timelog));
+  await transaction.done;
+  return timelog;
 }
 
 /**
@@ -211,8 +228,10 @@ export async function getTimeLogsByIds(ids: string[]): Promise<TimeLog[]> {
  */
 export async function clearTimelogDateIndex(): Promise<void> {
   const db = await getDB();
-  await db.clear('timelogDateIndex');
-  await db.delete('settings', TIMELOG_DATE_INDEX_BUILT_KEY);
+  const transaction = db.transaction(['timelogDateIndex', 'settings'], 'readwrite');
+  await transaction.objectStore('timelogDateIndex').clear();
+  await transaction.objectStore('settings').delete(TIMELOG_DATE_INDEX_BUILT_KEY);
+  await transaction.done;
 }
 
 /**
@@ -221,13 +240,17 @@ export async function clearTimelogDateIndex(): Promise<void> {
  */
 export async function rebuildTimelogDateIndex(): Promise<void> {
   const db = await getDB();
-  await db.clear('timelogDateIndex');
-  const allTimelogs = await db.getAll('timelogs');
+  const transaction = db.transaction(['timelogs', 'timelogDateIndex', 'settings'], 'readwrite');
+  await transaction.objectStore('timelogDateIndex').clear();
+  const allTimelogs = await transaction.objectStore('timelogs').getAll();
   for (const tl of allTimelogs) {
     if (tl.deleted_at) continue;
-    await _addToDateIndex(db, tl.id, getDateRangeForTimelog(tl));
+    const start = dayjs.utc(tl.start_timestamp).tz(tl.timezone || 'UTC');
+    await transaction.objectStore('timelogs').put({ ...tl, year: start.year(), month: start.month() + 1 });
+    await _addToDateIndex(transaction, tl.id, getDateRangeForTimelog(tl));
   }
-  await db.put('settings', true, TIMELOG_DATE_INDEX_BUILT_KEY);
+  await transaction.objectStore('settings').put(TIMELOG_DATE_INDEX_VERSION, TIMELOG_DATE_INDEX_BUILT_KEY);
+  await transaction.done;
 }
 
 /**
@@ -268,7 +291,7 @@ export async function getTimeLogsByDateRange(startDate: string, endDate: string)
 export async function ensureTimelogDateIndex(): Promise<void> {
   const db = await getDB();
   const built = await db.get('settings', TIMELOG_DATE_INDEX_BUILT_KEY);
-  if (!built) {
+  if (built !== TIMELOG_DATE_INDEX_VERSION) {
     await rebuildTimelogDateIndex();
   }
 }
@@ -306,8 +329,8 @@ export async function saveTimeLog(timelog: TimeLog): Promise<void> {
   // set month and year for indexing
   finalTimelog = {
     ...timelog,
-    month: dayjs.utc(timelog.start_timestamp).tz(userTimezone).month() + 1,
-    year: dayjs.utc(timelog.start_timestamp).tz(userTimezone).year(),
+    month: dayjs.utc(timelog.start_timestamp).tz(timelog.timezone || 'UTC').month() + 1,
+    year: dayjs.utc(timelog.start_timestamp).tz(timelog.timezone || 'UTC').year(),
   };
 
   // Determine whether to apply break calculation
@@ -339,20 +362,22 @@ export async function saveTimeLog(timelog: TimeLog): Promise<void> {
   // ── Update the timelog date index ──────────────────────────────────────────
   // Only touch the index when it has already been built to avoid accidentally
   // triggering a rebuild here (the rebuild happens lazily in ensureTimelogDateIndex).
-  const indexBuilt = await db.get('settings', TIMELOG_DATE_INDEX_BUILT_KEY);
+  const transaction = db.transaction(['timelogs', 'timelogDateIndex', 'settings'], 'readwrite');
+  const indexBuilt = await transaction.objectStore('settings').get(TIMELOG_DATE_INDEX_BUILT_KEY);
   if (indexBuilt) {
     // Remove from old dates if the timelog already existed
-    const oldTimelog = await db.get('timelogs', finalTimelog.id);
+    const oldTimelog = await transaction.objectStore('timelogs').get(finalTimelog.id);
     if (oldTimelog && !oldTimelog.deleted_at) {
-      await _removeFromDateIndex(db, oldTimelog.id, getDateRangeForTimelog(oldTimelog));
+      await _removeFromDateIndex(transaction, oldTimelog.id, getDateRangeForTimelog(oldTimelog));
     }
     // Add to new dates (unless this is a soft-delete)
     if (!finalTimelog.deleted_at) {
-      await _addToDateIndex(db, finalTimelog.id, getDateRangeForTimelog(finalTimelog));
+      await _addToDateIndex(transaction, finalTimelog.id, getDateRangeForTimelog(finalTimelog));
     }
   }
 
-  await db.put('timelogs', finalTimelog);
+  await transaction.objectStore('timelogs').put(finalTimelog);
+  await transaction.done;
 }
 
 export async function getTimeLog(id: string): Promise<TimeLog | undefined> {
@@ -383,15 +408,17 @@ export async function deleteTimeLog(timelog: TimeLog): Promise<void> {
   const db = await getDB();
 
   // Remove from date index if the index has been built
-  const indexBuilt = await db.get('settings', TIMELOG_DATE_INDEX_BUILT_KEY);
+  const transaction = db.transaction(['timelogs', 'timelogDateIndex', 'settings'], 'readwrite');
+  const indexBuilt = await transaction.objectStore('settings').get(TIMELOG_DATE_INDEX_BUILT_KEY);
   if (indexBuilt) {
-    const existing = await db.get('timelogs', timelog.id);
+    const existing = await transaction.objectStore('timelogs').get(timelog.id);
     if (existing && !existing.deleted_at) {
-      await _removeFromDateIndex(db, existing.id, getDateRangeForTimelog(existing));
+      await _removeFromDateIndex(transaction, existing.id, getDateRangeForTimelog(existing));
     }
   }
 
-  await db.delete('timelogs', timelog.id);
+  await transaction.objectStore('timelogs').delete(timelog.id);
+  await transaction.done;
 }
 
 // Sync queue operations
@@ -449,7 +476,7 @@ export async function getSetting(key: string): Promise<any> {
 }
 
 // Balance Calc Metadata operations
-const BALANCE_CALC_META_KEY = 'balance_calc_meta_v1';
+const BALANCE_CALC_META_KEY = 'balance_calc_meta_v3';
 
 /**
  * Get the balance calculation metadata

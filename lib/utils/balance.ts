@@ -32,6 +32,38 @@ export type Balance = BaseBalance;
  */
 export type BalanceGranularity = 'daily' | 'monthly' | 'yearly';
 
+export function normalizeTargetSpecs(specs: TargetSpec[], endingAt: string | null = null): TargetSpec[] {
+  const sorted = [...specs].sort((first, second) =>
+    dayjs.utc(first.starting_from).valueOf() - dayjs.utc(second.starting_from).valueOf()
+  );
+  return sorted.map((spec, index) => {
+    const start = dayjs.utc(spec.starting_from).startOf('day');
+    const next = sorted[index + 1];
+    const end = next ? dayjs.utc(next.starting_from).startOf('day').subtract(1, 'day')
+      : endingAt ? dayjs.utc(endingAt).startOf('day') : null;
+    if (!start.isValid() || (end && (!end.isValid() || end.isBefore(start)))) {
+      throw new Error('Specification dates must be valid and have distinct starts; the end cannot precede the start.');
+    }
+    return { ...spec, starting_from: start.toISOString(), ending_at: end?.toISOString() ?? null };
+  });
+}
+
+export function getTargetCalculationRange(
+  specs: TargetSpec[],
+  today = dayjs.utc().format('YYYY-MM-DD')
+): { start: string; end: string } | null {
+  const ranges = specs.flatMap(spec => {
+    const start = dayjs.utc(spec.starting_from).format('YYYY-MM-DD');
+    const end = spec.ending_at ? dayjs.utc(spec.ending_at).format('YYYY-MM-DD') : today;
+    return start <= today && end >= start ? [{ start, end: end < today ? end : today }] : [];
+  });
+  if (!ranges.length) return null;
+  return {
+    start: ranges.map(range => range.start).sort()[0],
+    end: ranges.map(range => range.end).sort().at(-1)!,
+  };
+}
+
 /**
  * Counters for whole day timelog types
  */
@@ -53,14 +85,33 @@ export interface WorkedCalculation {
   counters: WholeDayCounters;
 }
 
+export function getCalculationDayRange(date: string, timezone = 'UTC') {
+  const nextDate = dayjs.utc(date).add(1, 'day').format('YYYY-MM-DD');
+  return {
+    dayStart: dayjs.tz(date, timezone).utc(),
+    dayEnd: dayjs.tz(nextDate, timezone).utc(),
+  };
+}
+
+export function getTimelogDateRange(timelog: TimeLog): { start: string; end: string } {
+  const timezone = timelog.timezone || 'UTC';
+  const end = timelog.end_timestamp
+    ? dayjs.utc(timelog.end_timestamp).subtract(1, 'millisecond')
+    : dayjs.utc();
+  return {
+    start: dayjs.utc(timelog.start_timestamp).tz(timezone).format('YYYY-MM-DD'),
+    end: end.tz(timezone).format('YYYY-MM-DD'),
+  };
+}
+
 /**
  * Get the effective date range for a timelog within a specific day
- * Clips the timelog's start/end to the day boundaries in the given timezone
+ * Clips timestamps to a half-open calendar day in the timelog's timezone.
  * 
  * @param date - The date to calculate for (YYYY-MM-DD)
  * @param start - Timelog start timestamp
  * @param end - Timelog end timestamp (optional for running timelogs)
- * @param timezone - Timezone to use for day boundaries (defaults to UTC)
+ * @param timezone - Timelog timezone; defaults to UTC for legacy logs
  * @returns Effective start and end times clipped to the day
  */
 export function getEffectiveRange(
@@ -69,17 +120,13 @@ export function getEffectiveRange(
   end?: string | null,
   timezone?: string
 ): { effectiveStart: dayjs.Dayjs; effectiveEnd: dayjs.Dayjs } | null {
-  // Parse day boundaries in the timelog's timezone so that a Berlin log
-  // from 00:30-01:30 is attributed to the correct Berlin date
-  const tz = timezone || 'UTC';
-  const dayStart = dayjs(date).tz(tz).startOf('day');
-  const dayEnd = dayjs(date).tz(tz).endOf('day');
+  const { dayStart, dayEnd } = getCalculationDayRange(date, timezone || 'UTC');
 
   const logStart = dayjs(start).utc();
   const logEnd = end ? dayjs(end).utc() : dayjs.utc(); // Use current time for running logs
 
   // Check if timespans overlap.
-  if (logEnd.isBefore(dayStart) || logStart.isAfter(dayEnd)) {
+  if (!logEnd.isAfter(dayStart) || !logStart.isBefore(dayEnd)) {
     return null; // No overlap
   }
   
@@ -155,6 +202,7 @@ export function calculateWorkedMinutesForDate(
   const activeLogs: TimeLog[] = [];
 
   for (const timelog of timelogs) {
+    if (timelog.deleted_at) continue;
     const logTimezone = timelog.timezone || 'UTC';
     const range = getEffectiveRange(date, timelog.start_timestamp, timelog.end_timestamp, logTimezone);
     if (!range) continue;
@@ -207,7 +255,8 @@ export function calculateWorkedMinutesForDate(
     const { effectiveStart, effectiveEnd } = range;
     const logStart = dayjs.utc(timelog.start_timestamp);
     const logEnd = timelog.end_timestamp ? dayjs.utc(timelog.end_timestamp) : dayjs.utc();
-    const dayEnd = dayjs.utc(date).tz(logTimezone).endOf('day');
+    const { dayEnd } = getCalculationDayRange(date, logTimezone);
+    if (!timelog.end_timestamp && !logEnd.isAfter(dayEnd)) continue;
     const totalDuration = duration;
     const actualDuration = logEnd.diff(logStart, 'minute');
 
@@ -217,14 +266,14 @@ export function calculateWorkedMinutesForDate(
     let effectiveMinutes = effectiveEnd.diff(effectiveStart, 'minute');
 
     // If log ends within this day, adjust based on breaks
-    if (logEnd.isBefore(dayEnd) && breaksWereApplied) {
+    if (timelog.end_timestamp && !logEnd.isAfter(dayEnd) && breaksWereApplied) {
       effectiveMinutes -= (actualDuration - totalDuration);
     }
 
     worked += effectiveMinutes;
   }
 
-  return { worked_minutes: Math.max(0, Math.round(worked)), counters };
+  return { worked_minutes: Math.round(worked), counters };
 }
 
 /**
@@ -245,14 +294,11 @@ export function calculateDueMinutes(
   const dateObj = dayjs.utc(date);
   const weekday = dateObj.day(); // 0=Sunday, 6=Saturday
   
-  // Find the applicable duration spec for this date.
-  // Sort by starting_from descending so the most-recent spec takes precedence
-  // when multiple specs overlap (i.e. an older spec has no ending_at).
-  const sortedSpecs = [...target.target_specs].sort((a, b) =>
-    dayjs.utc(b.starting_from).diff(dayjs.utc(a.starting_from))
+  // Find the applicable duration spec for this date
+  const specs = [...target.target_specs].sort((first, second) =>
+    dayjs.utc(second.starting_from).valueOf() - dayjs.utc(first.starting_from).valueOf()
   );
-
-  for (const spec of sortedSpecs) {
+  for (const spec of specs) {
     const startDate = dayjs.utc(spec.starting_from);
     const endDate = spec.ending_at ? dayjs.utc(spec.ending_at) : null;
     
@@ -318,12 +364,7 @@ export function aggregateToMonthly(
     counters.parent_leave += daily.parent_leave ?? 0;
     counters.normal_days += daily.normal_days ?? 0;
     
-    // Count worked days: sum of all type-day counters so that
-    // normal_days + sick_days + holidays + business_trip + child_sick + homeoffice + parent_leave = worked_days
-    if (
-      daily.sick_days > 0 || daily.holidays > 0 || daily.child_sick > 0 ||
-      daily.homeoffice > 0 || daily.business_trip > 0 || (daily.parent_leave ?? 0) > 0 || (daily.normal_days ?? 0) > 0
-    ) {
+  if (daily.worked_minutes > 0 && !daily.sick_days && !daily.holidays && !daily.child_sick && !daily.parent_leave) {
       workedDays++;
     }
   }

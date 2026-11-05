@@ -348,10 +348,12 @@
               id="running"
               type="checkbox"
               bind:checked={isRunning}
-              disabled={newLog.whole_day || (!!existingLog && !existingLog.end_timestamp && !isTimerStop)}
+              disabled={newLog.whole_day}
               onchange={() => {
                 if (isRunning) {
                   errorMessage = '';
+                } else if (!existingLog?.end_timestamp) {
+                  endTimestamp = dayjs.utc().tz(newLog.timezone || userTimezone);
                 }
               }}
               class="w-4 h-4 text-primary border-gray-300 dark:border-gray-600 rounded focus:ring-primary"
